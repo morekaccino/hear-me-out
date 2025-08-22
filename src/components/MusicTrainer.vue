@@ -1,7 +1,7 @@
 <template>
   <div class="trainer-app">
     <!-- Microphone Status Indicator -->
-    <div class="mic-status" :class="{ 
+  <div class="mic-status" :class="{ 
       listening: isListening, 
       detecting: isDetecting,
       success: showSuccess 
@@ -14,6 +14,9 @@
       </div>
       <div v-if="detectedNote" class="detected-note">
         Detected: {{ detectedNote }}
+      </div>
+      <div v-if="latestPitch" class="detected-note" style="opacity:.7">
+        Live: {{ latestNote }} ({{ latestPitch.toFixed(1) }} Hz · {{ (latestClarity*100).toFixed(0) }}%)
       </div>
     </div>
 
@@ -34,7 +37,7 @@ import { usePitchDetection } from '../composables/usePitchDetection.js'
 import { useNoteGenerator } from '../composables/useNoteGenerator.js'
 
 // Composables
-const { isListening, startMicrophone, stopMicrophone } = usePitchDetection()
+const { isListening, startMicrophone, stopMicrophone, latestPitch, latestClarity, latestNote } = usePitchDetection()
 const { generateNote, generateStack } = useNoteGenerator()
 
 // State
