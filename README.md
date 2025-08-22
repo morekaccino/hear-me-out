@@ -1,6 +1,16 @@
 # 🎵 Music Note Flashcard Trainer
 
+[![Deploy to Firebase Hosting](https://github.com/morekaccino/hear-me-out/actions/workflows/firebase-hosting-merge.yml/badge.svg)](https://github.com/morekaccino/hear-me-out/actions/workflows/firebase-hosting-merge.yml)
+
 An interactive Vue 3 web app that helps musicians practice note recognition using real-time pitch detection.
+
+## 🚀 Live Demo
+
+**[Try it now: https://hearmeout-1995.web.app](https://hearmeout-1995.web.app)**
+
+## 📖 GitHub Repository
+
+**[Source Code: https://github.com/morekaccino/hear-me-out](https://github.com/morekaccino/hear-me-out)**
 
 ## Features
 
