@@ -141,11 +141,8 @@ function onNoteDetected(detectedNoteValue) {
     detectedNote.value = ''
   }, 800)
   
-  // Check if the detected note matches the current note (comparing just the note part, ignoring octave for flexibility)
-  const currentNoteName = currentNote.value.replace(/\d+/, '') // Remove octave
-  const detectedNoteName = detectedNoteValue.replace(/\d+/, '') // Remove octave
-  
-  if (detectedNoteName === currentNoteName) {
+  // Strict match: require exact note + octave (e.g., C4 only matches C4)
+  if (detectedNoteValue === currentNote.value) {
     showSuccess.value = true
     
     // Clear previous success timeout
@@ -162,7 +159,7 @@ function onNoteDetected(detectedNoteValue) {
         swipeRight()
         showSuccess.value = false
       }
-    }, 600)
+  }, 600)
     
     // Reset success indicator
     successTimeout = setTimeout(() => {
