@@ -19,6 +19,15 @@ export function usePitchDetection() {
   const CONFIDENCE_THRESHOLD = 1 // require only 1 solid hit
   const HISTORY_WINDOW_MS = 700 // widen window a bit for stability
 
+  // Gating to avoid repeated triggers on a sustained note
+  let lockedNote = null
+  let requireNoteOff = false
+  let refractoryUntil = 0
+  let silenceFrames = 0
+  const SILENCE_CLARITY = 0.4
+  const SILENCE_FRAMES_TO_REARM = 6 // ~100ms at 60fps
+  const REFRACTORY_MS = 700
+
   function addToDetectionHistory(note) {
     const now = Date.now()
 
@@ -44,7 +53,11 @@ export function usePitchDetection() {
       if (winner !== lastDetectedNote || elapsed > DETECTION_COOLDOWN) {
         lastDetectedNote = winner
         lastDetectionTime = now
-        onNoteDetectedCallback?.(winner)
+  onNoteDetectedCallback?.(winner)
+  // After a successful detection, lock to this note and require note-off
+  lockedNote = winner
+  requireNoteOff = true
+  refractoryUntil = now + REFRACTORY_MS
         detectionHistory = []
       }
     }
@@ -60,15 +73,52 @@ export function usePitchDetection() {
     }
 
   detector.startListening((pitch, noteName, clarity) => {
-      // Consider slightly lower clarity to capture softer instruments/voices
-      if (pitch && clarity && clarity > 0.6 && pitch > 50 && pitch < 2000) {
-        // Ensure consistent note naming
-    const name = noteName || frequencyToNoteName(pitch)
-    latestPitch.value = pitch
-    latestClarity.value = clarity
-    latestNote.value = name
-    if (name) addToDetectionHistory(name)
+      const now = Date.now()
+      const safeClarity = typeof clarity === 'number' ? clarity : 0
+
+      // Track silence frames to detect note-off
+      if (safeClarity <= SILENCE_CLARITY) {
+        silenceFrames++
+      } else {
+        silenceFrames = 0
       }
+
+      // Update live telemetry
+      if (typeof pitch === 'number') {
+        latestPitch.value = pitch
+      }
+      latestClarity.value = safeClarity
+      if (pitch) {
+        latestNote.value = (noteName || frequencyToNoteName(pitch)) || ''
+      }
+
+      // Basic validity check for a solid detection
+      const solid = pitch && safeClarity > 0.6 && pitch > 50 && pitch < 2000
+      if (!solid) {
+        return
+      }
+
+      const name = noteName || frequencyToNoteName(pitch)
+      if (!name) return
+
+      // Refractory period after a successful hit
+      if (now < refractoryUntil) {
+        return
+      }
+
+      // If we require note-off, enforce it until silence or different note
+      if (requireNoteOff && lockedNote) {
+        const noteChanged = name !== lockedNote
+        const silentEnough = silenceFrames >= SILENCE_FRAMES_TO_REARM
+        if (!noteChanged && !silentEnough) {
+          return
+        }
+        // Re-arm once conditions met
+        requireNoteOff = false
+        lockedNote = null
+      }
+
+      addToDetectionHistory(name)
     })
 
     isListening.value = true
