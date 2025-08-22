@@ -1,5 +1,22 @@
 <template>
   <div class="trainer-app">
+    <!-- Microphone Status Indicator -->
+    <div class="mic-status" :class="{ 
+      listening: isListening, 
+      detecting: isDetecting,
+      success: showSuccess 
+    }">
+      <div class="mic-icon">🎤</div>
+      <div class="status-text">
+        <span v-if="!isListening">Microphone Initializing...</span>
+        <span v-else-if="isDetecting">Note Detected!</span>
+        <span v-else>Listening for: {{ currentNote }}</span>
+      </div>
+      <div v-if="detectedNote" class="detected-note">
+        Detected: {{ detectedNote }}
+      </div>
+    </div>
+
     <Stack
       :notes="noteStack"
       @flip="flipCard"
@@ -11,7 +28,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import Stack from './Stack.vue'
 import { usePitchDetection } from '../composables/usePitchDetection.js'
 import { useNoteGenerator } from '../composables/useNoteGenerator.js'
@@ -23,6 +40,17 @@ const { generateNote, generateStack } = useNoteGenerator()
 // State
 const noteStack = ref([])
 const stackRef = ref(null)
+const isDetecting = ref(false)
+const showSuccess = ref(false)
+const detectedNote = ref('')
+let detectionTimeout = null
+let successTimeout = null
+
+// Computed
+const currentNote = computed(() => {
+  const topCard = noteStack.value[noteStack.value.length - 1]
+  return topCard ? topCard.value : ''
+})
 
 // Methods
 function initializeStack() {
@@ -95,26 +123,72 @@ function preloadNextCard() {
   }
 }
 
-function onNoteDetected(detectedNote) {
-  const currentNote = noteStack.value[noteStack.value.length - 1]?.value
+function onNoteDetected(detectedNoteValue) {
+  detectedNote.value = detectedNoteValue
+  isDetecting.value = true
   
-  if (detectedNote === currentNote) {
-    swipeRight()
-  } else if (detectedNote && detectedNote !== currentNote) {
-    swipeLeft()
+  // Clear previous timeout
+  if (detectionTimeout) {
+    clearTimeout(detectionTimeout)
+  }
+  
+  // Reset detection indicator after 800ms
+  detectionTimeout = setTimeout(() => {
+    isDetecting.value = false
+    detectedNote.value = ''
+  }, 800)
+  
+  // Check if the detected note matches the current note (comparing just the note part, ignoring octave for flexibility)
+  const currentNoteName = currentNote.value.replace(/\d+/, '') // Remove octave
+  const detectedNoteName = detectedNoteValue.replace(/\d+/, '') // Remove octave
+  
+  if (detectedNoteName === currentNoteName) {
+    showSuccess.value = true
+    
+    // Clear previous success timeout
+    if (successTimeout) {
+      clearTimeout(successTimeout)
+    }
+    
+    // Auto swipe right after a short delay to show success feedback
+    setTimeout(() => {
+      if (stackRef.value) {
+        stackRef.value.triggerAutoSwipeRight()
+        showSuccess.value = false
+      } else {
+        swipeRight()
+        showSuccess.value = false
+      }
+    }, 600)
+    
+    // Reset success indicator
+    successTimeout = setTimeout(() => {
+      showSuccess.value = false
+    }, 1500)
   }
 }
 
 // Lifecycle
 onMounted(async () => {
   initializeStack()
-  await startMicrophone(onNoteDetected)
+  
+  try {
+    await startMicrophone(onNoteDetected)
+  } catch (error) {
+    console.error('Failed to start microphone:', error)
+  }
 })
 
 onUnmounted(() => {
   stopMicrophone()
   if (stackRef.value) {
     stackRef.value.destroyGestures()
+  }
+  if (detectionTimeout) {
+    clearTimeout(detectionTimeout)
+  }
+  if (successTimeout) {
+    clearTimeout(successTimeout)
   }
 })
 </script>
@@ -124,6 +198,7 @@ onUnmounted(() => {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -133,5 +208,128 @@ onUnmounted(() => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+}
+
+/* Microphone Status Indicator */
+.mic-status {
+  position: fixed;
+  top: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: white;
+  z-index: 1000;
+  transition: all 0.3s ease;
+  min-width: 280px;
+  justify-content: center;
+}
+
+.mic-status.listening {
+  border-color: rgba(76, 175, 80, 0.5);
+  background: rgba(76, 175, 80, 0.2);
+  animation: pulse 2s infinite;
+}
+
+.mic-status.detecting {
+  border-color: rgba(33, 150, 243, 0.8);
+  background: rgba(33, 150, 243, 0.3);
+  transform: translateX(-50%) scale(1.05);
+}
+
+.mic-status.success {
+  border-color: rgba(76, 175, 80, 0.8);
+  background: rgba(76, 175, 80, 0.4);
+  transform: translateX(-50%) scale(1.1);
+}
+
+.mic-icon {
+  font-size: 1.5rem;
+  animation: bounce 2s infinite;
+}
+
+.mic-status.listening .mic-icon {
+  animation: bounce 1s infinite;
+}
+
+.mic-status.detecting .mic-icon {
+  animation: bounce 0.5s infinite;
+}
+
+.status-text {
+  font-weight: 500;
+  font-size: 1rem;
+  text-align: center;
+  flex: 1;
+}
+
+.detected-note {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  margin-left: 0.5rem;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translateX(-50%) scale(1.02);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .mic-status {
+    top: 1rem;
+    padding: 0.8rem 1.5rem;
+    min-width: 250px;
+    font-size: 0.9rem;
+  }
+  
+  .mic-icon {
+    font-size: 1.2rem;
+  }
+  
+  .detected-note {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .mic-status {
+    top: 0.5rem;
+    padding: 0.6rem 1rem;
+    min-width: 200px;
+    font-size: 0.8rem;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .detected-note {
+    margin-left: 0;
+    margin-top: 0.2rem;
+  }
 }
 </style>

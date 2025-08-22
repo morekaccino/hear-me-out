@@ -192,6 +192,7 @@ function handleSwipeRight() {
   setTimeout(() => {
     emit('swipeRight')
     cardTransform.value = ''
+    isDragging.value = false
   }, 300)
 }
 
@@ -200,14 +201,27 @@ function handleSwipeLeft() {
   setTimeout(() => {
     emit('swipeLeft')
     cardTransform.value = ''
+    isDragging.value = false
   }, 300)
+}
+
+// Method to trigger automatic swipe right (called programmatically)
+function triggerAutoSwipeRight() {
+  handleSwipeRight()
+}
+
+// Method to trigger automatic swipe left (called programmatically)
+function triggerAutoSwipeLeft() {
+  handleSwipeLeft()
 }
 
 // Expose methods
 defineExpose({
   setupGestures,
   destroyGestures,
-  cardRefs
+  cardRefs,
+  triggerAutoSwipeRight,
+  triggerAutoSwipeLeft
 })
 </script>
 
