@@ -62,7 +62,6 @@ function getEventCoords(event) {
 function isTopCard(event) {
   const target = event.target
   if (!topCardRef.value) return false
-  
   return topCardRef.value.contains(target)
 }
 
@@ -73,7 +72,6 @@ function preventDefault(event) {
 
 // --- Pointer Events Unified Handlers ---
 function handlePointerDown(event) {
-  console.log('[PointerDown]', { pointerType: event.pointerType, button: event.button, target: event.target, isTopCard: isTopCard(event) });
   if (event.pointerType === 'mouse' && event.button !== 0) return
   if (!isTopCard(event)) return
 
@@ -86,9 +84,6 @@ function handlePointerDown(event) {
   isPointerDown = true
   hasMovedDuringPress = false
   initialTouchTarget = event.target
-
-  // Do not reset flip state here; only reset on swipe
-  console.log('[PointerDown] State:', { startX, startY, isPointerDown, hasMovedDuringPress, initialTouchTarget });
 }
 
 function handlePointerMove(event) {
@@ -96,7 +91,6 @@ function handlePointerMove(event) {
   const coords = { x: event.clientX, y: event.clientY }
   const deltaX = coords.x - startX
   const deltaY = coords.y - startY
-  console.log('[PointerMove]', { deltaX, deltaY, isPointerDown, isDragging: isDragging.value });
 
   if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
     hasMovedDuringPress = true
@@ -105,12 +99,10 @@ function handlePointerMove(event) {
   if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
     if (!isDragging.value) {
       isDragging.value = true
-      console.log('[PointerMove] Drag started');
     }
     const rotation = deltaX / 20
     cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
     event.preventDefault()
-    console.log('[PointerMove] Transform:', cardTransform.value)
   }
 }
 
@@ -122,7 +114,6 @@ function handlePointerUp(event) {
   const deltaTime = Date.now() - startTime
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
   isPointerDown = false
-  console.log('[PointerUp]', { deltaX, deltaY, deltaTime, distance, isDragging: isDragging.value, hasMovedDuringPress, initialTouchTarget, eventTarget: event.target });
 
   // Swipe
   if (isDragging.value && Math.abs(deltaX) > 100) {
@@ -131,7 +122,6 @@ function handlePointerUp(event) {
     if (topCard && topCard.isFlipped) {
       topCard.isFlipped = false
     }
-    console.log('[PointerUp] Swipe', deltaX > 0 ? 'right' : 'left');
     if (deltaX > 0) {
       handleSwipeRight()
     } else {
@@ -140,7 +130,6 @@ function handlePointerUp(event) {
   }
   // Tap
   else if (!hasMovedDuringPress && distance < 10 && deltaTime < 300 && event.target === initialTouchTarget) {
-    console.log('[PointerUp] Tap/Flip');
     cardTransform.value = ''
     isDragging.value = false
     setTimeout(() => {
@@ -150,7 +139,6 @@ function handlePointerUp(event) {
   }
   // Not a swipe, not a tap: always reset
   else {
-    console.log('[PointerUp] Reset');
     cardTransform.value = ''
     isDragging.value = false
   }
@@ -161,11 +149,9 @@ function handlePointerUp(event) {
   startTime = 0
   hasMovedDuringPress = false
   initialTouchTarget = null
-  console.log('[PointerUp] State reset');
 }
 
 function handlePointerCancel(event) {
-  console.log('[PointerCancel]');
   cardTransform.value = ''
   isDragging.value = false
   isPointerDown = false
@@ -205,7 +191,6 @@ function setCardRef(el, index) {
     } else {
       topCardRef.value = null
     }
-    console.log('[setCardRef] topCardRef.value:', topCardRef.value)
   }
 }
 
