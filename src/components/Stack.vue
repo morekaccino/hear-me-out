@@ -87,11 +87,7 @@ function handlePointerDown(event) {
   hasMovedDuringPress = false
   initialTouchTarget = event.target
 
-  // Reset any flip state when starting a gesture
-  const topCard = props.notes[props.notes.length - 1]
-  if (topCard && topCard.isFlipped) {
-    topCard.isFlipped = false
-  }
+  // Do not reset flip state here; only reset on swipe
   console.log('[PointerDown] State:', { startX, startY, isPointerDown, hasMovedDuringPress, initialTouchTarget });
 }
 
@@ -130,6 +126,11 @@ function handlePointerUp(event) {
 
   // Swipe
   if (isDragging.value && Math.abs(deltaX) > 100) {
+    // Reset flip state on swipe only
+    const topCard = props.notes[props.notes.length - 1]
+    if (topCard && topCard.isFlipped) {
+      topCard.isFlipped = false
+    }
     console.log('[PointerUp] Swipe', deltaX > 0 ? 'right' : 'left');
     if (deltaX > 0) {
       handleSwipeRight()

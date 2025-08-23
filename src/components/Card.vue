@@ -170,10 +170,13 @@ defineExpose({
 </script>
 
 <style scoped>
+
 .note-card {
   position: absolute;
   width: 100%;
   height: 100%;
+  min-height: 0;
+  max-height: 100vh;
   cursor: pointer;
   transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s ease-out;
   border-radius: 20px;
@@ -190,6 +193,10 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.2);
   transform-origin: center bottom;
   transform-style: preserve-3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 .note-card.flipped {
@@ -208,7 +215,12 @@ defineExpose({
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 0;
   border-radius: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .card-front,
@@ -318,12 +330,20 @@ defineExpose({
 
 /* Mobile responsive */
 @media (max-width: 768px) {
+  .note-card {
+    height: 80vh;
+    max-height: 90vh;
+  }
   .note-letter {
     font-size: 8rem;
   }
 }
 
 @media (max-width: 480px) {
+  .note-card {
+    height: 70vh;
+    max-height: 80vh;
+  }
   .note-letter {
     font-size: 6rem;
   }
