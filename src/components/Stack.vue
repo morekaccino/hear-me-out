@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import Card from './Card.vue'
 
 const props = defineProps({
@@ -22,6 +22,16 @@ const props = defineProps({
     required: true
   }
 })
+
+watch(() => props.notes, (newNotes, oldNotes) => {
+  // Clear refs and let ref callbacks repopulate them on next render
+  topCardRef.value = null
+  cardRefs.value = []
+  // After the DOM updates and ref callbacks run, recompute the top card
+  nextTick(() => {
+    updateTopCardRef()
+  })
+}, { deep: true })
 
 const emit = defineEmits(['flip', 'swipeRight', 'swipeLeft'])
 
@@ -61,8 +71,11 @@ function getEventCoords(event) {
 
 function isTopCard(event) {
   const target = event.target
-  if (!topCardRef.value) return false
-  return topCardRef.value.contains(target)
+  if (!topCardRef.value) {
+    return false
+  }
+  const result = topCardRef.value.contains(target)
+  return result
 }
 
 function preventDefault(event) {
@@ -72,9 +85,12 @@ function preventDefault(event) {
 
 // --- Pointer Events Unified Handlers ---
 function handlePointerDown(event) {
-  if (event.pointerType === 'mouse' && event.button !== 0) return
-  if (!isTopCard(event)) return
-
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return
+  }
+  if (!isTopCard(event)) {
+    return
+  }
   event.target.setPointerCapture?.(event.pointerId)
 
   const coords = { x: event.clientX, y: event.clientY }
@@ -181,16 +197,38 @@ function destroyGestures() {
 }
 
 function setCardRef(el, index) {
+  // Always store the ref (may be null when a card is removed)
   cardRefs.value[index] = el
-  // Only set topCardRef for the top card, and only if el is a DOM element
-  if (index === props.notes.length - 1) {
-    if (el && el instanceof HTMLElement) {
-      topCardRef.value = el
-    } else if (el && el.$el) {
-      topCardRef.value = el.$el
-    } else {
-      topCardRef.value = null
+
+  // Recompute the topCardRef after any ref change. This is more robust
+  // than relying on the timing/order of ref callbacks during v-for updates.
+  updateTopCardRef()
+}
+
+function updateTopCardRef() {
+  // Prefer the ref at the last index, but fall back to the last non-null ref
+  const lastIndex = props.notes.length - 1
+  let candidate = cardRefs.value[lastIndex]
+  if (!candidate) {
+    for (let i = cardRefs.value.length - 1; i >= 0; i--) {
+      if (cardRefs.value[i]) {
+        candidate = cardRefs.value[i]
+        break
+      }
     }
+  }
+
+  if (!candidate) {
+    topCardRef.value = null
+    return
+  }
+
+  if (candidate instanceof HTMLElement) {
+    topCardRef.value = candidate
+  } else if (candidate.$el) {
+    topCardRef.value = candidate.$el
+  } else {
+    topCardRef.value = null
   }
 }
 

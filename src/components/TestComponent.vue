@@ -19,6 +19,4 @@ import { ref } from 'vue'
 
 const count = ref(0)
 const showContent = ref(true)
-
-console.log('Test component loaded successfully')
 </script>
