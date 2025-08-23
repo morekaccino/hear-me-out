@@ -55,7 +55,14 @@ const notationLoaded = ref(false)
 
 const setCardRef = (el) => {
   cardRef.value = el
-  emit('cardRef', el)
+  // Always emit the root DOM element, not the component instance
+  if (el && el instanceof HTMLElement) {
+    emit('cardRef', el)
+  } else if (el && el.$el) {
+    emit('cardRef', el.$el)
+  } else {
+    emit('cardRef', el)
+  }
 }
 
 async function renderNotation() {

@@ -1,13 +1,12 @@
 <template>
   <div class="card-container" ref="containerRef">
     <Card
-      v-for="(note, index) in notes" 
+      v-for="(note, index) in notes"
       :key="note.id"
       :note="note"
       :is-top-card="index === notes.length - 1"
       :card-style="getCardStyle(index)"
       @flip="flipCard(index)"
-      @card-ref="handleCardRef($event, index)"
       :ref="el => setCardRef(el, index)"
     />
   </div>
@@ -72,110 +71,103 @@ function preventDefault(event) {
   event.stopPropagation()
 }
 
-// Unified gesture handlers
-function handlePointerStart(event) {
-  // Only handle left mouse button or touch
-  if (event.type === 'mousedown' && event.button !== 0) return
-  
-  // Only handle gestures on the top card
+// --- Pointer Events Unified Handlers ---
+function handlePointerDown(event) {
+  console.log('[PointerDown]', { pointerType: event.pointerType, button: event.button, target: event.target, isTopCard: isTopCard(event) });
+  if (event.pointerType === 'mouse' && event.button !== 0) return
   if (!isTopCard(event)) return
-  
-  const coords = getEventCoords(event)
+
+  event.target.setPointerCapture?.(event.pointerId)
+
+  const coords = { x: event.clientX, y: event.clientY }
   startX = coords.x
   startY = coords.y
   startTime = Date.now()
   isPointerDown = true
   hasMovedDuringPress = false
   initialTouchTarget = event.target
-  
+
   // Reset any flip state when starting a gesture
   const topCard = props.notes[props.notes.length - 1]
   if (topCard && topCard.isFlipped) {
     topCard.isFlipped = false
   }
-  
-  // Prevent default behavior for touch events to avoid conflicts
-  if (event.type === 'touchstart') {
-    preventDefault(event)
-  }
+  console.log('[PointerDown] State:', { startX, startY, isPointerDown, hasMovedDuringPress, initialTouchTarget });
 }
 
 function handlePointerMove(event) {
   if (!isPointerDown) return
-  
-  const coords = getEventCoords(event)
+  const coords = { x: event.clientX, y: event.clientY }
   const deltaX = coords.x - startX
   const deltaY = coords.y - startY
-  
-  // Mark as moved if we've moved more than 5px
+  console.log('[PointerMove]', { deltaX, deltaY, isPointerDown, isDragging: isDragging.value });
+
   if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
     hasMovedDuringPress = true
   }
-  
-  // Only start dragging for horizontal movements > 10px
+
   if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
     if (!isDragging.value) {
       isDragging.value = true
+      console.log('[PointerMove] Drag started');
     }
-    
     const rotation = deltaX / 20
     cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
-    
-    // Prevent default behavior during drag
-    preventDefault(event)
+    event.preventDefault()
+    console.log('[PointerMove] Transform:', cardTransform.value)
   }
 }
 
-function handlePointerEnd(event) {
+function handlePointerUp(event) {
   if (!isPointerDown) return
-  
-  const coords = getEventCoords(event)
+  const coords = { x: event.clientX, y: event.clientY }
   const deltaX = coords.x - startX
   const deltaY = coords.y - startY
   const deltaTime = Date.now() - startTime
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
-  
   isPointerDown = false
-  
-  // Handle swipe gestures
+  console.log('[PointerUp]', { deltaX, deltaY, deltaTime, distance, isDragging: isDragging.value, hasMovedDuringPress, initialTouchTarget, eventTarget: event.target });
+
+  // Swipe
   if (isDragging.value && Math.abs(deltaX) > 100) {
+    console.log('[PointerUp] Swipe', deltaX > 0 ? 'right' : 'left');
     if (deltaX > 0) {
       handleSwipeRight()
     } else {
       handleSwipeLeft()
     }
   }
-  // Handle tap/click - must be quick, small movement, and on same target
-  else if (!hasMovedDuringPress && 
-           distance < 10 && 
-           deltaTime < 300 && 
-           event.target === initialTouchTarget) {
-    
-    // Reset position first
+  // Tap
+  else if (!hasMovedDuringPress && distance < 10 && deltaTime < 300 && event.target === initialTouchTarget) {
+    console.log('[PointerUp] Tap/Flip');
     cardTransform.value = ''
     isDragging.value = false
-    
-    // Then emit flip
     setTimeout(() => {
       const topCardIndex = props.notes.length - 1
       emit('flip', topCardIndex)
     }, 50)
   }
-  // Reset position for incomplete gestures
+  // Not a swipe, not a tap: always reset
   else {
+    console.log('[PointerUp] Reset');
     cardTransform.value = ''
-    
-    // Reset dragging state with slight delay for large movements
-    if (Math.abs(deltaX) < 50) {
-      isDragging.value = false
-    } else {
-      setTimeout(() => {
-        isDragging.value = false
-      }, 100)
-    }
+    isDragging.value = false
   }
-  
-  // Reset state
+
+  // Always reset state
+  startX = 0
+  startY = 0
+  startTime = 0
+  hasMovedDuringPress = false
+  initialTouchTarget = null
+  console.log('[PointerUp] State reset');
+}
+
+function handlePointerCancel(event) {
+  console.log('[PointerCancel]');
+  cardTransform.value = ''
+  isDragging.value = false
+  isPointerDown = false
   startX = 0
   startY = 0
   startTime = 0
@@ -183,77 +175,36 @@ function handlePointerEnd(event) {
   initialTouchTarget = null
 }
 
-// Mouse event handlers
-function handleMouseDown(event) {
-  handlePointerStart(event)
-}
-
-function handleMouseMove(event) {
-  handlePointerMove(event)
-}
-
-function handleMouseUp(event) {
-  handlePointerEnd(event)
-}
-
-// Touch event handlers
-function handleTouchStart(event) {
-  handlePointerStart(event)
-}
-
-function handleTouchMove(event) {
-  handlePointerMove(event)
-}
-
-function handleTouchEnd(event) {
-  handlePointerEnd(event)
-}
-
-// Setup and cleanup event listeners
 function setupGestures() {
   if (!containerRef.value) return
-  
   const container = containerRef.value
-  
-  // Mouse events
-  container.addEventListener('mousedown', handleMouseDown, { passive: false })
-  document.addEventListener('mousemove', handleMouseMove, { passive: false })
-  document.addEventListener('mouseup', handleMouseUp, { passive: false })
-  
-  // Touch events
-  container.addEventListener('touchstart', handleTouchStart, { passive: false })
-  container.addEventListener('touchmove', handleTouchMove, { passive: false })
-  container.addEventListener('touchend', handleTouchEnd, { passive: false })
-  container.addEventListener('touchcancel', handleTouchEnd, { passive: false })
+  container.addEventListener('pointerdown', handlePointerDown, { passive: false })
+  container.addEventListener('pointermove', handlePointerMove, { passive: false })
+  container.addEventListener('pointerup', handlePointerUp, { passive: false })
+  container.addEventListener('pointercancel', handlePointerCancel, { passive: false })
 }
 
 function destroyGestures() {
   if (!containerRef.value) return
-  
   const container = containerRef.value
-  
-  // Mouse events
-  container.removeEventListener('mousedown', handleMouseDown)
-  document.removeEventListener('mousemove', handleMouseMove)
-  document.removeEventListener('mouseup', handleMouseUp)
-  
-  // Touch events
-  container.removeEventListener('touchstart', handleTouchStart)
-  container.removeEventListener('touchmove', handleTouchMove)
-  container.removeEventListener('touchend', handleTouchEnd)
-  container.removeEventListener('touchcancel', handleTouchEnd)
+  container.removeEventListener('pointerdown', handlePointerDown)
+  container.removeEventListener('pointermove', handlePointerMove)
+  container.removeEventListener('pointerup', handlePointerUp)
+  container.removeEventListener('pointercancel', handlePointerCancel)
 }
 
 function setCardRef(el, index) {
   cardRefs.value[index] = el
+  // Only set topCardRef for the top card, and only if el is a DOM element
   if (index === props.notes.length - 1) {
-    topCardRef.value = el
-  }
-}
-
-function handleCardRef(el, index) {
-  if (index === props.notes.length - 1) {
-    topCardRef.value = el
+    if (el && el instanceof HTMLElement) {
+      topCardRef.value = el
+    } else if (el && el.$el) {
+      topCardRef.value = el.$el
+    } else {
+      topCardRef.value = null
+    }
+    console.log('[setCardRef] topCardRef.value:', topCardRef.value)
   }
 }
 
