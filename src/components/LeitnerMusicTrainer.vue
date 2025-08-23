@@ -3,16 +3,16 @@
     <div class="progress-header">
       <h2>Leitner Music Trainer</h2>
       <div class="stats">
-        <span>Octaves: {{ availableOctaves.join('-') }}</span>
+        <span>Octaves: {{ availableOctaves.join(', ') }}</span>
         <span>Due: {{ progress.dueCards }}</span>
         <span>Mastered: {{ progress.masteredCards }}/{{ progress.totalCards }}</span>
-        <span>Accuracy: {{ progress.accuracy.toFixed(1) }}%</span>
+        <span>Accuracy: {{ (progress.accuracy || 0).toFixed(1) }}%</span>
       </div>
     </div>
 
     <div v-if="!isInitialized" class="setup">
       <button @click="initialize" class="start-btn">
-        Start Learning (Octave 4)
+        Start Learning (classical guitar range starts at E2)
       </button>
     </div>
 

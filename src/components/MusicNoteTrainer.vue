@@ -100,8 +100,12 @@ import {
   noteNameToFrequency, 
   notesMatch, 
   NOTE_SYMBOLS, 
-  ACCIDENTAL_SYMBOLS 
+  ACCIDENTAL_SYMBOLS,
+  frequencyToNoteName
 } from '../utils/pitchDetection.js'
+import { useNoteGenerator } from '../composables/useNoteGenerator.js'
+
+const { generateNote: generateNoteLocal } = useNoteGenerator()
 
 // Reactive state
 const isSymbolMode = ref(true)
@@ -125,13 +129,7 @@ const score = ref({
 let pitchDetector = null
 let matchTimeout = null
 
-// Note range for random generation (C3 to C6)
-const NOTE_RANGE = [
-  'C3', 'C#3', 'D3', 'D#3', 'E3', 'F3', 'F#3', 'G3', 'G#3', 'A3', 'A#3', 'B3',
-  'C4', 'C#4', 'D4', 'D#4', 'E4', 'F4', 'F#4', 'G4', 'G#4', 'A4', 'A#4', 'B4',
-  'C5', 'C#5', 'D5', 'D#5', 'E5', 'F5', 'F#5', 'G5', 'G#5', 'A5', 'A#5', 'B5',
-  'C6'
-]
+// Use note generator for classical guitar range (E2..B5)
 
 // Computed properties
 const getAccuracyPercent = computed(() => {
@@ -141,8 +139,8 @@ const getAccuracyPercent = computed(() => {
 
 // Methods
 function generateNewNote() {
-  const randomIndex = Math.floor(Math.random() * NOTE_RANGE.length)
-  currentNote.value = NOTE_RANGE[randomIndex]
+  const n = generateNoteLocal()
+  currentNote.value = n.value
   statusText.value = isListening.value ? 'Play the note!' : 'Click microphone to start'
   statusClass.value = 'neutral'
   detectedFrequency.value = null
@@ -213,9 +211,10 @@ async function toggleMicrophone() {
     
     pitchDetector.startListening((frequency, noteName, clarity) => {
       detectedFrequency.value = frequency
-      detectedNote.value = noteName
+      detectedNote.value = noteName || (frequency ? frequencyToNoteName(frequency) : '')
       
       // Check if detected note matches current note
+      // currentNote is a sounding pitch; map to frequency directly
       const targetFrequency = noteNameToFrequency(currentNote.value)
       
       if (targetFrequency && notesMatch(frequency, targetFrequency, 50)) {

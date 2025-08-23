@@ -7,8 +7,13 @@ export class LeitnerRepository {
   init() {
     if (!localStorage.getItem(this.storageKey)) {
       const initialData = {
-        currentOctave: 4, // Start with octave 4 (middle C)
-        maxOctave: 4,     // Only allow octave 4 initially
+  // Start with octave 4 only; available range will expand slowly within
+  // the classical guitar playable range (E2 - B5) which spans octaves 2..5.
+  currentOctave: 4,
+  maxOctave: 4,
+  // Define allowed instrument octave bounds for clarity and enforcement
+  minAllowedOctave: 2,
+  maxAllowedOctave: 5,
         boxes: {
           1: [], // New cards
           2: [], // Review after 1 day
@@ -36,15 +41,35 @@ export class LeitnerRepository {
 
   // Initialize cards for current octave only
   initializeOctaveCards(octave) {
+    // Only add notes that fall within the classical guitar playable range
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const data = this.getData();
-    
+
+    // helper to compute an ordering for a note like 'C#4'
+    function noteOrder(name) {
+      const m = name.match(/^([A-G]#?)(\d+)$/);
+      if (!m) return -1;
+      const [, ltr, octStr] = m;
+      const idx = notes.indexOf(ltr);
+      const oct = parseInt(octStr);
+      return (oct + 1) * 12 + idx;
+    }
+
+    const minNote = 'E2';
+    const maxNote = 'B5';
+
     notes.forEach(note => {
-      const noteId = `${note}${octave}`;
+      const noteName = `${note}${octave}`;
+      // only include notes that lie within E2..B5
+      if (noteOrder(noteName) < noteOrder(minNote) || noteOrder(noteName) > noteOrder(maxNote)) {
+        return;
+      }
+
+      const noteId = noteName;
       const existsInAnyBox = Object.values(data.boxes).some(box => 
         box.some(card => card.id === noteId)
       );
-      
+
       if (!existsInAnyBox) {
         data.boxes[1].push({
           id: noteId,
@@ -58,7 +83,7 @@ export class LeitnerRepository {
         });
       }
     });
-    
+
     this.saveData(data);
   }
 
@@ -80,23 +105,30 @@ export class LeitnerRepository {
   // Expand to next octave when current is mastered
   expandOctaveRange() {
     const data = this.getData();
-    
-    if (this.isOctaveMastered(data.maxOctave)) {
-      // Expand up first, then down
-      if (data.maxOctave < 6) {
-        data.maxOctave += 1;
-        this.initializeOctaveCards(data.maxOctave);
-      } else if (data.currentOctave > 2) {
-        data.currentOctave -= 1;
-        this.initializeOctaveCards(data.currentOctave);
-      }
-      
-      data.stats.octaveMastery[data.currentOctave] = Date.now();
-      this.saveData(data);
-      return true;
+    // Only expand after the currently-max octave has been mastered.
+    // Expansion happens one octave at a time and stays within allowed bounds.
+    if (!this.isOctaveMastered(data.maxOctave)) return false;
+
+    const minAllowed = data.minAllowedOctave || 2;
+    const maxAllowed = data.maxAllowedOctave || 5;
+
+    // Prefer expanding upward first (higher pitch), one octave at a time
+    if (data.maxOctave < maxAllowed) {
+      data.maxOctave += 1;
+      this.initializeOctaveCards(data.maxOctave);
+    } else if (data.currentOctave > minAllowed) {
+      // If we've reached the top allowed octave, expand downward slowly
+      data.currentOctave -= 1;
+      this.initializeOctaveCards(data.currentOctave);
+    } else {
+      // Nothing to expand
+      return false;
     }
-    
-    return false;
+
+    // Record when an octave expansion occurred (store under the octave that triggered it)
+    data.stats.octaveMastery[data.maxOctave] = Date.now();
+    this.saveData(data);
+    return true;
   }
 
   getAvailableOctaves() {

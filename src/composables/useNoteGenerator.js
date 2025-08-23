@@ -5,16 +5,18 @@ export function useNoteGenerator() {
   
   // Note data constrained to classical guitar range (E2 to B5)
   const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+  // Build the full playable pool within the instrument bounds
   const playableNotes = (() => {
     const results = []
-    const minOct = 2 // E2
-    const maxOct = 5 // B5
+  const minOct = 2 // E2
+  const maxOct = 5 // Limit to octave 5 (sounding B5 max)
     for (let oct = minOct; oct <= maxOct; oct++) {
       for (const n of notes) {
         const name = `${n}${oct}`
         // Include only notes within E2 (inclusive) to B5 (inclusive)
-        const order = noteOrder(name)
-        if (order >= noteOrder('E2') && order <= noteOrder('B5')) {
+    const order = noteOrder(name)
+    // Keep pool within E2..B5 (sounding)
+    if (order >= noteOrder('E2') && order <= noteOrder('B5')) {
           results.push(name)
         }
       }
@@ -41,6 +43,24 @@ export function useNoteGenerator() {
     }
   }
 
+  // Generate a single note constrained to allowedOctaves (array of octave numbers).
+  function generateNoteForOctaves(allowedOctaves = null) {
+    let pool = playableNotes
+    if (Array.isArray(allowedOctaves) && allowedOctaves.length > 0) {
+      pool = playableNotes.filter(n => {
+        const m = n.match(/\d+$/)
+        if (!m) return false
+        return allowedOctaves.includes(parseInt(m[0]))
+      })
+    }
+    const value = pool[Math.floor(Math.random() * pool.length)]
+    return {
+      id: noteIdCounter.value++,
+      value,
+      isFlipped: false
+    }
+  }
+
   function generateStack(size = 5) {
     const stack = []
     for (let i = 0; i < size; i++) {
@@ -49,8 +69,16 @@ export function useNoteGenerator() {
     return stack
   }
 
+  function generateStackForOctaves(size = 5, allowedOctaves = null) {
+    const stack = []
+    for (let i = 0; i < size; i++) stack.push(generateNoteForOctaves(allowedOctaves))
+    return stack
+  }
+
   return {
-    generateNote,
-    generateStack
+  generateNote,
+  generateNoteForOctaves,
+  generateStack,
+  generateStackForOctaves
   }
 }

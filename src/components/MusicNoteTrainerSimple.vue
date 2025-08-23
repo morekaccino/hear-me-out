@@ -95,6 +95,9 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useNoteGenerator } from '../composables/useNoteGenerator.js'
+
+const { generateNote: generateNoteLocal } = useNoteGenerator()
 
 // Simple note symbols without external dependencies
 const NOTE_SYMBOLS = {
@@ -151,8 +154,8 @@ const getAccuracyPercent = computed(() => {
 
 // Methods
 function generateNewNote() {
-  const randomIndex = Math.floor(Math.random() * NOTE_RANGE.length)
-  currentNote.value = NOTE_RANGE[randomIndex]
+  const n = generateNoteLocal()
+  currentNote.value = n.value
   statusText.value = isListening.value ? 'Play the note!' : 'Click microphone to start'
   statusClass.value = 'neutral'
   detectedFrequency.value = null

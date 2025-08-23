@@ -27,6 +27,7 @@
 
 <script setup>
 import { ref, onMounted, onUpdated, nextTick } from 'vue'
+import { shiftNoteOctave } from '../utils/pitchDetection.js'
 
 const props = defineProps({
   note: {
@@ -47,7 +48,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['flip'])
+const emit = defineEmits(['flip', 'cardRef'])
 
 const vexflowRef = ref(null)
 const cardRef = ref(null)
@@ -131,9 +132,15 @@ async function renderNotation() {
 }
 
 function noteToVexFlowKey(note) {
-  const noteName = note.slice(0, -1)
-  const octave = note.slice(-1)
-  return `${noteName}/${octave}`
+  // Use regex to safely parse note name and octave (handles multi-digit octaves like 10)
+  const m = note.match(/^([A-G]#?)(-?\d+)$/)
+  if (!m) return note
+  const [, base, octStr] = m
+  // Convert sounding pitch to written (written = sounding + 1)
+  const written = shiftNoteOctave(`${base}${octStr}`, 1)
+  const wm = written.match(/^([A-G]#?)(-?\d+)$/)
+  const [, wbase, woct] = wm
+  return `${wbase.toLowerCase()}/${woct}`
 }
 
 onMounted(() => {

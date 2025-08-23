@@ -46,6 +46,27 @@ export function noteNameToFrequency(noteName) {
   return 440 * Math.pow(2, (midi - 69) / 12)
 }
 
+// Helpers to shift octaves and convert between sounding and written notation
+// Classical guitar is typically written an octave higher than it sounds.
+export function shiftNoteOctave(noteName, octaveShift = 0) {
+  const m = noteName.match(/^([A-G]#?)(-?\d+)$/)
+  if (!m) return noteName
+  const [, base, octStr] = m
+  const oct = parseInt(octStr, 10) + octaveShift
+  return `${base}${oct}`
+}
+
+// Convert a sounding (actual) pitch name to written pitch for notation
+// (written = sounding + 1 octave)
+export function soundingToWritten(noteName) {
+  return shiftNoteOctave(noteName, 1)
+}
+
+// Convert a written pitch (as shown on staff) to sounding pitch
+export function writtenToSounding(noteName) {
+  return shiftNoteOctave(noteName, -1)
+}
+
 // SMuFL note head Unicode characters for whole notes
 export const NOTE_SYMBOLS = {
   'C': '\uE0A2',   // noteheadWhole
@@ -142,9 +163,18 @@ export class PitchDetectorWrapper {
       // Only report pitch if clarity is good enough and frequency is in reasonable range
       if (clarity > 0.8 && pitch > 80 && pitch < 2000) {
         const noteName = frequencyToNoteName(pitch)
+        // Debug log for detected pitch
+        try {
+          console.debug('[PitchDetector] detected', { pitch, noteName, clarity, sampleRate: this.sampleRate })
+        } catch (e) {}
         if (this.onPitchDetected) {
           this.onPitchDetected(pitch, noteName, clarity)
         }
+      } else {
+        // Log when we have low clarity or out-of-range frequency for later diagnosis
+        try {
+          console.debug('[PitchDetector] ignored', { pitch, clarity })
+        } catch (e) {}
       }
 
       // Continue detection

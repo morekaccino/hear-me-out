@@ -35,6 +35,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import Hammer from 'hammerjs'
+import { useNoteGenerator } from '../composables/useNoteGenerator.js'
+import { soundingToWritten, writtenToSounding, frequencyToNoteName } from '../utils/pitchDetection.js'
 
 // State
 const noteStack = ref([])
@@ -50,8 +52,7 @@ const topCardRef = ref(null)
 let hammerInstance = null
 
 // Note data
-const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-const octaves = [3, 4, 5, 6]
+// We'll use the project's note generator for classical guitar range
 
 // Audio context for microphone
 let audioContext = null
@@ -60,24 +61,18 @@ let meydaAnalyzer = null
 let noteIdCounter = 0
 
 // Methods
-function generateNote() {
-  const randomNote = notes[Math.floor(Math.random() * notes.length)]
-  const randomOctave = octaves[Math.floor(Math.random() * octaves.length)]
-  return {
-    id: noteIdCounter++,
-    value: randomNote + randomOctave,
-    isFlipped: false
-  }
-}
+// Use useNoteGenerator to produce notes in E2..B5; instantiate generator
+const { generateNote: generateNoteLocal, generateStack: generateStackLocal } = useNoteGenerator()
 
 function initializeStack() {
   noteStack.value = [
-    generateNote(),
-    generateNote(),
-    generateNote(),
-    generateNote(),
-    generateNote()
+  generateNoteLocal(),
+  generateNoteLocal(),
+  generateNoteLocal(),
+  generateNoteLocal(),
+  generateNoteLocal()
   ]
+  console.debug('[VexFlowTrainer] initial stack', noteStack.value.map(n => n.value))
   nextTick(() => {
     // Only render the top 3 cards initially
     renderVisibleCards()
@@ -230,7 +225,7 @@ function nextCard() {
   // Remove top card and add new one
   destroyGestures()
   noteStack.value.pop()
-  noteStack.value.unshift(generateNote())
+  noteStack.value.unshift(generateNoteLocal())
   cardTransform.value = ''
   
   nextTick(() => {
@@ -256,9 +251,15 @@ function preloadNextCard() {
 }
 
 function noteToVexFlowKey(note) {
-  const noteName = note.slice(0, -1)
-  const octave = note.slice(-1)
-  return `${noteName}/${octave}`
+  // Safely parse the note and convert sounding -> written (written = sounding +1)
+  const m = note.match(/^([A-G]#?)(-?\d+)$/)
+  if (!m) return note
+  const [, base, octStr] = m
+  const written = soundingToWritten(`${base}${octStr}`)
+  const wm = written.match(/^([A-G]#?)(-?\d+)$/)
+  if (!wm) return `${base.toLowerCase()}/${octStr}`
+  const [, wbase, woct] = wm
+  return `${wbase.toLowerCase()}/${woct}`
 }
 
 async function renderNotation(element, noteValue) {
@@ -290,7 +291,8 @@ async function renderNotation(element, noteValue) {
     stave.addClef('treble')
     stave.setContext(context).draw()
 
-    const vexNote = noteToVexFlowKey(noteValue)
+  const vexNote = noteToVexFlowKey(noteValue)
+  try { console.debug('[VexFlowTrainer] renderNotation', { noteValue, written: soundingToWritten(noteValue), vexNote, staveX, staveY, staveWidth, width, height, scale }) } catch(e){}
     const note = new StaveNote({
       clef: 'treble',
       keys: [vexNote],
@@ -312,6 +314,19 @@ async function renderNotation(element, noteValue) {
 
     // Mark as rendered to prevent re-rendering
     element.setAttribute('data-rendered', 'true')
+    // Append a small debug caption showing sounding vs written pitch
+    try {
+      const written = soundingToWritten(noteValue)
+      const caption = document.createElement('div')
+      caption.className = 'note-debug'
+      caption.textContent = `sounding: ${noteValue} — written: ${written}`
+      // Remove previous caption if present
+      const prev = element.querySelector('.note-debug')
+      if (prev) prev.remove()
+      element.appendChild(caption)
+    } catch (e) {
+      // ignore debug rendering errors
+    }
 
   } catch (error) {
     console.error('VexFlow rendering error:', error)
@@ -381,15 +396,18 @@ async function startMicrophone() {
       bufferSize: 2048,
       featureExtractors: ['fundamentalFrequency'],
       callback: (features) => {
-        if (features.fundamentalFrequency && features.fundamentalFrequency > 80 && features.fundamentalFrequency < 2000) {
-          const detectedNote = frequencyToNote(features.fundamentalFrequency)
+        const f = features.fundamentalFrequency
+        if (f && f > 80 && f < 2000) {
+          const detectedNote = frequencyToNote(f)
           const currentNote = noteStack.value[noteStack.value.length - 1]?.value
-          
+          try { console.debug('[VexFlowTrainer][Meyda] fundFreq ->', { f, detectedNote, currentNote }) } catch(e){}
           if (detectedNote === currentNote) {
             swipeRight()
           } else if (detectedNote && detectedNote !== currentNote) {
             swipeLeft()
           }
+        } else {
+          try { console.debug('[VexFlowTrainer][Meyda] ignored freq', { f }) } catch(e){}
         }
       }
     })
@@ -548,6 +566,18 @@ onUnmounted(() => {
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  pointer-events: none;
+}
+
+.note-debug {
+  position: absolute;
+  bottom: 8px;
+  left: 12px;
+  font-size: 0.9rem;
+  color: rgba(0,0,0,0.6);
+  background: rgba(255,255,255,0.9);
+  padding: 4px 8px;
+  border-radius: 6px;
   pointer-events: none;
 }
 
