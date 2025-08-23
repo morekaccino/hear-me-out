@@ -1,18 +1,12 @@
 <template>
   <div class="app">
+  
     <div class="card-container">
       <div 
         v-for="(note, index) in noteStack" 
         :key="note.id"
         :class="['note-card', { 'top-card': index === noteStack.length - 1 }]"
-        :style="{ 
-          zIndex: noteStack.length - index,
-          transform: index === noteStack.length - 1 
-            ? cardTransform 
-            : `translateY(${(noteStack.length - 1 - index) * 8}px) translateX(${(noteStack.length - 1 - index) * 4}px) scale(${1 - (noteStack.length - 1 - index) * 0.03}) rotate(${(noteStack.length - 1 - index) * 2}deg)`,
-          opacity: index === noteStack.length - 1 ? 1 : (1 - (noteStack.length - 1 - index) * 0.15),
-          visibility: index < noteStack.length - 3 ? 'hidden' : 'visible'
-        }"
+  :style="getCardStyle(index)"
         @click="flipCard(index)"
         :ref="el => { if (el && index === noteStack.length - 1) topCardRef = el }"
       >
@@ -49,6 +43,7 @@ const isPointerDown = ref(false)
 const vexflowRefs = ref([])
 const cardRefs = ref([])
 const topCardRef = ref(null)
+const cardDelta = ref(0)
 let hammerInstance = null
 
 // Note data
@@ -103,8 +98,9 @@ function setupGestures() {
     hammerInstance.on('panmove', (e) => {
       if (isDragging.value) {
         const deltaX = e.deltaX
-        const rotation = deltaX / 10
-        cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
+  const rotation = deltaX / 10
+  cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
+  cardDelta.value = deltaX
       }
     })
     
@@ -121,6 +117,7 @@ function setupGestures() {
       } else {
         // Reset position
         cardTransform.value = ''
+        cardDelta.value = 0
       }
       
       setTimeout(() => {
@@ -177,7 +174,8 @@ function onSwipe(event, index) {
       isDragging.value = true
     }
     
-    cardTransform.value = `translateX(${deltaX}px) rotate(${deltaX / 20}deg)`
+  cardTransform.value = `translateX(${deltaX}px) rotate(${deltaX / 20}deg)`
+  cardDelta.value = deltaX
   }
 }
 
@@ -207,6 +205,7 @@ function endSwipe(event, index) {
 
 function swipeRight() {
   // Correct note - animate swipe right
+  cardDelta.value = 400
   cardTransform.value = 'translateX(100vw) rotate(30deg)'
   setTimeout(() => {
     nextCard()
@@ -215,6 +214,7 @@ function swipeRight() {
 
 function swipeLeft() {
   // Wrong note - animate swipe left
+  cardDelta.value = -400
   cardTransform.value = 'translateX(-100vw) rotate(-30deg)'
   setTimeout(() => {
     nextCard()
@@ -227,6 +227,7 @@ function nextCard() {
   noteStack.value.pop()
   noteStack.value.unshift(generateNoteLocal())
   cardTransform.value = ''
+  cardDelta.value = 0
   
   nextTick(() => {
     // Pre-render the new bottom card before it becomes visible
@@ -235,6 +236,36 @@ function nextCard() {
     preloadNextCard()
     setupGestures()
   })
+}
+
+function getCardStyle(index) {
+  const topIndex = noteStack.value.length - 1
+  const baseTransform = index === topIndex
+    ? cardTransform.value
+    : `translateY(${(noteStack.value.length - 1 - index) * 8}px) translateX(${(noteStack.value.length - 1 - index) * 4}px) scale(${1 - (noteStack.value.length - 1 - index) * 0.03}) rotate(${(noteStack.value.length - 1 - index) * 2}deg)`
+
+  const style = {
+    zIndex: noteStack.value.length - index,
+    transform: baseTransform,
+    opacity: index === topIndex ? 1 : (1 - (noteStack.value.length - 1 - index) * 0.15),
+    visibility: index < noteStack.value.length - 3 ? 'hidden' : 'visible'
+  }
+
+  if (index === topIndex) {
+    const t = Math.min(Math.abs(cardDelta.value) / 400, 1)
+    const alpha = (0.28 * t).toFixed(3)
+    if (cardDelta.value > 0) {
+      // green tint
+      style.background = `linear-gradient(rgba(76,175,80,${alpha}), rgba(76,175,80,${alpha})), rgba(255,255,255,0.95)`
+    } else if (cardDelta.value < 0) {
+      // red tint
+      style.background = `linear-gradient(rgba(244,67,54,${alpha}), rgba(244,67,54,${alpha})), rgba(255,255,255,0.95)`
+    } else {
+      style.background = undefined
+    }
+  }
+
+  return style
 }
 
 function preloadNextCard() {
@@ -619,6 +650,8 @@ onUnmounted(() => {
     font-size: 6rem;
   }
 }
+
+/* (flash overlay removed; per-card tinting used) */
 </style>
 
 <style scoped>

@@ -33,18 +33,26 @@
 
     <!-- Main Display Area -->
     <main class="trainer-main">
-      <!-- Current Note Display -->
-      <div class="note-display">
-        <div v-if="isSymbolMode" class="note-symbol">
-          {{ getNoteSymbol() }}
-          <div v-if="hasAccidental()" class="accidental">
-            {{ getAccidentalSymbol() }}
-          </div>
-        </div>
-        <div v-else class="note-letter">
-          {{ currentNote }}
-        </div>
+  <!-- Current Note Display (single interactive element) -->
+  <div class="note-display"
+       :style="{ transform: cardTransform }"
+       @pointerdown="handlePointerDown"
+       @pointermove="handlePointerMove"
+       @pointerup="handlePointerUp"
+       @pointercancel="handlePointerCancel"
+  >
+    <!-- per-card overlay ensures tint is visible above content -->
+    <div class="card-overlay" :style="cardOverlayStyle"></div>
+    <div v-if="isSymbolMode" class="note-symbol">
+      {{ getNoteSymbol() }}
+      <div v-if="hasAccidental()" class="accidental">
+        {{ getAccidentalSymbol() }}
       </div>
+    </div>
+    <div v-else class="note-letter">
+      {{ currentNote }}
+    </div>
+  </div>
 
       <!-- Status Display -->
       <div class="status-display">
@@ -94,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { 
   PitchDetectorWrapper, 
   noteNameToFrequency, 
@@ -119,15 +127,56 @@ const detectedFrequency = ref(null)
 const detectedNote = ref('')
 const showFrequency = ref(false)
 
+// Card transform for swipe animations
+const cardTransform = ref('')
+// track swipe delta to tint the card (negative = left/red, positive = right/green)
+const cardDelta = ref(0)
+const cardBg = computed(() => {
+  const max = 400
+  const v = Math.max(-max, Math.min(max, cardDelta.value))
+  const t = Math.min(1, Math.abs(v) / max)
+  if (v > 0) {
+    // Make the container background transparent during drag so overlay shows clearly
+    return 'transparent'
+  } else if (v < 0) {
+    return 'transparent'
+  }
+  return 'rgba(255,255,255,0.95)'
+})
+
+const cardOverlayStyle = computed(() => {
+  const max = 400
+  const v = Math.max(-max, Math.min(max, cardDelta.value))
+  const t = Math.min(1, Math.abs(v) / max)
+  const alpha = (0.6 * t)
+  if (v > 0) {
+    return {
+      background: `rgba(76,175,80,${alpha})`
+    }
+  } else if (v < 0) {
+    return {
+      background: `rgba(244,67,54,${alpha})`
+    }
+  }
+  return { background: 'transparent' }
+})
+
 // Score tracking
 const score = ref({
   correct: 0,
   total: 0
 })
 
+// (visual feedback now uses per-card tinting via cardDelta/cardBg)
+
 // Pitch detector instance
 let pitchDetector = null
 let matchTimeout = null
+
+// Pointer/drag state for manual swipes
+let startX = 0
+let isPointerDownLocal = false
+let isDraggingLocal = false
 
 // Use note generator for classical guitar range (E2..B5)
 
@@ -145,6 +194,96 @@ function generateNewNote() {
   statusClass.value = 'neutral'
   detectedFrequency.value = null
   detectedNote.value = ''
+  // Reset any card transform from previous swipe
+  cardTransform.value = ''
+  cardDelta.value = 0
+}
+
+// Pointer / drag handlers so manual swipes tint and trigger same swipe logic
+function handlePointerDown(e) {
+  // only left mouse or touch
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+  isPointerDownLocal = true
+  isDraggingLocal = false
+  // capture the pointer so pointermove fires reliably on desktop
+  try { e.target.setPointerCapture?.(e.pointerId) } catch (err) {}
+  e.preventDefault?.()
+  startX = e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0
+}
+
+function handlePointerMove(e) {
+  if (!isPointerDownLocal) return
+  const currentX = e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0
+  const deltaX = currentX - startX
+  if (Math.abs(deltaX) > 5) {
+    isDraggingLocal = true
+  }
+  if (isDraggingLocal) {
+    cardTransform.value = `translateX(${deltaX}px) rotate(${deltaX / 20}deg)`
+    cardDelta.value = deltaX
+    // prevent accidental text selection/scroll
+    e.preventDefault?.()
+  }
+}
+
+function handlePointerUp(e) {
+  if (!isPointerDownLocal) return
+  const finalX = e.clientX || (e.changedTouches && e.changedTouches[0] && e.changedTouches[0].clientX) || 0
+  const deltaX = finalX - startX
+  const swipeThreshold = 100
+  if (isDraggingLocal && Math.abs(deltaX) > swipeThreshold) {
+    if (deltaX > 0) swipeRight()
+    else swipeLeft()
+  } else {
+    // reset
+    cardTransform.value = ''
+    cardDelta.value = 0
+  }
+  isPointerDownLocal = false
+  isDraggingLocal = false
+  startX = 0
+}
+
+function handlePointerCancel() {
+  cardTransform.value = ''
+  cardDelta.value = 0
+  isPointerDownLocal = false
+  isDraggingLocal = false
+  startX = 0
+}
+
+function swipeRight() {
+  // Correct note - animate swipe right and advance
+  score.value.correct++
+  score.value.total++
+  statusText.value = 'Correct! 🎉'
+  statusClass.value = 'success'
+
+  // Animate
+  // push delta to high positive so tint fades in
+  cardDelta.value = window.innerWidth || 1000
+  cardTransform.value = 'translateX(100vw) rotate(30deg)'
+
+  if (matchTimeout) clearTimeout(matchTimeout)
+  matchTimeout = setTimeout(() => {
+    generateNewNote()
+  }, 450)
+}
+
+function swipeLeft() {
+  // Wrong note - animate swipe left and advance
+  score.value.total++
+  statusText.value = 'Wrong'
+  statusClass.value = 'error'
+
+  // push delta to high negative so red tint fades in
+  cardDelta.value = -(window.innerWidth || 1000)
+  cardTransform.value = 'translateX(-100vw) rotate(-30deg)'
+
+  if (matchTimeout) clearTimeout(matchTimeout)
+  matchTimeout = setTimeout(() => {
+    generateNewNote()
+  }, 450)
 }
 
 function getNoteSymbol() {
@@ -216,19 +355,19 @@ async function toggleMicrophone() {
       // Check if detected note matches current note
       // currentNote is a sounding pitch; map to frequency directly
       const targetFrequency = noteNameToFrequency(currentNote.value)
-      
-      if (targetFrequency && notesMatch(frequency, targetFrequency, 50)) {
-        // Correct match!
-        score.value.correct++
-        score.value.total++
-        statusText.value = 'Correct! 🎉'
-        statusClass.value = 'success'
-        
-        // Auto-generate new note after delay
-        if (matchTimeout) clearTimeout(matchTimeout)
-        matchTimeout = setTimeout(() => {
-          generateNewNote()
-        }, 1500)
+      if (!targetFrequency || !frequency) return
+
+      // If the detected frequency lies within tolerance -> correct
+      if (notesMatch(frequency, targetFrequency, 50)) {
+        // Correct match: animate swipe right and advance
+        swipeRight()
+        return
+      }
+
+      // If we have a very confident detection and it's not the target, treat as wrong
+      const confident = typeof clarity === 'number' ? clarity >= 0.85 : false
+      if (confident) {
+        swipeLeft()
       }
     })
   }
@@ -386,7 +525,25 @@ onUnmounted(() => {
 /* Note Display */
 .note-display {
   text-align: center;
+  transition: transform 0.45s ease-out;
+  position: relative; /* contain absolute overlay */
+  overflow: hidden;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
 }
+
+.card-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  pointer-events: none;
+  transition: background 160ms linear, background-color 160ms linear;
+  mix-blend-mode: normal;
+  z-index: 10;
+}
+
+/* (flash overlay removed; using per-card tinting instead) */
 
 .note-symbol {
   font-family: 'Bravura', serif;
@@ -394,6 +551,7 @@ onUnmounted(() => {
   line-height: 1;
   position: relative;
   margin: 2rem 0;
+  z-index: 1;
 }
 
 .accidental {
@@ -409,6 +567,8 @@ onUnmounted(() => {
   font-weight: 300;
   margin: 2rem 0;
   text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 1;
 }
 
 /* Status Display */

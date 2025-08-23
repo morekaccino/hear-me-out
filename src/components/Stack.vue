@@ -1,5 +1,6 @@
 <template>
-  <div class="card-container" ref="containerRef">
+  <div>
+    <div class="card-container" ref="containerRef">
     <Card
       v-for="(note, index) in notes"
       :key="note.id"
@@ -9,6 +10,7 @@
       @flip="flipCard(index)"
       :ref="el => setCardRef(el, index)"
     />
+    </div>
   </div>
 </template>
 
@@ -40,6 +42,11 @@ const cardTransform = ref('')
 const isDragging = ref(false)
 const cardRefs = ref([])
 const topCardRef = ref(null)
+// delta used to tint top card
+const cardDelta = ref(0)
+
+
+// per-card tinting will be used (cardDelta) instead of flash overlay
 
 // Unified gesture handling state
 let startX = 0
@@ -117,7 +124,8 @@ function handlePointerMove(event) {
       isDragging.value = true
     }
     const rotation = deltaX / 20
-    cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
+  cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
+  cardDelta.value = deltaX
     event.preventDefault()
   }
 }
@@ -155,8 +163,9 @@ function handlePointerUp(event) {
   }
   // Not a swipe, not a tap: always reset
   else {
-    cardTransform.value = ''
+  cardTransform.value = ''
     isDragging.value = false
+  cardDelta.value = 0
   }
 
   // Always reset state
@@ -244,6 +253,17 @@ function getCardStyle(index) {
   
   if (isTopCard) {
     style.transform = cardTransform.value
+    // apply background tint based on cardDelta
+    const max = 400
+    const v = Math.max(-max, Math.min(max, cardDelta.value))
+    const t = Math.min(1, Math.abs(v) / max)
+    if (v > 0) {
+      style.background = `linear-gradient(rgba(76,175,80,${t * 0.28}), rgba(76,175,80,${t * 0.28})), rgba(255,255,255,0.95)`
+    } else if (v < 0) {
+      style.background = `linear-gradient(rgba(244,67,54,${t * 0.28}), rgba(244,67,54,${t * 0.28})), rgba(255,255,255,0.95)`
+    } else {
+      style.background = 'rgba(255,255,255,0.95)'
+    }
   } else {
     style.transform = `translateY(${stackIndex * 8}px) translateX(${stackIndex * 4}px) scale(${1 - stackIndex * 0.03}) rotate(${stackIndex * 2}deg)`
   }
@@ -262,6 +282,7 @@ function handleSwipeRight() {
     emit('swipeRight')
     cardTransform.value = ''
     isDragging.value = false
+  cardDelta.value = 0
   }, 300)
 }
 
@@ -271,6 +292,7 @@ function handleSwipeLeft() {
     emit('swipeLeft')
     cardTransform.value = ''
     isDragging.value = false
+  cardDelta.value = 0
   }, 300)
 }
 
@@ -340,4 +362,6 @@ defineExpose({
     max-height: 700px;
   }
 }
+
+/* (flash overlay removed; per-card tinting used) */
 </style>
