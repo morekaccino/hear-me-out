@@ -15,8 +15,8 @@ export function useNoteGenerator() {
         const name = `${n}${oct}`
         // Include only notes within E2 (inclusive) to B5 (inclusive)
     const order = noteOrder(name)
-    // Keep pool within E2..B5 (sounding)
-    if (order >= noteOrder('E2') && order <= noteOrder('B5')) {
+  // Keep pool within E2..E5 (sounding)
+  if (order >= noteOrder('E2') && order <= noteOrder('E5')) {
           results.push(name)
         }
       }
