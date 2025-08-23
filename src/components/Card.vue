@@ -2,13 +2,6 @@
   <div 
     :class="['note-card', { 'top-card': isTopCard, 'flipped': note.isFlipped }]"
     :style="cardStyle"
-    @click="handleClick"
-    @mousedown="handleStart"
-    @mousemove="handleMove"
-    @mouseup="handleEnd"
-    @touchstart="handleStart"
-    @touchmove="handleMove"
-    @touchend="handleEnd"
     :ref="setCardRef"
   >
     <div class="card-content">
@@ -54,7 +47,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['flip', 'swipeStart', 'swipeMove', 'swipeEnd'])
+const emit = defineEmits(['flip'])
 
 const vexflowRef = ref(null)
 const cardRef = ref(null)
@@ -63,78 +56,6 @@ const notationLoaded = ref(false)
 const setCardRef = (el) => {
   cardRef.value = el
   emit('cardRef', el)
-}
-
-let startX = 0
-let isPointerDown = false
-let isDragging = false
-let hasMovedDuringPress = false
-
-function getClientX(event) {
-  return event.touches ? event.touches[0].clientX : event.clientX
-}
-
-function getFinalClientX(event) {
-  return event.changedTouches ? event.changedTouches[0].clientX : event.clientX
-}
-
-function handleClick(event) {
-  // Only flip if we haven't moved during the press (i.e., it's a genuine click/tap)
-  if (!hasMovedDuringPress && !isDragging) {
-    emit('flip')
-  }
-}
-
-function handleStart(event) {
-  if (!props.isTopCard) return
-  if (event.type === 'mousedown' && event.button !== 0) return
-  
-  startX = getClientX(event)
-  isPointerDown = true
-  isDragging = false
-  hasMovedDuringPress = false
-  
-  emit('swipeStart', { startX, event })
-}
-
-function handleMove(event) {
-  if (!props.isTopCard || !isPointerDown) return
-  
-  const currentX = getClientX(event)
-  const deltaX = currentX - startX
-  
-  if (Math.abs(deltaX) > 5) {
-    hasMovedDuringPress = true
-  }
-  
-  if (Math.abs(deltaX) > 10) {
-    isDragging = true
-  }
-  
-  emit('swipeMove', { deltaX, currentX, event })
-}
-
-function handleEnd(event) {
-  if (!props.isTopCard || !isPointerDown) return
-  
-  const finalX = getFinalClientX(event)
-  const deltaX = finalX - startX
-  
-  emit('swipeEnd', { deltaX, finalX, isDragging, event })
-  
-  isPointerDown = false
-  startX = 0
-  
-  // Reset dragging state immediately for small movements
-  if (Math.abs(deltaX) < 50) {
-    isDragging = false
-    hasMovedDuringPress = false
-  } else {
-    setTimeout(() => {
-      isDragging = false
-      hasMovedDuringPress = false
-    }, 50)
-  }
 }
 
 async function renderNotation() {

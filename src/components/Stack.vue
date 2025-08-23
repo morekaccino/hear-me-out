@@ -1,5 +1,5 @@
 <template>
-  <div class="card-container">
+  <div class="card-container" ref="containerRef">
     <Card
       v-for="(note, index) in notes" 
       :key="note.id"
@@ -7,9 +7,6 @@
       :is-top-card="index === notes.length - 1"
       :card-style="getCardStyle(index)"
       @flip="flipCard(index)"
-      @swipe-start="handleSwipeStart"
-      @swipe-move="handleSwipeMove"
-      @swipe-end="handleSwipeEnd"
       @card-ref="handleCardRef($event, index)"
       :ref="el => setCardRef(el, index)"
     />
@@ -17,9 +14,8 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import Card from './Card.vue'
-import Hammer from 'hammerjs'
 
 const props = defineProps({
   notes: {
@@ -30,28 +26,234 @@ const props = defineProps({
 
 const emit = defineEmits(['flip', 'swipeRight', 'swipeLeft'])
 
+const containerRef = ref(null)
 const cardTransform = ref('')
 const isDragging = ref(false)
 const cardRefs = ref([])
 const topCardRef = ref(null)
-let hammerInstance = null
+
+// Unified gesture handling state
+let startX = 0
+let startY = 0
+let startTime = 0
+let isPointerDown = false
+let hasMovedDuringPress = false
+let initialTouchTarget = null
+
+// Unified helper functions
+function getEventCoords(event) {
+  if (event.touches && event.touches.length > 0) {
+    return {
+      x: event.touches[0].clientX,
+      y: event.touches[0].clientY
+    }
+  } else if (event.changedTouches && event.changedTouches.length > 0) {
+    return {
+      x: event.changedTouches[0].clientX,
+      y: event.changedTouches[0].clientY
+    }
+  } else {
+    return {
+      x: event.clientX,
+      y: event.clientY
+    }
+  }
+}
+
+function isTopCard(event) {
+  const target = event.target
+  if (!topCardRef.value) return false
+  
+  return topCardRef.value.contains(target)
+}
+
+function preventDefault(event) {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+// Unified gesture handlers
+function handlePointerStart(event) {
+  // Only handle left mouse button or touch
+  if (event.type === 'mousedown' && event.button !== 0) return
+  
+  // Only handle gestures on the top card
+  if (!isTopCard(event)) return
+  
+  const coords = getEventCoords(event)
+  startX = coords.x
+  startY = coords.y
+  startTime = Date.now()
+  isPointerDown = true
+  hasMovedDuringPress = false
+  initialTouchTarget = event.target
+  
+  // Reset any flip state when starting a gesture
+  const topCard = props.notes[props.notes.length - 1]
+  if (topCard && topCard.isFlipped) {
+    topCard.isFlipped = false
+  }
+  
+  // Prevent default behavior for touch events to avoid conflicts
+  if (event.type === 'touchstart') {
+    preventDefault(event)
+  }
+}
+
+function handlePointerMove(event) {
+  if (!isPointerDown) return
+  
+  const coords = getEventCoords(event)
+  const deltaX = coords.x - startX
+  const deltaY = coords.y - startY
+  
+  // Mark as moved if we've moved more than 5px
+  if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+    hasMovedDuringPress = true
+  }
+  
+  // Only start dragging for horizontal movements > 10px
+  if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+    if (!isDragging.value) {
+      isDragging.value = true
+    }
+    
+    const rotation = deltaX / 20
+    cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
+    
+    // Prevent default behavior during drag
+    preventDefault(event)
+  }
+}
+
+function handlePointerEnd(event) {
+  if (!isPointerDown) return
+  
+  const coords = getEventCoords(event)
+  const deltaX = coords.x - startX
+  const deltaY = coords.y - startY
+  const deltaTime = Date.now() - startTime
+  const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
+  
+  isPointerDown = false
+  
+  // Handle swipe gestures
+  if (isDragging.value && Math.abs(deltaX) > 100) {
+    if (deltaX > 0) {
+      handleSwipeRight()
+    } else {
+      handleSwipeLeft()
+    }
+  }
+  // Handle tap/click - must be quick, small movement, and on same target
+  else if (!hasMovedDuringPress && 
+           distance < 10 && 
+           deltaTime < 300 && 
+           event.target === initialTouchTarget) {
+    
+    // Reset position first
+    cardTransform.value = ''
+    isDragging.value = false
+    
+    // Then emit flip
+    setTimeout(() => {
+      const topCardIndex = props.notes.length - 1
+      emit('flip', topCardIndex)
+    }, 50)
+  }
+  // Reset position for incomplete gestures
+  else {
+    cardTransform.value = ''
+    
+    // Reset dragging state with slight delay for large movements
+    if (Math.abs(deltaX) < 50) {
+      isDragging.value = false
+    } else {
+      setTimeout(() => {
+        isDragging.value = false
+      }, 100)
+    }
+  }
+  
+  // Reset state
+  startX = 0
+  startY = 0
+  startTime = 0
+  hasMovedDuringPress = false
+  initialTouchTarget = null
+}
+
+// Mouse event handlers
+function handleMouseDown(event) {
+  handlePointerStart(event)
+}
+
+function handleMouseMove(event) {
+  handlePointerMove(event)
+}
+
+function handleMouseUp(event) {
+  handlePointerEnd(event)
+}
+
+// Touch event handlers
+function handleTouchStart(event) {
+  handlePointerStart(event)
+}
+
+function handleTouchMove(event) {
+  handlePointerMove(event)
+}
+
+function handleTouchEnd(event) {
+  handlePointerEnd(event)
+}
+
+// Setup and cleanup event listeners
+function setupGestures() {
+  if (!containerRef.value) return
+  
+  const container = containerRef.value
+  
+  // Mouse events
+  container.addEventListener('mousedown', handleMouseDown, { passive: false })
+  document.addEventListener('mousemove', handleMouseMove, { passive: false })
+  document.addEventListener('mouseup', handleMouseUp, { passive: false })
+  
+  // Touch events
+  container.addEventListener('touchstart', handleTouchStart, { passive: false })
+  container.addEventListener('touchmove', handleTouchMove, { passive: false })
+  container.addEventListener('touchend', handleTouchEnd, { passive: false })
+  container.addEventListener('touchcancel', handleTouchEnd, { passive: false })
+}
+
+function destroyGestures() {
+  if (!containerRef.value) return
+  
+  const container = containerRef.value
+  
+  // Mouse events
+  container.removeEventListener('mousedown', handleMouseDown)
+  document.removeEventListener('mousemove', handleMouseMove)
+  document.removeEventListener('mouseup', handleMouseUp)
+  
+  // Touch events
+  container.removeEventListener('touchstart', handleTouchStart)
+  container.removeEventListener('touchmove', handleTouchMove)
+  container.removeEventListener('touchend', handleTouchEnd)
+  container.removeEventListener('touchcancel', handleTouchEnd)
+}
 
 function setCardRef(el, index) {
   cardRefs.value[index] = el
   if (index === props.notes.length - 1) {
     topCardRef.value = el
-    nextTick(() => {
-      setupGestures()
-    })
   }
 }
 
 function handleCardRef(el, index) {
   if (index === props.notes.length - 1) {
     topCardRef.value = el
-    nextTick(() => {
-      setupGestures()
-    })
   }
 }
 
@@ -77,114 +279,6 @@ function getCardStyle(index) {
 function flipCard(index) {
   if (isDragging.value) return
   emit('flip', index)
-}
-
-function setupGestures() {
-  destroyGestures()
-  
-  if (topCardRef.value && !hammerInstance) {
-    hammerInstance = new Hammer(topCardRef.value)
-    
-    // Enable swipe gestures
-    hammerInstance.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL })
-    hammerInstance.get('pan').set({ direction: Hammer.DIRECTION_HORIZONTAL })
-    
-    // Handle pan (drag) events
-    hammerInstance.on('panstart', (e) => {
-      isDragging.value = true
-      // Reset any flip state when starting a swipe
-      const topCard = props.notes[props.notes.length - 1]
-      if (topCard && topCard.isFlipped) {
-        topCard.isFlipped = false
-      }
-    })
-    
-    hammerInstance.on('panmove', (e) => {
-      if (isDragging.value) {
-        const deltaX = e.deltaX
-        const rotation = deltaX / 10
-        cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
-      }
-    })
-    
-    hammerInstance.on('panend', (e) => {
-      const threshold = 120
-      const deltaX = e.deltaX
-      
-      if (Math.abs(deltaX) > threshold) {
-        if (deltaX > 0) {
-          handleSwipeRight()
-        } else {
-          handleSwipeLeft()
-        }
-      } else {
-        // Reset position
-        cardTransform.value = ''
-        // Reset dragging state immediately for small movements
-        if (Math.abs(deltaX) < 50) {
-          isDragging.value = false
-        } else {
-          setTimeout(() => {
-            isDragging.value = false
-          }, 100)
-        }
-      }
-    })
-    
-    // Handle swipe events as backup
-    hammerInstance.on('swiperight', () => {
-      if (!isDragging.value) {
-        handleSwipeRight()
-      }
-    })
-    
-    hammerInstance.on('swipeleft', () => {
-      if (!isDragging.value) {
-        handleSwipeLeft()
-      }
-    })
-  }
-}
-
-function destroyGestures() {
-  if (hammerInstance) {
-    hammerInstance.destroy()
-    hammerInstance = null
-  }
-}
-
-function handleSwipeStart({ startX, event }) {
-  // Reset any flip state when starting a swipe
-  const topCard = props.notes[props.notes.length - 1]
-  if (topCard && topCard.isFlipped) {
-    topCard.isFlipped = false
-  }
-}
-
-function handleSwipeMove({ deltaX, currentX, event }) {
-  cardTransform.value = `translateX(${deltaX}px) rotate(${deltaX / 20}deg)`
-}
-
-function handleSwipeEnd({ deltaX, finalX, isDragging: wasDragging, event }) {
-  const swipeThreshold = 100
-
-  if (wasDragging && Math.abs(deltaX) > swipeThreshold) {
-    if (deltaX > 0) {
-      handleSwipeRight()
-    } else {
-      handleSwipeLeft()
-    }
-  } else {
-    cardTransform.value = ''
-    // Reset dragging state immediately for small movements
-    if (Math.abs(deltaX) < 50) {
-      isDragging.value = false
-    } else {
-      setTimeout(() => {
-        isDragging.value = false
-      }, 100)
-    }
-  }
 }
 
 function handleSwipeRight() {
@@ -215,6 +309,17 @@ function triggerAutoSwipeLeft() {
   handleSwipeLeft()
 }
 
+// Lifecycle hooks
+onMounted(() => {
+  nextTick(() => {
+    setupGestures()
+  })
+})
+
+onUnmounted(() => {
+  destroyGestures()
+})
+
 // Expose methods
 defineExpose({
   setupGestures,
@@ -237,6 +342,9 @@ defineExpose({
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y pinch-zoom; /* Allow vertical scrolling and zoom but handle horizontal gestures ourselves */
 }
 
 /* Mobile responsive */
