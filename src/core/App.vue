@@ -1,9 +1,9 @@
 <script setup>
-import MusicTrainer from './components/MusicTrainer.vue'
+import { SwipeTrainer } from '../features/swipe-trainer'
 </script>
 
 <template>
-  <MusicTrainer />
+  <SwipeTrainer />
 </template>
 
 <style>
@@ -34,3 +34,4 @@ input:focus {
   outline-offset: 2px;
 }
 </style>
+
