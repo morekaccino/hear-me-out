@@ -2,7 +2,7 @@
 
 [![Deploy to Firebase Hosting](https://github.com/morekaccino/hear-me-out/actions/workflows/firebase-hosting-merge.yml/badge.svg)](https://github.com/morekaccino/hear-me-out/actions/workflows/firebase-hosting-merge.yml)
 
-An interactive Vue 3 web app that helps musicians practice note recognition using real-time pitch detection.
+An interactive Vue 3 web app that helps musicians practice note recognition using real-time pitch detection with swipeable flashcards.
 
 ## 🚀 Live Demo
 
@@ -14,58 +14,69 @@ An interactive Vue 3 web app that helps musicians practice note recognition usin
 
 ## Features
 
-### Core Functionality
-- **Random Note Display**: Shows musical notes that you need to play
-- **Real-time Pitch Detection**: Uses Pitchy.js (McLeod Pitch Method) to detect notes from your microphone
-- **Dual Display Modes**: Toggle between musical notation symbols (Bravura font) and letter notation
-- **Accurate Note Matching**: Compares detected pitch with target note within ±50 cents tolerance
-- **Score Tracking**: Keeps track of correct answers and accuracy percentage
+### Interactive Swipe Trainer
+- **Interactive Card Stack**: Swipe through musical notes like flashcards
+- **Real-time Pitch Detection**: Uses Pitchy.js to detect notes from your microphone
+- **VexFlow Notation**: Professional music notation rendering on staff
+- **Auto-advance**: Correctly played notes automatically advance to the next card
+- **Flip to Reveal**: Tap cards to see the answer
+- **Guitar Range**: Notes constrained to classical guitar range (E2-E5)
 
 ### User Interface
 - **Clean, Modern Design**: Beautiful gradient background with glassmorphism effects
-- **Responsive Layout**: Works seamlessly on desktop and mobile devices
-- **Accessibility Features**: Proper focus indicators and reduced motion support
-- **Real-time Feedback**: Instant visual feedback when notes are matched correctly
+- **Responsive Layout**: Works seamlessly on desktop, tablet, and mobile devices
+- **Accessibility Features**: Reduced motion support, proper focus indicators
+- **Real-time Feedback**: Visual indicators for microphone status and note detection
 
-### Technical Features
-- **Advanced Audio Processing**: Uses Web Audio API for high-quality microphone input
-- **Musical Font Support**: Bravura font for professional music notation display
-- **Frequency Analysis**: Real-time frequency-to-note conversion with precise tuning
-- **Configurable Settings**: Adjustable volume thresholds and clarity requirements
+## Project Structure
+
+```
+src/
+├── core/                    # Core application
+│   ├── App.vue             # Root component
+│   └── main.js             # Application entry point
+├── features/                # Feature modules
+│   └── swipe-trainer/       # Main swipe card trainer
+│       ├── components/
+│       │   ├── SwipeTrainer.vue
+│       │   ├── CardStack.vue
+│       │   └── NoteCard.vue
+│       └── index.js
+├── shared/                  # Shared utilities
+│   ├── composables/
+│   │   ├── usePitchDetection.js
+│   │   └── useNoteGenerator.js
+│   ├── services/
+│   │   └── audio/
+│   │       └── PitchDetectionService.js
+│   ├── utils/
+│   │   ├── noteConversion.js
+│   │   └── constants.js
+│   └── styles/
+│       ├── variables.css
+│       ├── animations.css
+│       └── base.css
+└── config/
+    └── notes.config.js      # Instrument range configuration
+```
 
 ## How to Use
 
-1. **Start the App**: Click "Initialize Mic" to set up microphone access
-2. **Begin Practice**: Click "Start Listening" to begin the exercise
-3. **Play the Note**: Look at the displayed note and play it on your instrument
-4. **Get Feedback**: The app will detect your pitch and provide immediate feedback
-5. **Continue Learning**: Successfully matched notes automatically generate new challenges
-6. **Track Progress**: Monitor your accuracy and improvement over time
-
-## Display Modes
-
-### Symbol Mode
-- Shows professional musical notation using the Bravura font
-- Displays note heads with proper accidentals (♯/♭)
-- Provides authentic music reading experience
-
-### Letter Mode  
-- Shows note names in clear, large text (e.g., "A4", "C#3", "Bb5")
-- Perfect for beginners or quick reference
-- Easy to read on any device
+1. **Start the App**: Microphone initializes automatically
+2. **View the Note**: See musical notation on the top card
+3. **Play the Note**: Use your instrument to match the displayed note
+4. **Auto-advance**: Correct notes automatically swipe right
+5. **Manual Navigation**: Swipe left/right or tap to flip card
 
 ## Installation & Development
 
 ### Prerequisites
 - Node.js (v16 or higher)
 - A modern web browser with microphone support
-- An instrument to practice with
+- An instrument to practice with (guitar, piano, etc.)
 
 ### Setup
 ```bash
-# Clone or download the project
-cd hear_me_out
-
 # Install dependencies
 npm install
 
@@ -74,6 +85,9 @@ npm run dev
 
 # Build for production
 npm run build
+
+# Preview production build
+npm run preview
 ```
 
 ### Access the App
@@ -82,29 +96,59 @@ npm run build
 
 ## Technical Stack
 
-- **Frontend Framework**: Vue 3 with Composition API
-- **Build Tool**: Vite for fast development and optimized builds
+- **Frontend Framework**: Vue 3 with Composition API & Script Setup
+- **Build Tool**: Vite 7.x for fast development and optimized builds
 - **Pitch Detection**: Pitchy.js (McLeod Pitch Method)
+- **Music Notation**: VexFlow 5.x for professional staff rendering
 - **Audio Processing**: Web Audio API
-- **Typography**: Bravura music font for notation symbols
-- **Styling**: Modern CSS with custom properties and responsive design
+- **Styling**: Modern CSS with CSS variables and animations
+
+## Key Technologies
+
+### Audio Processing
+- **PitchDetectionService**: Wrapper around Pitchy for consistent pitch detection
+- **Web Audio API**: High-quality microphone input processing
+- **Frequency Analysis**: Real-time FFT with 4096 sample size
+
+### UI/UX
+- **Pointer Events API**: Unified touch/mouse gesture handling
+- **CSS Animations**: Smooth transitions and feedback
+- **Responsive Design**: Mobile-first approach with breakpoints
+- **Glass Morphism**: Modern, semi-transparent UI elements
 
 ## Browser Compatibility
 
-- **Chrome/Edge**: Full support
-- **Firefox**: Full support  
-- **Safari**: Full support
-- **Mobile Browsers**: Supported (requires HTTPS in production)
+- **Chrome/Edge**: Full support ✅
+- **Firefox**: Full support ✅
+- **Safari**: Full support ✅
+- **Mobile Browsers**: Supported (requires HTTPS in production) ✅
 
 ## Privacy & Security
 
 - **No Data Collection**: All processing happens locally in your browser
 - **No External Servers**: No audio data is transmitted anywhere
-- **Secure by Default**: Microphone access is only used for real-time pitch detection
+- **Secure by Default**: Microphone access only used for real-time detection
+
+## Configuration
+
+Edit `/src/config/notes.config.js` to customize:
+- Instrument range (min/max notes)
+- Playable note pool
+
+Edit `/src/shared/utils/constants.js` to adjust:
+- Pitch detection thresholds
+- Detection timing parameters
+- UI colors and breakpoints
 
 ## Contributing
 
-This project was created as a complete music education tool. Feel free to:
+This project follows modern best practices:
+- Feature-based architecture for scalability
+- Shared utilities to eliminate duplication
+- Composables for reusable logic
+- Constants for maintainable configuration
+
+Feel free to:
 - Report bugs or suggest improvements
 - Fork the project for your own modifications
 - Use it as a learning resource for Vue 3 or audio processing
@@ -115,4 +159,4 @@ Open source - feel free to use this project for educational purposes.
 
 ---
 
-🎼 Happy practicing! Whether you're learning piano, guitar, violin, or any other instrument, this tool will help improve your note recognition skills.
+🎼 Happy practicing! Whether you're learning piano, guitar, violin, or any other instrument, this tool will help improve your note recognition skills through interactive learning.

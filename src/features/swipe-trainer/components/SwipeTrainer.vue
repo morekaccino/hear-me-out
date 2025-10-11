@@ -1,7 +1,6 @@
 <template>
   <div class="trainer-app">
-    <!-- Microphone Status Indicator -->
-  <div class="mic-status" :class="{ 
+    <div class="mic-status" :class="{ 
       listening: isListening, 
       detecting: isDetecting,
       success: showSuccess 
@@ -20,7 +19,7 @@
       </div>
     </div>
 
-    <Stack
+    <CardStack
       :notes="noteStack"
       @flip="flipCard"
       @swipe-right="swipeRight"
@@ -32,15 +31,14 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
-import Stack from './Stack.vue'
-import { usePitchDetection } from '../composables/usePitchDetection.js'
-import { useNoteGenerator } from '../composables/useNoteGenerator.js'
+import CardStack from './CardStack.vue'
+import { usePitchDetection } from '../../../shared/composables/usePitchDetection'
+import { useNoteGenerator } from '../../../shared/composables/useNoteGenerator'
+import { DETECTION_TIMING } from '../../../shared/utils/constants'
 
-// Composables
 const { isListening, startMicrophone, stopMicrophone, latestPitch, latestClarity, latestNote } = usePitchDetection()
 const { generateNote, generateStack } = useNoteGenerator()
 
-// State
 const noteStack = ref([])
 const stackRef = ref(null)
 const isDetecting = ref(false)
@@ -49,13 +47,11 @@ const detectedNote = ref('')
 let detectionTimeout = null
 let successTimeout = null
 
-// Computed
 const currentNote = computed(() => {
   const topCard = noteStack.value[noteStack.value.length - 1]
   return topCard ? topCard.value : ''
 })
 
-// Methods
 function initializeStack() {
   noteStack.value = generateStack(5)
   nextTick(() => {
@@ -70,22 +66,18 @@ function flipCard(index) {
 }
 
 function swipeRight() {
-  // Correct note - move to next card
   nextCard()
 }
 
 function swipeLeft() {
-  // Wrong note - move to next card
   nextCard()
 }
 
 function nextCard() {
-  // Remove top card and add new one
   if (stackRef.value) {
     stackRef.value.destroyGestures()
   }
   
-  // Reset the flip state of the card being removed
   const topCard = noteStack.value[noteStack.value.length - 1]
   if (topCard) {
     topCard.isFlipped = false
@@ -103,7 +95,6 @@ function nextCard() {
 }
 
 function renderVisibleCards() {
-  // Only render the top card to prevent scrambling
   if (stackRef.value?.cardRefs) {
     const topCardIndex = noteStack.value.length - 1
     stackRef.value.cardRefs.forEach((cardRef, index) => {
@@ -114,43 +105,26 @@ function renderVisibleCards() {
   }
 }
 
-function preloadNextCard() {
-  // Prepare the next card that will become the top card after swipe
-  if (stackRef.value?.cardRefs) {
-    const nextCardIndex = noteStack.value.length - 2
-    const nextCardRef = stackRef.value.cardRefs[nextCardIndex]
-    if (nextCardRef) {
-      // The next card will become top card after swipe, so it will auto-render
-      // No need to pre-render here to avoid conflicts
-    }
-  }
-}
-
 function onNoteDetected(detectedNoteValue) {
   detectedNote.value = detectedNoteValue
   isDetecting.value = true
   
-  // Clear previous timeout
   if (detectionTimeout) {
     clearTimeout(detectionTimeout)
   }
   
-  // Reset detection indicator after 800ms
   detectionTimeout = setTimeout(() => {
     isDetecting.value = false
     detectedNote.value = ''
-  }, 800)
+  }, DETECTION_TIMING.DETECTION_RESET_MS)
   
-  // Strict match: require exact note + octave (e.g., C4 only matches C4)
   if (detectedNoteValue === currentNote.value) {
     showSuccess.value = true
     
-    // Clear previous success timeout
     if (successTimeout) {
       clearTimeout(successTimeout)
     }
     
-    // Auto swipe right after a short delay to show success feedback
     setTimeout(() => {
       if (stackRef.value) {
         stackRef.value.triggerAutoSwipeRight()
@@ -159,16 +133,14 @@ function onNoteDetected(detectedNoteValue) {
         swipeRight()
         showSuccess.value = false
       }
-  }, 600)
+    }, DETECTION_TIMING.SUCCESS_DELAY_MS)
     
-    // Reset success indicator
     successTimeout = setTimeout(() => {
       showSuccess.value = false
-    }, 1500)
+    }, DETECTION_TIMING.SUCCESS_RESET_MS)
   }
 }
 
-// Lifecycle
 onMounted(async () => {
   initializeStack()
   
@@ -196,37 +168,34 @@ onUnmounted(() => {
 <style scoped>
 .trainer-app {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: var(--spacing-sm);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
-/* Microphone Status Indicator */
 .mic-status {
   position: fixed;
-  top: 2rem;
+  top: var(--spacing-lg);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-glass-light);
   backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50px;
-  padding: 1rem 2rem;
+  border: 2px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-sm) var(--spacing-lg);
   display: flex;
   align-items: center;
-  gap: 1rem;
-  color: white;
+  gap: var(--spacing-sm);
+  color: var(--text-light);
   z-index: 1000;
-  transition: all 0.3s ease;
+  transition: all var(--transition-normal);
   min-width: 280px;
   justify-content: center;
 }
@@ -264,47 +233,26 @@ onUnmounted(() => {
 
 .status-text {
   font-weight: 500;
-  font-size: 1rem;
+  font-size: var(--font-size-base);
   text-align: center;
   flex: 1;
 }
 
 .detected-note {
-  font-size: 0.9rem;
+  font-size: var(--font-size-sm);
   opacity: 0.8;
   background: rgba(255, 255, 255, 0.2);
   padding: 0.3rem 0.8rem;
-  border-radius: 15px;
-  margin-left: 0.5rem;
+  border-radius: var(--radius-md);
+  margin-left: var(--spacing-xs);
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-  }
-  50% {
-    opacity: 0.8;
-    transform: translateX(-50%) scale(1.02);
-  }
-}
-
-@keyframes bounce {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-5px);
-  }
-}
-
-/* Mobile responsive */
 @media (max-width: 768px) {
   .mic-status {
-    top: 1rem;
+    top: var(--spacing-sm);
     padding: 0.8rem 1.5rem;
     min-width: 250px;
-    font-size: 0.9rem;
+    font-size: var(--font-size-sm);
   }
   
   .mic-icon {
@@ -320,11 +268,11 @@ onUnmounted(() => {
 @media (max-width: 480px) {
   .mic-status {
     top: 0.5rem;
-    padding: 0.6rem 1rem;
+    padding: 0.6rem var(--spacing-sm);
     min-width: 200px;
     font-size: 0.8rem;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: var(--spacing-xs);
   }
   
   .detected-note {
@@ -333,3 +281,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

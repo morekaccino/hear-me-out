@@ -5,7 +5,6 @@
     :ref="setCardRef"
   >
     <div class="card-content">
-      <!-- Front: Staff notation -->
       <div class="card-front">
         <div 
           v-if="isTopCard" 
@@ -17,7 +16,6 @@
         <div v-else class="card-placeholder">♪</div>
       </div>
       
-      <!-- Back: Letter -->
       <div class="card-back">
         <div class="note-letter">{{ note.value }}</div>
       </div>
@@ -27,7 +25,7 @@
 
 <script setup>
 import { ref, onMounted, onUpdated, nextTick } from 'vue'
-import { shiftNoteOctave } from '../utils/pitchDetection.js'
+import { shiftNoteOctave } from '../../../shared/utils/noteConversion'
 
 const props = defineProps({
   note: {
@@ -56,7 +54,6 @@ const notationLoaded = ref(false)
 
 const setCardRef = (el) => {
   cardRef.value = el
-  // Always emit the root DOM element, not the component instance
   if (el && el instanceof HTMLElement) {
     emit('cardRef', el)
   } else if (el && el.$el) {
@@ -69,18 +66,15 @@ const setCardRef = (el) => {
 async function renderNotation() {
   if (!vexflowRef.value || !props.note.value || !props.isTopCard) return
 
-  // Reset animation state
   notationLoaded.value = false
 
   try {
     const { Renderer, Stave, StaveNote, Voice, Formatter, Accidental } = await import('vexflow')
 
-    // Clear previous content
     vexflowRef.value.innerHTML = ''
 
     const renderer = new Renderer(vexflowRef.value, Renderer.Backends.SVG)
     
-    // Use fixed large dimensions and a massive scale
     const width = 800
     const height = 600
     const scale = 3.5
@@ -89,7 +83,6 @@ async function renderNotation() {
     const context = renderer.getContext()
     context.scale(scale, scale)
 
-    // Center the stave in the new, larger coordinate system
     const staveWidth = 150
     const staveX = (width / scale - staveWidth) / 2
     const staveY = (height / scale - 100) / 2
@@ -118,10 +111,8 @@ async function renderNotation() {
     new Formatter().joinVoices([voice]).format([voice], staveWidth)
     voice.draw(context, stave)
 
-    // Mark as rendered
     vexflowRef.value.setAttribute('data-rendered', 'true')
 
-    // Trigger animation after a small delay to ensure DOM is updated
     setTimeout(() => {
       notationLoaded.value = true
     }, 50)
@@ -132,15 +123,13 @@ async function renderNotation() {
 }
 
 function noteToVexFlowKey(note) {
-  // Use regex to safely parse note name and octave (handles multi-digit octaves like 10)
-  const m = note.match(/^([A-G]#?)(-?\d+)$/)
-  if (!m) return note
-  const [, base, octStr] = m
-  // Convert sounding pitch to written (written = sounding + 1)
+  const match = note.match(/^([A-G]#?)(-?\d+)$/)
+  if (!match) return note
+  const [, base, octStr] = match
   const written = shiftNoteOctave(`${base}${octStr}`, 1)
-  const wm = written.match(/^([A-G]#?)(-?\d+)$/)
-  const [, wbase, woct] = wm
-  return `${wbase.toLowerCase()}/${woct}`
+  const writtenMatch = written.match(/^([A-G]#?)(-?\d+)$/)
+  const [, writtenBase, writtenOct] = writtenMatch
+  return `${writtenBase.toLowerCase()}/${writtenOct}`
 }
 
 onMounted(() => {
@@ -160,7 +149,6 @@ onUpdated(() => {
       })
     }
   } else {
-    // Clear notation for non-top cards to prevent scrambling
     notationLoaded.value = false
     if (vexflowRef.value) {
       vexflowRef.value.innerHTML = ''
@@ -169,7 +157,6 @@ onUpdated(() => {
   }
 })
 
-// Expose renderNotation method
 defineExpose({
   renderNotation,
   vexflowRef
@@ -177,7 +164,6 @@ defineExpose({
 </script>
 
 <style scoped>
-
 .note-card {
   position: absolute;
   width: 100%;
@@ -185,19 +171,14 @@ defineExpose({
   min-height: 0;
   max-height: 100vh;
   cursor: pointer;
-  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out, opacity 0.3s ease-out;
-  border-radius: 20px;
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.2),
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: transform var(--transition-normal), 
+              box-shadow var(--transition-normal), 
+              opacity var(--transition-normal);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--shadow-md), var(--shadow-sm);
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-glass);
   transform-origin: center bottom;
   transform-style: preserve-3d;
   display: flex;
@@ -212,10 +193,7 @@ defineExpose({
 
 .top-card {
   z-index: 10 !important;
-  box-shadow: 
-    0 16px 48px rgba(0, 0, 0, 0.3),
-    0 8px 24px rgba(0, 0, 0, 0.2),
-    0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-xl), var(--shadow-lg), var(--shadow-md);
 }
 
 .card-content {
@@ -223,7 +201,7 @@ defineExpose({
   width: 100%;
   height: 100%;
   min-height: 0;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -236,21 +214,17 @@ defineExpose({
   width: 100%;
   height: 100%;
   backface-visibility: hidden;
-  border-radius: 20px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--bg-glass);
   backdrop-filter: blur(10px);
   padding: 0;
   margin: 0;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--border-glass-strong);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
@@ -259,7 +233,6 @@ defineExpose({
   background: rgba(255, 255, 255, 0.98);
 }
 
-/* When the entire card is flipped, adjust the back transform */
 .note-card.flipped .card-back {
   transform: rotateY(0deg);
 }
@@ -275,15 +248,13 @@ defineExpose({
   align-items: center;
   justify-content: center;
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   pointer-events: none;
   overflow: hidden;
   position: relative;
   opacity: 0;
   transform: scale(0.8) translateY(20px);
-  transition: opacity 0.3s ease-out, transform 0.3s ease-out;
+  transition: opacity var(--transition-normal), 
+              transform var(--transition-normal);
 }
 
 .vexflow-staff.notation-loaded {
@@ -297,25 +268,18 @@ defineExpose({
   height: auto;
   max-width: 100%;
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   pointer-events: none;
 }
 
 .note-letter {
   font-size: 12rem;
   font-weight: bold;
-  color: #333;
-  text-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  color: var(--text-primary);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   pointer-events: none;
 }
 
-/* Counter-rotate the text when card is flipped to keep it readable */
 .note-card.flipped .note-letter {
   transform: scaleX(-1);
 }
@@ -329,18 +293,15 @@ defineExpose({
   width: 100%;
   height: 100%;
   user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   pointer-events: none;
 }
 
-/* Mobile responsive */
 @media (max-width: 768px) {
   .note-card {
     height: 80vh;
     max-height: 90vh;
   }
+  
   .note-letter {
     font-size: 8rem;
   }
@@ -351,8 +312,10 @@ defineExpose({
     height: 70vh;
     max-height: 80vh;
   }
+  
   .note-letter {
     font-size: 6rem;
   }
 }
 </style>
+

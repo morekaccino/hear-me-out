@@ -1,22 +1,23 @@
 <template>
   <div>
     <div class="card-container" ref="containerRef">
-    <Card
-      v-for="(note, index) in notes"
-      :key="note.id"
-      :note="note"
-      :is-top-card="index === notes.length - 1"
-      :card-style="getCardStyle(index)"
-      @flip="flipCard(index)"
-      :ref="el => setCardRef(el, index)"
-    />
+      <NoteCard
+        v-for="(note, index) in notes"
+        :key="note.id"
+        :note="note"
+        :is-top-card="index === notes.length - 1"
+        :card-style="getCardStyle(index)"
+        @flip="flipCard(index)"
+        :ref="el => setCardRef(el, index)"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
-import Card from './Card.vue'
+import NoteCard from './NoteCard.vue'
+import { COLORS } from '../../../shared/utils/constants'
 
 const props = defineProps({
   notes: {
@@ -25,16 +26,6 @@ const props = defineProps({
   }
 })
 
-watch(() => props.notes, (newNotes, oldNotes) => {
-  // Clear refs and let ref callbacks repopulate them on next render
-  topCardRef.value = null
-  cardRefs.value = []
-  // After the DOM updates and ref callbacks run, recompute the top card
-  nextTick(() => {
-    updateTopCardRef()
-  })
-}, { deep: true })
-
 const emit = defineEmits(['flip', 'swipeRight', 'swipeLeft'])
 
 const containerRef = ref(null)
@@ -42,13 +33,8 @@ const cardTransform = ref('')
 const isDragging = ref(false)
 const cardRefs = ref([])
 const topCardRef = ref(null)
-// delta used to tint top card
 const cardDelta = ref(0)
 
-
-// per-card tinting will be used (cardDelta) instead of flash overlay
-
-// Unified gesture handling state
 let startX = 0
 let startY = 0
 let startTime = 0
@@ -56,7 +42,14 @@ let isPointerDown = false
 let hasMovedDuringPress = false
 let initialTouchTarget = null
 
-// Unified helper functions
+watch(() => props.notes, () => {
+  topCardRef.value = null
+  cardRefs.value = []
+  nextTick(() => {
+    updateTopCardRef()
+  })
+}, { deep: true })
+
 function getEventCoords(event) {
   if (event.touches && event.touches.length > 0) {
     return {
@@ -68,36 +61,21 @@ function getEventCoords(event) {
       x: event.changedTouches[0].clientX,
       y: event.changedTouches[0].clientY
     }
-  } else {
-    return {
-      x: event.clientX,
-      y: event.clientY
-    }
+  }
+  return {
+    x: event.clientX,
+    y: event.clientY
   }
 }
 
 function isTopCard(event) {
-  const target = event.target
-  if (!topCardRef.value) {
-    return false
-  }
-  const result = topCardRef.value.contains(target)
-  return result
+  return topCardRef.value && topCardRef.value.contains(event.target)
 }
 
-function preventDefault(event) {
-  event.preventDefault()
-  event.stopPropagation()
-}
-
-// --- Pointer Events Unified Handlers ---
 function handlePointerDown(event) {
-  if (event.pointerType === 'mouse' && event.button !== 0) {
-    return
-  }
-  if (!isTopCard(event)) {
-    return
-  }
+  if (event.pointerType === 'mouse' && event.button !== 0) return
+  if (!isTopCard(event)) return
+  
   event.target.setPointerCapture?.(event.pointerId)
 
   const coords = { x: event.clientX, y: event.clientY }
@@ -111,6 +89,7 @@ function handlePointerDown(event) {
 
 function handlePointerMove(event) {
   if (!isPointerDown) return
+  
   const coords = { x: event.clientX, y: event.clientY }
   const deltaX = coords.x - startX
   const deltaY = coords.y - startY
@@ -124,14 +103,15 @@ function handlePointerMove(event) {
       isDragging.value = true
     }
     const rotation = deltaX / 20
-  cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
-  cardDelta.value = deltaX
+    cardTransform.value = `translateX(${deltaX}px) rotate(${rotation}deg)`
+    cardDelta.value = deltaX
     event.preventDefault()
   }
 }
 
 function handlePointerUp(event) {
   if (!isPointerDown) return
+  
   const coords = { x: event.clientX, y: event.clientY }
   const deltaX = coords.x - startX
   const deltaY = coords.y - startY
@@ -139,9 +119,7 @@ function handlePointerUp(event) {
   const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
   isPointerDown = false
 
-  // Swipe
   if (isDragging.value && Math.abs(deltaX) > 100) {
-    // Reset flip state on swipe only
     const topCard = props.notes[props.notes.length - 1]
     if (topCard && topCard.isFlipped) {
       topCard.isFlipped = false
@@ -151,24 +129,18 @@ function handlePointerUp(event) {
     } else {
       handleSwipeLeft()
     }
-  }
-  // Tap
-  else if (!hasMovedDuringPress && distance < 10 && deltaTime < 300 && event.target === initialTouchTarget) {
+  } else if (!hasMovedDuringPress && distance < 10 && deltaTime < 300 && event.target === initialTouchTarget) {
     cardTransform.value = ''
     isDragging.value = false
     setTimeout(() => {
-      const topCardIndex = props.notes.length - 1
-      emit('flip', topCardIndex)
+      emit('flip', props.notes.length - 1)
     }, 50)
-  }
-  // Not a swipe, not a tap: always reset
-  else {
-  cardTransform.value = ''
+  } else {
+    cardTransform.value = ''
     isDragging.value = false
-  cardDelta.value = 0
+    cardDelta.value = 0
   }
 
-  // Always reset state
   startX = 0
   startY = 0
   startTime = 0
@@ -176,7 +148,7 @@ function handlePointerUp(event) {
   initialTouchTarget = null
 }
 
-function handlePointerCancel(event) {
+function handlePointerCancel() {
   cardTransform.value = ''
   isDragging.value = false
   isPointerDown = false
@@ -206,18 +178,14 @@ function destroyGestures() {
 }
 
 function setCardRef(el, index) {
-  // Always store the ref (may be null when a card is removed)
   cardRefs.value[index] = el
-
-  // Recompute the topCardRef after any ref change. This is more robust
-  // than relying on the timing/order of ref callbacks during v-for updates.
   updateTopCardRef()
 }
 
 function updateTopCardRef() {
-  // Prefer the ref at the last index, but fall back to the last non-null ref
   const lastIndex = props.notes.length - 1
   let candidate = cardRefs.value[lastIndex]
+  
   if (!candidate) {
     for (let i = cardRefs.value.length - 1; i >= 0; i--) {
       if (cardRefs.value[i]) {
@@ -253,16 +221,17 @@ function getCardStyle(index) {
   
   if (isTopCard) {
     style.transform = cardTransform.value
-    // apply background tint based on cardDelta
+    
     const max = 400
-    const v = Math.max(-max, Math.min(max, cardDelta.value))
-    const t = Math.min(1, Math.abs(v) / max)
-    if (v > 0) {
-      style.background = `linear-gradient(rgba(76,175,80,${t * 0.28}), rgba(76,175,80,${t * 0.28})), rgba(255,255,255,0.95)`
-    } else if (v < 0) {
-      style.background = `linear-gradient(rgba(244,67,54,${t * 0.28}), rgba(244,67,54,${t * 0.28})), rgba(255,255,255,0.95)`
+    const value = Math.max(-max, Math.min(max, cardDelta.value))
+    const tint = Math.min(1, Math.abs(value) / max)
+    
+    if (value > 0) {
+      style.background = `linear-gradient(rgba(76,175,80,${tint * 0.28}), rgba(76,175,80,${tint * 0.28})), var(--bg-glass)`
+    } else if (value < 0) {
+      style.background = `linear-gradient(rgba(244,67,54,${tint * 0.28}), rgba(244,67,54,${tint * 0.28})), var(--bg-glass)`
     } else {
-      style.background = 'rgba(255,255,255,0.95)'
+      style.background = 'var(--bg-glass)'
     }
   } else {
     style.transform = `translateY(${stackIndex * 8}px) translateX(${stackIndex * 4}px) scale(${1 - stackIndex * 0.03}) rotate(${stackIndex * 2}deg)`
@@ -282,7 +251,7 @@ function handleSwipeRight() {
     emit('swipeRight')
     cardTransform.value = ''
     isDragging.value = false
-  cardDelta.value = 0
+    cardDelta.value = 0
   }, 300)
 }
 
@@ -292,21 +261,18 @@ function handleSwipeLeft() {
     emit('swipeLeft')
     cardTransform.value = ''
     isDragging.value = false
-  cardDelta.value = 0
+    cardDelta.value = 0
   }, 300)
 }
 
-// Method to trigger automatic swipe right (called programmatically)
 function triggerAutoSwipeRight() {
   handleSwipeRight()
 }
 
-// Method to trigger automatic swipe left (called programmatically)
 function triggerAutoSwipeLeft() {
   handleSwipeLeft()
 }
 
-// Lifecycle hooks
 onMounted(() => {
   nextTick(() => {
     setupGestures()
@@ -317,7 +283,6 @@ onUnmounted(() => {
   destroyGestures()
 })
 
-// Expose methods
 defineExpose({
   setupGestures,
   destroyGestures,
@@ -337,14 +302,11 @@ defineExpose({
   perspective: 1000px;
   user-select: none;
   -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  touch-action: pan-y pinch-zoom; /* Allow vertical scrolling and zoom but handle horizontal gestures ourselves */
+  touch-action: pan-y pinch-zoom;
 }
 
-/* Mobile responsive */
 @media (max-width: 768px) {
   .card-container {
     width: 95vw;
@@ -362,6 +324,5 @@ defineExpose({
     max-height: 700px;
   }
 }
-
-/* (flash overlay removed; per-card tinting used) */
 </style>
+

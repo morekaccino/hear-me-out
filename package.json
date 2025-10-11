@@ -1,17 +1,16 @@
 {
-  "name": "hear_me_out",
+  "name": "hear-me-out",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "Interactive music note trainer with real-time pitch detection, swipeable flashcards, and spaced repetition learning",
+  "author": "Your Name",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vueuse/gesture": "^2.0.0",
-    "firebase": "^12.1.0",
-    "meyda": "^5.6.3",
     "pitchy": "^4.0.3",
     "vexflow": "^5.0.0",
     "vue": "^3.5.18"
