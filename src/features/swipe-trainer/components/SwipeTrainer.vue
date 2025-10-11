@@ -19,6 +19,36 @@
       </div>
     </div>
 
+    <div class="leitner-stats">
+      <div class="stat-item">
+        <span class="stat-label">Session</span>
+        <span class="stat-value">{{ sessionStats.sessionCount }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Remaining</span>
+        <span class="stat-value">{{ remainingCards }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Correct</span>
+        <span class="stat-value correct">{{ sessionStats.correctCount }}</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-label">Incorrect</span>
+        <span class="stat-value incorrect">{{ sessionStats.incorrectCount }}</span>
+      </div>
+    </div>
+
+    <div class="swipe-hints">
+      <div class="hint hint-left">
+        <span class="hint-icon">←</span>
+        <span class="hint-text">Wrong</span>
+      </div>
+      <div class="hint hint-right">
+        <span class="hint-text">Correct</span>
+        <span class="hint-icon">→</span>
+      </div>
+    </div>
+
     <CardStack
       :notes="noteStack"
       @flip="flipCard"
@@ -33,11 +63,20 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import CardStack from './CardStack.vue'
 import { usePitchDetection } from '../../../shared/composables/usePitchDetection'
-import { useNoteGenerator } from '../../../shared/composables/useNoteGenerator'
+import { useLeitnerSystem } from '../../../shared/composables/useLeitnerSystem'
 import { DETECTION_TIMING } from '../../../shared/utils/constants'
 
 const { isListening, startMicrophone, stopMicrophone, latestPitch, latestClarity, latestNote } = usePitchDetection()
-const { generateNote, generateStack } = useNoteGenerator()
+const { 
+  generateStack, 
+  loadNextCard, 
+  markCorrect, 
+  markIncorrect, 
+  sessionStats, 
+  remainingCards,
+  sessionComplete,
+  startNewSession
+} = useLeitnerSystem()
 
 const noteStack = ref([])
 const stackRef = ref(null)
@@ -66,10 +105,18 @@ function flipCard(index) {
 }
 
 function swipeRight() {
+  const topCard = noteStack.value[noteStack.value.length - 1]
+  if (topCard) {
+    markCorrect()
+  }
   nextCard()
 }
 
 function swipeLeft() {
+  const topCard = noteStack.value[noteStack.value.length - 1]
+  if (topCard) {
+    markIncorrect()
+  }
   nextCard()
 }
 
@@ -84,7 +131,16 @@ function nextCard() {
   }
   
   noteStack.value.pop()
-  noteStack.value.unshift(generateNote())
+  
+  if (sessionComplete.value) {
+    handleSessionComplete()
+    return
+  }
+  
+  const newCard = loadNextCard()
+  if (newCard) {
+    noteStack.value.unshift(newCard)
+  }
   
   nextTick(() => {
     renderVisibleCards()
@@ -92,6 +148,13 @@ function nextCard() {
       stackRef.value.setupGestures()
     }
   })
+}
+
+function handleSessionComplete() {
+  console.log('Session complete!', sessionStats.value)
+  const result = startNewSession()
+  console.log('New session started:', result)
+  initializeStack()
 }
 
 function renderVisibleCards() {
@@ -121,6 +184,11 @@ function onNoteDetected(detectedNoteValue) {
   if (detectedNoteValue === currentNote.value) {
     showSuccess.value = true
     
+    const topCard = noteStack.value[noteStack.value.length - 1]
+    if (topCard) {
+      markCorrect()
+    }
+    
     if (successTimeout) {
       clearTimeout(successTimeout)
     }
@@ -130,7 +198,7 @@ function onNoteDetected(detectedNoteValue) {
         stackRef.value.triggerAutoSwipeRight()
         showSuccess.value = false
       } else {
-        swipeRight()
+        nextCard()
         showSuccess.value = false
       }
     }, DETECTION_TIMING.SUCCESS_DELAY_MS)
@@ -278,6 +346,159 @@ onUnmounted(() => {
   .detected-note {
     margin-left: 0;
     margin-top: 0.2rem;
+  }
+}
+
+.leitner-stats {
+  position: fixed;
+  bottom: var(--spacing-lg);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-glass-light);
+  backdrop-filter: blur(10px);
+  border: 2px solid var(--border-glass);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  display: flex;
+  gap: var(--spacing-lg);
+  color: var(--text-light);
+  z-index: 1000;
+  transition: all var(--transition-normal);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.stat-value.correct {
+  color: var(--success-color, #4CAF50);
+}
+
+.stat-value.incorrect {
+  color: var(--error-color, #f44336);
+}
+
+@media (max-width: 768px) {
+  .leitner-stats {
+    bottom: var(--spacing-sm);
+    padding: 0.6rem var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+  
+  .stat-label {
+    font-size: 0.65rem;
+  }
+  
+  .stat-value {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .leitner-stats {
+    bottom: 0.5rem;
+    padding: 0.5rem var(--spacing-sm);
+    gap: var(--spacing-sm);
+  }
+  
+  .stat-label {
+    font-size: 0.6rem;
+  }
+  
+  .stat-value {
+    font-size: 0.9rem;
+  }
+}
+
+.swipe-hints {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  padding: 0 var(--spacing-lg);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  padding: 0.8rem 1.2rem;
+  border-radius: var(--radius-full);
+  color: var(--text-light);
+  font-weight: 500;
+  opacity: 0.6;
+  transition: opacity var(--transition-normal);
+}
+
+.hint:hover {
+  opacity: 0.8;
+}
+
+.hint-icon {
+  font-size: 1.5rem;
+}
+
+.hint-text {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hint-left {
+  border: 2px solid rgba(244, 67, 54, 0.5);
+}
+
+.hint-right {
+  border: 2px solid rgba(76, 175, 80, 0.5);
+}
+
+@media (max-width: 768px) {
+  .swipe-hints {
+    padding: 0 var(--spacing-sm);
+  }
+  
+  .hint {
+    padding: 0.6rem 1rem;
+  }
+  
+  .hint-icon {
+    font-size: 1.2rem;
+  }
+  
+  .hint-text {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hint-text {
+    display: none;
+  }
+  
+  .hint {
+    padding: 0.8rem;
   }
 }
 </style>

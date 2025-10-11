@@ -14,6 +14,14 @@ An interactive Vue 3 web app that helps musicians practice note recognition usin
 
 ## Features
 
+### Leitner Spaced Repetition System 🧠
+- **Smart Learning Algorithm**: 5-box Leitner system for optimal memorization
+- **Adaptive Review Intervals**: Cards reviewed based on mastery level
+- **Progress Tracking**: Session stats and performance metrics
+- **Persistent Storage**: Your progress is saved locally
+- **Swipe-based Feedback**: Right for correct, left for incorrect
+- **See [LEITNER_SYSTEM.md](LEITNER_SYSTEM.md) for detailed documentation**
+
 ### Interactive Swipe Trainer
 - **Interactive Card Stack**: Swipe through musical notes like flashcards
 - **Real-time Pitch Detection**: Uses Pitchy.js to detect notes from your microphone
@@ -35,6 +43,10 @@ src/
 ├── core/                    # Core application
 │   ├── App.vue             # Root component
 │   └── main.js             # Application entry point
+├── services/                # Application services
+│   ├── LeitnerSystemService.js    # Leitner learning algorithm
+│   ├── StorageAdapter.js          # Data persistence layer
+│   └── LeitnerDebugger.js         # Development debugging tools
 ├── features/                # Feature modules
 │   └── swipe-trainer/       # Main swipe card trainer
 │       ├── components/
@@ -45,7 +57,8 @@ src/
 ├── shared/                  # Shared utilities
 │   ├── composables/
 │   │   ├── usePitchDetection.js
-│   │   └── useNoteGenerator.js
+│   │   ├── useNoteGenerator.js
+│   │   └── useLeitnerSystem.js
 │   ├── services/
 │   │   └── audio/
 │   │       └── PitchDetectionService.js
@@ -66,7 +79,11 @@ src/
 2. **View the Note**: See musical notation on the top card
 3. **Play the Note**: Use your instrument to match the displayed note
 4. **Auto-advance**: Correct notes automatically swipe right
-5. **Manual Navigation**: Swipe left/right or tap to flip card
+5. **Manual Feedback**:
+   - **Swipe Right →** or sing correctly: Mark as "I know this" (promotes card)
+   - **Swipe Left ←**: Mark as "I don't know" (card returns to Box 1)
+   - **Tap**: Flip card to see the answer
+6. **Track Progress**: View session stats at the bottom of the screen
 
 ## Installation & Development
 
@@ -98,6 +115,8 @@ npm run preview
 
 - **Frontend Framework**: Vue 3 with Composition API & Script Setup
 - **Build Tool**: Vite 7.x for fast development and optimized builds
+- **Learning Algorithm**: Leitner Spaced Repetition System (5-box)
+- **Data Storage**: LocalStorage (Firestore-ready architecture)
 - **Pitch Detection**: Pitchy.js (McLeod Pitch Method)
 - **Music Notation**: VexFlow 5.x for professional staff rendering
 - **Audio Processing**: Web Audio API
@@ -139,6 +158,37 @@ Edit `/src/shared/utils/constants.js` to adjust:
 - Pitch detection thresholds
 - Detection timing parameters
 - UI colors and breakpoints
+
+## Development Tools
+
+### Leitner Debugger (Dev Mode Only)
+
+When running in development, the Leitner Debugger is available in the browser console:
+
+```javascript
+// View current state
+LeitnerDebugger.printCurrentState()
+
+// View box distribution
+LeitnerDebugger.printBoxDistribution()
+
+// View stats for specific note
+LeitnerDebugger.printCardStats('E2')
+
+// Simulate practice
+LeitnerDebugger.simulateCorrectAnswers(5)
+LeitnerDebugger.simulateIncorrectAnswers(3)
+
+// Fast forward to next session
+LeitnerDebugger.fastForwardToNextSession()
+
+// Export/Import progress
+const data = LeitnerDebugger.exportData()
+LeitnerDebugger.importData(data)
+
+// Reset all progress
+LeitnerDebugger.reset()
+```
 
 ## Contributing
 
