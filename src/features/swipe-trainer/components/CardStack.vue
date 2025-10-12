@@ -15,9 +15,8 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import NoteCard from './NoteCard.vue'
-import { COLORS } from '../../../shared/utils/constants'
 
 const props = defineProps({
   notes: {
@@ -269,10 +268,6 @@ function triggerAutoSwipeRight() {
   handleSwipeRight()
 }
 
-function triggerAutoSwipeLeft() {
-  handleSwipeLeft()
-}
-
 onMounted(() => {
   nextTick(() => {
     setupGestures()
@@ -287,8 +282,7 @@ defineExpose({
   setupGestures,
   destroyGestures,
   cardRefs,
-  triggerAutoSwipeRight,
-  triggerAutoSwipeLeft
+  triggerAutoSwipeRight
 })
 </script>
 

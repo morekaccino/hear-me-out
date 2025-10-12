@@ -46,7 +46,6 @@ src/
 │   ├── composables/
 │   │   ├── usePitchDetection.js
 │   │   ├── useNoteGenerator.js
-│   │   ├── useFirebase.js
 │   │   └── useAuth.js
 │   ├── services/
 │   │   ├── audio/
@@ -87,19 +86,6 @@ src/
 # Install dependencies
 npm install
 
-# Configure Firebase
-# 1. Copy .env.example to .env
-cp .env.example .env
-
-# 2. Add your Firebase credentials to .env
-# Get these from Firebase Console > Project Settings > General > Your apps
-# VITE_FIREBASE_API_KEY=your-api-key
-# VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
-# VITE_FIREBASE_PROJECT_ID=your-project-id
-# VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
-# VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
-# VITE_FIREBASE_APP_ID=your-app-id
-
 # Start development server
 npm run dev
 
@@ -111,17 +97,93 @@ npm run preview
 ```
 
 ### Firebase Setup
-After getting your Firebase credentials, enable the following in Firebase Console:
 
-1. **Anonymous Authentication**: 
+The project uses Firebase for authentication and Firestore for data storage.
+
+1. **Create a Firebase Project**:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project or use an existing one
+
+2. **Configure Firebase Credentials**:
+   - Update `src/config/firebase.config.js` with your Firebase credentials
+   - Get credentials from Firebase Console > Project Settings > General > Your apps
+
+3. **Enable Anonymous Authentication**: 
    - Go to Authentication > Sign-in method
    - Enable "Anonymous" provider
    - This allows users to be automatically logged in without credentials
 
-2. **Firestore Database**:
+4. **Setup Firestore Database**:
    - Go to Firestore Database
    - Create database (choose production mode or test mode)
    - Deploy the security rules: `firebase deploy --only firestore:rules`
+
+### Firestore Service Usage
+
+The application includes a service layer for Firestore operations:
+
+#### Base Service: `FirestoreService`
+
+Provides CRUD operations for any Firestore collection:
+
+```javascript
+import { FirestoreService } from './shared/services/firestore/FirestoreService'
+
+const notesService = new FirestoreService('notes')
+```
+
+**Available Methods:**
+- `createDocument(docId, data, merge = true)` - Create or update a document
+- `getDocument(docId)` - Get a document by ID
+- `updateDocument(docId, data)` - Update existing document
+- `documentExists(docId)` - Check if document exists
+
+#### User Service: `UserService`
+
+Specialized service for managing user documents:
+
+```javascript
+import { userService } from './shared/services/firestore/UserService'
+
+// Initialize user (creates document if doesn't exist)
+await userService.initializeUser(userId)
+
+// Get user profile
+const profile = await userService.getUserProfile(userId)
+
+// Update user profile
+await userService.updateUserProfile(userId, {
+  displayName: 'John Doe',
+  level: 5
+})
+```
+
+**Automatic Timestamps:**
+- All documents include `updated_at` (server timestamp)
+- User documents include `account_created` timestamp
+
+#### Creating New Services
+
+To create a service for a new collection:
+
+```javascript
+import { FirestoreService } from './FirestoreService'
+
+export class ProgressService extends FirestoreService {
+  constructor() {
+    super('progress') // collection name
+  }
+
+  async saveProgress(userId, noteData) {
+    return this.createDocument(userId, {
+      notes: noteData,
+      completedAt: new Date()
+    })
+  }
+}
+
+export const progressService = new ProgressService()
+```
 
 ### Access the App
 - Development: http://localhost:5173/
@@ -149,7 +211,6 @@ After getting your Firebase credentials, enable the following in Firebase Consol
 - **FirestoreService**: Base class for CRUD operations on any collection
 - **UserService**: Specialized service for user data management
 - **Automatic Timestamps**: All documents track updates with `updated_at`
-- See [FIRESTORE_USAGE.md](./FIRESTORE_USAGE.md) for detailed usage guide
 
 ### UI/UX
 - **Pointer Events API**: Unified touch/mouse gesture handling
@@ -166,15 +227,29 @@ After getting your Firebase credentials, enable the following in Firebase Consol
 
 ## Privacy & Security
 
-- **No Data Collection**: All processing happens locally in your browser
+- **No Data Collection**: All audio processing happens locally in your browser
 - **No External Servers**: No audio data is transmitted anywhere
 - **Secure by Default**: Microphone access only used for real-time detection
+- **Anonymous Authentication**: Users can practice without creating accounts
 
 ## Configuration
+
+### Instrument Range
 
 Edit `/src/config/notes.config.js` to customize:
 - Instrument range (min/max notes)
 - Playable note pool
+
+```javascript
+export const INSTRUMENT_RANGE = {
+  MIN_NOTE: 'E2',
+  MAX_NOTE: 'E5',
+  MIN_OCTAVE: 2,
+  MAX_OCTAVE: 5
+}
+```
+
+### Detection Parameters
 
 Edit `/src/shared/utils/constants.js` to adjust:
 - Pitch detection thresholds
@@ -188,6 +263,7 @@ This project follows modern best practices:
 - Shared utilities to eliminate duplication
 - Composables for reusable logic
 - Constants for maintainable configuration
+- SOLID principles for service layer
 
 Feel free to:
 - Report bugs or suggest improvements

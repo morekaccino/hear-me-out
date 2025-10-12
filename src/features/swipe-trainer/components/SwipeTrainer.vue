@@ -1,7 +1,5 @@
 <template>
   <div class="trainer-app">
-    
-
     <CardStack
       :notes="noteStack"
       @flip="flipCard"
@@ -13,27 +11,25 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import CardStack from './CardStack.vue'
 import { usePitchDetection } from '../../../shared/composables/usePitchDetection'
 import { useNoteGenerator } from '../../../shared/composables/useNoteGenerator'
 import { DETECTION_TIMING } from '../../../shared/utils/constants'
 
-const { isListening, startMicrophone, stopMicrophone, latestPitch, latestClarity, latestNote } = usePitchDetection()
+const { startMicrophone, stopMicrophone } = usePitchDetection()
 const { generateNote, generateStack } = useNoteGenerator()
 
 const noteStack = ref([])
 const stackRef = ref(null)
-const isDetecting = ref(false)
-const showSuccess = ref(false)
 const detectedNote = ref('')
 let detectionTimeout = null
 let successTimeout = null
 
-const currentNote = computed(() => {
+function getCurrentNote() {
   const topCard = noteStack.value[noteStack.value.length - 1]
   return topCard ? topCard.value : ''
-})
+}
 
 function initializeStack() {
   noteStack.value = generateStack(5)
@@ -90,20 +86,16 @@ function renderVisibleCards() {
 
 function onNoteDetected(detectedNoteValue) {
   detectedNote.value = detectedNoteValue
-  isDetecting.value = true
   
   if (detectionTimeout) {
     clearTimeout(detectionTimeout)
   }
   
   detectionTimeout = setTimeout(() => {
-    isDetecting.value = false
     detectedNote.value = ''
   }, DETECTION_TIMING.DETECTION_RESET_MS)
   
-  if (detectedNoteValue === currentNote.value) {
-    showSuccess.value = true
-    
+  if (detectedNoteValue === getCurrentNote()) {
     if (successTimeout) {
       clearTimeout(successTimeout)
     }
@@ -111,16 +103,10 @@ function onNoteDetected(detectedNoteValue) {
     setTimeout(() => {
       if (stackRef.value) {
         stackRef.value.triggerAutoSwipeRight()
-        showSuccess.value = false
       } else {
         swipeRight()
-        showSuccess.value = false
       }
     }, DETECTION_TIMING.SUCCESS_DELAY_MS)
-    
-    successTimeout = setTimeout(() => {
-      showSuccess.value = false
-    }, DETECTION_TIMING.SUCCESS_RESET_MS)
   }
 }
 
