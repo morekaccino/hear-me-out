@@ -14,6 +14,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import CardStack from './CardStack.vue'
 import { usePitchDetection } from '../../../shared/composables/usePitchDetection'
+import { useNoteGenerator } from '../../../shared/composables/useNoteGenerator'
 import { useLeitnerSystem } from '../../../shared/composables/useLeitnerSystem'
 import { DETECTION_TIMING } from '../../../shared/utils/constants'
 
