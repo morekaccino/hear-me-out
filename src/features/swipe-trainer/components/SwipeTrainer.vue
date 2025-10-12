@@ -1,54 +1,5 @@
 <template>
   <div class="trainer-app">
-    <div class="mic-status" :class="{ 
-      listening: isListening, 
-      detecting: isDetecting,
-      success: showSuccess 
-    }">
-      <div class="mic-icon">🎤</div>
-      <div class="status-text">
-        <span v-if="!isListening">Microphone Initializing...</span>
-        <span v-else-if="isDetecting">Note Detected!</span>
-        <span v-else>Listening for: {{ currentNote }}</span>
-      </div>
-      <div v-if="detectedNote" class="detected-note">
-        Detected: {{ detectedNote }}
-      </div>
-      <div v-if="latestPitch" class="detected-note" style="opacity:.7">
-        Live: {{ latestNote }} ({{ latestPitch.toFixed(1) }} Hz · {{ (latestClarity*100).toFixed(0) }}%)
-      </div>
-    </div>
-
-    <div class="leitner-stats">
-      <div class="stat-item">
-        <span class="stat-label">Session</span>
-        <span class="stat-value">{{ sessionStats.sessionCount }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Remaining</span>
-        <span class="stat-value">{{ remainingCards }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Correct</span>
-        <span class="stat-value correct">{{ sessionStats.correctCount }}</span>
-      </div>
-      <div class="stat-item">
-        <span class="stat-label">Incorrect</span>
-        <span class="stat-value incorrect">{{ sessionStats.incorrectCount }}</span>
-      </div>
-    </div>
-
-    <div class="swipe-hints">
-      <div class="hint hint-left">
-        <span class="hint-icon">←</span>
-        <span class="hint-text">Wrong</span>
-      </div>
-      <div class="hint hint-right">
-        <span class="hint-text">Correct</span>
-        <span class="hint-icon">→</span>
-      </div>
-    </div>
-
     <CardStack
       :notes="noteStack"
       @flip="flipCard"
@@ -60,36 +11,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import CardStack from './CardStack.vue'
 import { usePitchDetection } from '../../../shared/composables/usePitchDetection'
 import { useLeitnerSystem } from '../../../shared/composables/useLeitnerSystem'
 import { DETECTION_TIMING } from '../../../shared/utils/constants'
 
-const { isListening, startMicrophone, stopMicrophone, latestPitch, latestClarity, latestNote } = usePitchDetection()
-const { 
-  generateStack, 
-  loadNextCard, 
-  markCorrect, 
-  markIncorrect, 
-  sessionStats, 
-  remainingCards,
-  sessionComplete,
-  startNewSession
-} = useLeitnerSystem()
-
+const { startMicrophone, stopMicrophone } = usePitchDetection()
+const { generateNote, generateStack } = useNoteGenerator()
 const noteStack = ref([])
 const stackRef = ref(null)
-const isDetecting = ref(false)
-const showSuccess = ref(false)
 const detectedNote = ref('')
 let detectionTimeout = null
 let successTimeout = null
 
-const currentNote = computed(() => {
+function getCurrentNote() {
   const topCard = noteStack.value[noteStack.value.length - 1]
   return topCard ? topCard.value : ''
-})
+}
 
 function initializeStack() {
   noteStack.value = generateStack(5)
@@ -170,25 +109,16 @@ function renderVisibleCards() {
 
 function onNoteDetected(detectedNoteValue) {
   detectedNote.value = detectedNoteValue
-  isDetecting.value = true
   
   if (detectionTimeout) {
     clearTimeout(detectionTimeout)
   }
   
   detectionTimeout = setTimeout(() => {
-    isDetecting.value = false
     detectedNote.value = ''
   }, DETECTION_TIMING.DETECTION_RESET_MS)
   
-  if (detectedNoteValue === currentNote.value) {
-    showSuccess.value = true
-    
-    const topCard = noteStack.value[noteStack.value.length - 1]
-    if (topCard) {
-      markCorrect()
-    }
-    
+  if (detectedNoteValue === getCurrentNote()) {
     if (successTimeout) {
       clearTimeout(successTimeout)
     }
@@ -196,16 +126,12 @@ function onNoteDetected(detectedNoteValue) {
     setTimeout(() => {
       if (stackRef.value) {
         stackRef.value.triggerAutoSwipeRight()
-        showSuccess.value = false
       } else {
+        swipeRight()
         nextCard()
         showSuccess.value = false
       }
     }, DETECTION_TIMING.SUCCESS_DELAY_MS)
-    
-    successTimeout = setTimeout(() => {
-      showSuccess.value = false
-    }, DETECTION_TIMING.SUCCESS_RESET_MS)
   }
 }
 

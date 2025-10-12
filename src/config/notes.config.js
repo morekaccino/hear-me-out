@@ -31,8 +31,4 @@ function noteToOrder(noteName) {
   return (octave + 1) * 12 + noteIndex
 }
 
-export const GUITAR_TRANSPOSITION = {
-  WRITTEN_TO_SOUNDING: -1,
-  SOUNDING_TO_WRITTEN: 1
-}
 

@@ -58,10 +58,15 @@ src/
 │   ├── composables/
 │   │   ├── usePitchDetection.js
 │   │   ├── useNoteGenerator.js
-│   │   └── useLeitnerSystem.js
+│   │   └── useAuth.js
+
 │   ├── services/
-│   │   └── audio/
-│   │       └── PitchDetectionService.js
+│   │   ├── audio/
+│   │   │   └── PitchDetectionService.js
+│   │   └── firestore/
+│   │       ├── FirestoreService.js
+│   │       ├── UserService.js
+│   │       └── index.js
 │   ├── utils/
 │   │   ├── noteConversion.js
 │   │   └── constants.js
@@ -70,7 +75,8 @@ src/
 │       ├── animations.css
 │       └── base.css
 └── config/
-    └── notes.config.js      # Instrument range configuration
+    ├── notes.config.js      # Instrument range configuration
+    └── firebase.config.js   # Firebase initialization
 ```
 
 ## How to Use
@@ -107,16 +113,105 @@ npm run build
 npm run preview
 ```
 
+### Firebase Setup
+
+The project uses Firebase for authentication and Firestore for data storage.
+
+1. **Create a Firebase Project**:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project or use an existing one
+
+2. **Configure Firebase Credentials**:
+   - Update `src/config/firebase.config.js` with your Firebase credentials
+   - Get credentials from Firebase Console > Project Settings > General > Your apps
+
+3. **Enable Anonymous Authentication**: 
+   - Go to Authentication > Sign-in method
+   - Enable "Anonymous" provider
+   - This allows users to be automatically logged in without credentials
+
+4. **Setup Firestore Database**:
+   - Go to Firestore Database
+   - Create database (choose production mode or test mode)
+   - Deploy the security rules: `firebase deploy --only firestore:rules`
+
+### Firestore Service Usage
+
+The application includes a service layer for Firestore operations:
+
+#### Base Service: `FirestoreService`
+
+Provides CRUD operations for any Firestore collection:
+
+```javascript
+import { FirestoreService } from './shared/services/firestore/FirestoreService'
+
+const notesService = new FirestoreService('notes')
+```
+
+**Available Methods:**
+- `createDocument(docId, data, merge = true)` - Create or update a document
+- `getDocument(docId)` - Get a document by ID
+- `updateDocument(docId, data)` - Update existing document
+- `documentExists(docId)` - Check if document exists
+
+#### User Service: `UserService`
+
+Specialized service for managing user documents:
+
+```javascript
+import { userService } from './shared/services/firestore/UserService'
+
+// Initialize user (creates document if doesn't exist)
+await userService.initializeUser(userId)
+
+// Get user profile
+const profile = await userService.getUserProfile(userId)
+
+// Update user profile
+await userService.updateUserProfile(userId, {
+  displayName: 'John Doe',
+  level: 5
+})
+```
+
+**Automatic Timestamps:**
+- All documents include `updated_at` (server timestamp)
+- User documents include `account_created` timestamp
+
+#### Creating New Services
+
+To create a service for a new collection:
+
+```javascript
+import { FirestoreService } from './FirestoreService'
+
+export class ProgressService extends FirestoreService {
+  constructor() {
+    super('progress') // collection name
+  }
+
+  async saveProgress(userId, noteData) {
+    return this.createDocument(userId, {
+      notes: noteData,
+      completedAt: new Date()
+    })
+  }
+}
+
+export const progressService = new ProgressService()
+```
+
 ### Access the App
 - Development: http://localhost:5173/
 - The app requires microphone permissions to function
+- Users are automatically authenticated anonymously on first visit
 
 ## Technical Stack
 
 - **Frontend Framework**: Vue 3 with Composition API & Script Setup
 - **Build Tool**: Vite 7.x for fast development and optimized builds
-- **Learning Algorithm**: Leitner Spaced Repetition System (5-box)
-- **Data Storage**: LocalStorage (Firestore-ready architecture)
+- **Backend**: Firebase (Authentication & Firestore)
 - **Pitch Detection**: Pitchy.js (McLeod Pitch Method)
 - **Music Notation**: VexFlow 5.x for professional staff rendering
 - **Audio Processing**: Web Audio API
@@ -128,6 +223,11 @@ npm run preview
 - **PitchDetectionService**: Wrapper around Pitchy for consistent pitch detection
 - **Web Audio API**: High-quality microphone input processing
 - **Frequency Analysis**: Real-time FFT with 4096 sample size
+
+### Data Management
+- **FirestoreService**: Base class for CRUD operations on any collection
+- **UserService**: Specialized service for user data management
+- **Automatic Timestamps**: All documents track updates with `updated_at`
 
 ### UI/UX
 - **Pointer Events API**: Unified touch/mouse gesture handling
@@ -144,15 +244,29 @@ npm run preview
 
 ## Privacy & Security
 
-- **No Data Collection**: All processing happens locally in your browser
+- **No Data Collection**: All audio processing happens locally in your browser
 - **No External Servers**: No audio data is transmitted anywhere
 - **Secure by Default**: Microphone access only used for real-time detection
+- **Anonymous Authentication**: Users can practice without creating accounts
 
 ## Configuration
+
+### Instrument Range
 
 Edit `/src/config/notes.config.js` to customize:
 - Instrument range (min/max notes)
 - Playable note pool
+
+```javascript
+export const INSTRUMENT_RANGE = {
+  MIN_NOTE: 'E2',
+  MAX_NOTE: 'E5',
+  MIN_OCTAVE: 2,
+  MAX_OCTAVE: 5
+}
+```
+
+### Detection Parameters
 
 Edit `/src/shared/utils/constants.js` to adjust:
 - Pitch detection thresholds
@@ -197,6 +311,7 @@ This project follows modern best practices:
 - Shared utilities to eliminate duplication
 - Composables for reusable logic
 - Constants for maintainable configuration
+- SOLID principles for service layer
 
 Feel free to:
 - Report bugs or suggest improvements
