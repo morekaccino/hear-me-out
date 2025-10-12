@@ -7,6 +7,15 @@ export const INSTRUMENT_RANGE = {
   MAX_OCTAVE: 5
 }
 
+function noteToOrder(noteName) {
+  const match = noteName.match(/^([A-G]#?)(\d+)$/)
+  if (!match) return -1
+  const [, note, octaveStr] = match
+  const noteIndex = NOTE_NAMES.indexOf(note)
+  const octave = parseInt(octaveStr, 10)
+  return (octave + 1) * 12 + noteIndex
+}
+
 export const PLAYABLE_NOTES = (() => {
   const results = []
   for (let octave = INSTRUMENT_RANGE.MIN_OCTAVE; octave <= INSTRUMENT_RANGE.MAX_OCTAVE; octave++) {
@@ -21,14 +30,5 @@ export const PLAYABLE_NOTES = (() => {
   }
   return results
 })()
-
-function noteToOrder(noteName) {
-  const match = noteName.match(/^([A-G]#?)(\d+)$/)
-  if (!match) return -1
-  const [, note, octaveStr] = match
-  const noteIndex = NOTE_NAMES.indexOf(note)
-  const octave = parseInt(octaveStr, 10)
-  return (octave + 1) * 12 + noteIndex
-}
 
 
