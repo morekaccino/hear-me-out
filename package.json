@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "firebase": "^12.4.0",
     "pitchy": "^4.0.3",
     "vexflow": "^5.0.0",
     "vue": "^3.5.18"

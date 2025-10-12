@@ -1,23 +1,6 @@
 <template>
   <div class="trainer-app">
-    <div class="mic-status" :class="{ 
-      listening: isListening, 
-      detecting: isDetecting,
-      success: showSuccess 
-    }">
-      <div class="mic-icon">🎤</div>
-      <div class="status-text">
-        <span v-if="!isListening">Microphone Initializing...</span>
-        <span v-else-if="isDetecting">Note Detected!</span>
-        <span v-else>Listening for: {{ currentNote }}</span>
-      </div>
-      <div v-if="detectedNote" class="detected-note">
-        Detected: {{ detectedNote }}
-      </div>
-      <div v-if="latestPitch" class="detected-note" style="opacity:.7">
-        Live: {{ latestNote }} ({{ latestPitch.toFixed(1) }} Hz · {{ (latestClarity*100).toFixed(0) }}%)
-      </div>
-    </div>
+    
 
     <CardStack
       :notes="noteStack"

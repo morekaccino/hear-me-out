@@ -45,10 +45,16 @@ src/
 ├── shared/                  # Shared utilities
 │   ├── composables/
 │   │   ├── usePitchDetection.js
-│   │   └── useNoteGenerator.js
+│   │   ├── useNoteGenerator.js
+│   │   ├── useFirebase.js
+│   │   └── useAuth.js
 │   ├── services/
-│   │   └── audio/
-│   │       └── PitchDetectionService.js
+│   │   ├── audio/
+│   │   │   └── PitchDetectionService.js
+│   │   └── firestore/
+│   │       ├── FirestoreService.js
+│   │       ├── UserService.js
+│   │       └── index.js
 │   ├── utils/
 │   │   ├── noteConversion.js
 │   │   └── constants.js
@@ -57,7 +63,8 @@ src/
 │       ├── animations.css
 │       └── base.css
 └── config/
-    └── notes.config.js      # Instrument range configuration
+    ├── notes.config.js      # Instrument range configuration
+    └── firebase.config.js   # Firebase initialization
 ```
 
 ## How to Use
@@ -80,6 +87,19 @@ src/
 # Install dependencies
 npm install
 
+# Configure Firebase
+# 1. Copy .env.example to .env
+cp .env.example .env
+
+# 2. Add your Firebase credentials to .env
+# Get these from Firebase Console > Project Settings > General > Your apps
+# VITE_FIREBASE_API_KEY=your-api-key
+# VITE_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+# VITE_FIREBASE_PROJECT_ID=your-project-id
+# VITE_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+# VITE_FIREBASE_MESSAGING_SENDER_ID=your-messaging-sender-id
+# VITE_FIREBASE_APP_ID=your-app-id
+
 # Start development server
 npm run dev
 
@@ -90,14 +110,29 @@ npm run build
 npm run preview
 ```
 
+### Firebase Setup
+After getting your Firebase credentials, enable the following in Firebase Console:
+
+1. **Anonymous Authentication**: 
+   - Go to Authentication > Sign-in method
+   - Enable "Anonymous" provider
+   - This allows users to be automatically logged in without credentials
+
+2. **Firestore Database**:
+   - Go to Firestore Database
+   - Create database (choose production mode or test mode)
+   - Deploy the security rules: `firebase deploy --only firestore:rules`
+
 ### Access the App
 - Development: http://localhost:5173/
 - The app requires microphone permissions to function
+- Users are automatically authenticated anonymously on first visit
 
 ## Technical Stack
 
 - **Frontend Framework**: Vue 3 with Composition API & Script Setup
 - **Build Tool**: Vite 7.x for fast development and optimized builds
+- **Backend**: Firebase (Authentication & Firestore)
 - **Pitch Detection**: Pitchy.js (McLeod Pitch Method)
 - **Music Notation**: VexFlow 5.x for professional staff rendering
 - **Audio Processing**: Web Audio API
@@ -109,6 +144,12 @@ npm run preview
 - **PitchDetectionService**: Wrapper around Pitchy for consistent pitch detection
 - **Web Audio API**: High-quality microphone input processing
 - **Frequency Analysis**: Real-time FFT with 4096 sample size
+
+### Data Management
+- **FirestoreService**: Base class for CRUD operations on any collection
+- **UserService**: Specialized service for user data management
+- **Automatic Timestamps**: All documents track updates with `updated_at`
+- See [FIRESTORE_USAGE.md](./FIRESTORE_USAGE.md) for detailed usage guide
 
 ### UI/UX
 - **Pointer Events API**: Unified touch/mouse gesture handling
