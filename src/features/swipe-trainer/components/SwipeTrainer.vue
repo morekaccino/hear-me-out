@@ -14,12 +14,11 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import CardStack from './CardStack.vue'
 import { usePitchDetection } from '../../../shared/composables/usePitchDetection'
-import { useNoteGenerator } from '../../../shared/composables/useNoteGenerator'
-import { useLeitnerSystem } from '../../../shared/composables/useLeitnerSystem'
+import { useProgressiveLearning } from '../../../shared/composables/useProgressiveLearning'
 import { DETECTION_TIMING } from '../../../shared/utils/constants'
 
 const { startMicrophone, stopMicrophone } = usePitchDetection()
-const { generateNote, generateStack } = useNoteGenerator()
+const { generateInitialStack, getNextCard, markCorrect: markCardCorrect, markIncorrect: markCardIncorrect } = useProgressiveLearning()
 const noteStack = ref([])
 const stackRef = ref(null)
 const detectedNote = ref('')
@@ -31,8 +30,8 @@ function getCurrentNote() {
   return topCard ? topCard.value : ''
 }
 
-function initializeStack() {
-  noteStack.value = generateStack(5)
+async function initializeStack() {
+  noteStack.value = await generateInitialStack(5)
   nextTick(() => {
     renderVisibleCards()
   })
@@ -44,23 +43,23 @@ function flipCard(index) {
   }
 }
 
-function swipeRight() {
+async function swipeRight() {
   const topCard = noteStack.value[noteStack.value.length - 1]
   if (topCard) {
-    markCorrect()
+    await markCardCorrect(topCard.value)
   }
-  nextCard()
+  await nextCard()
 }
 
-function swipeLeft() {
+async function swipeLeft() {
   const topCard = noteStack.value[noteStack.value.length - 1]
   if (topCard) {
-    markIncorrect()
+    await markCardIncorrect(topCard.value)
   }
-  nextCard()
+  await nextCard()
 }
 
-function nextCard() {
+async function nextCard() {
   if (stackRef.value) {
     stackRef.value.destroyGestures()
   }
@@ -72,12 +71,7 @@ function nextCard() {
   
   noteStack.value.pop()
   
-  if (sessionComplete.value) {
-    handleSessionComplete()
-    return
-  }
-  
-  const newCard = loadNextCard()
+  const newCard = await getNextCard()
   if (newCard) {
     noteStack.value.unshift(newCard)
   }
@@ -88,13 +82,6 @@ function nextCard() {
       stackRef.value.setupGestures()
     }
   })
-}
-
-function handleSessionComplete() {
-  console.log('Session complete!', sessionStats.value)
-  const result = startNewSession()
-  console.log('New session started:', result)
-  initializeStack()
 }
 
 function renderVisibleCards() {
@@ -124,20 +111,18 @@ function onNoteDetected(detectedNoteValue) {
       clearTimeout(successTimeout)
     }
     
-    setTimeout(() => {
+    setTimeout(async () => {
       if (stackRef.value) {
         stackRef.value.triggerAutoSwipeRight()
       } else {
-        swipeRight()
-        nextCard()
-        showSuccess.value = false
+        await swipeRight()
       }
     }, DETECTION_TIMING.SUCCESS_DELAY_MS)
   }
 }
 
 onMounted(async () => {
-  initializeStack()
+  await initializeStack()
   
   try {
     await startMicrophone(onNoteDetected)
