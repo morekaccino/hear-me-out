@@ -11,7 +11,7 @@ export class ProgressiveLearningService {
     
     this.MASTERY_THRESHOLD = 3
     this.NEW_CARD_AFTER_REVIEWS = 2
-    this.REVIEW_PROBABILITY = 0.3
+    this.REVIEW_PROBABILITY = 0.7
     this.MAX_LEARNING_CARDS = 5
     
     if (initialState) {
