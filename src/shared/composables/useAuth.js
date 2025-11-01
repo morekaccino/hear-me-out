@@ -2,11 +2,13 @@ import { ref, onMounted } from 'vue'
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../config/firebase.config'
 
-export function useAuth() {
-  const user = ref(null)
-  const loading = ref(true)
-  const error = ref(null)
+// Shared state across all instances of useAuth
+const user = ref(null)
+const loading = ref(true)
+const error = ref(null)
+let initPromise = null
 
+export function useAuth() {
   const loginAnonymously = async () => {
     try {
       loading.value = true
@@ -24,17 +26,29 @@ export function useAuth() {
   }
 
   const initAuth = () => {
-    return new Promise((resolve) => {
+    // Return cached promise if already initializing/initialized
+    if (initPromise) {
+      console.log('Returning cached auth promise')
+      return initPromise
+    }
+
+    initPromise = new Promise((resolve) => {
       const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        console.log('Auth state changed:', currentUser ? currentUser.uid : 'no user')
         if (currentUser) {
+          console.log('User already authenticated:', currentUser.uid)
+          console.log('Is anonymous:', currentUser.isAnonymous)
           user.value = currentUser
           loading.value = false
           resolve(currentUser)
         } else {
+          console.log('No user found, signing in anonymously...')
           try {
             const newUser = await loginAnonymously()
+            console.log('Anonymous sign in successful:', newUser?.uid)
             resolve(newUser)
           } catch (err) {
+            console.error('Anonymous sign in failed:', err)
             loading.value = false
             resolve(null)
           }
@@ -42,6 +56,8 @@ export function useAuth() {
         unsubscribe()
       })
     })
+
+    return initPromise
   }
 
   return {
