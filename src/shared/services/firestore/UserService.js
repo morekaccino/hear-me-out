@@ -7,16 +7,29 @@ export class UserService extends FirestoreService {
   }
 
   async initializeUser(userId) {
-    const exists = await this.documentExists(userId)
+    console.log('Initializing user:', userId)
     
-    if (!exists) {
-      await this.createDocument(userId, {
-        account_created: serverTimestamp()
-      })
-      console.log('User document created:', userId)
+    try {
+      const exists = await this.documentExists(userId)
+      console.log('User document exists:', exists)
+      
+      if (!exists) {
+        console.log('Creating new user document...')
+        await this.createDocument(userId, {
+          account_created: serverTimestamp()
+        })
+        console.log('User document created:', userId)
+      }
+      
+      const userData = await this.getDocument(userId)
+      console.log('User data retrieved:', userData)
+      return userData
+    } catch (error) {
+      console.error('Error in initializeUser:', error)
+      console.error('Error code:', error.code)
+      console.error('Error message:', error.message)
+      throw error
     }
-    
-    return this.getDocument(userId)
   }
 
   async updateUserProfile(userId, profileData) {
