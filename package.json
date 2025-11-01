@@ -3,8 +3,37 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Interactive music note trainer with real-time pitch detection, swipeable flashcards, and spaced repetition learning",
-  "author": "Your Name",
+  "description": "🎸 Interactive music note trainer with real-time pitch detection, swipeable flashcards, and intelligent spaced repetition learning. Master music notation by actually playing your instrument!",
+  "author": "morekaccino",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/morekaccino/hear-me-out.git"
+  },
+  "bugs": {
+    "url": "https://github.com/morekaccino/hear-me-out/issues"
+  },
+  "homepage": "https://hearmeout-1995.web.app",
+  "keywords": [
+    "music",
+    "music-education",
+    "pitch-detection",
+    "flashcards",
+    "spaced-repetition",
+    "vue3",
+    "vite",
+    "firebase",
+    "web-audio-api",
+    "guitar",
+    "piano",
+    "music-theory",
+    "learning",
+    "progressive-web-app",
+    "music-notation",
+    "vexflow",
+    "real-time",
+    "audio-processing"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
