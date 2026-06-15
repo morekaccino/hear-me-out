@@ -1,5 +1,5 @@
 // flutter_app/lib/core/router.dart
-import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -23,7 +23,8 @@ final goRouter = GoRouter(
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
-        if (Platform.isIOS) {
+        final isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+        if (isIOS) {
           return CupertinoTabScaffold(
             tabBar: CupertinoTabBar(
               activeColor: AppColors.accent,
