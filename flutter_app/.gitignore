@@ -1,0 +1,33 @@
+# Flutter/Dart
+.dart_tool/
+.pub/
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.vscode/
+.packages
+
+# Android
+local.properties
+
+# iOS
+ios/.generated/
+ios/Pods/
+ios/.symlinks/
+
+# macOS
+macos/.generated/
+macos/Pods/
+macos/.symlinks/
+
+# Web
+web/firebase-messaging-sw.js
+
+# Editor
+.DS_Store
+*.swp
+*.swo
+*~
