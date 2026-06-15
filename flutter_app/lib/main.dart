@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/firebase_config.dart';
 import 'shared/services/local/local_storage_service.dart';
 import 'app.dart';

@@ -11,6 +11,7 @@ class PracticeScreen extends StatefulWidget {
 }
 
 class _PracticeScreenState extends State<PracticeScreen> {
+  // ignore_for_file: prefer_final_fields
   String _selectedMode = 'Notes';
   String? _currentNote = 'C4';
   bool _isListening = true;
