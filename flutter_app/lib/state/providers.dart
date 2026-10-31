@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/audio/pitch_source.dart';
+import '../shared/audio/sound_service.dart';
 
 typedef PitchSourceFactory = PitchSource Function();
 
@@ -13,3 +16,11 @@ final pitchSourceFactoryProvider = Provider<PitchSourceFactory>(
 final lessonGraceProvider = Provider<Duration>(
   (ref) => const Duration(milliseconds: 250),
 );
+
+final soundServiceProvider = Provider<SoundService>((ref) {
+  final service = AudioPlayersSoundService();
+  ref.onDispose(() {
+    unawaited(service.dispose());
+  });
+  return service;
+});

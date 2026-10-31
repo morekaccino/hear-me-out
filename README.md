@@ -11,6 +11,16 @@ pitch feedback, and spaced review. Everything stays on your device.
 
 ---
 
+## Mission
+
+**Help a beginner read standard notation on guitar through short, forgiving
+practice with honest pitch feedback.**
+
+Hear Me Out is built for people practicing alone on a phone, with or without a
+microphone. A session should fit into a few spare minutes, every answer should
+teach something, and progress should mean real recall rather than a lucky
+streak. The app stays private, guitar-correct, and free of social pressure.
+
 ## What it is
 
 Hear Me Out teaches you to read standard notation on guitar. Each lesson shows a
@@ -18,8 +28,9 @@ note on a treble staff and asks you to either **name it** or **play it**. The
 microphone listens to your guitar, detects the pitch, and tells you whether you
 hit the note, missed it, or played the right note in the wrong octave.
 
-- **17 lessons across 4 units** — staff basics, first position, low strings, and
-  accidentals.
+- **25 lessons across 6 units in 3 sections** — staff basics, below-staff
+  reading, low strings, full first position, and accidentals, with a guidebook
+  and 15-exercise checkpoint for every unit.
 - **Play or name** — every note can be answered by tapping its name or by
   playing it. If the mic is unavailable, the app falls back to naming.
 - **Guitar-correct notation** — written pitch is one octave above sounding
@@ -28,8 +39,12 @@ hit the note, missed it, or played the right note in the wrong octave.
 - **Real spaced repetition** — notes move through six boxes with due dates. A
   note is mastered only after five correct answers across at least two days,
   not after three lucky taps in one session.
-- **Duolingo-style path** — streak, XP, daily goal, three lives per lesson, and
-  a winding lesson map. No fake leaderboards.
+- **Duolingo-style path** — section and unit banners, a winding lesson map,
+  guidebooks, streak, XP, daily goal, and three lives per lesson. No fake
+  leaderboards.
+- **A voice of its own** — original marimba/bell/woodblock cues for correct,
+  wrong, combo, lesson, practice, streak, goal, and level-up moments, with a
+  persisted sound-effects setting.
 - **Working tuner** — standard E–A–D–G–B–E tuning with live pitch and cents.
 - **Local-only progress** — `shared_preferences` on the device. No accounts, no
   analytics, no network calls, no cloud database.
@@ -37,8 +52,8 @@ hit the note, missed it, or played the right note in the wrong octave.
 
 ## Screens
 
-- **Path** — a winding lesson map with completed, current, and locked nodes,
-  plus streak, XP, and daily-goal progress.
+- **Path** — a sectioned winding lesson map with completed, current, and locked
+  nodes, unit guidebooks, checkpoints, plus streak, XP, and daily-goal progress.
 - **Lesson** — a treble-staff card, four note-name choices or a live mic meter,
   feedback with the correct string and fret, and three lives.
 - **Practice** — a standard-tuning guitar tuner plus due-review, weak-note, and
@@ -51,7 +66,7 @@ centered 520 px column.
 
 ## Run it
 
-Requirements: Flutter 3.47 or newer with Dart 3.10+.
+Requirements: Flutter 3.47 or newer with Dart 3.13+.
 
 ```bash
 cd flutter_app
@@ -88,7 +103,9 @@ The suite covers:
 - guitar written-vs-sounding transposition and first-position fingerings
 - staff geometry and ledger lines for every curriculum note
 - the spaced-repetition scheduler, streaks, and mastery rules
-- session composition for all 17 lessons
+- session composition for all 25 lessons, including review quotas and mistake
+  retries
+- curriculum migration from the older 17-lesson layout
 - YIN pitch detection on synthetic guitar tones, harmonics, decay, silence, and
   noise
 - note matching, cents tolerance, octave errors, and re-arming
@@ -108,9 +125,8 @@ run the app on a physical phone with a guitar and check:
 5. Denying microphone permission falls back to note names without crashing.
 6. Killing and reopening the app restores XP, streak, and note boxes.
 
-This environment has Flutter and Chrome, but no Android SDK, so an APK was not
-built here. Use `flutter run` with a connected device or install Android Studio
-to produce one.
+Build an APK or app bundle with `flutter build apk` or `flutter build appbundle`
+on a machine with the Android SDK, or use `flutter run` with a connected device.
 
 ## How it works
 
@@ -133,6 +149,15 @@ verifiable.
 
 See [LEARNING_ALGORITHM.md](LEARNING_ALGORITHM.md) for the scheduling and
 session rules.
+
+## Docs
+
+- [AGENTS.md](AGENTS.md) — operating guide for coding agents
+- [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
+- [docs/SOUND.md](docs/SOUND.md) — Warm Mallet sound family and event map
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, invariants
+- [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — setup, debug, manual checks
+- [CONTRIBUTING.md](CONTRIBUTING.md) — contribution workflow
 
 ## Privacy
 

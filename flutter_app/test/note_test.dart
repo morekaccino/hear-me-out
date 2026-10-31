@@ -39,6 +39,11 @@ void main() {
       },
     );
 
+    test('transposition can preserve a flat spelling', () {
+      expect(Note.parse('A#3').transposed(12, preferFlats: true).id, 'Bb4');
+      expect(Note.parse('A#3').transposed(12).id, 'A#4');
+    });
+
     test('invalid note strings are rejected', () {
       expect(Note.tryParse('H4'), isNull);
       expect(Note.tryParse('C'), isNull);

@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/path/path_screen.dart';
 import '../features/practice/practice_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../shared/audio/sound_service.dart';
 import '../shared/theme/app_theme.dart';
+import '../state/providers.dart';
 
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
@@ -30,7 +34,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             constraints: const BoxConstraints(maxWidth: 520),
             child: NavigationBar(
               selectedIndex: _index,
-              onDestinationSelected: (index) => setState(() => _index = index),
+              onDestinationSelected: (index) {
+                if (index == _index) return;
+                unawaited(ref.read(soundServiceProvider).play(Sfx.uiNavigate));
+                setState(() => _index = index);
+              },
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.route_outlined),

@@ -47,6 +47,7 @@ class RecordPitchSource implements PitchSource {
   StreamSubscription<Uint8List>? _subscription;
   YinPitchDetector? _detector;
   bool _running = false;
+  int? _pendingByte;
 
   @override
   Stream<PitchFrame> get frames => _controller.stream;
@@ -64,6 +65,7 @@ class RecordPitchSource implements PitchSource {
     if (!await _recorder!.hasPermission()) return false;
 
     _buffer.clear();
+    _pendingByte = null;
     _detector = YinPitchDetector(sampleRate: analysisSampleRate.toDouble());
     final stream = await _recorder!.startStream(
       const RecordConfig(
@@ -85,11 +87,20 @@ class RecordPitchSource implements PitchSource {
   }
 
   void _onBytes(Uint8List bytes) {
-    if (!_running) return;
-    for (var index = 0; index + 1 < bytes.length; index += 2) {
-      final raw = bytes[index] | (bytes[index + 1] << 8);
-      final signed = raw >= 0x8000 ? raw - 0x10000 : raw;
-      _buffer.add(signed / 32768.0);
+    if (!_running || bytes.isEmpty) return;
+
+    var index = 0;
+    final pending = _pendingByte;
+    _pendingByte = null;
+    if (pending != null) {
+      _addSample(pending | (bytes[index] << 8));
+      index++;
+    }
+    for (; index + 1 < bytes.length; index += 2) {
+      _addSample(bytes[index] | (bytes[index + 1] << 8));
+    }
+    if (index < bytes.length) {
+      _pendingByte = bytes[index];
     }
 
     while (_buffer.length >= frameSize) {
@@ -114,12 +125,18 @@ class RecordPitchSource implements PitchSource {
     }
   }
 
+  void _addSample(int raw) {
+    final signed = raw >= 0x8000 ? raw - 0x10000 : raw;
+    _buffer.add(signed / 32768.0);
+  }
+
   @override
   Future<void> stop() async {
     _running = false;
     await _subscription?.cancel();
     _subscription = null;
     _buffer.clear();
+    _pendingByte = null;
     try {
       await _recorder?.stop();
     } catch (_) {

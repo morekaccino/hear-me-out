@@ -15,6 +15,8 @@ class AppColors {
   static const yellow = Color(0xFFFFC800);
   static const yellowDark = Color(0xFFE6A700);
   static const purple = Color(0xFFCE82FF);
+  static const purpleDark = Color(0xFFA568CC);
+  static const purpleSoft = Color(0xFFF7E6FF);
   static const background = Color(0xFFFFFFFF);
   static const surface = Color(0xFFF7F7F7);
   static const border = Color(0xFFE5E5E5);

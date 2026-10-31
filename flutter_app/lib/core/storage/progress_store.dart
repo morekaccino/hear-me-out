@@ -26,13 +26,7 @@ class SharedPreferencesProgressStore implements ProgressStore {
     final prefs = await _instance;
     final raw = prefs.getString(storageKey);
     if (raw == null || raw.isEmpty) return null;
-    try {
-      final decoded = jsonDecode(raw);
-      if (decoded is! Map<String, dynamic>) return null;
-      return ProgressState.fromJson(decoded);
-    } catch (_) {
-      return null;
-    }
+    return _decodeProgress(raw);
   }
 
   @override
@@ -55,10 +49,16 @@ final progressStoreProvider = Provider<ProgressStore>(
 String exportProgress(ProgressState progress) =>
     const JsonEncoder.withIndent('  ').convert(progress.toJson());
 
-ProgressState? importProgress(String raw) {
+ProgressState? importProgress(String raw) => _decodeProgress(raw);
+
+ProgressState? _decodeProgress(String raw) {
   try {
     final decoded = jsonDecode(raw);
     if (decoded is! Map<String, dynamic>) return null;
+    final version = decoded['schemaVersion'];
+    if (version is! num) return null;
+    final value = version.toInt();
+    if (value < 1 || value > ProgressState.currentSchemaVersion) return null;
     return ProgressState.fromJson(decoded);
   } catch (_) {
     return null;

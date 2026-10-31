@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Hear Me Out - Sound Family</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    body { max-width: 900px; margin: 0 auto; padding: 32px 20px 60px; background: #fff; color: #3c3c3c; }
+    h1 { margin: 0 0 4px; font-size: 28px; }
+    p { color: #777; line-height: 1.5; }
+    .group { margin-top: 28px; }
+    h2 { font-size: 16px; letter-spacing: .06em; text-transform: uppercase; color: #46a302; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+    button {
+      border: 2px solid #e5e5e5; border-bottom: 4px solid #58cc02; border-radius: 12px;
+      background: #fff; color: #3c3c3c; padding: 14px 12px; text-align: left;
+      font: inherit; font-weight: 700; cursor: pointer;
+    }
+    button:hover { background: #f7f7f7; }
+    button:active { transform: translateY(2px); border-bottom-width: 2px; }
+    small { display: block; margin-top: 3px; color: #999; font-weight: 500; }
+  </style>
+</head>
+<body>
+  <h1>Hear Me Out - Warm Mallet</h1>
+  <p>
+    The original sound family: marimba body, glass-bell rewards, muted
+    woodblock UI, and soft low feedback. Tap each cue to audition it.
+  </p>
+
+  <div class="group"><h2>UI</h2><div class="grid" data-group="UI"></div></div>
+  <div class="group"><h2>Answer feedback</h2><div class="grid" data-group="Answer"></div></div>
+  <div class="group"><h2>Result</h2><div class="grid" data-group="Result"></div></div>
+  <div class="group"><h2>Rewards</h2><div class="grid" data-group="Reward"></div></div>
+  <div class="group"><h2>Tuner</h2><div class="grid" data-group="Tuner"></div></div>
+
+  <script>
+    const cues = [
+      ['ui_tap_primary', 'Primary button', 'UI'],
+      ['ui_tap_secondary', 'Secondary button', 'UI'],
+      ['ui_select', 'Select / cycle', 'UI'],
+      ['ui_navigate', 'Tab change', 'UI'],
+      ['ui_toggle_on', 'Toggle on', 'UI'],
+      ['ui_toggle_off', 'Toggle off', 'UI'],
+      ['ui_locked', 'Locked / destructive', 'UI'],
+      ['ui_page', 'Onboarding page', 'UI'],
+      ['lesson_start', 'Lesson / practice start', 'UI'],
+      ['answer_correct', 'Correct answer', 'Answer'],
+      ['answer_correct_combo', 'Combo answer', 'Answer'],
+      ['answer_wrong', 'Wrong answer', 'Answer'],
+      ['answer_octave', 'Wrong octave', 'Answer'],
+      ['life_lost', 'Last life lost', 'Answer'],
+      ['lesson_complete', 'Lesson complete', 'Result'],
+      ['lesson_perfect', 'Perfect lesson', 'Result'],
+      ['lesson_failed', 'Out of lives', 'Result'],
+      ['practice_complete', 'Practice complete', 'Result'],
+      ['xp_tick', 'XP tally', 'Result'],
+      ['reward_streak', 'Streak', 'Reward'],
+      ['reward_streak_milestone', 'Streak milestone', 'Reward'],
+      ['reward_daily_goal', 'Daily goal', 'Reward'],
+      ['reward_level_up', 'Level up', 'Reward'],
+      ['reward_unlock', 'Unlock / finish onboarding', 'Reward'],
+      ['copy_success', 'Copy / restore success', 'Reward'],
+      ['tuner_on', 'Tuner on', 'Tuner'],
+      ['tuner_off', 'Tuner off', 'Tuner'],
+      ['error_soft', 'Soft error', 'Tuner'],
+    ];
+
+    const audio = new Map();
+    for (const [name] of cues) {
+      const player = new Audio('../assets/audio/' + name + '.wav');
+      player.preload = 'auto';
+      audio.set(name, player);
+    }
+
+    for (const [name, label, group] of cues) {
+      const host = document.querySelector('[data-group="' + group + '"]');
+      const button = document.createElement('button');
+      button.innerHTML = label + '<small>' + name + '.wav</small>';
+      button.addEventListener('click', () => {
+        for (const player of audio.values()) {
+          player.pause();
+          player.currentTime = 0;
+        }
+        const player = audio.get(name);
+        player.volume = 1;
+        player.play().catch((error) => console.error(error));
+      });
+      host.appendChild(button);
+    }
+  </script>
+</body>
+</html>

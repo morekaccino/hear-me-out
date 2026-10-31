@@ -18,6 +18,7 @@ class AppSettings {
     this.toleranceCents = 30,
     this.a4Hz = 440,
     this.haptics = true,
+    this.soundEffects = true,
     this.dailyGoalXp = 20,
     this.onboardingComplete = false,
   });
@@ -26,6 +27,7 @@ class AppSettings {
   final int toleranceCents;
   final double a4Hz;
   final bool haptics;
+  final bool soundEffects;
   final int dailyGoalXp;
   final bool onboardingComplete;
 
@@ -34,6 +36,7 @@ class AppSettings {
     int? toleranceCents,
     double? a4Hz,
     bool? haptics,
+    bool? soundEffects,
     int? dailyGoalXp,
     bool? onboardingComplete,
   }) {
@@ -42,6 +45,7 @@ class AppSettings {
       toleranceCents: toleranceCents ?? this.toleranceCents,
       a4Hz: a4Hz ?? this.a4Hz,
       haptics: haptics ?? this.haptics,
+      soundEffects: soundEffects ?? this.soundEffects,
       dailyGoalXp: dailyGoalXp ?? this.dailyGoalXp,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
     );
@@ -52,6 +56,7 @@ class AppSettings {
     'toleranceCents': toleranceCents,
     'a4Hz': a4Hz,
     'haptics': haptics,
+    'soundEffects': soundEffects,
     'dailyGoalXp': dailyGoalXp,
     'onboardingComplete': onboardingComplete,
   };
@@ -63,6 +68,7 @@ class AppSettings {
       toleranceCents: (json['toleranceCents'] as num?)?.toInt() ?? 30,
       a4Hz: (json['a4Hz'] as num?)?.toDouble() ?? 440,
       haptics: json['haptics'] as bool? ?? true,
+      soundEffects: json['soundEffects'] as bool? ?? true,
       dailyGoalXp: (json['dailyGoalXp'] as num?)?.toInt() ?? 20,
       onboardingComplete: json['onboardingComplete'] as bool? ?? false,
     );
@@ -224,8 +230,12 @@ class SessionSummary {
 }
 
 class ProgressState {
+  static const int currentSchemaVersion = 1;
+  static const int currentCurriculumVersion = 2;
+
   ProgressState({
-    this.schemaVersion = 1,
+    this.schemaVersion = currentSchemaVersion,
+    this.curriculumVersion = currentCurriculumVersion,
     Map<String, NoteProgress>? notes,
     Set<String>? completedLessons,
     Map<String, double>? bestLessonAccuracy,
@@ -243,6 +253,7 @@ class ProgressState {
        recentSessions = recentSessions ?? <SessionSummary>[];
 
   final int schemaVersion;
+  int curriculumVersion;
   final Map<String, NoteProgress> notes;
   final Set<String> completedLessons;
   final Map<String, double> bestLessonAccuracy;
@@ -410,6 +421,7 @@ class ProgressState {
 
   ProgressState copy() => ProgressState(
     schemaVersion: schemaVersion,
+    curriculumVersion: curriculumVersion,
     notes: {for (final entry in notes.entries) entry.key: entry.value.copy()},
     completedLessons: {...completedLessons},
     bestLessonAccuracy: {...bestLessonAccuracy},
@@ -425,6 +437,7 @@ class ProgressState {
 
   Map<String, dynamic> toJson() => {
     'schemaVersion': schemaVersion,
+    'curriculumVersion': curriculumVersion,
     'notes': {
       for (final entry in notes.entries) entry.key: entry.value.toJson(),
     },
@@ -441,8 +454,10 @@ class ProgressState {
   };
 
   factory ProgressState.fromJson(Map<String, dynamic> json) {
-    return ProgressState(
+    final state = ProgressState(
       schemaVersion: (json['schemaVersion'] as num?)?.toInt() ?? 1,
+      curriculumVersion:
+          (json['curriculumVersion'] as num?)?.toInt() ?? 1,
       notes: {
         for (final entry
             in (json['notes'] as Map<String, dynamic>? ?? const {}).entries)
@@ -472,6 +487,44 @@ class ProgressState {
           if (session is Map<String, dynamic>) SessionSummary.fromJson(session),
       ],
     );
+    state._migrateCurriculum();
+    return state;
+  }
+
+  void _migrateCurriculum() {
+    if (curriculumVersion >= currentCurriculumVersion) return;
+
+    final mappedLessons = <String>{
+      for (final id in completedLessons) legacyLessonIdMap[id] ?? id,
+    };
+    completedLessons
+      ..clear()
+      ..addAll(mappedLessons);
+
+    final mappedAccuracy = <String, double>{};
+    for (final entry in bestLessonAccuracy.entries) {
+      final id = legacyLessonIdMap[entry.key] ?? entry.key;
+      mappedAccuracy[id] = max(mappedAccuracy[id] ?? 0, entry.value);
+    }
+    bestLessonAccuracy
+      ..clear()
+      ..addAll(mappedAccuracy);
+
+    for (var index = 0; index < recentSessions.length; index++) {
+      final session = recentSessions[index];
+      final mappedId = legacyLessonIdMap[session.lessonId];
+      if (mappedId == null) continue;
+      recentSessions[index] = SessionSummary(
+        lessonId: mappedId,
+        accuracy: session.accuracy,
+        xp: session.xp,
+        answered: session.answered,
+        completedAt: session.completedAt,
+        passed: session.passed,
+      );
+    }
+
+    curriculumVersion = currentCurriculumVersion;
   }
 
   factory ProgressState.fresh({AppSettings settings = const AppSettings()}) =>

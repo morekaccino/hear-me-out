@@ -5,8 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/audio/pitch_source.dart';
+import '../../core/learning/progress.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
+import '../../shared/audio/sound_service.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../../shared/theme/app_theme.dart';
@@ -29,6 +31,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
   PitchFrame? _frame;
   String? _micError;
   bool _starting = false;
+  bool _openingPractice = false;
+  int _micGeneration = 0;
   int _selectedString = 0;
 
   @override
@@ -53,13 +57,14 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
   }
 
   Future<void> _stopTuner() async {
+    final generation = ++_micGeneration;
     await _subscription?.cancel();
     _subscription = null;
     final source = _source;
     _source = null;
     await source?.stop();
     await source?.dispose();
-    if (mounted) {
+    if (mounted && generation == _micGeneration) {
       setState(() {
         _frame = null;
         _starting = false;
@@ -68,10 +73,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
   }
 
   Future<void> _toggleTuner() async {
+    if (_starting) return;
     if (_source != null) {
       await _stopTuner();
       return;
     }
+    final generation = ++_micGeneration;
     setState(() {
       _starting = true;
       _micError = null;
@@ -83,9 +90,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
     } catch (_) {
       started = false;
     }
+    if (!mounted || generation != _micGeneration) {
+      await source.dispose();
+      return;
+    }
     if (!started) {
       await source.dispose();
-      if (!mounted) return;
+      if (!mounted || generation != _micGeneration) return;
       setState(() {
         _starting = false;
         _micError = 'Microphone unavailable. Check your system permissions.';
@@ -94,7 +105,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
     }
     _source = source;
     _subscription = source.frames.listen((frame) {
-      if (mounted) setState(() => _frame = frame);
+      if (!mounted || generation != _micGeneration) return;
+      setState(() => _frame = frame);
     });
     if (mounted) setState(() => _starting = false);
   }
@@ -111,14 +123,43 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
   }
 
   Future<void> _startPractice(String kind) async {
-    await _stopTuner();
-    final controller = ref.read(appControllerProvider.notifier);
-    final mic = await _ensureMic();
-    if (!mounted) return;
-    controller.startPractice(kind: kind, micAvailable: mic);
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const LessonScreen()));
+    if (_openingPractice) return;
+    _openingPractice = true;
+    try {
+      final settings = ref
+          .read(appControllerProvider)
+          .asData
+          ?.value
+          .progress
+          .settings;
+      final mode = settings?.answerMode ?? AnswerMode.mixed;
+      await _stopTuner();
+      if (!mounted) return;
+      var micAvailable = false;
+      if (mode != AnswerMode.name) {
+        micAvailable = await _ensureMic();
+        if (!mounted) return;
+        if (!micAvailable) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Microphone unavailable. This session will use note names.',
+              ),
+            ),
+          );
+        }
+      }
+      unawaited(
+        ref.read(soundServiceProvider).play(Sfx.lessonStart),
+      );
+      final controller = ref.read(appControllerProvider.notifier);
+      controller.startPractice(kind: kind, micAvailable: micAvailable);
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: (_) => const LessonScreen()));
+    } finally {
+      _openingPractice = false;
+    }
   }
 
   @override
@@ -151,8 +192,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
               const SizedBox(height: 18),
               _TunerCard(
                 selectedString: _selectedString,
-                onStringSelected: (index) =>
-                    setState(() => _selectedString = index),
+                onStringSelected: (index) {
+                  if (index == _selectedString) return;
+                  unawaited(
+                    ref.read(soundServiceProvider).play(Sfx.uiSelect),
+                  );
+                  setState(() => _selectedString = index);
+                },
                 running: _source != null,
                 starting: _starting,
                 frame: _frame,
@@ -225,7 +271,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 color: AppColors.purple,
                 title: 'Free practice',
                 subtitle: learned == 0
-                    ? 'Learn a note first'
+                    ? 'Start with E and F'
                     : 'Mix every note you have met',
                 onTap: () => _startPractice('all'),
               ),
@@ -445,6 +491,7 @@ class _TunerCard extends StatelessWidget {
             icon: running ? Icons.stop_rounded : Icons.mic_rounded,
             height: 48,
             fontSize: 14,
+            sound: running ? Sfx.tunerOff : Sfx.tunerOn,
           ),
         ],
       ),

@@ -9,6 +9,7 @@ import 'package:hear_me_out/core/music/guitar.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/shared/audio/sound_service.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
 
@@ -17,13 +18,18 @@ import 'support/fakes.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Widget buildApp(ProgressState progress, {FakePitchSourceFactory? factory}) {
+  Widget buildApp(
+    ProgressState progress, {
+    FakePitchSourceFactory? factory,
+    FakeSoundService? sounds,
+  }) {
     final store = MemoryProgressStore(progress);
     final sources = factory ?? FakePitchSourceFactory(permission: false);
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(store),
         pitchSourceFactoryProvider.overrideWithValue(sources.call),
+        soundServiceProvider.overrideWithValue(sounds ?? FakeSoundService()),
       ],
       child: const HearMeOutApp(),
     );
@@ -49,8 +55,35 @@ void main() {
 
     expect(find.text('Hear Me Out'), findsOneWidget);
     expect(find.text('Daily goal'), findsOneWidget);
-    expect(find.text('Read the Staff'), findsOneWidget);
+    expect(find.text('The Staff'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
+  });
+
+  testWidgets('unit guidebook opens with string and fret hints', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(Icons.menu_book_rounded).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('UNIT 1 GUIDEBOOK'), findsOneWidget);
+    expect(find.textContaining('string'), findsWidgets);
   });
 
   testWidgets('a lesson can be answered by tapping the note name', (
@@ -73,7 +106,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded).first);
+    await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
     await tester.pumpAndSettle();
 
     expect(find.text('What note is this?'), findsOneWidget);
@@ -117,7 +150,7 @@ void main() {
     await tester.tap(find.text("LET'S PLAY"));
     await tester.pumpAndSettle();
 
-    expect(find.text('Read the Staff'), findsOneWidget);
+    expect(find.text('The Staff'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
   });
 
@@ -138,10 +171,12 @@ void main() {
       ),
     );
     final sources = FakePitchSourceFactory(permission: true);
+    final sounds = FakeSoundService();
     final container = ProviderContainer(
       overrides: [
         progressStoreProvider.overrideWithValue(store),
         pitchSourceFactoryProvider.overrideWithValue(sources.call),
+        soundServiceProvider.overrideWithValue(sounds),
         lessonGraceProvider.overrideWithValue(Duration.zero),
       ],
     );
@@ -155,7 +190,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded).first);
+    await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
     await tester.pumpAndSettle();
 
     for (var index = 0; index < 2; index++) {
@@ -197,6 +232,7 @@ void main() {
     expect(playedRun.lastCents, closeTo(0, 1));
     expect(find.text('Combo x3!'), findsOneWidget);
     expect(find.text('CONTINUE'), findsOneWidget);
+    expect(sounds.played, contains(Sfx.answerCorrectCombo));
   });
 
   testWidgets('every curriculum note renders on the staff', (tester) async {

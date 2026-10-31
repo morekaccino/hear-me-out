@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,7 +8,9 @@ import '../../core/learning/progress.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/note.dart';
 import '../../core/storage/progress_store.dart';
+import '../../shared/audio/sound_service.dart';
 import '../../state/app_controller.dart';
+import '../../state/providers.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
@@ -180,28 +184,40 @@ class ProfileScreen extends ConsumerWidget {
                         AnswerMode.name => 'Name only',
                         AnswerMode.play => 'Play only',
                       },
-                      onTap: () => _cycleAnswerMode(ref, settings),
+                      onTap: () {
+                        _play(ref, Sfx.uiSelect);
+                        _cycleAnswerMode(ref, settings);
+                      },
                     ),
                     const Divider(),
                     _SettingRow(
                       icon: Icons.tune_rounded,
                       label: 'Pitch tolerance',
                       value: '±${settings.toleranceCents} cents',
-                      onTap: () => _cycleTolerance(ref, settings),
+                      onTap: () {
+                        _play(ref, Sfx.uiSelect);
+                        _cycleTolerance(ref, settings);
+                      },
                     ),
                     const Divider(),
                     _SettingRow(
                       icon: Icons.music_note_rounded,
                       label: 'Tuning reference',
                       value: 'A4 = ${settings.a4Hz.toStringAsFixed(0)} Hz',
-                      onTap: () => _cycleA4(ref, settings),
+                      onTap: () {
+                        _play(ref, Sfx.uiSelect);
+                        _cycleA4(ref, settings);
+                      },
                     ),
                     const Divider(),
                     _SettingRow(
                       icon: Icons.flag_rounded,
                       label: 'Daily goal',
                       value: '${settings.dailyGoalXp} XP',
-                      onTap: () => _cycleGoal(ref, settings),
+                      onTap: () {
+                        _play(ref, Sfx.uiSelect);
+                        _cycleGoal(ref, settings);
+                      },
                     ),
                     const Divider(),
                     _SettingRow(
@@ -210,9 +226,39 @@ class ProfileScreen extends ConsumerWidget {
                       trailing: Switch.adaptive(
                         value: settings.haptics,
                         activeThumbColor: AppColors.green,
-                        onChanged: (value) => ref
-                            .read(appControllerProvider.notifier)
-                            .updateSettings(settings.copyWith(haptics: value)),
+                        onChanged: (value) {
+                          _play(
+                            ref,
+                            value ? Sfx.uiToggleOn : Sfx.uiToggleOff,
+                          );
+                          ref
+                              .read(appControllerProvider.notifier)
+                              .updateSettings(
+                                settings.copyWith(haptics: value),
+                              );
+                        },
+                      ),
+                    ),
+                    const Divider(),
+                    _SettingRow(
+                      icon: Icons.volume_up_rounded,
+                      label: 'Sound effects',
+                      trailing: Switch.adaptive(
+                        value: settings.soundEffects,
+                        activeThumbColor: AppColors.green,
+                        onChanged: (value) {
+                          final service = ref.read(soundServiceProvider);
+                          service.enabled = true;
+                          _play(
+                            ref,
+                            value ? Sfx.uiToggleOn : Sfx.uiToggleOff,
+                          );
+                          ref
+                              .read(appControllerProvider.notifier)
+                              .updateSettings(
+                                settings.copyWith(soundEffects: value),
+                              );
+                        },
                       ),
                     ),
                   ],
@@ -230,7 +276,7 @@ class ProfileScreen extends ConsumerWidget {
                       icon: Icons.copy_rounded,
                       label: 'Copy backup',
                       value: 'JSON',
-                      onTap: () => _copyBackup(context, progress),
+                      onTap: () => _copyBackup(context, ref, progress),
                     ),
                     const Divider(),
                     _SettingRow(
@@ -298,6 +344,10 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  void _play(WidgetRef ref, Sfx sound) {
+    unawaited(ref.read(soundServiceProvider).play(sound));
+  }
+
   Future<void> _cycleAnswerMode(WidgetRef ref, AppSettings settings) {
     final next = AnswerMode
         .values[(settings.answerMode.index + 1) % AnswerMode.values.length];
@@ -338,17 +388,36 @@ class ProfileScreen extends ConsumerWidget {
         );
   }
 
-  Future<void> _copyBackup(BuildContext context, ProgressState progress) async {
-    await Clipboard.setData(ClipboardData(text: exportProgress(progress)));
+  Future<void> _copyBackup(
+    BuildContext context,
+    WidgetRef ref,
+    ProgressState progress,
+  ) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: exportProgress(progress)));
+    } catch (_) {
+      _play(ref, Sfx.errorSoft);
+      if (context.mounted) {
+        _snack(context, 'Could not copy the backup to the clipboard.');
+      }
+      return;
+    }
+    _play(ref, Sfx.copySuccess);
     if (!context.mounted) return;
     _snack(context, 'Backup copied to clipboard.');
   }
 
   Future<void> _restoreBackup(BuildContext context, WidgetRef ref) async {
-    final data = await Clipboard.getData('text/plain');
-    final restored = data == null ? null : importProgress(data.text ?? '');
+    ProgressState? restored;
+    try {
+      final data = await Clipboard.getData('text/plain');
+      restored = data == null ? null : importProgress(data.text ?? '');
+    } catch (_) {
+      restored = null;
+    }
     if (!context.mounted) return;
     if (restored == null) {
+      _play(ref, Sfx.errorSoft);
       _snack(context, 'No valid backup found in the clipboard.');
       return;
     }
@@ -361,22 +430,30 @@ class ProfileScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () {
+              _play(ref, Sfx.uiTapSecondary);
+              Navigator.pop(dialogContext, false);
+            },
             child: const Text('Cancel'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () {
+              _play(ref, Sfx.uiTapPrimary);
+              Navigator.pop(dialogContext, true);
+            },
             child: const Text('Restore'),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !context.mounted) return;
+    _play(ref, Sfx.copySuccess);
     await ref.read(appControllerProvider.notifier).replaceProgress(restored);
     if (context.mounted) _snack(context, 'Progress restored.');
   }
 
   Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {
+    _play(ref, Sfx.uiSelect);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -386,18 +463,25 @@ class ProfileScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () {
+              _play(ref, Sfx.uiTapSecondary);
+              Navigator.pop(dialogContext, false);
+            },
             child: const Text('Cancel'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.red),
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () {
+              _play(ref, Sfx.uiLocked);
+              Navigator.pop(dialogContext, true);
+            },
             child: const Text('Reset'),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
+    if (confirmed != true || !context.mounted) return;
+    _play(ref, Sfx.uiLocked);
     await ref.read(appControllerProvider.notifier).resetProgress();
     if (context.mounted) _snack(context, 'Progress reset.');
   }

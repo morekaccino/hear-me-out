@@ -7,6 +7,9 @@ import '../core/learning/session_builder.dart';
 import '../core/music/curriculum.dart';
 import '../core/music/note.dart';
 import '../core/storage/progress_store.dart';
+import 'providers.dart';
+
+const Set<int> _streakMilestones = {7, 14, 30, 50, 100, 180, 365};
 
 class LessonResult {
   const LessonResult({
@@ -19,6 +22,11 @@ class LessonResult {
     required this.answered,
     required this.bestCombo,
     required this.isPractice,
+    this.leveledUp = false,
+    this.dailyGoalReached = false,
+    this.lessonUnlocked = false,
+    this.streakAdvanced = false,
+    this.streakMilestone = false,
   });
 
   final String lessonId;
@@ -30,6 +38,11 @@ class LessonResult {
   final int answered;
   final int bestCombo;
   final bool isPractice;
+  final bool leveledUp;
+  final bool dailyGoalReached;
+  final bool lessonUnlocked;
+  final bool streakAdvanced;
+  final bool streakMilestone;
 }
 
 class AppData {
@@ -67,10 +80,15 @@ class AppController extends AsyncNotifier<AppData> {
     } catch (_) {
       progress = ProgressState.fresh();
     }
+    _applySoundSettings(progress.settings);
     return AppData(progress: progress);
   }
 
   AppData get _data => state.requireValue;
+
+  void _applySoundSettings(AppSettings settings) {
+    ref.read(soundServiceProvider).enabled = settings.soundEffects;
+  }
 
   Future<void> _save() async {
     try {
@@ -83,6 +101,7 @@ class AppController extends AsyncNotifier<AppData> {
   Future<void> completeOnboarding(AppSettings settings) async {
     final data = _data;
     data.progress.settings = settings.copyWith(onboardingComplete: true);
+    _applySoundSettings(data.progress.settings);
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();
   }
@@ -90,6 +109,7 @@ class AppController extends AsyncNotifier<AppData> {
   Future<void> updateSettings(AppSettings settings) async {
     final data = _data;
     data.progress.settings = settings;
+    _applySoundSettings(settings);
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();
   }
@@ -178,7 +198,10 @@ class AppController extends AsyncNotifier<AppData> {
     } else {
       run.wrong++;
       run.combo = 0;
-      run.lives = run.lives > 0 ? run.lives - 1 : 0;
+      run.queueMistake(run.current);
+      if (!run.isPractice) {
+        run.lives = run.lives > 0 ? run.lives - 1 : 0;
+      }
     }
 
     state = AsyncData(data.copyWith(run: run));
@@ -190,11 +213,11 @@ class AppController extends AsyncNotifier<AppData> {
     final run = data.run;
     if (run == null || !run.awaitingNext) return;
 
-    if (run.outOfLives) {
+    if (!run.isPractice && run.outOfLives) {
       await _finish(passed: false);
       return;
     }
-    if (run.index >= run.exercises.length - 1) {
+    if (run.index >= run.exercises.length - 1 && !run.appendNextMistake()) {
       await _finish(passed: true);
       return;
     }
@@ -215,17 +238,21 @@ class AppController extends AsyncNotifier<AppData> {
 
     final accuracy = run.accuracy;
     final answered = run.answered;
+    final now = DateTime.now();
+    final goal = data.progress.settings.dailyGoalXp;
+    final goalBefore = data.progress.xpTodayForDisplay >= goal;
+    final levelBefore = data.progress.level;
+    final streakBefore = data.progress.effectiveStreak;
+    final alreadyCompleted = !run.isPractice &&
+        data.progress.completedLessons.contains(run.lesson.id);
     var earnedXp = 0;
 
     if (run.isPractice) {
       if (passed) {
-        earnedXp = 5;
-        data.progress.addXp(earnedXp, DateTime.now());
+        earnedXp = run.earnedXp;
+        data.progress.addXp(earnedXp, now);
       }
     } else if (passed) {
-      final alreadyCompleted = data.progress.completedLessons.contains(
-        run.lesson.id,
-      );
       earnedXp = alreadyCompleted ? 5 : run.earnedXp;
       if (alreadyCompleted && run.wrong == 0) earnedXp += 3;
       data.progress.completeLesson(
@@ -233,17 +260,18 @@ class AppController extends AsyncNotifier<AppData> {
         accuracy: accuracy,
         earnedXp: earnedXp,
         answered: answered,
-        now: DateTime.now(),
+        now: now,
       );
     } else {
       data.progress.recordFailedSession(
         lessonId: run.lesson.id,
         accuracy: accuracy,
         answered: answered,
-        now: DateTime.now(),
+        now: now,
       );
     }
 
+    final streakAfter = data.progress.effectiveStreak;
     final result = LessonResult(
       lessonId: run.lesson.id,
       title: run.isPractice
@@ -252,10 +280,20 @@ class AppController extends AsyncNotifier<AppData> {
       passed: passed,
       accuracy: accuracy,
       xp: earnedXp,
-      streak: data.progress.effectiveStreak,
+      streak: streakAfter,
       answered: answered,
       bestCombo: run.bestCombo,
       isPractice: run.isPractice,
+      leveledUp: earnedXp > 0 && data.progress.level > levelBefore,
+      dailyGoalReached:
+          earnedXp > 0 && !goalBefore && data.progress.xpTodayForDisplay >= goal,
+      lessonUnlocked: passed && !run.isPractice && !alreadyCompleted,
+      streakAdvanced: passed && !run.isPractice && streakAfter > streakBefore,
+      streakMilestone:
+          passed &&
+          !run.isPractice &&
+          streakAfter > streakBefore &&
+          _streakMilestones.contains(streakAfter),
     );
 
     state = AsyncData(
@@ -294,14 +332,18 @@ class AppController extends AsyncNotifier<AppData> {
     final fresh = ProgressState.fresh(
       settings: keepSettings.copyWith(onboardingComplete: true),
     );
+    _applySoundSettings(fresh.settings);
     state = AsyncData(AppData(progress: fresh));
     try {
       await _store.clear();
+    } catch (_) {}
+    try {
       await _store.save(fresh);
     } catch (_) {}
   }
 
   Future<void> replaceProgress(ProgressState progress) async {
+    _applySoundSettings(progress.settings);
     state = AsyncData(AppData(progress: progress));
     await _save();
   }

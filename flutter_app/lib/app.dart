@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'features/home_shell.dart';
 import 'features/onboarding/onboarding_screen.dart';
+import 'shared/audio/sound_service.dart';
 import 'shared/theme/app_theme.dart';
 import 'shared/widgets/mascot.dart';
 import 'state/app_controller.dart';
+import 'state/providers.dart';
 
 class HearMeOutApp extends StatelessWidget {
   const HearMeOutApp({super.key});
@@ -31,6 +35,7 @@ class RootGate extends ConsumerWidget {
       loading: () => const _SplashScreen(),
       error: (error, stack) => _StartupError(error: error),
       data: (data) {
+        unawaited(ref.read(soundServiceProvider).preload());
         if (!data.progress.settings.onboardingComplete) {
           return const OnboardingScreen();
         }
@@ -99,7 +104,14 @@ class _StartupError extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () => ref.invalidate(appControllerProvider),
+              onPressed: () {
+                unawaited(
+                  ref
+                      .read(soundServiceProvider)
+                      .play(Sfx.uiTapPrimary),
+                );
+                ref.invalidate(appControllerProvider);
+              },
               child: const Text('Try again'),
             ),
           ],

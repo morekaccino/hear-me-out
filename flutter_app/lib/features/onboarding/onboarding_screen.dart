@@ -8,6 +8,7 @@ import '../../core/audio/pitch_source.dart';
 import '../../core/learning/progress.dart';
 import '../../core/music/note.dart';
 import '../../core/notation/staff_painter.dart';
+import '../../shared/audio/sound_service.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../../shared/theme/app_theme.dart';
@@ -34,6 +35,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   StreamSubscription<PitchFrame>? _subscription;
   PitchReading _reading = PitchReading.silent;
   bool _checkingMic = false;
+  bool _advancing = false;
+  int _micGeneration = 0;
   String? _micError;
 
   @override
@@ -59,13 +62,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _stopMic() async {
+    final generation = ++_micGeneration;
     await _subscription?.cancel();
     _subscription = null;
     final source = _source;
     _source = null;
     await source?.stop();
     await source?.dispose();
-    if (mounted) {
+    if (mounted && generation == _micGeneration) {
       setState(() {
         _reading = PitchReading.silent;
         _checkingMic = false;
@@ -74,7 +78,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _startMic() async {
-    if (_checkingMic) return;
+    if (_checkingMic || _source != null) return;
+    final generation = ++_micGeneration;
     setState(() {
       _checkingMic = true;
       _micError = null;
@@ -86,9 +91,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     } catch (_) {
       started = false;
     }
+    if (!mounted || generation != _micGeneration) {
+      await source.dispose();
+      return;
+    }
     if (!started) {
       await source.dispose();
-      if (!mounted) return;
+      if (!mounted || generation != _micGeneration) return;
       setState(() {
         _checkingMic = false;
         _micError =
@@ -98,7 +107,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     }
     _source = source;
     _subscription = source.frames.listen((frame) {
-      if (!mounted) return;
+      if (!mounted || generation != _micGeneration) return;
       if (!frame.voiced) {
         setState(() => _reading = PitchReading.silent);
         return;
@@ -119,19 +128,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _next() async {
-    if (_page == 2) {
-      await _stopMic();
+    if (_advancing) return;
+    _advancing = true;
+    try {
+      if (_page == 2) {
+        await _stopMic();
+      }
+      if (_page < 3) {
+        await _pageController.nextPage(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+        );
+        return;
+      }
+      await ref
+          .read(appControllerProvider.notifier)
+          .completeOnboarding(AppSettings(dailyGoalXp: _dailyGoal));
+    } finally {
+      _advancing = false;
     }
-    if (_page < 3) {
-      await _pageController.nextPage(
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.easeOutCubic,
-      );
-      return;
-    }
-    await ref
-        .read(appControllerProvider.notifier)
-        .completeOnboarding(AppSettings(dailyGoalXp: _dailyGoal));
   }
 
   @override
@@ -170,11 +185,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     _WelcomePage(),
                     _HowItWorksPage(
                       mode: _explanationMode,
-                      onModeChanged: (mode) =>
-                          setState(() => _explanationMode = mode),
+                      onModeChanged: (mode) {
+                        if (mode == _explanationMode) return;
+                        unawaited(
+                          ref.read(soundServiceProvider).play(Sfx.uiSelect),
+                        );
+                        setState(() => _explanationMode = mode);
+                      },
                     ),
                     _MicCheckPage(
                       checking: _checkingMic,
+                      listening: _source != null,
                       reading: _reading,
                       error: _micError,
                       onTest: _startMic,
@@ -182,7 +203,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                     ),
                     _GoalPage(
                       selected: _dailyGoal,
-                      onSelected: (goal) => setState(() => _dailyGoal = goal),
+                      onSelected: (goal) {
+                        if (goal == _dailyGoal) return;
+                        unawaited(
+                          ref.read(soundServiceProvider).play(Sfx.uiSelect),
+                        );
+                        setState(() => _dailyGoal = goal);
+                      },
                     ),
                   ],
                 ),
@@ -193,6 +220,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   label: _page == 3 ? "LET'S PLAY" : 'CONTINUE',
                   onPressed: _next,
                   icon: _page == 3 ? Icons.music_note_rounded : null,
+                  sound: _page == 3 ? Sfx.rewardUnlock : Sfx.uiPage,
                 ),
               ),
             ],
@@ -470,6 +498,7 @@ class _ModeTab extends StatelessWidget {
 class _MicCheckPage extends StatelessWidget {
   const _MicCheckPage({
     required this.checking,
+    required this.listening,
     required this.reading,
     required this.error,
     required this.onTest,
@@ -477,6 +506,7 @@ class _MicCheckPage extends StatelessWidget {
   });
 
   final bool checking;
+  final bool listening;
   final PitchReading reading;
   final String? error;
   final VoidCallback onTest;
@@ -485,6 +515,7 @@ class _MicCheckPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final note = reading.note;
+    final writtenNote = note?.transposed(12);
     final cents = reading.cents;
     return Center(
       child: SingleChildScrollView(
@@ -513,12 +544,12 @@ class _MicCheckPage extends StatelessWidget {
               child: SizedBox(
                 height: 120,
                 child: Center(
-                  child: reading.voiced && note != null
+                  child: reading.voiced && writtenNote != null
                       ? Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              note.display,
+                              writtenNote.display,
                               style: const TextStyle(
                                 fontSize: 46,
                                 fontWeight: FontWeight.w800,
@@ -526,7 +557,7 @@ class _MicCheckPage extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${reading.frequency.toStringAsFixed(1)} Hz  ·  ${cents.toStringAsFixed(0)} cents',
+                              'Written pitch  ·  ${reading.frequency.toStringAsFixed(1)} Hz  ·  ${cents.toStringAsFixed(0)} cents',
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -572,8 +603,12 @@ class _MicCheckPage extends StatelessWidget {
             const SizedBox(height: 14),
             if (reading.note == null)
               DuoButton(
-                label: checking ? 'STARTING…' : 'TEST MICROPHONE',
-                onPressed: checking ? null : onTest,
+                label: checking
+                    ? 'STARTING…'
+                    : listening
+                    ? 'LISTENING…'
+                    : 'TEST MICROPHONE',
+                onPressed: checking || listening ? null : onTest,
                 color: AppColors.blue,
                 icon: Icons.mic_rounded,
               )

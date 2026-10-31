@@ -1,6 +1,7 @@
 # Contributing
 
 Hear Me Out is a Flutter app. The product code lives in `flutter_app/`.
+Requires Flutter 3.47+ and Dart 3.13+.
 
 ## Setup
 
@@ -18,6 +19,23 @@ flutter test
 flutter build web --release
 ```
 
+## Documentation for contributors and agents
+
+- [`AGENTS.md`](AGENTS.md) — project rules, commands, architecture map, and
+  current verification state
+- [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style design language,
+  copy, and gamification
+- [`docs/SOUND.md`](docs/SOUND.md) — Warm Mallet family, assets, event map,
+  and sound settings
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — layers, data flow, and
+  invariants
+- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — setup, debugging, test helpers,
+  and manual device checks
+- [`LEARNING_ALGORITHM.md`](LEARNING_ALGORITHM.md) — scheduling and session rules
+
+Read `AGENTS.md` before making changes. Update it when a rule, command, storage
+format, or verification step changes.
+
 ## Rules of the codebase
 
 - Keep music math, scheduling, pitch detection, and notation geometry in
@@ -31,7 +49,11 @@ flutter build web --release
 - Keep guitar transposition in mind. Written pitch and sounding pitch are not
   the same note.
 - Match the existing Duolingo-style design tokens in
-  `lib/shared/theme/app_theme.dart`.
+  `lib/shared/theme/app_theme.dart` and the rules in
+  [`docs/DESIGN.md`](docs/DESIGN.md). Reuse `DuoButton`, `SectionCard`,
+  `AnswerOption`, and the other shared widgets before adding new styles.
+- Keep the mission in view: short, forgiving practice with honest pitch
+  feedback. Do not add social pressure, fake stats, or monetization surfaces.
 
 ## Pull requests
 

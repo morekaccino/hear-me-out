@@ -215,6 +215,23 @@ void main() {
       }
     });
 
+    test('sections contain every unit exactly once', () {
+      final sectionUnits = [
+        for (final section in sections) ...section.units,
+      ];
+      expect(sectionUnits, curriculum);
+      expect(curriculum, hasLength(6));
+      expect(allLessons, hasLength(25));
+    });
+
+    test('every unit ends with a checkpoint and has a clear focus', () {
+      for (final unit in curriculum) {
+        expect(unit.focus, isNotEmpty);
+        expect(unit.lessons.last.isReview, isTrue, reason: unit.id);
+        expect(unit.lessons.where((lesson) => lesson.isReview), hasLength(1));
+      }
+    });
+
     test('every curriculum note has a first-position fingering', () {
       for (final lesson in allLessons) {
         for (final note in [...lesson.newNotes, ...lesson.reviewNotes]) {

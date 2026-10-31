@@ -9,7 +9,7 @@ flutter pub get
 flutter run
 ```
 
-Requires Flutter 3.47+ / Dart 3.10+.
+Requires Flutter 3.47+ / Dart 3.13+.
 
 ## Checks
 
@@ -18,6 +18,15 @@ flutter analyze
 flutter test
 flutter build web --release
 ```
+
+## Project docs
+
+- [`../AGENTS.md`](../AGENTS.md) — rules and verification steps for coding agents
+- [`../docs/DESIGN.md`](../docs/DESIGN.md) — mission and Duolingo-style design language
+- [`../docs/SOUND.md`](../docs/SOUND.md) — Warm Mallet sound family and event map
+- [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) — layers, data flow, invariants
+- [`../docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md) — setup, debug, manual checks
+- [`../LEARNING_ALGORITHM.md`](../LEARNING_ALGORITHM.md) — scheduling and session rules
 
 ## Project layout
 

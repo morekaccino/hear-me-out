@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/shared/audio/sound_service.dart';
 
 class MemoryProgressStore implements ProgressStore {
   MemoryProgressStore([ProgressState? initial])
@@ -32,23 +33,31 @@ class MemoryProgressStore implements ProgressStore {
 }
 
 class FakePitchSource implements PitchSource {
-  FakePitchSource({this.permission = true});
+  FakePitchSource({this.permission = true, this.startResult, this.startGate});
 
   final bool permission;
+  final bool? startResult;
+  final Completer<bool>? startGate;
   final _controller = StreamController<PitchFrame>.broadcast();
   bool started = false;
   bool disposed = false;
+  int permissionChecks = 0;
 
   @override
   Stream<PitchFrame> get frames => _controller.stream;
 
   @override
-  Future<bool> ensurePermission() async => permission;
+  Future<bool> ensurePermission() async {
+    permissionChecks++;
+    return permission;
+  }
 
   @override
   Future<bool> start() async {
     started = true;
-    return permission;
+    final gate = startGate;
+    if (gate != null) return gate.future;
+    return startResult ?? permission;
   }
 
   @override
@@ -68,14 +77,49 @@ class FakePitchSource implements PitchSource {
 }
 
 class FakePitchSourceFactory {
-  FakePitchSourceFactory({this.permission = true});
+  FakePitchSourceFactory({
+    this.permission = true,
+    this.startResult,
+    this.startGate,
+  });
 
   final bool permission;
+  final bool? startResult;
+  final Completer<bool>? startGate;
   final created = <FakePitchSource>[];
 
   PitchSource call() {
-    final source = FakePitchSource(permission: permission);
+    final source = FakePitchSource(
+      permission: permission,
+      startResult: startResult,
+      startGate: startGate,
+    );
     created.add(source);
     return source;
   }
+}
+
+class FakeSoundService implements SoundService {
+  @override
+  bool enabled = true;
+
+  final played = <Sfx>[];
+
+  @override
+  Future<void> preload() async {}
+
+  @override
+  Future<void> play(Sfx sound) async {
+    if (enabled) played.add(sound);
+  }
+
+  @override
+  Future<void> playSequence(Iterable<Sfx> sounds) async {
+    for (final sound in sounds) {
+      await play(sound);
+    }
+  }
+
+  @override
+  Future<void> dispose() async {}
 }

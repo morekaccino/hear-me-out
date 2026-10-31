@@ -1,8 +1,13 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../state/providers.dart';
+import '../audio/sound_service.dart';
 import '../theme/app_theme.dart';
 
-class DuoButton extends StatefulWidget {
+class DuoButton extends ConsumerStatefulWidget {
   const DuoButton({
     super.key,
     required this.label,
@@ -13,6 +18,7 @@ class DuoButton extends StatefulWidget {
     this.expanded = true,
     this.height = 56,
     this.fontSize = 16,
+    this.sound,
   });
 
   final String label;
@@ -23,12 +29,13 @@ class DuoButton extends StatefulWidget {
   final bool expanded;
   final double height;
   final double fontSize;
+  final Sfx? sound;
 
   @override
-  State<DuoButton> createState() => _DuoButtonState();
+  ConsumerState<DuoButton> createState() => _DuoButtonState();
 }
 
-class _DuoButtonState extends State<DuoButton> {
+class _DuoButtonState extends ConsumerState<DuoButton> {
   bool _pressed = false;
 
   bool get _enabled => widget.onPressed != null;
@@ -51,6 +58,11 @@ class _DuoButtonState extends State<DuoButton> {
         onTapUp: _enabled
             ? (_) {
                 setState(() => _pressed = false);
+                unawaited(
+                  ref
+                      .read(soundServiceProvider)
+                      .play(widget.sound ?? Sfx.uiTapPrimary),
+                );
                 widget.onPressed?.call();
               }
             : null,
@@ -96,7 +108,7 @@ class _DuoButtonState extends State<DuoButton> {
   }
 }
 
-class OutlineDuoButton extends StatelessWidget {
+class OutlineDuoButton extends ConsumerWidget {
   const OutlineDuoButton({
     super.key,
     required this.label,
@@ -104,6 +116,7 @@ class OutlineDuoButton extends StatelessWidget {
     this.icon,
     this.color = AppColors.blue,
     this.expanded = true,
+    this.sound,
   });
 
   final String label;
@@ -111,11 +124,21 @@ class OutlineDuoButton extends StatelessWidget {
   final IconData? icon;
   final Color color;
   final bool expanded;
+  final Sfx? sound;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: onPressed,
+      onTap: onPressed == null
+          ? null
+          : () {
+              unawaited(
+                ref
+                    .read(soundServiceProvider)
+                    .play(sound ?? Sfx.uiTapSecondary),
+              );
+              onPressed?.call();
+            },
       child: Container(
         height: 52,
         width: expanded ? double.infinity : null,

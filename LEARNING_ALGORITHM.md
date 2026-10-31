@@ -1,8 +1,8 @@
 # Learning Algorithm
 
-Hear Me Out uses two layers: a **session planner** that builds a good 10-exercise
-lesson, and a **spaced-repetition scheduler** that decides when each note should
-come back.
+Hear Me Out uses two layers: a **session planner** that builds a focused
+12-exercise lesson (15 for checkpoints) and a **spaced-repetition scheduler**
+that decides when each note should come back.
 
 ## 1. Written pitch vs sounding pitch
 
@@ -19,25 +19,34 @@ fret 3.
 
 ## 2. Curriculum
 
-| Unit | Lessons | New notes |
-|---|---|---|
-| 1. Read the Staff | 5 | E4/F4, G4/A4, B4/C5, D5/E5, review |
-| 2. First Position | 4 | C4, D4, F5, review |
-| 3. Low Strings | 4 | A3/B3, E3/F3, G3, review |
-| 4. Accidentals | 4 | F#4, C#5, Bb4, review |
+The course has **3 sections, 6 units, and 25 lessons**. Units alternate between
+staff reading, string groups, a mixed first-position unit, and accidentals.
 
-Each normal lesson introduces at most two notes. A new note gets three
-exposures. Review lessons have no new notes.
+| Section | Unit | Focus | Lessons |
+|---|---|---|---|
+| Foundations | 1. The Staff | Read the staff | E/F, G/A, B/C, D/E, staff review |
+| Foundations | 2. High Strings | B/high E strings; add F5 | B/C again, D/E again, high F, high-string review |
+| Foundations | 3. Below the Staff | C4/D4, recall E–A | C/D below, E/F again, G/A again, below-staff review |
+| First Position | 4. Low Strings | Low E/A strings | A/B, low E/F, G below, low-string review |
+| First Position | 5. First Position | Mix all six strings | lower half, upper half, full position, checkpoint |
+| Accidentals | 6. Accidentals | Sharps and flats | F♯, C♯, B♭, accidental review |
+
+Each normal lesson introduces at most two notes. A new note gets **4 exposures**
+while it is still in box 0–1. Every unit ends with a 15-exercise checkpoint with
+no new notes. Review material deliberately reappears across units.
 
 ## 3. Session planner
 
-`buildLessonExercises` creates exactly 10 exercises:
+`buildLessonExercises` creates exactly **12 exercises** for a normal lesson and
+**15** for a checkpoint:
 
-1. Put three copies of each new note into the pool.
-2. Fill the rest from due reviews, weak notes, then the rest of the review pool.
-3. Arrange the pool so the most frequent note is placed first and the same note
-   is never adjacent when another choice exists.
-4. Mark the first three occurrences of each new note as new exposures 0, 1, 2.
+1. Put four copies of each new note into the pool.
+2. Fill the remaining slots with a **review quota** from prior notes: due first,
+   weak second, then recently seen notes. A normal lesson has at least four
+   review slots when prior material exists.
+3. Arrange the pool so the most frequent note comes first and the same note is
+   not reused within the last two positions when an alternative exists.
+4. Mark the first four occurrences of each new note as new exposures 0–3.
 5. Assign answer modes:
    - No mic or Name mode: every exercise is naming.
    - Play mode: every exercise is playing.
@@ -48,8 +57,13 @@ exposures. Review lessons have no new notes.
    questions never show accidentals; accidental questions may show the natural
    neighbor.
 
-Practice sessions use the same planner without new notes. They draw from due
-notes, weak notes, or every learned note.
+If a note is answered incorrectly, it is added to a **mistake queue**. The base
+lesson is completed first, then the missed notes return in a short “Mistake
+review” phase at the end. Each distinct missed note is retried once, capped at
+four retries per session.
+
+Practice sessions use the same planner without new notes and also use 12
+exercises. They draw from due notes, weak notes, or every learned note.
 
 ## 4. Spaced repetition
 
@@ -74,7 +88,8 @@ least two different calendar days. Three correct taps in one session cannot
 master a note.
 
 **Due queue:** notes whose due timestamp is in the past, oldest first. Weak
-notes are those with at least two attempts and accuracy below 75%.
+notes are those with at least two attempts and accuracy below 75%. Lesson
+review slots use due notes first, then weak notes, then recently seen notes.
 
 ## 5. Gamification
 

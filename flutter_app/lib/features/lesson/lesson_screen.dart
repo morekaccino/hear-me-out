@@ -8,9 +8,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/audio/note_matcher.dart';
 import '../../core/audio/pitch_source.dart';
 import '../../core/learning/session_builder.dart';
+import '../../core/music/curriculum.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
 import '../../core/notation/staff_painter.dart';
+import '../../shared/audio/sound_service.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../../shared/theme/app_theme.dart';
@@ -19,6 +21,16 @@ import '../../shared/widgets/feedback_panel.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+
+/// Converts a sounding pitch to the written guitar note, keeping the spelling
+/// of the exercise target so B-flat does not turn into A-sharp.
+Note? _writtenFromSounding(Note? sounding, Note? target) {
+  if (sounding == null) return null;
+  return sounding.transposed(
+    12,
+    preferFlats: target?.accidental == Accidental.flat,
+  );
+}
 
 class LessonScreen extends ConsumerStatefulWidget {
   const LessonScreen({super.key});
@@ -37,6 +49,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   bool _startingMic = false;
   bool _forceName = false;
   bool _submitting = false;
+  int _micGeneration = 0;
   String? _activeKey;
   String? _selectedOptionId;
 
@@ -72,13 +85,14 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   }
 
   Future<void> _stopMic() async {
+    final generation = ++_micGeneration;
     await _subscription?.cancel();
     _subscription = null;
     final source = _source;
     _source = null;
     await source?.stop();
     await source?.dispose();
-    if (mounted) {
+    if (mounted && generation == _micGeneration) {
       setState(() {
         _reading = PitchReading.silent;
         _startingMic = false;
@@ -88,6 +102,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
   Future<void> _ensureMic() async {
     if (_source != null || _startingMic) return;
+    final generation = ++_micGeneration;
     setState(() {
       _startingMic = true;
       _micError = null;
@@ -96,9 +111,13 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     final source = factory();
     try {
       final started = await source.start();
+      if (!mounted || generation != _micGeneration) {
+        await source.dispose();
+        return;
+      }
       if (!started) {
         await source.dispose();
-        if (!mounted) return;
+        if (!mounted || generation != _micGeneration) return;
         setState(() {
           _startingMic = false;
           _micError =
@@ -108,21 +127,25 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       }
       final data = ref.read(appControllerProvider).asData?.value;
       final run = data?.run;
-      if (!mounted ||
-          run == null ||
+      if (run == null ||
           !run.current.isPlay ||
           run.awaitingNext ||
           _forceName) {
         await source.dispose();
-        if (mounted) setState(() => _startingMic = false);
+        if (mounted && generation == _micGeneration) {
+          setState(() => _startingMic = false);
+        }
         return;
       }
       _source = source;
-      _subscription = source.frames.listen(_onFrame);
+      _subscription = source.frames.listen((frame) {
+        if (!mounted || generation != _micGeneration) return;
+        _onFrame(frame);
+      });
       if (mounted) setState(() => _startingMic = false);
-    } catch (error) {
+    } catch (_) {
       await source.dispose();
-      if (!mounted) return;
+      if (!mounted || generation != _micGeneration) return;
       setState(() {
         _startingMic = false;
         _micError = 'Could not start the microphone.';
@@ -205,7 +228,27 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
           detected: detected,
           octaveError: octaveError,
         );
+    final updatedRun = ref.read(appControllerProvider).asData?.value.run;
+    if (correct) {
+      _play(
+        (updatedRun?.combo ?? 0) >= 3
+            ? Sfx.answerCorrectCombo
+            : Sfx.answerCorrect,
+      );
+    } else if (octaveError) {
+      _play(Sfx.answerOctave);
+    } else if (updatedRun != null &&
+        !updatedRun.isPractice &&
+        updatedRun.lives == 0) {
+      _play(Sfx.lifeLost);
+    } else {
+      _play(Sfx.answerWrong);
+    }
     if (mounted) setState(() => _submitting = false);
+  }
+
+  void _play(Sfx sound) {
+    unawaited(ref.read(soundServiceProvider).play(sound));
   }
 
   Future<void> _continue() async {
@@ -251,12 +294,18 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
+            onPressed: () {
+              _play(Sfx.uiTapSecondary);
+              Navigator.pop(dialogContext, false);
+            },
             child: const Text('Stay'),
           ),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: AppColors.red),
-            onPressed: () => Navigator.pop(dialogContext, true),
+            onPressed: () {
+              _play(Sfx.uiLocked);
+              Navigator.pop(dialogContext, true);
+            },
             child: const Text('Leave'),
           ),
         ],
@@ -282,7 +331,14 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
         },
         onRetry: () {
           ref.read(appControllerProvider.notifier).retryLesson();
-          setState(() => _activeKey = null);
+          setState(() {
+            _forceName = false;
+            _micError = null;
+            _reading = PitchReading.silent;
+            _selectedOptionId = null;
+            _activeKey = null;
+            _matcher = null;
+          });
         },
       );
     }
@@ -313,7 +369,13 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
           child: PageFrame(
             child: Column(
               children: [
-                _LessonTopBar(run: run, onClose: _confirmExit),
+                _LessonTopBar(
+                  run: run,
+                  onClose: () {
+                    _play(Sfx.uiTapSecondary);
+                    _confirmExit();
+                  },
+                ),
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
@@ -323,8 +385,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                         Text(
                           run.isPractice
                               ? (run.practiceTitle ?? 'Practice')
+                              : run.isReviewingMistakes
+                              ? 'Mistake review'
                               : (run.lesson.isReview
-                                    ? 'Review lesson'
+                                    ? 'Unit checkpoint'
                                     : 'Lesson'),
                           style: const TextStyle(
                             fontSize: 12,
@@ -335,7 +399,11 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          showPlay ? 'Play this note' : 'What note is this?',
+                          run.isReviewingMistakes
+                              ? 'Try this note again'
+                              : showPlay
+                              ? 'Play this note'
+                              : 'What note is this?',
                           style: const TextStyle(
                             fontSize: 26,
                             fontWeight: FontWeight.w800,
@@ -347,6 +415,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                         if (showPlay)
                           _MicAnswer(
                             reading: _reading,
+                            target: exercise.note,
+                            toleranceCents: data.progress.settings.toleranceCents,
                             starting: _startingMic,
                             error: _micError,
                             onUseNames: () {
@@ -371,8 +441,28 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                     ),
                   ),
                 ),
-                if (run.awaitingNext)
-                  _FeedbackForRun(run: run, onContinue: _continue),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 220),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 0.18),
+                        end: Offset.zero,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  ),
+                  child: run.awaitingNext
+                      ? _FeedbackForRun(
+                          key: ValueKey('feedback-${run.index}-${run.lastCorrect}'),
+                          run: run,
+                          onContinue: _continue,
+                        )
+                      : const SizedBox.shrink(key: ValueKey('no-feedback')),
+                ),
               ],
             ),
           ),
@@ -390,7 +480,6 @@ class _LessonTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completed = run.index + (run.awaitingNext ? 1 : 0);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
       child: Row(
@@ -403,12 +492,23 @@ class _LessonTopBar extends StatelessWidget {
           ),
           Expanded(
             child: LessonProgressBar(
-              value: completed / run.exercises.length,
+              value: run.progress,
               height: 16,
             ),
           ),
           const SizedBox(width: 12),
-          HeartsRow(lives: run.lives),
+          if (run.isPractice)
+            const Text(
+              'PRACTICE',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
+                color: AppColors.blueDark,
+              ),
+            )
+          else
+            HeartsRow(lives: run.lives),
         ],
       ),
     );
@@ -547,6 +647,8 @@ class _NameAnswer extends StatelessWidget {
 class _MicAnswer extends StatelessWidget {
   const _MicAnswer({
     required this.reading,
+    required this.target,
+    required this.toleranceCents,
     required this.starting,
     required this.error,
     required this.onUseNames,
@@ -554,6 +656,8 @@ class _MicAnswer extends StatelessWidget {
   });
 
   final PitchReading reading;
+  final Note target;
+  final int toleranceCents;
   final bool starting;
   final String? error;
   final VoidCallback onUseNames;
@@ -601,9 +705,10 @@ class _MicAnswer extends StatelessWidget {
       );
     }
 
-    final voiced = reading.voiced && reading.note != null;
+    final detected = _writtenFromSounding(reading.note, target);
+    final voiced = reading.voiced && detected != null;
     final cents = reading.cents;
-    final inTune = voiced && cents.abs() <= 20;
+    final inTune = voiced && cents.abs() <= toleranceCents;
     return Column(
       children: [
         Container(
@@ -649,7 +754,7 @@ class _MicAnswer extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                reading.note!.transposed(12).display,
+                                detected.display,
                                 style: const TextStyle(
                                   fontSize: 30,
                                   fontWeight: FontWeight.w800,
@@ -801,7 +906,11 @@ class _CentsRuler extends StatelessWidget {
 }
 
 class _FeedbackForRun extends StatelessWidget {
-  const _FeedbackForRun({required this.run, required this.onContinue});
+  const _FeedbackForRun({
+    super.key,
+    required this.run,
+    required this.onContinue,
+  });
 
   final LessonRun run;
   final VoidCallback onContinue;
@@ -813,9 +922,11 @@ class _FeedbackForRun extends StatelessWidget {
     final position = target == null ? null : Guitar.bestPosition(target);
     final cents = run.lastCents;
     final detected = run.lastDetected;
+    final detectedWritten = _writtenFromSounding(detected, target);
 
     final octaveError = !correct && run.lastOctaveError;
-    final title = !correct && run.outOfLives
+    final outOfLives = !run.isPractice && !correct && run.outOfLives;
+    final title = outOfLives
         ? 'Out of lives'
         : correct
         ? (run.combo >= 3 ? 'Combo x${run.combo}!' : 'Correct!')
@@ -826,15 +937,15 @@ class _FeedbackForRun extends StatelessWidget {
     final subtitle = correct
         ? '${target?.display ?? ''}${position == null ? '' : '  ·  ${position.label}'}'
         : octaveError
-        ? 'You played ${detected?.transposed(12).display ?? 'the same note'} in the wrong octave.'
+        ? 'You played ${detectedWritten?.display ?? 'the same note'} in the wrong octave.'
         : 'The correct note is ${target?.display ?? ''}';
 
     String? detail;
     if (!correct) {
       final parts = <String>[];
       if (position != null) parts.add(position.label);
-      if (detected != null && !octaveError) {
-        parts.add('You played ${detected.transposed(12).display}');
+      if (detectedWritten != null && !octaveError) {
+        parts.add('You played ${detectedWritten.display}');
       }
       if (octaveError) {
         parts.add('Check which string and octave you are using');
@@ -851,7 +962,7 @@ class _FeedbackForRun extends StatelessWidget {
       subtitle: subtitle,
       detail: detail,
       onContinue: onContinue,
-      continueLabel: run.outOfLives
+      continueLabel: outOfLives
           ? 'SEE RESULTS'
           : run.index >= run.exercises.length - 1
           ? 'FINISH'
@@ -860,7 +971,7 @@ class _FeedbackForRun extends StatelessWidget {
   }
 }
 
-class LessonCompleteView extends StatefulWidget {
+class LessonCompleteView extends ConsumerStatefulWidget {
   const LessonCompleteView({
     super.key,
     required this.result,
@@ -873,10 +984,11 @@ class LessonCompleteView extends StatefulWidget {
   final VoidCallback onRetry;
 
   @override
-  State<LessonCompleteView> createState() => _LessonCompleteViewState();
+  ConsumerState<LessonCompleteView> createState() =>
+      _LessonCompleteViewState();
 }
 
-class _LessonCompleteViewState extends State<LessonCompleteView> {
+class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
   late final ConfettiController _confetti;
 
   @override
@@ -886,6 +998,36 @@ class _LessonCompleteViewState extends State<LessonCompleteView> {
     if (widget.result.passed) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _confetti.play());
     }
+    unawaited(_playResultSounds());
+  }
+
+  Future<void> _playResultSounds() async {
+    final result = widget.result;
+    final sounds = <Sfx>[];
+    if (!result.passed) {
+      sounds.add(Sfx.lessonFailed);
+    } else if (result.isPractice) {
+      sounds.add(Sfx.practiceComplete);
+    } else if (result.accuracy >= 1) {
+      sounds.add(Sfx.lessonPerfect);
+    } else {
+      sounds.add(Sfx.lessonComplete);
+    }
+
+    if (result.leveledUp) {
+      sounds.add(Sfx.rewardLevelUp);
+    } else if (result.dailyGoalReached) {
+      sounds.add(Sfx.rewardDailyGoal);
+    } else if (result.streakMilestone) {
+      sounds.add(Sfx.rewardStreakMilestone);
+    } else if (result.streakAdvanced) {
+      sounds.add(Sfx.rewardStreak);
+    } else if (result.lessonUnlocked) {
+      sounds.add(Sfx.rewardUnlock);
+    }
+    if (result.xp > 0) sounds.add(Sfx.xpTick);
+
+    await ref.read(soundServiceProvider).playSequence(sounds);
   }
 
   @override
@@ -897,6 +1039,7 @@ class _LessonCompleteViewState extends State<LessonCompleteView> {
   @override
   Widget build(BuildContext context) {
     final result = widget.result;
+    final isCheckpoint = lessonById[result.lessonId]?.isReview ?? false;
     return Scaffold(
       body: Stack(
         children: [
@@ -918,6 +1061,8 @@ class _LessonCompleteViewState extends State<LessonCompleteView> {
                       result.passed
                           ? (result.isPractice
                                 ? 'Practice complete!'
+                                : isCheckpoint
+                                ? 'Unit complete!'
                                 : 'Lesson complete!')
                           : 'Out of lives',
                       textAlign: TextAlign.center,

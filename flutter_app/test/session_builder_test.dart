@@ -10,7 +10,7 @@ void main() {
   final now = DateTime(2026, 10, 31, 10);
 
   test(
-    'the first lesson is ten exercises with three new exposures per note',
+    'the first lesson is twelve exercises with four new exposures per note',
     () {
       final progress = ProgressState.fresh();
       final exercises = buildLessonExercises(
@@ -27,8 +27,8 @@ void main() {
       for (final exercise in exercises.where((exercise) => exercise.isNew)) {
         newCounts[exercise.note.id] = (newCounts[exercise.note.id] ?? 0) + 1;
       }
-      expect(newCounts['E4'], 3);
-      expect(newCounts['F4'], 3);
+      expect(newCounts['E4'], newNoteExposures);
+      expect(newCounts['F4'], newNoteExposures);
     },
   );
 
@@ -53,7 +53,7 @@ void main() {
         exercises.where(
           (exercise) => exercise.note.id == 'E4' && exercise.isNew,
         ),
-        hasLength(3),
+        hasLength(newNoteExposures),
       );
     },
   );
@@ -252,7 +252,10 @@ void main() {
         mode: AnswerMode.mixed,
         random: Random(100 + index),
       );
-      expect(exercises, hasLength(exercisesPerLesson), reason: lesson.id);
+      final expectedLength = lesson.isReview
+          ? reviewExercisesPerLesson
+          : exercisesPerLesson;
+      expect(exercises, hasLength(expectedLength), reason: lesson.id);
       for (var exercise = 1; exercise < exercises.length; exercise++) {
         expect(
           exercises[exercise].note.id,
@@ -277,10 +280,102 @@ void main() {
       }
       for (final note in lesson.newNotes) {
         if (newCounts.containsKey(note.id)) {
-          expect(newCounts[note.id], 3, reason: '${lesson.id} ${note.id}');
+          expect(
+            newCounts[note.id],
+            newNoteExposures,
+            reason: '${lesson.id} ${note.id}',
+          );
         }
       }
     }
+  });
+
+  test('a later lesson reserves review slots for earlier notes', () {
+    final progress = ProgressState.fresh();
+    progress.recordAnswer(
+      note: Note.parse('E4'),
+      correctAnswer: true,
+      now: now,
+    );
+    progress.recordAnswer(
+      note: Note.parse('F4'),
+      correctAnswer: true,
+      now: now,
+    );
+    final exercises = buildLessonExercises(
+      lesson: lessonById['u1l2']!,
+      progress: progress,
+      now: now,
+      micAvailable: false,
+      mode: AnswerMode.name,
+      random: Random(21),
+    );
+    final review = exercises.where((exercise) => !exercise.isNew).toList();
+    expect(review, hasLength(4));
+    expect(
+      review.every((exercise) => ['E4', 'F4'].contains(exercise.note.id)),
+      isTrue,
+    );
+  });
+
+  test('same notes are spaced apart inside a lesson', () {
+    final progress = ProgressState.fresh();
+    for (final note in [Note.parse('E4'), Note.parse('F4'), Note.parse('G4'), Note.parse('A4')]) {
+      progress.recordAnswer(note: note, correctAnswer: true, now: now);
+    }
+    final exercises = buildLessonExercises(
+      lesson: lessonById['u1l3']!,
+      progress: progress,
+      now: now,
+      micAvailable: false,
+      mode: AnswerMode.name,
+      random: Random(22),
+    );
+    for (var index = 2; index < exercises.length; index++) {
+      expect(
+        exercises[index].note.id,
+        isNot(exercises[index - 2].note.id),
+        reason: 'exercise $index',
+      );
+    }
+  });
+
+  test('mistakes are queued for an end-of-lesson retry', () {
+    final exercises = buildLessonExercises(
+      lesson: lessonById['u1l1']!,
+      progress: ProgressState.fresh(),
+      now: now,
+      micAvailable: false,
+      mode: AnswerMode.name,
+      random: Random(23),
+    );
+    final run = LessonRun(
+      lesson: lessonById['u1l1']!,
+      exercises: exercises,
+      isPractice: false,
+    );
+    final missed = run.current;
+    run.queueMistake(missed);
+    run.queueMistake(missed);
+    expect(run.pendingMistakes, 1);
+    expect(run.appendNextMistake(), isTrue);
+    expect(run.pendingMistakes, 0);
+    expect(run.exercises.last.note.id, missed.note.id);
+    expect(run.exercises.last.isNew, isFalse);
+    expect(run.appendNextMistake(), isFalse);
+  });
+
+  test('review lessons use the longer checkpoint length', () {
+    final exercises = buildLessonExercises(
+      lesson: lessonById['u1l5']!,
+      progress: ProgressState.fresh(),
+      now: now,
+      micAvailable: false,
+      mode: AnswerMode.name,
+      random: Random(24),
+    );
+    expect(exercises, hasLength(reviewExercisesPerLesson));
+    expect(exercises.every((exercise) => !exercise.isNew), isTrue);
   });
 
   test('practice falls back to lesson one notes on a fresh profile', () {

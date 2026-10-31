@@ -97,7 +97,8 @@ class Note {
 
   bool samePitchAs(Note other) => midi == other.midi;
 
-  Note transposed(int semitones) => Note.fromMidi(midi + semitones);
+  Note transposed(int semitones, {bool preferFlats = false}) =>
+      Note.fromMidi(midi + semitones, preferFlats: preferFlats);
 
   static Note? tryParse(String value) {
     final match = RegExp(
