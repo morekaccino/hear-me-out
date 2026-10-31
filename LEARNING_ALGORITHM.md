@@ -1,156 +1,135 @@
-# Progressive Learning Algorithm
+# Learning Algorithm
 
-This document explains how the new conservative learning algorithm works for the musical note flashcard app.
+Hear Me Out uses two layers: a **session planner** that builds a good 10-exercise
+lesson, and a **spaced-repetition scheduler** that decides when each note should
+come back.
 
-## Overview
+## 1. Written pitch vs sounding pitch
 
-The `ProgressiveLearningService` implements a progressive, conservative learning system that introduces new cards only when you've demonstrated mastery of previous cards. The system automatically saves progress to Firestore, allowing users to resume their learning session across devices and browser sessions.
+Guitar music is written one octave above sounding pitch.
 
-## Key Features
+- Written C4 (the staff) sounds C3 (MIDI 48).
+- Written E3 (low E string) sounds E2 (MIDI 40).
+- Open strings: written E3 A3 D4 G4 B4 E5.
 
-### 1. **Conservative Card Introduction**
-- Starts with just **1 card**
-- Introduces **only 1 new card at a time**, never a bunch
-- New cards are introduced only when previous cards are being learned
+The staff shows the written note. The microphone compares against
+`soundingMidi = writtenMidi - 12`. The string/fret hint uses the same mapping.
+This is why a guitarist can read a written C4 and be told to use the A string,
+fret 3.
 
-### 2. **Learning Stages**
+## 2. Curriculum
 
-#### Stage 1: Learning
-- Cards you're actively learning
-- Maximum of 5 cards in learning at once
-- Requires multiple correct answers to progress
+| Unit | Lessons | New notes |
+|---|---|---|
+| 1. Read the Staff | 5 | E4/F4, G4/A4, B4/C5, D5/E5, review |
+| 2. First Position | 4 | C4, D4, F5, review |
+| 3. Low Strings | 4 | A3/B3, E3/F3, G3, review |
+| 4. Accidentals | 4 | F#4, C#5, Bb4, review |
 
-#### Stage 2: Mastered
-- Cards you've mastered (3 correct answers in a row)
-- Occasionally shown for review to prevent forgetting
-- Can be demoted back to learning if answered incorrectly
+Each normal lesson introduces at most two notes. A new note gets three
+exposures. Review lessons have no new notes.
 
-### 3. **When New Cards Are Introduced**
+## 3. Session planner
 
-The algorithm introduces a new card when:
+`buildLessonExercises` creates exactly 10 exercises:
 
-- **For the first card**: After answering it correctly 2 times in a row
-- **For multiple cards**: When either:
-  - At least one card is about to be mastered (3 correct in a row), OR
-  - All cards have been answered correctly at least once AND at least one has 2+ correct streak
+1. Put three copies of each new note into the pool.
+2. Fill the rest from due reviews, weak notes, then the rest of the review pool.
+3. Arrange the pool so the most frequent note is placed first and the same note
+   is never adjacent when another choice exists.
+4. Mark the first three occurrences of each new note as new exposures 0, 1, 2.
+5. Assign answer modes:
+   - No mic or Name mode: every exercise is naming.
+   - Play mode: every exercise is playing.
+   - Mixed: the first exposure of a new note is naming; later exercises split
+     between naming and playing, with at least three play exercises when
+     possible.
+6. Build four plausible answer choices for naming exercises. Natural-note
+   questions never show accidentals; accidental questions may show the natural
+   neighbor.
 
-### 4. **Card Selection Priority**
+Practice sessions use the same planner without new notes. They draw from due
+notes, weak notes, or every learned note.
 
-When deciding which card to show next:
+## 4. Spaced repetition
 
-1. **30% chance**: Show a review card from mastered cards (if any exist)
-2. **Otherwise**: Show a learning card, prioritizing:
-   - Cards with lower correct streaks (need more practice)
-   - Cards not seen recently
+Each note has a box 0–5 and a due timestamp.
 
-### 5. **Review System**
+| Box | After a correct answer |
+|---|---|
+| 0 | due immediately |
+| 1 | 10 minutes |
+| 2 | 1 day |
+| 3 | 3 days |
+| 4 | 7 days |
+| 5 | 21 days |
 
-- Mastered cards are periodically shown for review
-- Review frequency based on:
-  - Time since last seen
-  - Number of times reviewed
-- Incorrect answers on reviews demote the card back to learning
+**Correct answer:** box + 1 (maximum 5), due = now + interval for the new box,
+rolling accuracy updated.
 
-## Algorithm Parameters
+**Wrong answer:** box − 2 (minimum 0), due = now + 1 minute, streak reset.
 
-```javascript
-MASTERY_THRESHOLD = 3           // Correct answers needed to master a card
-NEW_CARD_AFTER_REVIEWS = 2      // Correct streak needed before introducing new cards
-REVIEW_PROBABILITY = 0.3        // 30% chance to show review cards
-MAX_LEARNING_CARDS = 5          // Maximum cards in learning stage at once
-```
+**Mastery:** box ≥ 4 **and** at least five correct answers **and** correct on at
+least two different calendar days. Three correct taps in one session cannot
+master a note.
 
-## Example Learning Flow
+**Due queue:** notes whose due timestamp is in the past, oldest first. Weak
+notes are those with at least two attempts and accuracy below 75%.
 
-```
-Session Start:
-- Card: E2 (new)
+## 5. Gamification
 
-User answers E2 correctly:
-- E2 streak: 1
-- Continue showing E2
+- **Lives:** three per lesson. A wrong answer costs one. At zero the lesson ends
+  and can be retried. Practice never costs lives.
+- **XP:** 10 for a lesson, 15 for a review lesson, +5 for a perfect lesson.
+  Replaying a completed lesson gives 5 XP (plus 3 for a perfect replay).
+  Practice gives 5 XP.
+- **Streak:** increments on the first completed lesson of a calendar day.
+  Completing two lessons in one day does not double it. Missing a day resets it
+  to 1 on the next completed lesson.
+- **Daily goal:** 10, 20, or 30 XP. XP is tracked per local calendar day.
 
-User answers E2 correctly again:
-- E2 streak: 2
-- Introduce new card F2
+## 6. Pitch detection and matching
 
-User answers F2 correctly:
-- F2 streak: 1
-- E2 streak: 2, F2 streak: 1
-- Keep showing current cards
+**Capture:** mono PCM16 at 44.1 kHz. Frames of 4096 samples are decimated by two
+to ~22.05 kHz and analyzed every 2048 samples (about 46 ms).
 
-User answers E2 correctly:
-- E2 streak: 3 → E2 MASTERED! 🎉
-- E2 moved to mastered cards
+**YIN:**
+1. Remove DC and gate on RMS.
+2. Difference function over lags 70–1000 Hz.
+3. Cumulative mean normalized difference.
+4. First dip below 0.15, refined by parabolic interpolation.
+5. Frequency = sample rate / lag; clarity = 1 − normalized difference.
 
-User answers F2 correctly twice more:
-- F2 streak: 3 → F2 MASTERED! 🎉
-- Introduce new card F#2
+**Matching:**
+- Reject frames with clarity < 0.5.
+- Require three stable frames of the same MIDI note.
+- Accept the target when |cents| ≤ 30 (configurable: 20/30/40).
+- Flag an octave error when the detected MIDI is target ± 12 for six frames.
+- Flag a wrong note when another pitch is stable for six frames.
+- Ignore the first 250 ms of a new exercise so the tail of the previous note
+  cannot trigger a false answer.
+- Show cents sharp/flat and allow retuning. A note that is close but out of tune
+  is not accepted.
 
-... and so on
+The tuner uses the same detector but compares against the selected open string
+instead of a lesson target.
 
-Later in session:
-- 30% chance to review E2 or F2 (from mastered)
-- 70% chance to continue with learning cards
-```
+## 7. Persistence
 
-## Benefits
+A versioned `ProgressState` JSON document is stored under
+`hear_me_out_progress_v1` in `shared_preferences`.
 
-1. **Prevents Overwhelm**: Never shows too many new cards at once
-2. **Ensures Retention**: Regular reviews prevent forgetting
-3. **Adaptive**: Adjusts to your learning pace
-4. **Progressive**: Gradually increases difficulty as you master cards
-5. **Focused**: Concentrates on cards that need practice
+It contains notes, boxes, due dates, accuracy, correct-day sets, completed
+lessons, best lesson accuracy, XP, streak, daily XP, settings, and the last 30
+sessions. Corrupt or missing data falls back to a fresh profile instead of
+crashing. Backup exports the same document to the clipboard; restore validates
+it before replacing local progress.
 
-## Integration
+No network or cloud service is involved.
 
-The service is used via the `useProgressiveLearning` composable:
+## 8. Why this is better than “3 in a row”
 
-```javascript
-const { 
-  generateInitialStack,  // Creates initial card stack
-  getNextCard,           // Gets next card based on algorithm
-  markCorrect,           // Records correct answer
-  markIncorrect,         // Records incorrect answer
-  stats,                 // Learning statistics
-  isInitialized,         // Whether user data is loaded
-  isSaving               // Whether progress is being saved
-} = useProgressiveLearning()
-```
-
-## Firestore Integration
-
-### Data Structure
-
-Learning progress is stored in Firestore at:
-```
-/users/{userId}/learningProgress/current
-```
-
-### Saved Data
-- **learningCards**: Array of cards currently being learned
-  - noteValue, correctStreak, totalCorrect, totalIncorrect, lastSeen
-- **masteredCards**: Array of mastered cards
-  - All learning card fields plus masteredAt, reviewCount
-- **cardIdCounter**: Counter for generating unique card IDs
-- **stats**: Overall learning statistics
-
-### Auto-Save
-- Progress is automatically saved to Firestore after every correct/incorrect answer
-- Debounced with 500ms delay to avoid excessive writes
-- Seamless - no manual save required
-
-### User Authentication
-- Uses Firebase Anonymous Authentication
-- Each user gets a unique ID automatically
-- Progress tied to user ID
-- Works across devices if same anonymous user
-
-## Notes
-
-- Progress is automatically persisted to Firestore
-- Users can close the browser and resume later
-- The UI remains unchanged - only the card selection logic is different
-- The algorithm prioritizes learning quality over speed
-- Firestore rules should be configured to allow authenticated users to read/write their own data
-
+A short-term streak measures working memory, not retention. Requiring spaced
+correct answers across days, with wrong answers demoting two boxes, produces
+durable recall. The session planner also prevents the two common failure modes:
+introducing five new notes at once, and showing the same note twice in a row.

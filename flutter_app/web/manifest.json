@@ -1,11 +1,11 @@
 {
-    "name": "hear_me_out",
-    "short_name": "hear_me_out",
+    "name": "Hear Me Out",
+    "short_name": "Hear Me Out",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#58CC02",
+    "theme_color": "#58CC02",
+    "description": "Learn to read guitar music. See a note, name it, or play it for live pitch feedback.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

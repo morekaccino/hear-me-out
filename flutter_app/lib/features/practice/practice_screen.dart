@@ -1,66 +1,588 @@
-import 'package:flutter/material.dart';
-import 'widgets/mode_chips.dart';
-import 'widgets/music_card.dart';
-import 'widgets/mic_status_bar.dart';
-import 'widgets/pitch_accuracy_bar.dart';
+import 'dart:async';
+import 'dart:math' as math;
 
-class PracticeScreen extends StatefulWidget {
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/audio/pitch_source.dart';
+import '../../core/music/guitar.dart';
+import '../../core/music/note.dart';
+import '../../state/app_controller.dart';
+import '../../state/providers.dart';
+import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/duo_button.dart';
+import '../../shared/widgets/page_frame.dart';
+import '../../shared/widgets/progress_widgets.dart';
+import '../lesson/lesson_screen.dart';
+
+class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({super.key});
+
   @override
-  State<PracticeScreen> createState() => _PracticeScreenState();
+  ConsumerState<PracticeScreen> createState() => _PracticeScreenState();
 }
 
-class _PracticeScreenState extends State<PracticeScreen> {
-  // ignore_for_file: prefer_final_fields
-  String _selectedMode = 'Notes';
-  String? _currentNote = 'C4';
-  bool _isListening = true;
+class _PracticeScreenState extends ConsumerState<PracticeScreen>
+    with WidgetsBindingObserver {
+  PitchSource? _source;
+  StreamSubscription<PitchFrame>? _subscription;
+  PitchFrame? _frame;
+  String? _micError;
+  bool _starting = false;
+  int _selectedString = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_stopTuner());
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      unawaited(_stopTuner());
+    }
+  }
+
+  Future<void> _stopTuner() async {
+    await _subscription?.cancel();
+    _subscription = null;
+    final source = _source;
+    _source = null;
+    await source?.stop();
+    await source?.dispose();
+    if (mounted) {
+      setState(() {
+        _frame = null;
+        _starting = false;
+      });
+    }
+  }
+
+  Future<void> _toggleTuner() async {
+    if (_source != null) {
+      await _stopTuner();
+      return;
+    }
+    setState(() {
+      _starting = true;
+      _micError = null;
+    });
+    final source = ref.read(pitchSourceFactoryProvider)();
+    bool started;
+    try {
+      started = await source.start();
+    } catch (_) {
+      started = false;
+    }
+    if (!started) {
+      await source.dispose();
+      if (!mounted) return;
+      setState(() {
+        _starting = false;
+        _micError = 'Microphone unavailable. Check your system permissions.';
+      });
+      return;
+    }
+    _source = source;
+    _subscription = source.frames.listen((frame) {
+      if (mounted) setState(() => _frame = frame);
+    });
+    if (mounted) setState(() => _starting = false);
+  }
+
+  Future<bool> _ensureMic() async {
+    final source = ref.read(pitchSourceFactoryProvider)();
+    try {
+      return await source.ensurePermission();
+    } catch (_) {
+      return false;
+    } finally {
+      await source.dispose();
+    }
+  }
+
+  Future<void> _startPractice(String kind) async {
+    await _stopTuner();
+    final controller = ref.read(appControllerProvider.notifier);
+    final mic = await _ensureMic();
+    if (!mounted) return;
+    controller.startPractice(kind: kind, micAvailable: mic);
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const LessonScreen()));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final data = ref.watch(appControllerProvider).asData?.value;
+    if (data == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    final progress = data.progress;
+    final due = progress.dueNotes(DateTime.now()).length;
+    final weak = progress.weakNotes(limit: 20).length;
+    final learned = progress.notes.values.where((n) => n.attempts > 0).length;
+
     return Scaffold(
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            const Text('Practice', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            ModeChips(selectedMode: _selectedMode, onModeSelected: (mode) => setState(() => _selectedMode = mode)),
-            const SizedBox(height: 20),
-            MusicCard(noteValue: _currentNote),
-            const SizedBox(height: 12),
-            MicStatusBar(isListening: _isListening, latestNote: 'C4'),
-            const SizedBox(height: 10),
-            const PitchAccuracyBar(centsOffset: 4.2),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(color: const Color(0xFF1A1A2E), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF1E293B))),
-              child: const Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                _SessionStat(icon: Icons.check_circle, value: '4', color: Color(0xFF10B981)),
-                _SessionStat(icon: Icons.cancel, value: '1', color: Color(0xFFEF4444)),
-                _SessionStat(icon: Icons.local_fire_department, value: '3', color: Color(0xFFF59E0B)),
-                _SessionStat(icon: Icons.speed, value: '80%', color: Color(0xFF06B6D4)),
-              ]),
-            ),
-          ]),
+        bottom: false,
+        child: PageFrame(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+            children: [
+              const Text(
+                'Practice',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Tune up, then drill the notes that need work.',
+                style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 18),
+              _TunerCard(
+                selectedString: _selectedString,
+                onStringSelected: (index) =>
+                    setState(() => _selectedString = index),
+                running: _source != null,
+                starting: _starting,
+                frame: _frame,
+                error: _micError,
+                a4: progress.settings.a4Hz,
+                onToggle: _toggleTuner,
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MiniStat(
+                      value: '${progress.masteredCount}',
+                      label: 'Mastered',
+                      color: AppColors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MiniStat(
+                      value: '$learned',
+                      label: 'Learned',
+                      color: AppColors.blue,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _MiniStat(
+                      value: '${(progress.accuracy * 100).round()}%',
+                      label: 'Accuracy',
+                      color: const Color(0xFFFF9600),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Smart practice',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 10),
+              _PracticeRow(
+                icon: Icons.event_repeat_rounded,
+                color: AppColors.blue,
+                title: 'Due review',
+                subtitle: due == 0
+                    ? 'Nothing due right now'
+                    : due == 1
+                    ? '1 note ready to review'
+                    : '$due notes ready to review',
+                badge: due == 0 ? null : '$due',
+                onTap: () => _startPractice('due'),
+              ),
+              const SizedBox(height: 10),
+              _PracticeRow(
+                icon: Icons.healing_rounded,
+                color: AppColors.red,
+                title: 'Weak notes',
+                subtitle: weak == 0
+                    ? 'No weak notes yet'
+                    : weak == 1
+                    ? '1 note below 75% accuracy'
+                    : '$weak notes below 75% accuracy',
+                badge: weak == 0 ? null : '$weak',
+                onTap: () => _startPractice('weak'),
+              ),
+              const SizedBox(height: 10),
+              _PracticeRow(
+                icon: Icons.shuffle_rounded,
+                color: AppColors.purple,
+                title: 'Free practice',
+                subtitle: learned == 0
+                    ? 'Learn a note first'
+                    : 'Mix every note you have met',
+                onTap: () => _startPractice('all'),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'The tuner listens to your guitar and shows how far each string is from standard pitch. No audio leaves this device.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                  color: AppColors.textLight,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _SessionStat extends StatelessWidget {
-  final IconData icon;
-  final String value;
-  final Color color;
-  const _SessionStat({required this.icon, required this.value, required this.color});
+class _TunerCard extends StatelessWidget {
+  const _TunerCard({
+    required this.selectedString,
+    required this.onStringSelected,
+    required this.running,
+    required this.starting,
+    required this.frame,
+    required this.error,
+    required this.a4,
+    required this.onToggle,
+  });
+
+  final int selectedString;
+  final ValueChanged<int> onStringSelected;
+  final bool running;
+  final bool starting;
+  final PitchFrame? frame;
+  final String? error;
+  final double a4;
+  final VoidCallback onToggle;
+
   @override
   Widget build(BuildContext context) {
-    return Row(children: [
-      Icon(icon, size: 16, color: color),
-      const SizedBox(width: 4),
-      Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color)),
-    ]);
+    final target = standardTuning[selectedString];
+    final voiced = frame?.voiced == true;
+    final frequency = frame?.frequency ?? 0;
+    final detected = voiced
+        ? Note.fromMidi(frequencyToMidi(frequency, a4: a4).round())
+        : null;
+    final centsToTarget = voiced
+        ? 1200 * math.log(frequency / target.open.frequency(a4: a4)) / math.ln2
+        : 0.0;
+    final inTune = voiced && centsToTarget.abs() <= 5;
+    final color = inTune ? AppColors.greenDark : AppColors.text;
+
+    return SectionCard(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.tune_rounded,
+                size: 20,
+                color: AppColors.blueDark,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'Standard tuning',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+              ),
+              const Spacer(),
+              if (running)
+                const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.circle, size: 8, color: AppColors.red),
+                    SizedBox(width: 5),
+                    Text(
+                      'LIVE',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.8,
+                        color: AppColors.red,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              for (var index = 0; index < standardTuning.length; index++)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: GestureDetector(
+                      onTap: () => onStringSelected(index),
+                      child: Container(
+                        height: 38,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: selectedString == index
+                              ? AppColors.blue
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: selectedString == index
+                                ? AppColors.blueDark
+                                : AppColors.border,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          standardTuning[index].open.pitchClass,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: selectedString == index
+                                ? Colors.white
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 116,
+            child: Center(
+              child: voiced && detected != null
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          detected.display,
+                          style: TextStyle(
+                            fontSize: 46,
+                            fontWeight: FontWeight.w800,
+                            height: 1,
+                            color: color,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          inTune
+                              ? 'In tune'
+                              : '${centsToTarget > 0 ? 'Tune down' : 'Tune up'}  ·  ${centsToTarget.abs().toStringAsFixed(0)} cents',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: inTune
+                                ? AppColors.greenDark
+                                : AppColors.textMuted,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${frequency.toStringAsFixed(1)} Hz  ·  target ${target.open.display}',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textLight,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          running
+                              ? Icons.graphic_eq_rounded
+                              : Icons.mic_none_rounded,
+                          size: 40,
+                          color: AppColors.textLight,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          starting
+                              ? 'Starting microphone…'
+                              : running
+                              ? 'Play the ${target.label} string'
+                              : 'Tap to start the tuner',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textLight,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.redDark,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          DuoButton(
+            label: running ? 'STOP TUNER' : 'START TUNER',
+            onPressed: starting ? null : onToggle,
+            color: running ? AppColors.textMuted : AppColors.blue,
+            icon: running ? Icons.stop_rounded : Icons.mic_rounded,
+            height: 48,
+            fontSize: 14,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.value,
+    required this.label,
+    required this.color,
+  });
+
+  final String value;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PracticeRow extends StatelessWidget {
+  const _PracticeRow({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.badge,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String subtitle;
+  final String? badge;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 2),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 23),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (badge != null)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  badge!,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              )
+            else
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textLight,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }

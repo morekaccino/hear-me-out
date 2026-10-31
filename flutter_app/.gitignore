@@ -23,9 +23,6 @@ macos/.generated/
 macos/Pods/
 macos/.symlinks/
 
-# Web
-web/firebase-messaging-sw.js
-
 # Editor
 .DS_Store
 *.swp

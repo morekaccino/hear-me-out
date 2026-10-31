@@ -1,152 +1,180 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
-class StaffPainter extends CustomPainter {
-  final String? noteValue;
-  final bool showClef;
+import '../music/note.dart';
+import 'staff_geometry.dart';
+
+class StaffView extends StatelessWidget {
+  const StaffView({
+    super.key,
+    required this.note,
+    this.height = 230,
+    this.staffColor = const Color(0xFFB8B8B8),
+    this.noteColor = const Color(0xFF3C3C3C),
+  });
+
+  final Note note;
+  final double height;
   final Color staffColor;
   final Color noteColor;
 
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Treble staff, note ${note.display}',
+      child: SizedBox(
+        height: height,
+        width: double.infinity,
+        child: CustomPaint(
+          painter: StaffPainter(
+            note: note,
+            staffColor: staffColor,
+            noteColor: noteColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class StaffPainter extends CustomPainter {
   StaffPainter({
-    this.noteValue,
-    this.showClef = true,
-    this.staffColor = Colors.white24,
-    this.noteColor = Colors.white,
+    required this.note,
+    required this.staffColor,
+    required this.noteColor,
   });
+
+  final Note note;
+  final Color staffColor;
+  final Color noteColor;
+
+  static const _gClef = '\uE050';
+  static const _sharp = '\uE262';
+  static const _flat = '\uE260';
 
   @override
   void paint(Canvas canvas, Size size) {
-    _drawStaffLines(canvas, size);
-    if (showClef) _drawTrebleClef(canvas, size);
-    if (noteValue != null) _drawNote(canvas, size, noteValue!);
+    final geometry = StaffGeometry(size: size);
+    _paintStaff(canvas, geometry);
+    _paintClef(canvas, geometry);
+    _paintLedgerLines(canvas, geometry);
+    _paintAccidental(canvas, geometry);
+    _paintNote(canvas, geometry);
   }
 
-  void _drawStaffLines(Canvas canvas, Size size) {
+  void _paintStaff(Canvas canvas, StaffGeometry geometry) {
     final paint = Paint()
       ..color = staffColor
-      ..strokeWidth = 1.5;
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    for (var line = 0; line < 5; line++) {
+      final y = geometry.staffTop + geometry.lineGap * line;
+      canvas.drawLine(Offset(0, y), Offset(geometry.size.width, y), paint);
+    }
+  }
 
-    final staffHeight = size.height * 0.5;
-    final topY = (size.height - staffHeight) / 2;
-    final lineSpacing = staffHeight / 4;
+  void _paintClef(Canvas canvas, StaffGeometry geometry) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: _gClef,
+        style: TextStyle(
+          fontFamily: 'Bravura',
+          fontSize: geometry.lineGap * 3.4,
+          color: staffColor,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final baseline = painter.computeDistanceToActualBaseline(
+      TextBaseline.alphabetic,
+    );
+    painter.paint(canvas, Offset(10, geometry.gLine - baseline));
+  }
 
-    for (int i = 0; i < 5; i++) {
-      final y = topY + i * lineSpacing;
+  void _paintLedgerLines(Canvas canvas, StaffGeometry geometry) {
+    final paint = Paint()
+      ..color = staffColor
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+    for (final y in geometry.ledgerLineYs(note)) {
       canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
+        Offset(geometry.noteX - geometry.lineGap * 1.6, y),
+        Offset(geometry.noteX + geometry.lineGap * 1.6, y),
         paint,
       );
     }
   }
 
-  void _drawTrebleClef(Canvas canvas, Size size) {
-    final textPainter = TextPainter(
+  void _paintAccidental(Canvas canvas, StaffGeometry geometry) {
+    final glyph = switch (note.accidental) {
+      Accidental.natural => null,
+      Accidental.sharp => _sharp,
+      Accidental.flat => _flat,
+    };
+    if (glyph == null) return;
+
+    final painter = TextPainter(
       text: TextSpan(
-        text: '\u{1D11E}', // 𝄞 — musical symbol G clef (Unicode)
-        style: TextStyle(fontSize: size.height * 0.6, color: staffColor),
+        text: glyph,
+        style: TextStyle(
+          fontFamily: 'Bravura',
+          fontSize: geometry.lineGap * 2.7,
+          color: noteColor,
+        ),
       ),
       textDirection: TextDirection.ltr,
+    )..layout();
+    final baseline = painter.computeDistanceToActualBaseline(
+      TextBaseline.alphabetic,
     );
-    textPainter.layout();
-    textPainter.paint(
+    painter.paint(
       canvas,
-      Offset(4, (size.height - textPainter.height) / 2),
+      Offset(
+        geometry.noteX - geometry.lineGap * 2.45,
+        geometry.yFor(note) + geometry.lineGap * 0.55 - baseline,
+      ),
     );
   }
 
-  void _drawNote(Canvas canvas, Size size, String noteValue) {
-    final staffHeight = size.height * 0.5;
-    final topY = (size.height - staffHeight) / 2;
-    final lineSpacing = staffHeight / 4;
-
-    final noteY = _noteYPosition(noteValue, topY, lineSpacing);
-
-    // Draw note head (filled oval)
+  void _paintNote(Canvas canvas, StaffGeometry geometry) {
+    final center = Offset(geometry.noteX, geometry.yFor(note));
+    final headWidth = geometry.lineGap * 1.3;
+    final headHeight = geometry.lineGap * 0.95;
     final notePaint = Paint()..color = noteColor;
-    final noteX = size.width * 0.55;
-    final noteRadius = lineSpacing * 0.55;
 
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(-0.08);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(noteX, noteY),
-        width: noteRadius * 2 * 1.4, // Slightly wider than tall
-        height: noteRadius * 2,
+        center: Offset.zero,
+        width: headWidth,
+        height: headHeight,
       ),
       notePaint,
     );
+    canvas.restore();
 
-    // Draw ledger lines if needed
-    _drawLedgerLines(canvas, noteY, topY, size.width, lineSpacing, noteX, noteRadius);
-  }
-
-  double _noteYPosition(String noteValue, double topY, double lineSpacing) {
-    // Map note name to staff position.
-    // In treble clef, bottom line = E4, top line = F5.
-    // Positions are in half-steps from bottom line:
-    // E4=0, F4=1, G4=2, A4=3, B4=4, C5=5, D5=6, E5=7, F5=8
-    const noteSemitonesFromE4 = {
-      'E': 0, 'F': 1, 'G': 2, 'A': 3, 'B': 4, 'C': 5, 'D': 6,
-    };
-
-    // Extract note letter and octave
-    final noteLetter = noteValue.replaceAll(RegExp(r'[#b\d]'), '');
-    final basePos = noteSemitonesFromE4[noteLetter] ?? 3.0;
-
-    // Extract octave
-    final octaveStr = noteValue.replaceAll(RegExp(r'[^0-9]'), '');
-    final octave = int.tryParse(octaveStr) ?? 4;
-    // Each octave shift = 7 staff positions (diatonic steps) / 2 = 3.5 line spaces
-    final octaveShift = (octave - 4) * 3.5;
-
-    // Handle sharps (same position as natural, accidental drawn separately)
-    // For now: position doesn't change for accidentals
-
-    // Bottom line = topY + 4 * lineSpacing
-    // Position 0 (E4) = bottom line
-    // Position goes UP (decreasing Y) by 0.5 lineSpace per semitone
-    return topY + 4 * lineSpacing - (basePos + octaveShift) * lineSpacing * 0.5;
-  }
-
-  void _drawLedgerLines(
-    Canvas canvas,
-    double noteY,
-    double topY,
-    double width,
-    double lineSpacing,
-    double noteX,
-    double noteRadius,
-  ) {
-    final paint = Paint()
-      ..color = staffColor
-      ..strokeWidth = 1.5;
-
-    final staffBottom = topY + 4 * lineSpacing;
-
-    // Ledger lines below staff (for notes below E4)
-    if (noteY > staffBottom) {
-      for (double y = staffBottom + lineSpacing; y <= noteY + lineSpacing * 0.5; y += lineSpacing) {
-        canvas.drawLine(
-          Offset(noteX - noteRadius * 2.5, y),
-          Offset(noteX + noteRadius * 2.5, y),
-          paint,
-        );
-      }
-    }
-
-    // Ledger lines above staff (for notes above F5)
-    if (noteY < topY) {
-      for (double y = topY - lineSpacing; y >= noteY - lineSpacing * 0.5; y -= lineSpacing) {
-        canvas.drawLine(
-          Offset(noteX - noteRadius * 2.5, y),
-          Offset(noteX + noteRadius * 2.5, y),
-          paint,
-        );
-      }
-    }
+    final stemUp = note.diatonicIndex <= Note('B', 4).diatonicIndex;
+    final stemX = center.dx + (stemUp ? headWidth * 0.46 : -headWidth * 0.46);
+    final stemLength = geometry.lineGap * 3.4;
+    final stemStart =
+        center.dy + (stemUp ? -headHeight * 0.25 : headHeight * 0.25);
+    final stemEnd = center.dy + (stemUp ? -stemLength : stemLength);
+    canvas.drawLine(
+      Offset(stemX, stemStart),
+      Offset(stemX, stemEnd),
+      Paint()
+        ..color = noteColor
+        ..strokeWidth = math.max(1.4, geometry.lineGap * 0.09)
+        ..strokeCap = StrokeCap.round,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant StaffPainter oldDelegate) {
-    return oldDelegate.noteValue != noteValue || oldDelegate.showClef != showClef;
-  }
+  bool shouldRepaint(covariant StaffPainter oldDelegate) =>
+      oldDelegate.note != note ||
+      oldDelegate.staffColor != staffColor ||
+      oldDelegate.noteColor != noteColor;
 }
