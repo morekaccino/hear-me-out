@@ -51,7 +51,7 @@ class QuestsScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Fresh quests every day. Claim them for gems.',
                 style: TextStyle(
                   fontSize: 14,
@@ -69,7 +69,7 @@ class QuestsScreen extends ConsumerWidget {
               const SizedBox(height: 4),
               Text(
                 'Resets at midnight. ${_resetCopy()}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textMuted,
@@ -249,10 +249,10 @@ class _QuestCard extends StatelessWidget {
         color: AppColors.background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border, width: 2),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.border,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
             blurRadius: 0,
           ),
         ],
@@ -303,7 +303,7 @@ class _QuestCard extends StatelessWidget {
                 const SizedBox(height: 1),
                 Text(
                   quest.subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textMuted,
@@ -322,7 +322,7 @@ class _QuestCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       '${progress.clamp(0, quest.target)}/${quest.target}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textMuted,

@@ -83,7 +83,8 @@ void main() {
       expect(importProgress('{"schemaVersion": 1}'), isNotNull);
       expect(importProgress('{"hello": "world"}'), isNull);
       expect(importProgress('{"schemaVersion": 2}'), isNotNull);
-      expect(importProgress('{"schemaVersion": 3}'), isNull);
+      expect(importProgress('{"schemaVersion": 3}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 4}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });

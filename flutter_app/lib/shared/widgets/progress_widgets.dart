@@ -8,11 +8,13 @@ class LessonProgressBar extends StatelessWidget {
     required this.value,
     this.color = AppColors.green,
     this.height = 16,
+    this.duration = const Duration(milliseconds: 280),
   });
 
   final double value;
   final Color color;
   final double height;
+  final Duration duration;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +28,7 @@ class LessonProgressBar extends StatelessWidget {
           alignment: Alignment.centerLeft,
           widthFactor: clamped,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 280),
+            duration: duration,
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(height / 2),
@@ -76,31 +78,113 @@ class StatPill extends StatelessWidget {
     super.key,
     required this.icon,
     required this.value,
-    this.color = AppColors.text,
+    this.color,
     this.iconColor,
   });
 
   final IconData icon;
   final String value;
-  final Color color;
+  final Color? color;
   final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
+    final resolved = color ?? AppColors.text;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 22, color: iconColor ?? color),
+        Icon(icon, size: 22, color: iconColor ?? resolved),
         const SizedBox(width: 4),
         Text(
           value,
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w800,
-            color: color,
+            color: resolved,
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Streak, gem, and heart counters. No border; the number uses the icon color.
+class PathCounters extends StatelessWidget {
+  const PathCounters({
+    super.key,
+    required this.streak,
+    required this.gems,
+    required this.hearts,
+  });
+
+  final int streak;
+  final int gems;
+  final int hearts;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        _Counter(
+          icon: Icons.local_fire_department_rounded,
+          value: '$streak',
+          color: AppColors.orange,
+          label: 'Streak $streak',
+        ),
+        const SizedBox(width: 22),
+        _Counter(
+          icon: Icons.diamond_rounded,
+          value: '$gems',
+          color: AppColors.blue,
+          label: 'Gems $gems',
+        ),
+        const SizedBox(width: 22),
+        _Counter(
+          icon: Icons.favorite_rounded,
+          value: '$hearts',
+          color: AppColors.red,
+          label: 'Hearts $hearts',
+        ),
+      ],
+    );
+  }
+}
+
+class _Counter extends StatelessWidget {
+  const _Counter({
+    required this.icon,
+    required this.value,
+    required this.color,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: label,
+      excludeSemantics: true,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 28, color: color),
+          const SizedBox(width: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: color,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -110,23 +194,26 @@ class SectionCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(18),
-    this.color = AppColors.background,
-    this.borderColor = AppColors.border,
+    this.color,
+    this.borderColor,
   });
 
   final Widget child;
   final EdgeInsets padding;
-  final Color color;
-  final Color borderColor;
+  final Color? color;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: color,
+        color: color ?? AppColors.background,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: borderColor, width: 2),
+        border: Border.all(
+          color: borderColor ?? AppColors.border,
+          width: 2,
+        ),
       ),
       child: child,
     );

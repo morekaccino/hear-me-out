@@ -122,10 +122,11 @@ capped at four. Practice sessions never spend hearts and never end on
 `outOfLives`; only lessons do. `isJumpTest` runs a 15-exercise section test and
 unlocks earlier sections on a pass.
 
-`features/path/path_layout.dart` is pure geometry. It builds a section-wide
-curve where each unit continues the same sine that the previous unit ended on,
-so the path does not restart to center between units. The path widget only
-paints the layout and node states.
+`features/path/path_layout.dart` is pure geometry. It builds one continuous
+low-amplitude sine across the course, where each unit continues the phase the
+previous unit ended on, so the path never restarts at center. There is no drawn
+road between nodes. The path widget lays out the elliptical nodes, chests, and
+the active START slot.
 
 ## Audio pipeline
 
@@ -209,8 +210,9 @@ Screens:
 - `ProfileScreen` — stats, per-note boxes, settings, backup/restore, reset.
 
 `PageFrame` keeps content in a responsive centered column (600 px default,
-720 px hubs). `HomeShell` owns five destinations and switches between a 252 px
-side rail at 900 px and wider, and a five-item bottom bar below that.
+720 px hubs). `HomeShell` owns five destinations and switches between a 256 px
+side rail at 900 px and wider, and a five-item bottom bar below that. The learn
+page places a 372 px quest rail beside the path at 1000 px and wider.
 
 ## Persistence
 
@@ -219,9 +221,10 @@ side rail at 900 px and wider, and a five-item bottom bar below that.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which requires a numeric
-`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 2.
+`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 3.
 Version 1 documents load with default economy values (500 gems, five hearts,
-no chests or quests). Arbitrary JSON such as `{"hello":"world"}` is rejected.
+no chests or quests); version 2 documents load with the System appearance.
+Arbitrary JSON such as `{"hello":"world"}` is rejected.
 Future versions are rejected rather than being partially parsed.
 
 Backups are copied as pretty JSON via the clipboard. Restore validates first,

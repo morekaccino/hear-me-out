@@ -391,7 +391,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                               : (run.lesson.isReview
                                     ? 'Unit checkpoint'
                                     : 'Lesson'),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1,
@@ -543,13 +543,13 @@ class _StaffCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.music_note_rounded,
                 size: 15,
                 color: AppColors.textLight,
               ),
               const SizedBox(width: 4),
-              const Text(
+              Text(
                 'TREBLE CLEF',
                 style: TextStyle(
                   fontSize: 9,
@@ -581,7 +581,12 @@ class _StaffCard extends StatelessWidget {
                 ),
             ],
           ),
-          StaffView(note: note, height: 218),
+          StaffView(
+            note: note,
+            height: 218,
+            staffColor: AppColors.textLight,
+            noteColor: AppColors.text,
+          ),
         ],
       ),
     );
@@ -780,7 +785,7 @@ class _MicAnswer extends StatelessWidget {
                             inTune
                                 ? 'Hold it there…'
                                 : '${cents > 0 ? 'A little sharp' : 'A little flat'} — tune the note',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textMuted,
@@ -799,7 +804,7 @@ class _MicAnswer extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Text(
+                          Text(
                             'Play the note and hold it for a moment.',
                             style: TextStyle(
                               fontSize: 12,
@@ -882,7 +887,7 @@ class _CentsRuler extends StatelessWidget {
                     ),
                   ),
                 ),
-              const Positioned(
+              Positioned(
                 left: 0,
                 bottom: 0,
                 child: Text(
@@ -893,7 +898,7 @@ class _CentsRuler extends StatelessWidget {
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: const Text(
+                child: Text(
                   '+50',
                   style: TextStyle(fontSize: 9, color: AppColors.textLight),
                 ),
@@ -1085,7 +1090,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                           ? '${result.title} · ${(result.accuracy * 100).round()}% accuracy'
                           : 'You answered ${result.answered} exercises. Try again — your notes are still saved.',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textMuted,
@@ -1209,7 +1214,7 @@ class _ResultStat extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 10,
               fontWeight: FontWeight.w700,
               color: AppColors.textMuted,

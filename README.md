@@ -62,11 +62,12 @@ hit the note, missed it, or played the right note in the wrong octave.
 - **Quests** — three local daily quests that pay gems.
 - **Shop** — heart refills, streak freezes, and double XP, bought with earned
   gems only.
-- **Profile** — real stats, per-note box progress, settings, backup/restore, and
-  reset.
+- **Profile** — real stats, per-note box progress, settings including a
+  System/Light/Dark appearance, backup/restore, and reset.
 
 The app is phone-first. At 900 px and wider it uses a left side rail and a
-wider centered content column; below that it uses five bottom tabs.
+wider centered content column; below that it uses five bottom tabs. At roughly
+1200 px and wider the learn page adds a quest rail that scrolls with the path.
 
 ## Run it
 

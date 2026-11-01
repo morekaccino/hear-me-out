@@ -31,8 +31,10 @@ features or monetization.
 
 ## Design language
 
-The visual language **follows current Duolingo**: bright white surfaces, heavy
-Nunito type, thick outlines, hard offset shadows, circular path nodes, heart /
+The visual language **follows current Duolingo**: bright white surfaces in light
+mode, deep navy surfaces in dark mode, heavy
+Nunito type, thick outlines, hard offset shadows, per-unit path colors, 3D
+path nodes, heart /
 gem / streak counters, chests, and a responsive side rail on wide screens. Keep
 the mascot and all artwork original; do not copy the owl, proprietary
 illustrations, font files, or trademarked assets.
@@ -50,7 +52,9 @@ illustrations, font files, or trademarked assets.
   options are 64 px tall.
 - Content stays in a centered responsive column (600 px for path and lessons,
   720 px for hubs) and must fit a 390×844 viewport. Widths at or above 900 px
-  use a 252 px side rail; narrower widths use five bottom tabs.
+  use a 232–256 px side rail; narrower widths use five bottom tabs that take
+  their own color when selected. At roughly 1200 px and wider the learn page
+  adds a 320–372 px quest rail that shares the path's scroll.
 - Feedback is immediate, specific, and encouraging. Prefer “Not quite” and a
   concrete string/fret hint over generic praise or blame.
 - Confetti only on a passed result. Haptics: light for correct, medium for
@@ -194,6 +198,9 @@ Then open <http://127.0.0.1:8080/>.
   B-flat exercise must not show A-sharp.
 - **In-tune UI:** use `settings.toleranceCents`, not a hard-coded threshold.
 - **Backup restore:** validate `schemaVersion` and reject arbitrary JSON.
+- **Appearance:** System, Light, and Dark persist in `settings.themeMode`
+  (`schemaVersion` 3). System follows the platform brightness; dark uses the
+  Duo palette in `DuoPalette.dark`. Do not hardcode light-only neutral colors.
 - **Mic lifecycle:** every screen that owns a source uses a generation token
   and disposes stale starts. Do not remove those guards.
 
@@ -216,11 +223,11 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-01 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` — no issues
-- `flutter test` — 138 tests passing
+- `flutter test` — 145 tests passing
 - `flutter build web --release` — succeeds
 - Web app loads, onboarding completes, the path renders chests and counters, and
   lessons, quests, shop, practice, and profile are reachable on narrow and wide
-  layouts
+  layouts; System, Light, and Dark appearance all render with the Duo palette
 - 28 original Bright Pluck cues are bundled in `assets/audio/`; all decode
   successfully in Chrome and the soundboard is available at
   `flutter_app/tool/soundboard.html`

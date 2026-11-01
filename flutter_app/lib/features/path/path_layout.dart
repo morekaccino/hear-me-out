@@ -12,34 +12,34 @@ class PathNodeLayout {
 
   final LessonDefinition lesson;
   final int index;
+
+  /// Center of the node in the unit's coordinate space.
   final Offset position;
 }
 
-/// Pure geometry for one unit's winding lesson path.
+/// Pure geometry for one unit's lesson path.
 ///
-/// Units continue the same section-wide curve instead of restarting at an
-/// arbitrary sine phase. `startOffset` is the number of lessons that precede
-/// this unit inside its section.
-///
-/// A chest gets its own slot on the path: if [chestAfterLessonId] names a
-/// lesson in this unit, the nodes after it are pushed down by [chestSlot] so
-/// the chest occupies the gap between its neighbors without overlapping them.
+/// Mirrors Duolingo's path: a tight, repeating zigzag that restarts at the
+/// center for every unit, with no continuous line between units. The path is
+/// laid out from the top of the unit (below its banner) and each chest takes
+/// its own vertical slot.
 class PathLayout {
   PathLayout({
     required this.unit,
     required this.width,
     this.startOffset = 0,
     this.chestAfterLessonId,
+    this.currentLessonId,
   }) {
     final count = unit.lessons.length;
     final chestIndex = chestAfterLessonId == null
         ? -1
         : unit.lessons.indexWhere((lesson) => lesson.id == chestAfterLessonId);
-    final amplitude = math.min(
-      150.0,
-      math.max(0, width / 2 - nodeSize / 2 - 12),
-    );
+    final currentIndex = currentLessonId == null
+        ? -1
+        : unit.lessons.indexWhere((lesson) => lesson.id == currentLessonId);
     final center = width / 2;
+    final amplitude = math.min(52.0, width / 2 - nodeSize / 2 - 12);
 
     nodes = [
       for (var index = 0; index < count; index++)
@@ -50,29 +50,44 @@ class PathLayout {
             count == 1
                 ? center
                 : center +
-                    amplitude *
-                        math.sin(
-                          2 * math.pi * (index + startOffset) / _period,
-                        ),
+                      amplitude *
+                          math.sin(
+                            2 * math.pi * (startOffset + index) / _period,
+                          ),
             topPadding +
+                nodeHeight / 2 +
                 index * spacing +
-                (chestIndex >= 0 && index > chestIndex ? chestSlot : 0),
+                (chestIndex >= 0 && index > chestIndex ? chestSlot : 0) +
+                (currentIndex >= 0 && index >= currentIndex ? startSlot : 0),
           ),
         ),
     ];
   }
 
-  static const double nodeSize = 84;
-  static const double spacing = 116;
-  static const double topPadding = 76;
-  static const double bottomPadding = 32;
-  static const double chestSlot = 120;
-  static const double _period = 8;
+  /// Node width. The face is an ellipse: [nodeSize] wide and [faceHeight] tall.
+  static const double nodeSize = 70;
+  static const double faceHeight = 57;
+  static const double nodeHeight = 65;
+
+  static const double spacing = 94;
+  static const double topPadding = 64;
+  static const double bottomPadding = 24;
+  static const double chestSlot = 84;
+  static const double chestSize = 64;
+
+  /// Extra room above the active lesson for the START bubble.
+  static const double startSlot = 36;
+
+  static const double _period = 6;
 
   final UnitDefinition unit;
   final double width;
+
+  /// Lessons that come before this unit in the course. The zigzag phase
+  /// continues across unit banners instead of resetting.
   final int startOffset;
   final String? chestAfterLessonId;
+  final String? currentLessonId;
   late final List<PathNodeLayout> nodes;
 
   /// Center position of the chest that follows [chestAfterLessonId], or null
@@ -90,7 +105,7 @@ class PathLayout {
 
   double get height {
     if (nodes.isEmpty) return topPadding + bottomPadding;
-    return nodes.last.position.dy + nodeSize / 2 + bottomPadding;
+    return nodes.last.position.dy + nodeHeight / 2 + bottomPadding;
   }
 
   double get center => width / 2;

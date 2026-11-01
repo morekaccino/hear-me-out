@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,16 +10,18 @@ import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
 import '../../shared/audio/sound_service.dart';
 import '../../shared/theme/app_theme.dart';
-import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../lesson/lesson_screen.dart';
+import 'learn_rail.dart';
 import 'path_layout.dart';
 
 class PathScreen extends ConsumerWidget {
-  const PathScreen({super.key});
+  const PathScreen({super.key, this.onOpenQuests});
+
+  final VoidCallback? onOpenQuests;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,84 +30,162 @@ class PathScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final progress = data.progress;
-    progress.refreshHearts(DateTime.now());
+    final now = DateTime.now();
+    progress.refreshHearts(now);
+    progress.refreshDaily(now);
     final currentLesson = _currentLesson(progress.completedLessons);
     final nextSection = _nextSectionAfter(currentLesson);
+    final currentSectionNumber = _sectionNumberOf(currentLesson);
 
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: PageFrame(
-          maxWidth: 640,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 32),
-            children: [
-              _Header(progress: progress),
-              const SizedBox(height: 10),
-              _DailyGoalCard(
-                xpToday: progress.xpTodayForDisplay,
-                goal: progress.settings.dailyGoalXp,
-                mastered: progress.masteredCount,
-              ),
-              const SizedBox(height: 16),
-              for (final section in sections) ...[
-                if (identical(section, nextSection)) ...[
-                  const _UpNextLabel(),
-                  const SizedBox(height: 4),
-                ],
-                _SectionHeader(
-                  section: section,
-                  completed: progress.completedLessons,
-                  currentLessonId: currentLesson?.id,
-                  onJump: section.number > 1
-                      ? () => _confirmJump(context, ref, section, progress)
-                      : null,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final showRail = constraints.maxWidth >= 960;
+            final railWidth = constraints.maxWidth >= 1180 ? 372.0 : 320.0;
+            final pathWidth = math.min(
+              600.0,
+              constraints.maxWidth - railWidth - 22 - 24,
+            );
+            final bannerOffsets = _bannerOffsets(
+              currentLesson: currentLesson,
+              showCounters: !showRail,
+            );
+            final initialOffset =
+                currentLesson?.unitId == curriculum.first.id
+                ? 0.0
+                : bannerOffsets[currentLesson?.unitId] ?? 0.0;
+
+            final pathSlivers = <Widget>[
+              if (!showRail)
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: _counterSlot,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+                      child: PathCounters(
+                        streak: progress.effectiveStreak,
+                        gems: progress.gems,
+                        hearts: progress.hearts,
+                      ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 6),
-                for (final unit in section.units) ...[
-                  _UnitHeader(
-                    unit: unit,
-                    completed: progress.completedLessons,
-                    currentLessonId: currentLesson?.id,
-                    onGuidebook: () => _showGuidebook(context, ref, unit),
+              for (final section in sections) ...[
+                if (section.number > currentSectionNumber)
+                  SliverToBoxAdapter(
+                    child: _SectionBreak(
+                      section: section,
+                      isUpNext: identical(section, nextSection),
+                      onJump: () => _confirmJump(
+                        context,
+                        ref,
+                        section,
+                        progress,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 22),
-                  _LessonPath(
-                    unit: unit,
-                    startOffset: _unitStartOffset(section, unit),
-                    completed: progress.completedLessons,
-                    currentLessonId: currentLesson?.id,
-                    chest: chestForUnit(unit.id),
-                    openedChests: progress.openedChests,
-                    onChestTap: (chest) =>
-                        _openChest(context, ref, chest, progress),
-                    onLessonTap: (lesson) {
-                      final unlocked =
-                          progress.completedLessons.contains(lesson.id) ||
-                          lesson.id == currentLesson?.id;
-                      if (!unlocked) {
-                        unawaited(
-                          ref.read(soundServiceProvider).play(Sfx.uiLocked),
-                        );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Finish the lesson before this one first.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-                      _launchLesson(context, ref, lesson, progress);
-                    },
+                for (final unit in section.units)
+                  SliverMainAxisGroup(
+                    slivers: [
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _UnitBannerDelegate(
+                          unit: unit,
+                          backOffset: _backOffsetFor(unit, bannerOffsets),
+                          onGuidebook: () => _showGuidebook(context, ref, unit),
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: _LessonPath(
+                          unit: unit,
+                          completed: progress.completedLessons,
+                          currentLessonId: currentLesson?.id,
+                          chest: chestForUnit(unit.id),
+                          openedChests: progress.openedChests,
+                          onChestTap: (chest) =>
+                              _openChest(context, ref, chest, progress),
+                          onLessonTap: (lesson) {
+                            final unlocked =
+                                progress.completedLessons.contains(lesson.id) ||
+                                lesson.id == currentLesson?.id;
+                            if (!unlocked) {
+                              unawaited(
+                                ref
+                                    .read(soundServiceProvider)
+                                    .play(Sfx.uiLocked),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Finish the lesson before this one first.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+                            _launchLesson(context, ref, lesson, progress);
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                ],
-                const SizedBox(height: 6),
               ],
-              const _FooterNote(),
-            ],
-          ),
+              const SliverToBoxAdapter(child: SizedBox(height: 28)),
+              const SliverToBoxAdapter(child: _FooterNote()),
+              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+            ];
+
+            final scroll = _StickyPath(
+              initialOffset: initialOffset,
+              child: showRail
+                  ? CustomScrollView(
+                      slivers: [
+                        SliverCrossAxisGroup(
+                          slivers: [
+                            SliverCrossAxisExpanded(
+                              flex: 1,
+                              sliver: const SliverToBoxAdapter(
+                                child: SizedBox.shrink(),
+                              ),
+                            ),
+                            SliverConstrainedCrossAxis(
+                              maxExtent: pathWidth,
+                              sliver: SliverMainAxisGroup(slivers: pathSlivers),
+                            ),
+                            const SliverConstrainedCrossAxis(
+                              maxExtent: 22,
+                              sliver: SliverToBoxAdapter(
+                                child: SizedBox.shrink(),
+                              ),
+                            ),
+                            SliverConstrainedCrossAxis(
+                              maxExtent: railWidth,
+                              sliver: SliverToBoxAdapter(
+                                child: LearnRail(
+                                  progress: progress,
+                                  onOpenQuests: onOpenQuests,
+                                ),
+                              ),
+                            ),
+                            SliverCrossAxisExpanded(
+                              flex: 1,
+                              sliver: const SliverToBoxAdapter(
+                                child: SizedBox.shrink(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  : CustomScrollView(slivers: pathSlivers),
+            );
+
+            return showRail
+                ? scroll
+                : PageFrame(maxWidth: 600, child: scroll);
+          },
         ),
       ),
     );
@@ -126,6 +207,62 @@ class PathScreen extends ConsumerWidget {
     );
     if (index < 0 || index + 1 >= sections.length) return null;
     return sections[index + 1];
+  }
+
+  int _sectionNumberOf(LessonDefinition? currentLesson) {
+    if (currentLesson == null) return sections.length + 1;
+    for (final section in sections) {
+      if (section.units.any(
+        (unit) => unit.lessons.any((lesson) => lesson.id == currentLesson.id),
+      )) {
+        return section.number;
+      }
+    }
+    return 1;
+  }
+
+  /// Scroll offset of each unit banner. Height is independent of width, so
+  /// these offsets match the sliver extents exactly.
+  Map<String, double> _bannerOffsets({
+    required LessonDefinition? currentLesson,
+    required bool showCounters,
+  }) {
+    final currentSection = _sectionNumberOf(currentLesson);
+    final next = _nextSectionAfter(currentLesson);
+    var offset = 0.0;
+    final offsets = <String, double>{};
+    for (final section in sections) {
+      if (section.number > currentSection) {
+        offset += _SectionBreak.heightFor(isUpNext: identical(section, next));
+      }
+      for (final unit in section.units) {
+        offsets[unit.id] = offset;
+        offset += _UnitBannerDelegate.extent;
+        offset += _unitPathHeight(unit, currentLesson?.id);
+      }
+    }
+    if (showCounters) {
+      for (final key in offsets.keys) {
+        offsets[key] = offsets[key]! + _counterSlot;
+      }
+    }
+    return offsets;
+  }
+
+  double? _backOffsetFor(UnitDefinition unit, Map<String, double> offsets) {
+    final index = curriculum.indexWhere((candidate) => candidate.id == unit.id);
+    if (index <= 0) return null;
+    return offsets[curriculum[index - 1].id];
+  }
+
+  double _unitPathHeight(UnitDefinition unit, String? currentLessonId) {
+    return PathLayout(
+      unit: unit,
+      width: 400,
+      startOffset: _unitStartOffset(unit),
+      chestAfterLessonId: chestForUnit(unit.id)?.afterLessonId,
+      currentLessonId: currentLessonId,
+    ).height;
   }
 
   Future<void> _showGuidebook(
@@ -340,152 +477,365 @@ class PathScreen extends ConsumerWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.progress});
+const double _counterSlot = 56;
 
-  final ProgressState progress;
+class _StickyPath extends StatefulWidget {
+  const _StickyPath({required this.initialOffset, required this.child});
+
+  final double initialOffset;
+  final Widget child;
+
+  @override
+  State<_StickyPath> createState() => _StickyPathState();
+}
+
+class _StickyPathState extends State<_StickyPath> {
+  final _controller = ScrollController();
+  var _jumped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialOffset <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _jumped || !_controller.hasClients) return;
+      _jumped = true;
+      final max = _controller.position.maxScrollExtent;
+      _controller.jumpTo(widget.initialOffset.clamp(0.0, max));
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _CounterPill(
-          icon: Icons.local_fire_department_rounded,
-          value: '${progress.effectiveStreak}',
-          color: AppColors.orange,
-        ),
-        const SizedBox(width: 16),
-        _CounterPill(
-          icon: Icons.diamond_rounded,
-          value: '${progress.gems}',
-          color: AppColors.blue,
-        ),
-        const SizedBox(width: 16),
-        _CounterPill(
-          icon: Icons.favorite_rounded,
-          value: '${progress.hearts}',
-          color: AppColors.red,
-        ),
-      ],
-    );
+    return PrimaryScrollController(controller: _controller, child: widget.child);
   }
 }
 
-class _CounterPill extends StatelessWidget {
-  const _CounterPill({
-    required this.icon,
-    required this.value,
-    required this.color,
+class _UnitBannerDelegate extends SliverPersistentHeaderDelegate {
+  _UnitBannerDelegate({
+    required this.unit,
+    required this.onGuidebook,
+    this.backOffset,
   });
 
-  final IconData icon;
-  final String value;
-  final Color color;
+  final UnitDefinition unit;
+  final VoidCallback onGuidebook;
+  final double? backOffset;
+
+  static const double extent = 88;
+
+  @override
+  double get minExtent => extent;
+
+  @override
+  double get maxExtent => extent;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final section = _sectionForUnit(unit);
+    return ColoredBox(
+      color: AppColors.background,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        child: _UnitBanner(
+          unit: unit,
+          section: section,
+          onGuidebook: onGuidebook,
+          backOffset: backOffset,
+        ),
+      ),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _UnitBannerDelegate oldDelegate) =>
+      oldDelegate.unit.id != unit.id ||
+      oldDelegate.backOffset != backOffset;
+}
+
+class _UnitBanner extends StatelessWidget {
+  const _UnitBanner({
+    required this.unit,
+    required this.section,
+    required this.onGuidebook,
+    this.backOffset,
+  });
+
+  final UnitDefinition unit;
+  final SectionDefinition section;
+  final VoidCallback onGuidebook;
+  final double? backOffset;
+
+  void _back(BuildContext context) {
+    final position = Scrollable.of(context).position;
+    position.animateTo(
+      backOffset!.clamp(0.0, position.maxScrollExtent),
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Semantics(
-      label: value,
-      excludeSemantics: true,
+    final color = duoUnitColor(unit.number).face;
+    final compact = MediaQuery.sizeOf(context).width < 480;
+    final guidebookBorder = Border.all(
+      color: Colors.white.withValues(alpha: 0.85),
+      width: 2,
+    );
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        compact ? 8 : (backOffset == null ? 18 : 10),
+        0,
+        8,
+        0,
+      ),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 24, color: color),
-          const SizedBox(width: 5),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: color,
+          if (backOffset != null)
+            _Pressable(
+              onTap: () => _back(context),
+              scale: 0.9,
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 4 : 8,
+                  vertical: 20,
+                ),
+                child: Icon(
+                  Icons.arrow_back_rounded,
+                  size: compact ? 22 : 24,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'SECTION ${section.number}, UNIT ${unit.number}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: compact ? 10 : 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+                const SizedBox(height: 1),
+                Text(
+                  unit.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: compact ? 18 : 22,
+                    fontWeight: FontWeight.w800,
+                    height: 1.1,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
+          _Pressable(
+            onTap: onGuidebook,
+            scale: 0.94,
+            child: compact
+                ? Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: guidebookBorder,
+                    ),
+                    child: const Icon(
+                      Icons.menu_book_rounded,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                  )
+                : Container(
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: guidebookBorder,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.menu_book_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          'GUIDEBOOK',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.6,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _DailyGoalCard extends StatelessWidget {
-  const _DailyGoalCard({
-    required this.xpToday,
-    required this.goal,
-    required this.mastered,
+class _Pressable extends StatefulWidget {
+  const _Pressable({
+    required this.onTap,
+    required this.child,
+    this.scale = 0.95,
   });
 
-  final int xpToday;
-  final int goal;
-  final int mastered;
+  final VoidCallback onTap;
+  final Widget child;
+  final double scale;
+
+  @override
+  State<_Pressable> createState() => _PressableState();
+}
+
+class _PressableState extends State<_Pressable> {
+  bool _pressed = false;
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final ratio = goal == 0 ? 0.0 : (xpToday / goal).clamp(0.0, 1.0);
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 14, 11),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.border,
-            offset: Offset(0, 2),
-            blurRadius: 0,
-          ),
-        ],
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _pressed ? widget.scale : _hovered ? 1.03 : 1,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: widget.child,
+        ),
       ),
+    );
+  }
+}
+
+class _SectionBreak extends StatelessWidget {
+  const _SectionBreak({
+    required this.section,
+    required this.isUpNext,
+    required this.onJump,
+  });
+
+  final SectionDefinition section;
+  final bool isUpNext;
+  final VoidCallback onJump;
+
+  static const double _upNextSlot = 40;
+  static const double _titleSlot = 28;
+
+  static double heightFor({required bool isUpNext}) =>
+      (isUpNext ? _upNextSlot : 12) + _titleSlot + 54;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = _sectionDark(section.number);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: const BoxDecoration(
-                  color: AppColors.greenSoft,
-                  shape: BoxShape.circle,
+          if (isUpNext)
+            const SizedBox(
+              height: _upNextSlot,
+              child: _UpNextLabel(),
+            )
+          else
+            const SizedBox(height: 12),
+          SizedBox(
+            height: _titleSlot,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: AppColors.border,
+                    thickness: 2,
+                    height: 2,
+                  ),
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.flag_rounded,
-                    size: 15,
-                    color: AppColors.greenDark,
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    section.title,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: AppColors.border,
+                    thickness: 2,
+                    height: 2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            height: 54,
+            child: Center(
+              child: _Pressable(
+                onTap: onJump,
+                scale: 0.94,
+                child: Container(
+                  height: 42,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: dark, width: 2),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'JUMP HERE?',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: dark,
+                      ),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'Daily goal',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-              ),
-              const Spacer(),
-              Text(
-                '$xpToday / $goal XP',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          LessonProgressBar(value: ratio, height: 8),
-          const SizedBox(height: 5),
-          Text(
-            ratio >= 1
-                ? 'Goal complete. Nice work today.'
-                : xpToday == 0
-                ? (mastered == 0
-                      ? 'Finish a lesson to start your streak.'
-                      : '$mastered notes mastered so far.')
-                : '${goal - xpToday} XP to your daily goal.',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
             ),
           ),
         ],
@@ -493,12 +843,6 @@ class _DailyGoalCard extends StatelessWidget {
     );
   }
 }
-
-Color _sectionColor(int number) => switch (number) {
-  2 => AppColors.purple,
-  3 => AppColors.blue,
-  _ => AppColors.green,
-};
 
 Color _sectionDark(int number) => switch (number) {
   2 => AppColors.purpleDark,
@@ -506,372 +850,32 @@ Color _sectionDark(int number) => switch (number) {
   _ => AppColors.greenDark,
 };
 
-Color _sectionSoft(int number) => switch (number) {
-  2 => AppColors.purpleSoft,
-  3 => AppColors.blueSoft,
-  _ => AppColors.greenSoft,
-};
-
-SectionDefinition _sectionForUnit(UnitDefinition unit) => sections.firstWhere(
-  (section) => section.units.any((candidate) => candidate.id == unit.id),
-);
-
-int _unitStartOffset(SectionDefinition section, UnitDefinition unit) {
+int _unitStartOffset(UnitDefinition unit) {
   var count = 0;
-  for (final candidate in section.units) {
-    if (identical(candidate, unit)) return count;
+  for (final candidate in curriculum) {
+    if (candidate.id == unit.id) break;
     count += candidate.lessons.length;
   }
   return count;
 }
+
+SectionDefinition _sectionForUnit(UnitDefinition unit) => sections.firstWhere(
+  (section) => section.units.any((candidate) => candidate.id == unit.id),
+);
 
 class _UpNextLabel extends StatelessWidget {
   const _UpNextLabel();
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(left: 10),
-      child: Row(
-        children: [
-          Icon(
-            Icons.keyboard_double_arrow_down_rounded,
-            size: 20,
-            color: AppColors.textLight,
-          ),
-          SizedBox(width: 6),
-          Text(
-            'UP NEXT',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.2,
-              color: AppColors.textLight,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.section,
-    required this.completed,
-    required this.currentLessonId,
-    this.onJump,
-  });
-
-  final SectionDefinition section;
-  final Set<String> completed;
-  final String? currentLessonId;
-  final VoidCallback? onJump;
-
-  @override
-  Widget build(BuildContext context) {
-    final lessons = [for (final unit in section.units) ...unit.lessons];
-    final done = lessons.where((lesson) => completed.contains(lesson.id)).length;
-    final complete = done == lessons.length;
-    final current = lessons.any((lesson) => lesson.id == currentLessonId);
-    final sectionColor = _sectionColor(section.number);
-    final sectionDark = _sectionDark(section.number);
-
-    return Container(
-      margin: const EdgeInsets.only(top: 12, bottom: 4),
-      padding: const EdgeInsets.fromLTRB(18, 18, 14, 18),
-      decoration: BoxDecoration(
-        color: sectionColor,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: sectionDark, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: sectionDark.withValues(alpha: 0.35),
-            offset: const Offset(0, 5),
-            blurRadius: 0,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.22),
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.4),
-                width: 2,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                '${section.number}',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  complete
-                      ? 'SECTION ${section.number} · COMPLETE'
-                      : 'SECTION ${section.number}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                Text(
-                  section.title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    height: 1.1,
-                    letterSpacing: -0.2,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  complete
-                      ? 'All lessons finished.'
-                      : current
-                      ? 'You are here · ${section.subtitle}'
-                      : section.subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    height: 1.3,
-                    color: Colors.white.withValues(alpha: 0.88),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '$done/${lessons.length}',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              if (onJump != null) ...[
-                const SizedBox(height: 8),
-                GestureDetector(
-                  onTap: onJump,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: sectionDark.withValues(alpha: 0.35),
-                          offset: const Offset(0, 2),
-                          blurRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'JUMP HERE?',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 0.6,
-                        color: sectionDark,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _UnitHeader extends StatelessWidget {
-  const _UnitHeader({
-    required this.unit,
-    required this.completed,
-    required this.currentLessonId,
-    required this.onGuidebook,
-  });
-
-  final UnitDefinition unit;
-  final Set<String> completed;
-  final String? currentLessonId;
-  final VoidCallback onGuidebook;
-
-  @override
-  Widget build(BuildContext context) {
-    final done = unit.lessons
-        .where((lesson) => completed.contains(lesson.id))
-        .length;
-    final current = unit.lessons.any(
-      (lesson) => lesson.id == currentLessonId,
-    );
-    final complete = done == unit.lessons.length;
-    final section = _sectionForUnit(unit);
-    final sectionColor = _sectionColor(section.number);
-    final sectionDark = _sectionDark(section.number);
-    final sectionSoft = _sectionSoft(section.number);
-    // The active unit reads lighter than the section banner so the two
-    // stacked headers do not compete.
-    final background = complete
-        ? AppColors.yellow
-        : current
-        ? sectionSoft
-        : AppColors.surface;
-    final foreground = complete
-        ? AppColors.ink
-        : current
-        ? sectionDark
-        : AppColors.text;
-    final border = complete
-        ? AppColors.yellowDark
-        : current
-        ? sectionColor
-        : AppColors.border;
-    final chipLabelColor = complete || current
-        ? (complete ? AppColors.ink : sectionDark)
-        : AppColors.textMuted;
-
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: border, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: border.withValues(alpha: current || complete ? 0.25 : 0.16),
-            offset: const Offset(0, 3),
-            blurRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: complete || current ? Colors.white : AppColors.border,
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: Text(
-                  'UNIT ${unit.number}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
-                    color: chipLabelColor,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  unit.title,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.2,
-                    color: foreground,
-                  ),
-                ),
-              ),
-              if (complete)
-                Icon(
-                  Icons.emoji_events_rounded,
-                  color: AppColors.yellowDark,
-                  size: 22,
-                ),
-              IconButton(
-                onPressed: onGuidebook,
-                tooltip: 'Unit guidebook',
-                icon: Icon(
-                  Icons.menu_book_rounded,
-                  size: 21,
-                  color: current ? sectionDark : AppColors.textMuted,
-                ),
-              ),
-            ],
-          ),
-          Text(
-            unit.focus,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textMuted,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Text(
-                '$done/${unit.lessons.length} lessons',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: unit.lessons.isEmpty
-                        ? 0
-                        : done / unit.lessons.length,
-                    minHeight: 8,
-                    backgroundColor: complete || current
-                        ? Colors.white.withValues(alpha: 0.9)
-                        : AppColors.background,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      complete
-                          ? AppColors.yellowDark
-                          : current
-                          ? sectionColor
-                          : sectionColor,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+    return Center(
+      child: Text(
+        'Up next',
+        style: TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+          color: AppColors.textLight,
+        ),
       ),
     );
   }
@@ -880,7 +884,6 @@ class _UnitHeader extends StatelessWidget {
 class _LessonPath extends StatelessWidget {
   const _LessonPath({
     required this.unit,
-    required this.startOffset,
     required this.completed,
     required this.currentLessonId,
     required this.onLessonTap,
@@ -890,7 +893,6 @@ class _LessonPath extends StatelessWidget {
   });
 
   final UnitDefinition unit;
-  final int startOffset;
   final Set<String> completed;
   final String? currentLessonId;
   final ValueChanged<LessonDefinition> onLessonTap;
@@ -906,19 +908,16 @@ class _LessonPath extends StatelessWidget {
         final layout = PathLayout(
           unit: unit,
           width: constraints.maxWidth,
-          startOffset: startOffset,
+          startOffset: _unitStartOffset(unit),
           chestAfterLessonId: chest?.afterLessonId,
+          currentLessonId: currentLessonId,
         );
         final chestPosition = layout.chestPosition;
         final chestUnlocked =
             chest != null && completed.contains(chest.afterLessonId);
-        final accent = _sectionColor(_sectionForUnit(unit).number);
-        final mascotNode = layout.nodes
-            .where((node) => node.lesson.id == currentLessonId)
-            .toList();
-        final mascotAt = mascotNode.isEmpty || mascotNode.first.lesson.isReview
-            ? null
-            : mascotNode.first.position;
+        final unitColor = duoUnitColor(unit.number);
+        final accent = unitColor.face;
+        final accentDark = unitColor.dark;
 
         return SizedBox(
           height: layout.height,
@@ -926,46 +925,23 @@ class _LessonPath extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _PathBackdropPainter(accent: accent),
-                ),
-              ),
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _PathPainter(
-                    nodes: layout.nodes,
-                    completed: completed,
-                    currentLessonId: currentLessonId,
-                    accent: accent,
-                  ),
-                ),
-              ),
               for (final node in layout.nodes)
                 Positioned(
                   left: node.position.dx - PathLayout.nodeSize / 2,
-                  top: node.position.dy - PathLayout.nodeSize / 2,
+                  top: node.position.dy - PathLayout.nodeHeight / 2,
                   child: _LessonNode(
                     lesson: node.lesson,
                     completed: completed.contains(node.lesson.id),
                     current: node.lesson.id == currentLessonId,
-                    size: PathLayout.nodeSize,
                     accent: accent,
+                    accentDark: accentDark,
                     onTap: () => onLessonTap(node.lesson),
-                  ),
-                ),
-              if (mascotAt != null)
-                Positioned(
-                  left: mascotAt.dx + _mascotOffsetX(layout, mascotAt),
-                  top: mascotAt.dy - 12,
-                  child: IgnorePointer(
-                    child: Mascot(size: 56, mood: MascotMood.cheer),
                   ),
                 ),
               if (chest != null && chestPosition != null)
                 Positioned(
-                  left: chestPosition.dx - 29,
-                  top: chestPosition.dy - 29,
+                  left: chestPosition.dx - PathLayout.chestSize / 2,
+                  top: chestPosition.dy - PathLayout.chestSize / 2,
                   child: _ChestNode(
                     chest: chest,
                     unlocked: chestUnlocked,
@@ -982,13 +958,6 @@ class _LessonPath extends StatelessWidget {
     );
   }
 
-  /// Places the standing mascot on the side away from the curve so it never
-  /// covers the lesson nodes or the START bubble.
-  double _mascotOffsetX(PathLayout layout, Offset position) {
-    return position.dx <= layout.center
-        ? PathLayout.nodeSize / 2 + 6
-        : -(PathLayout.nodeSize / 2 + 6 + 52);
-  }
 }
 
 class _ChestNode extends StatelessWidget {
@@ -1006,16 +975,6 @@ class _ChestNode extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = opened
-        ? AppColors.surface
-        : unlocked
-        ? AppColors.yellow
-        : AppColors.background;
-    final border = opened
-        ? AppColors.border
-        : unlocked
-        ? AppColors.yellowDark
-        : AppColors.borderStrong;
     return Semantics(
       button: true,
       label: opened
@@ -1026,112 +985,106 @@ class _ChestNode extends StatelessWidget {
       excludeSemantics: true,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: border, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: border.withValues(alpha: 0.4),
-                offset: const Offset(0, 4),
-                blurRadius: 0,
-              ),
-            ],
+        child: CustomPaint(
+          size: const Size(
+            PathLayout.chestSize,
+            PathLayout.chestSize,
           ),
-          child: Icon(
-            opened
-                ? Icons.inventory_2_outlined
-                : unlocked
-                ? Icons.inventory_2_rounded
-                : Icons.lock_rounded,
-            size: 28,
-            color: opened
-                ? AppColors.textLight
-                : unlocked
-                ? Colors.white
-                : AppColors.borderStrong,
-          ),
+          painter: _ChestPainter(opened: opened, unlocked: unlocked),
         ),
       ),
     );
   }
 }
 
-class _LessonNode extends StatelessWidget {
+class _LessonNode extends StatefulWidget {
   const _LessonNode({
     required this.lesson,
     required this.completed,
     required this.current,
-    required this.size,
     required this.accent,
+    required this.accentDark,
     required this.onTap,
   });
 
   final LessonDefinition lesson;
   final bool completed;
   final bool current;
-  final double size;
   final Color accent;
+  final Color accentDark;
   final VoidCallback onTap;
 
   @override
+  State<_LessonNode> createState() => _LessonNodeState();
+}
+
+class _LessonNodeState extends State<_LessonNode> {
+  bool _hovered = false;
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final isReview = lesson.isReview;
-    final lockedBorder = Color.lerp(
-      AppColors.borderStrong,
-      accent,
-      0.45,
+    final isReview = widget.lesson.isReview;
+    final reached = widget.completed || widget.current;
+    final face = reached ? widget.accent : AppColors.border;
+    final base = Color.lerp(face, Colors.black, 0.1)!;
+    final hoverFace = Color.lerp(
+      face,
+      Colors.white,
+      AppColors.isDark ? 0.08 : 0.06,
     )!;
-    final (background, border, icon, iconColor) = completed
-        ? (
-            AppColors.yellow,
-            AppColors.yellowDark,
-            Icons.star_rounded,
-            Colors.white,
-          )
-        : current
-        ? (AppColors.green, AppColors.greenDark, Icons.star_rounded, Colors.white)
-        : isReview
-        ? (
-            AppColors.background,
-            AppColors.yellowDark,
-            Icons.emoji_events_rounded,
-            AppColors.yellowDark,
-          )
-        : (AppColors.background, lockedBorder, Icons.lock_rounded, accent);
+    final markColor = reached ? Colors.white : AppColors.textLight;
+    const width = PathLayout.nodeSize;
+    const height = PathLayout.faceHeight;
+    const baseTop = PathLayout.nodeHeight - PathLayout.faceHeight;
+    final ellipse = BorderRadius.all(
+      Radius.elliptical(width / 2, height / 2),
+    );
 
     final node = SizedBox(
-      width: size,
-      height: size,
+      width: width,
+      height: PathLayout.nodeHeight,
       child: Stack(
         clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
         children: [
-          if (current)
+          if (widget.current) ...[
             Positioned(
-              top: -34,
-              left: 0,
-              right: 0,
+              top: -5,
+              child: Container(
+                width: width + 12,
+                height: height + 13,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.all(
+                    Radius.elliptical((width + 12) / 2, (height + 13) / 2),
+                  ),
+                  border: Border.all(color: AppColors.border, width: 2),
+                ),
+              ),
+            ),
+            Positioned(
+              top: -44,
+              left: -28,
+              right: -28,
               child: Center(
                 child: GestureDetector(
-                  onTap: onTap,
+                  onTap: widget.onTap,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
-                          vertical: 4,
+                          vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.green,
-                          borderRadius: BorderRadius.circular(10),
-                          boxShadow: const [
+                          color: widget.accent,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
                             BoxShadow(
-                              color: AppColors.greenDark,
-                              offset: Offset(0, 2),
+                              color: widget.accentDark,
+                              offset: const Offset(0, 3),
                               blurRadius: 0,
                             ),
                           ],
@@ -1139,63 +1092,92 @@ class _LessonNode extends StatelessWidget {
                         child: const Text(
                           'START',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
                             fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
+                            letterSpacing: 0.6,
                             color: Colors.white,
                           ),
                         ),
                       ),
-                      const CustomPaint(
-                        size: Size(12, 6),
-                        painter: _StartTailPainter(),
+                      CustomPaint(
+                        size: const Size(14, 7),
+                        painter: _StartTailPainter(widget.accent),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-          Semantics(
-            button: true,
-            label: isReview
-                ? 'Unit checkpoint: ${lesson.title}'
-                : 'Lesson: ${lesson.title}',
-            excludeSemantics: true,
-            child: GestureDetector(
-              key: current
-                  ? const ValueKey('current-lesson-node')
-                  : null,
-              onTap: onTap,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: background,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: border, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: border.withValues(alpha: 0.35),
-                      offset: const Offset(0, 6),
-                      blurRadius: 0,
+          ],
+          Positioned(
+            top: baseTop,
+            child: Container(
+              width: width,
+              height: height,
+              decoration: BoxDecoration(color: base, borderRadius: ellipse),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            child: Semantics(
+              button: true,
+              label: isReview
+                  ? 'Unit checkpoint: ${widget.lesson.title}'
+                  : 'Lesson: ${widget.lesson.title}',
+              excludeSemantics: true,
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                onEnter: (_) => setState(() => _hovered = true),
+                onExit: (_) => setState(() => _hovered = false),
+                child: GestureDetector(
+                  key: widget.current
+                      ? const ValueKey('current-lesson-node')
+                      : null,
+                  onTapDown: (_) => setState(() => _pressed = true),
+                  onTapCancel: () => setState(() => _pressed = false),
+                  onTapUp: (_) => setState(() => _pressed = false),
+                  onTap: widget.onTap,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: width,
+                    height: height,
+                    decoration: BoxDecoration(
+                      color: _hovered ? hoverFace : face,
+                      borderRadius: ellipse,
                     ),
-                    if (current)
-                      BoxShadow(
-                        color: AppColors.green.withValues(alpha: 0.22),
-                        spreadRadius: 6,
-                        blurRadius: 0,
-                      ),
-                  ],
+                    child: Icon(
+                      isReview
+                          ? Icons.emoji_events_rounded
+                          : widget.current
+                          ? Icons.star_rounded
+                          : Icons.music_note_rounded,
+                      color: markColor,
+                      size: widget.current ? 36 : 32,
+                    ),
+                  ),
                 ),
-                child: Icon(icon, color: iconColor, size: size * 0.42),
               ),
             ),
           ),
         ],
       ),
     );
-    return current ? _Bobbing(child: node) : node;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOut,
+      builder: (context, value, child) => Opacity(
+        opacity: value,
+        child: Transform.scale(scale: 0.88 + 0.12 * value, child: child),
+      ),
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : _hovered ? 1.04 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: widget.current ? _Bobbing(child: node) : node,
+      ),
+    );
   }
 }
 
@@ -1239,7 +1221,9 @@ class _BobbingState extends State<_Bobbing>
 }
 
 class _StartTailPainter extends CustomPainter {
-  const _StartTailPainter();
+  const _StartTailPainter(this.color);
+
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1248,107 +1232,90 @@ class _StartTailPainter extends CustomPainter {
       ..lineTo(size.width, 0)
       ..lineTo(size.width / 2, size.height)
       ..close();
-    canvas.drawPath(path, Paint()..color = AppColors.green);
+    canvas.drawPath(path, Paint()..color = color);
   }
 
   @override
-  bool shouldRepaint(covariant _StartTailPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _StartTailPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
-/// Soft ambient decoration behind the path so the route does not float on
-/// bare white.
-class _PathBackdropPainter extends CustomPainter {
-  _PathBackdropPainter({required this.accent});
+class _ChestPainter extends CustomPainter {
+  const _ChestPainter({required this.opened, required this.unlocked});
 
-  final Color accent;
+  final bool opened;
+  final bool unlocked;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final blobs = [
-      Offset(size.width * 0.82, size.height * 0.12),
-      Offset(size.width * 0.12, size.height * 0.38),
-      Offset(size.width * 0.9, size.height * 0.62),
-      Offset(size.width * 0.2, size.height * 0.86),
-    ];
-    final blobRadii = [90.0, 74.0, 96.0, 70.0];
-    for (var index = 0; index < blobs.length; index++) {
-      canvas.drawCircle(
-        blobs[index],
-        blobRadii[index],
-        Paint()..color = accent.withValues(alpha: 0.05),
+    final width = size.width;
+    final height = size.height;
+    final body = unlocked
+        ? AppColors.yellow
+        : opened
+        ? AppColors.surface
+        : AppColors.border;
+    final edge = unlocked
+        ? AppColors.yellowDark
+        : opened
+        ? AppColors.borderStrong
+        : AppColors.textLight;
+
+    final lid = RRect.fromRectAndRadius(
+      Rect.fromLTWH(width * 0.14, height * 0.24, width * 0.72, height * 0.26),
+      const Radius.circular(7),
+    );
+    canvas
+      ..drawCircle(
+        Offset(width / 2, height / 2),
+        width / 2,
+        Paint()..color = AppColors.background,
+      )
+      ..drawRRect(lid.shift(const Offset(0, 3)), Paint()..color = edge)
+      ..drawRRect(lid, Paint()..color = body)
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            width * 0.14,
+            height * 0.48,
+            width * 0.72,
+            height * 0.3,
+          ),
+          const Radius.circular(6),
+        ),
+        Paint()..color = body,
+      )
+      ..drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            width * 0.42,
+            height * 0.45,
+            width * 0.16,
+            height * 0.2,
+          ),
+          const Radius.circular(3),
+        ),
+        Paint()..color = edge,
+      );
+    if (opened) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(
+            width * 0.2,
+            height * 0.52,
+            width * 0.6,
+            height * 0.22,
+          ),
+          const Radius.circular(4),
+        ),
+        Paint()..color = AppColors.background,
       );
     }
-
-    final dot = Paint()..color = accent.withValues(alpha: 0.1);
-    final columns = (size.width / 46).ceil();
-    final rows = (size.height / 46).ceil();
-    for (var column = 0; column <= columns; column++) {
-      for (var row = 0; row <= rows; row++) {
-        final offset = Offset(
-          12 + column * 46 + (row.isOdd ? 18.0 : 0),
-          8 + row * 46,
-        );
-        if (offset.dx < size.width && offset.dy < size.height) {
-          canvas.drawCircle(offset, 2.5, dot);
-        }
-      }
-    }
   }
 
   @override
-  bool shouldRepaint(covariant _PathBackdropPainter oldDelegate) =>
-      oldDelegate.accent != accent;
-}
-
-class _PathPainter extends CustomPainter {
-  _PathPainter({
-    required this.nodes,
-    required this.completed,
-    required this.currentLessonId,
-    required this.accent,
-  });
-
-  final List<PathNodeLayout> nodes;
-  final Set<String> completed;
-  final String? currentLessonId;
-  final Color accent;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (nodes.length < 2) return;
-    final base = Paint()
-      ..color = AppColors.borderStrong
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round;
-    final progress = Paint()
-      ..color = accent.withValues(alpha: 0.8)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 9
-      ..strokeCap = StrokeCap.round;
-
-    for (var index = 0; index < nodes.length - 1; index++) {
-      final start = nodes[index].position;
-      final end = nodes[index + 1].position;
-      final midY = (start.dy + end.dy) / 2;
-      final path = Path()
-        ..moveTo(start.dx, start.dy)
-        ..cubicTo(start.dx, midY, end.dx, midY, end.dx, end.dy);
-      canvas.drawPath(path, base);
-      final reached =
-          completed.contains(nodes[index].lesson.id) &&
-          (completed.contains(nodes[index + 1].lesson.id) ||
-              nodes[index + 1].lesson.id == currentLessonId);
-      if (reached) canvas.drawPath(path, progress);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _PathPainter oldDelegate) =>
-      oldDelegate.nodes != nodes ||
-      oldDelegate.completed.length != completed.length ||
-      oldDelegate.accent != accent ||
-      oldDelegate.currentLessonId != currentLessonId;
+  bool shouldRepaint(covariant _ChestPainter oldDelegate) =>
+      oldDelegate.opened != opened || oldDelegate.unlocked != unlocked;
 }
 
 class _GuidebookSheet extends StatelessWidget {
@@ -1397,11 +1364,11 @@ class _GuidebookSheet extends StatelessWidget {
             const SizedBox(height: 14),
             Text(
               'UNIT ${unit.number} GUIDEBOOK',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1,
-                color: AppColors.greenDark,
+                color: duoUnitColor(unit.number).dark,
               ),
             ),
             Text(
@@ -1414,7 +1381,7 @@ class _GuidebookSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               unit.focus,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textMuted,
@@ -1476,7 +1443,7 @@ class _GuidebookSheet extends StatelessWidget {
                         Expanded(
                           child: Text(
                             position?.label ?? 'First-position note',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textMuted,
@@ -1501,8 +1468,8 @@ class _FooterNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.only(top: 4),
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
       child: Text(
         'Every note you master is stored on this device only.',
         textAlign: TextAlign.center,

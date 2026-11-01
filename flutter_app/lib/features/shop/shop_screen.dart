@@ -51,7 +51,7 @@ class ShopScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Spend the gems you earn from lessons, chests, and quests.',
                 style: TextStyle(
                   fontSize: 14,
@@ -159,7 +159,7 @@ class ShopScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.border, width: 1.5),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
@@ -232,10 +232,10 @@ class _ShopCard extends StatelessWidget {
         color: AppColors.background,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.border, width: 2),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: AppColors.border,
-            offset: Offset(0, 3),
+            offset: const Offset(0, 3),
             blurRadius: 0,
           ),
         ],
@@ -266,7 +266,7 @@ class _ShopCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     height: 1.35,

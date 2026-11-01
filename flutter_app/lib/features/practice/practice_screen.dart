@@ -206,7 +206,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 ],
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Tune up, then drill the notes that need work.',
                 style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
@@ -328,7 +328,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 onTap: () => _startPractice('all'),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'The tuner listens to your guitar and shows how far each string is from standard pitch. No audio leaves this device.',
                 style: TextStyle(
                   fontSize: 12,
@@ -488,7 +488,7 @@ class _TunerCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           '${frequency.toStringAsFixed(1)} Hz  ·  target ${target.open.display}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textLight,
@@ -513,7 +513,7 @@ class _TunerCard extends StatelessWidget {
                               : running
                               ? 'Play the ${target.label} string'
                               : 'Tap to start the tuner',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textLight,
@@ -583,7 +583,7 @@ class _MiniStat extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: AppColors.textMuted,
@@ -649,7 +649,7 @@ class _PracticeRow extends StatelessWidget {
                   const SizedBox(height: 1),
                   Text(
                     subtitle,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textMuted,
@@ -675,7 +675,7 @@ class _PracticeRow extends StatelessWidget {
                 ),
               )
             else
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 color: AppColors.textLight,
               ),

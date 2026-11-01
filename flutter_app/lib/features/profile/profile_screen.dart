@@ -63,7 +63,7 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         Text(
                           'Level ${progress.level}  ·  ${progress.xp} XP',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textMuted,
@@ -145,7 +145,7 @@ class ProfileScreen extends ConsumerWidget {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'Boxes fill as notes move into long-term memory.',
                 style: TextStyle(
                   fontSize: 12,
@@ -156,7 +156,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 10),
               SectionCard(
                 child: notes.isEmpty
-                    ? const Text(
+                    ? Text(
                         'No notes learned yet. Start Unit 1 on the Learn tab.',
                         style: TextStyle(
                           fontSize: 13,
@@ -189,6 +189,20 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
+                    _SettingRow(
+                      icon: Icons.brightness_6_rounded,
+                      label: 'Appearance',
+                      value: switch (settings.themeMode) {
+                        AppThemeMode.system => 'System',
+                        AppThemeMode.light => 'Light',
+                        AppThemeMode.dark => 'Dark',
+                      },
+                      onTap: () {
+                        _play(ref, Sfx.uiSelect);
+                        _cycleTheme(ref, settings);
+                      },
+                    ),
+                    const Divider(),
                     _SettingRow(
                       icon: Icons.touch_app_rounded,
                       label: 'Answer mode',
@@ -340,7 +354,7 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Center(
+              Center(
                 child: Text(
                   'Hear Me Out 4.0',
                   style: TextStyle(
@@ -359,6 +373,14 @@ class ProfileScreen extends ConsumerWidget {
 
   void _play(WidgetRef ref, Sfx sound) {
     unawaited(ref.read(soundServiceProvider).play(sound));
+  }
+
+  Future<void> _cycleTheme(WidgetRef ref, AppSettings settings) {
+    final next = AppThemeMode
+        .values[(settings.themeMode.index + 1) % AppThemeMode.values.length];
+    return ref
+        .read(appControllerProvider.notifier)
+        .updateSettings(settings.copyWith(themeMode: next));
   }
 
   Future<void> _cycleAnswerMode(WidgetRef ref, AppSettings settings) {
@@ -553,7 +575,7 @@ class _StatCard extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textMuted,
@@ -665,15 +687,15 @@ class _SettingRow extends StatelessWidget {
             if (trailing == null) ...[
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textMuted,
                 ),
               ),
               if (onTap != null)
-                const Padding(
-                  padding: EdgeInsets.only(left: 4),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
                   child: Icon(
                     Icons.chevron_right_rounded,
                     size: 20,

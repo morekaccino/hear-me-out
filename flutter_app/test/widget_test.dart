@@ -10,6 +10,7 @@ import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
+import 'package:hear_me_out/shared/theme/app_theme.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
 
@@ -54,8 +55,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.diamond_rounded), findsOneWidget);
-    expect(find.text('Daily goal'), findsOneWidget);
-    expect(find.text('UP NEXT'), findsOneWidget);
+    expect(find.text('SECTION 1, UNIT 1'), findsOneWidget);
+    expect(find.text('Up next'), findsOneWidget);
     expect(find.text('The Staff'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
   });
@@ -112,9 +113,90 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Local only'), findsOneWidget);
+    expect(find.byKey(const ValueKey('side-rail')), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('The Staff'), findsOneWidget);
+    expect(find.text('Daily Quests'), findsOneWidget);
+    expect(find.text('Daily goal'), findsOneWidget);
+
+    // The path and the quest rail share one scrollable, like Duo.
+    expect(find.byType(CustomScrollView), findsOneWidget);
+    final railFinder = find.text('Daily Quests');
+    final nodeFinder = find.byKey(const ValueKey('current-lesson-node'));
+    final railBefore = tester.getTopLeft(railFinder).dy;
+    final nodeBefore = tester.getTopLeft(nodeFinder).dy;
+    final bannerBefore = tester.getTopLeft(find.text('The Staff')).dy;
+    await tester.drag(
+      find.byType(CustomScrollView),
+      const Offset(0, -400),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(railFinder).dy,
+      closeTo(railBefore - 400, 40),
+    );
+    expect(
+      tester.getTopLeft(nodeFinder).dy,
+      closeTo(nodeBefore - 400, 40),
+    );
+    // The unit banner stays pinned while the shared page scrolls.
+    expect(
+      tester.getTopLeft(find.text('The Staff')).dy,
+      closeTo(bannerBefore, 2),
+    );
+  });
+
+  testWidgets('selected bottom tab takes its own color', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final learn = tester.widget<Icon>(find.byIcon(Icons.home_rounded));
+    expect(learn.color, AppColors.yellowDark);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+
+    final profile = tester.widget<Icon>(
+      find.byIcon(Icons.account_circle_rounded),
+    );
+    expect(profile.color, AppColors.purple);
+  });
+
+  testWidgets('path fits a 320 px viewport without overflow', (tester) async {
+    tester.view.physicalSize = const Size(320, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('The Staff'), findsOneWidget);
+    expect(find.byKey(const ValueKey('current-lesson-node')), findsOneWidget);
   });
 
   testWidgets('unit guidebook opens with string and fret hints', (

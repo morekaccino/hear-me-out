@@ -174,10 +174,10 @@ class AnswerOption extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: border, width: 2),
             boxShadow: state == AnswerOptionState.idle
-                ? const [
+                ? [
                     BoxShadow(
                       color: AppColors.border,
-                      offset: Offset(0, 3),
+                      offset: const Offset(0, 3),
                       blurRadius: 0,
                     ),
                   ]

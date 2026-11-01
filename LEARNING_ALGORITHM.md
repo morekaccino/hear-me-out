@@ -150,9 +150,10 @@ A versioned `ProgressState` JSON document is stored under
 It contains notes, boxes, due dates, accuracy, correct-day sets, completed
 lessons, best lesson accuracy, XP, streak, daily XP, gems, hearts, chests,
 daily quests, streak freezes, XP boosts, settings, and the last 30 sessions.
-The schema version is 2; version 1 documents load with default economy values. Corrupt or missing data falls back to a fresh profile instead of
-crashing. Backup exports the same document to the clipboard; restore validates
-it before replacing local progress.
+The schema version is 3; version 1 documents load with default economy values
+and version 2 adds the System appearance default. Corrupt or missing data falls
+back to a fresh profile instead of crashing. Backup exports the same document
+to the clipboard; restore validates it before replacing local progress.
 
 No network or cloud service is involved.
 

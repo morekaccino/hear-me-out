@@ -12,6 +12,15 @@ AnswerMode answerModeFromName(String? value) {
   );
 }
 
+enum AppThemeMode { system, light, dark }
+
+AppThemeMode appThemeModeFromName(String? value) {
+  return AppThemeMode.values.firstWhere(
+    (mode) => mode.name == value,
+    orElse: () => AppThemeMode.system,
+  );
+}
+
 class AppSettings {
   const AppSettings({
     this.answerMode = AnswerMode.mixed,
@@ -21,6 +30,7 @@ class AppSettings {
     this.soundEffects = true,
     this.dailyGoalXp = 20,
     this.onboardingComplete = false,
+    this.themeMode = AppThemeMode.system,
   });
 
   final AnswerMode answerMode;
@@ -30,6 +40,7 @@ class AppSettings {
   final bool soundEffects;
   final int dailyGoalXp;
   final bool onboardingComplete;
+  final AppThemeMode themeMode;
 
   AppSettings copyWith({
     AnswerMode? answerMode,
@@ -39,6 +50,7 @@ class AppSettings {
     bool? soundEffects,
     int? dailyGoalXp,
     bool? onboardingComplete,
+    AppThemeMode? themeMode,
   }) {
     return AppSettings(
       answerMode: answerMode ?? this.answerMode,
@@ -48,6 +60,7 @@ class AppSettings {
       soundEffects: soundEffects ?? this.soundEffects,
       dailyGoalXp: dailyGoalXp ?? this.dailyGoalXp,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 
@@ -59,6 +72,7 @@ class AppSettings {
     'soundEffects': soundEffects,
     'dailyGoalXp': dailyGoalXp,
     'onboardingComplete': onboardingComplete,
+    'themeMode': themeMode.name,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic>? json) {
@@ -71,6 +85,7 @@ class AppSettings {
       soundEffects: json['soundEffects'] as bool? ?? true,
       dailyGoalXp: (json['dailyGoalXp'] as num?)?.toInt() ?? 20,
       onboardingComplete: json['onboardingComplete'] as bool? ?? false,
+      themeMode: appThemeModeFromName(json['themeMode'] as String?),
     );
   }
 }
@@ -337,7 +352,7 @@ class SessionSummary {
 }
 
 class ProgressState {
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
   static const int currentCurriculumVersion = 2;
 
   ProgressState({

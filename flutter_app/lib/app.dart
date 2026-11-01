@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/learning/progress.dart';
 import 'features/home_shell.dart';
 import 'features/onboarding/onboarding_screen.dart';
 import 'shared/audio/sound_service.dart';
@@ -11,15 +12,65 @@ import 'shared/widgets/mascot.dart';
 import 'state/app_controller.dart';
 import 'state/providers.dart';
 
-class HearMeOutApp extends StatelessWidget {
+class HearMeOutApp extends ConsumerStatefulWidget {
   const HearMeOutApp({super.key});
 
   @override
+  ConsumerState<HearMeOutApp> createState() => _HearMeOutAppState();
+}
+
+class _HearMeOutAppState extends ConsumerState<HearMeOutApp>
+    with WidgetsBindingObserver {
+  Brightness _platformBrightness =
+      WidgetsBinding.instance.platformDispatcher.platformBrightness;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    setState(() {
+      _platformBrightness =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final mode = ref.watch(
+      appControllerProvider.select(
+        (async) =>
+            async.asData?.value.progress.settings.themeMode ??
+            AppThemeMode.system,
+      ),
+    );
+    final dark =
+        mode == AppThemeMode.dark ||
+        (mode == AppThemeMode.system &&
+            _platformBrightness == Brightness.dark);
+    AppColors.applyBrightness(
+      dark ? Brightness.dark : Brightness.light,
+    );
+
     return MaterialApp(
       title: 'Hear Me Out',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: switch (mode) {
+        AppThemeMode.system => ThemeMode.system,
+        AppThemeMode.light => ThemeMode.light,
+        AppThemeMode.dark => ThemeMode.dark,
+      },
       home: const RootGate(),
     );
   }
@@ -100,7 +151,7 @@ class _StartupError extends ConsumerWidget {
             Text(
               '$error',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textMuted),
+              style: TextStyle(color: AppColors.textMuted),
             ),
             const SizedBox(height: 24),
             FilledButton(

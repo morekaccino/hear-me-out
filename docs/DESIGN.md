@@ -67,37 +67,49 @@ filled buttons, ripples, or default elevation when a shared component fits.
 
 Use `AppColors`; do not add one-off hex values in widgets.
 
-| Token | Hex | Use |
-|---|---|---|
-| `green` | `#58CC02` | Primary action, success, current lesson |
-| `greenDark` | `#58A700` | Pressed/shadow side, success text |
-| `greenSoft` | `#D7FFB8` | Success background, selected nav pill |
-| `blue` | `#1CB0F6` | Secondary action, info, practice, Accidentals |
-| `blueDark` | `#1899D6` | Secondary pressed/text |
-| `blueSoft` | `#DDF4FF` | Info panels, mic idle surface |
-| `red` | `#FF4B4B` | Error, wrong answer, hearts |
-| `redDark` | `#EA2B2B` | Error text, pressed red |
-| `redSoft` | `#FFDFE0` | Error/feedback background |
-| `yellow` | `#FFC800` | Achievement, XP, completed lesson |
-| `yellowDark` | `#E5A400` | Achievement text/shadow |
-| `purple` | `#CE82FF` | First Position section, free practice accent |
-| `purpleDark` | `#A560E8` | Purple pressed/text |
-| `orange` | `#FF9600` | Streak flame and streak reward |
-| `purpleSoft` | `#F7E6FF` | Purple section background |
-| `background` | `#FFFFFF` | App background |
-| `surface` | `#F7F7F7` | Cards, neutral fills |
-| `border` | `#E5E5E5` | Standard 1.5–2 px outline |
-| `borderStrong` | `#D0D0D0` | Stronger control outline |
-| `text` | `#3C3C3C` | Primary text |
-| `textMuted` | `#777777` | Supporting text |
-| `textLight` | `#AFAFAF` | Disabled/tertiary text |
-| `ink` | `#1F1F1F` | High-contrast text, snackbar, mascot features |
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `green` | `#58CC02` | same | Primary action, success, current lesson |
+| `greenDark` | `#58A700` | same | Pressed/shadow side, success text |
+| `greenSoft` | `#D7FFB8` | `#1D3A2B` | Success background |
+| `blue` | `#1CB0F6` | same | Secondary action, info, practice, Accidentals |
+| `blueDark` | `#1899D6` | same | Secondary pressed/text |
+| `blueSoft` | `#DDF4FF` | `#133441` | Info panels, mic idle surface, selected nav |
+| `red` | `#FF4B4B` | same | Error, wrong answer, hearts |
+| `redDark` | `#EA2B2B` | same | Error text, pressed red |
+| `redSoft` | `#FFDFE0` | `#3A2022` | Error/feedback background |
+| `yellow` | `#FFC800` | same | Achievement, XP, chests |
+| `yellowDark` | `#E5A400` | same | Achievement text/shadow |
+| `purple` | `#CE82FF` | same | First Position section, free practice accent |
+| `purpleDark` | `#A560E8` | same | Purple pressed/text |
+| `teal` | `#00CD9C` | same | Unit 2 path color |
+| `tealDark` | `#00A87F` | same | Teal pressed/shadow |
+| `pink` | `#FF70D6` | same | Unit 5 path color |
+| `pinkDark` | `#E055B3` | same | Pink pressed/shadow |
+| `orange` | `#FF9600` | same | Streak flame, Unit 6 path color |
+| `purpleSoft` | `#F7E6FF` | `#33243D` | Purple section background |
+| `background` | `#FFFFFF` | `#131F24` | App background |
+| `surface` | `#F7F7F7` | `#202F36` | Cards, neutral fills, selected nav |
+| `border` | `#E5E5E5` | `#37464F` | Standard 1.5–2 px outline |
+| `borderStrong` | `#D0D0D0` | `#52656D` | Stronger control outline |
+| `text` | `#3C3C3C` | `#F1F7FB` | Primary text |
+| `textMuted` | `#777777` | `#8FA3AD` | Supporting text |
+| `textLight` | `#AFAFAF` | `#52656D` | Disabled/tertiary text |
+| `ink` | `#1F1F1F` | same | Mascot features, light-mode snackbar |
 
-Color is meaningful: green means success/primary and the Foundations section,
-purple means First Position or free practice, blue means information, a
-secondary action, or Accidentals, red means error or lost life, and yellow means
-reward/progress. Section color is carried by the section divider and current
-unit banner.
+Appearance is a persisted setting with **System**, **Light**, and **Dark**
+options; System follows the platform brightness. The dark palette is the
+Duolingo dark set: `#131F24` page, `#202F36` raised surface, `#37464F` borders,
+`#F1F7FB` primary text, and the same saturated accents. Cards sit on the page
+color with a border instead of a fill, and the selected nav pill uses `surface`
+with a `borderStrong` outline and primary text.
+
+Color is meaningful: green means success/primary, purple means First Position or
+free practice, blue means information or a secondary action, red means error or
+lost life, and yellow means reward/progress. **Every unit has its own path
+color**, cycling green, teal, blue, purple, pink, orange. The unit banner, its
+lesson nodes, and the START pill use that color; the section break keeps the
+section's anchor color.
 
 ### Typography
 
@@ -126,7 +138,7 @@ unit banner.
 
 - Phone-first, centered, responsive content width: **600 px** for the path and
   lessons, **720 px** for hubs (`PageFrame`).
-- At **900 px and wider**, replace the five bottom tabs with a 252 px left side
+- At **900 px and wider**, replace the five bottom tabs with a 232–256 px left side
   rail. The content stays centered beside it.
 - Use `SafeArea`; keep the bottom navigation clear of the content.
 - Prefer the existing spacing rhythm: `4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24,
@@ -167,13 +179,17 @@ Use the shared widgets before creating new ones.
 
 ### Motion
 
-- Press feedback: about 70 ms.
-- Answer option state change: about 120 ms.
-- Card/button state changes: about 160 ms.
-- Progress bar fill: about 280 ms.
+- Press feedback: about 70–120 ms (buttons move down 3 px, path nodes scale to
+  94%).
+- Hover feedback: 150–200 ms (nav icons lift to 1.08, paths brighten like Duo's
+  `filter 0.2s`).
+- Node entrance: 380 ms fade + scale from 88%.
+- Path icons (guidebook, back, jump): press to 94%, hover to 103%, 120 ms.
+- Progress bar fill: 280 ms in lessons, 600 ms in the quest rail.
 - Onboarding page transition: about 320 ms ease-out.
 - Current path node: an 800 ms bob, two gentle cycles when the path appears.
-  Do not loop it forever; the route should feel alive, not restless.
+  The mascot stays out of the path. Motion on the path comes from node
+  entrances, hover/press states, and the START bob.
 - Guidebook bottom sheet: standard 320 ms transition.
 - Confetti is reserved for a passed lesson/practice result. Do not use it for
   every correct answer.
@@ -252,40 +268,63 @@ The full asset map, event map, generator, and audition tool are in
 
 The home screen. Show the next lesson clearly, the current section and unit,
 streak, XP, and daily goal. The path is organized as sections and units, not a
-flat list.
+flat list. The desktop layout matches the Duolingo learn page: left nav, a
+600 px path column, and a 320–372 px quest rail. The path and quest rail share
+one scroll view; only the left nav is fixed. The path itself has **no drawn
+road**: units follow one another with a repeated node rhythm and no connecting
+line.
 
-- **Section header:** a large colored card with the section number, title,
-  one sentence of intent, section progress, and a compact **JUMP HERE?** test
-  action for sections 2 and 3. Foundations is green, First Position purple,
-  Accidentals blue.
-- **Unit banner:** a compact rounded banner with `UNIT n`, the unit title,
-  one-line focus, unit progress, and a guidebook icon. The current unit uses a
-  light tint of the section color; completed units use yellow; future units stay
-  neutral. New-note lists live in the guidebook, not in the banner.
+- **Left nav:** 232–256 px white rail with the green `Hear Me Out` wordmark
+  only — no note mascot. Five 52 px uppercase items use colorful rounded icons:
+  gold house, blue dumbbell, orange chest, red storefront, purple avatar. The
+  selected item uses `blueSoft` with a 2 px `blueLine` border and `blue` text;
+  inactive labels are `textMuted`. A 2 px `border` line divides the rail from
+  the content in light mode. No footer.
+- **Bottom bar:** on phones the five tabs keep outlined icons when idle and
+  switch to the tab's own color when selected (gold house, blue dumbbell,
+  orange chest, red storefront, purple avatar), with a matching tinted 52×30
+  pill and colored label. Pressing scales the tab to 94%.
+- **Unit banner:** a solid section-color bar with a white back arrow,
+  `SECTION n, UNIT n`, the unit title, and a white outlined `GUIDEBOOK` pill.
+  The arrow scrolls to the previous unit. Banners pin to the top while their
+  unit scrolls and push off at the next unit. New-note lists live in the
+  guidebook, not in the banner.
 - **Guidebook:** a bottom sheet listing the unit's notes with first-position
   string/fret hints. New notes are marked; the sheet is reference material, not
   a new lesson.
-- **Path geometry:** one continuous section curve instead of a per-unit
-  restart. Units pick up the same sine at the offset where the previous unit
-  ended, so the path does not reset to center between units. Nodes are 84 px
-  circles on a 116 px vertical rhythm, joined by cubic curves. A chest gets its
-  own 120 px slot: nodes after it slide down, so the chest never overlaps its
-  neighbors.
-- **Backdrop:** soft translucent blobs and a faint dot grid in the section
-  color sit behind the path so the route does not float on bare white.
-- **Path header:** the learn column shows compact, end-aligned icon+number
-  counters (c flame, blue diamond, red heart) with the wordmark in the side
-  rail only, then a bordered daily-goal card, then the section banner.
-- **Section banners:** large colored cards for the section; a unit banner in a
-  light tint of the section color sits underneath, and an `UP NEXT` marker
-  precedes the section after the player's current one.
-- **Nodes:** completed yellow star, current green star with a green START pill
-  above; locked nodes tint their lock toward the section color, checkpoints are
-  trophy nodes with a yellow border. A 56 px mascot stands beside the current
-  node, on the side away from the curve. Only current and completed lessons
-  open. The current node bobs gently and settles; motion never blocks a tap.
-- **Chests:** one 58 px chest per unit, occupying its own slot on the path. It
+- **Path geometry:** one continuous low-amplitude wave across the whole course.
+  The phase keeps advancing across unit banners instead of restarting at the
+  center, with `52 px × sin(2π × lessonIndex / 6)`. Node hit areas are 70×65;
+  faces are 70×57 ellipses on a 94 px vertical rhythm. The active lesson adds a
+  36 px slot above it for the START bubble. A chest gets its own 84 px slot:
+  nodes after it slide down, so the chest never overlaps its neighbors.
+- **Path header:** on narrow screens the learn column shows end-aligned
+  icon+number counters (orange flame, blue diamond, red heart). On wide screens
+  the same counters sit at the top of the quest rail. There is no daily-goal
+  card in the path.
+- **Section breaks:** only sections after the player's current one get a
+  break. The immediate next one is preceded by a centered `Up next` label.
+  The break is a centered section title between two rules, then a **JUMP
+  HERE?** outline pill. Foundations is green, First Position purple,
+  Accidentals blue.
+- **Nodes:** elliptical buttons with a soft 10% darker base and a white rounded
+  star. Completed and current nodes use the **unit color**; the current one adds
+  a `surface` ring with a `border` outline and a matching `START` pill above.
+  Locked nodes use the neutral border fill with a `textLight` music note.
+  Regular lessons show a music note, the current lesson a star, and checkpoints
+  a trophy. No mascot sits on the path. Only current and completed lessons open.
+  Nodes fade/scale in over 380 ms, brighten over 200 ms on hover, and press down
+  6%; motion never blocks a tap.
+- **Chests:** one 64 px chest per unit, occupying its own slot on the path. It
   is locked until the lesson before it is complete, then opens once for gems.
+- **Quest rail:** `Daily Quests` card with real quest progress bars, counts
+  inside the bar, a chest at the end of each row, and a `VIEW ALL` link, then a
+  `Daily goal` card. The rail scrolls with the path. No leagues, ads, or
+  upsells.
+- **Responsive components:** the nav narrows from 256 to 232 px, the quest rail
+  from 372 to 320 px, the path column caps at 600 px, and the banner switches to
+  an icon-only 38 px guidebook button below 480 px. Node and counter sizes stay
+  fixed; the path must fit 320 px without overflow.
 - **No labels under every node.** The unit banner and guidebook carry context;
   the nodes stay scannable.
 
@@ -372,11 +411,11 @@ should reach the path in under a minute.
   the feedback message and the correct-note hint.
 - Keep the app usable with a keyboard on web where practical.
 - Respect the haptics setting.
-- The current app is light-theme only and English-only. Do not promise dark
-  mode or localization in copy until they are implemented.
+- Appearance supports System, Light, and Dark; both themes keep the same
+  contrast targets and saturated accents. The app is English-only.
 - Known gaps to address before a wider release: keyboard focus for custom
-  gesture controls, reduced-motion support, dark theme, localization, and
-  screen-reader testing on the staff card.
+  gesture controls, reduced-motion support, localization, and screen-reader
+  testing on the staff card.
 
 ## Non-goals
 

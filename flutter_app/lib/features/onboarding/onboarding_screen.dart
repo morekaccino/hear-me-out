@@ -241,7 +241,7 @@ class _WelcomePage extends StatelessWidget {
           children: [
             const Mascot(size: 160),
             const SizedBox(height: 18),
-            const Text(
+            Text(
               'Read music.\nPlay guitar.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -252,7 +252,7 @@ class _WelcomePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'See a note on the staff. Name it, or play it on your guitar and get instant feedback.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -328,7 +328,7 @@ class _HowItWorksPage extends StatelessWidget {
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Both build the same note-reading skill.',
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
@@ -358,7 +358,14 @@ class _HowItWorksPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  SizedBox(height: 190, child: StaffView(note: note)),
+                  SizedBox(
+                    height: 190,
+                    child: StaffView(
+                      note: note,
+                      staffColor: AppColors.textLight,
+                      noteColor: AppColors.text,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   if (mode == 0)
                     Row(
@@ -432,7 +439,7 @@ class _HowItWorksPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 14),
-            const Text(
+            Text(
               'No account. No cloud. Your progress stays on this device.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 13, color: AppColors.textLight),
@@ -530,7 +537,7 @@ class _MicCheckPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Play any note on your guitar. If the mic works, you will see it here.',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -558,7 +565,7 @@ class _MicCheckPage extends StatelessWidget {
                             ),
                             Text(
                               'Written pitch  ·  ${reading.frequency.toStringAsFixed(1)} Hz  ·  ${cents.toStringAsFixed(0)} cents',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textMuted,
@@ -566,7 +573,7 @@ class _MicCheckPage extends StatelessWidget {
                             ),
                           ],
                         )
-                      : const Column(
+                      : Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
@@ -622,7 +629,7 @@ class _MicCheckPage extends StatelessWidget {
               const SizedBox(height: 8),
               TextButton(
                 onPressed: onSkip,
-                child: const Text(
+                child: Text(
                   'Skip, I will type note names',
                   style: TextStyle(
                     fontSize: 13,
@@ -660,7 +667,7 @@ class _GoalPage extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Small and steady beats one long session.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
@@ -729,7 +736,7 @@ class _GoalPage extends StatelessWidget {
                               ),
                               Text(
                                 '$goal XP per day',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textMuted,
