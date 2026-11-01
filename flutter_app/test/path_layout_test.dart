@@ -66,4 +66,41 @@ void main() {
     );
     expect(first.nodes.first.position, isA<Offset>());
   });
+
+  test('chest slots clear neighboring lesson nodes and stay on screen', () {
+    const chestRadius = 29.0;
+    final required = PathLayout.nodeSize / 2 + chestRadius + 6;
+
+    for (final unit in curriculum) {
+      final chest = chestForUnit(unit.id);
+      final layout = PathLayout(
+        unit: unit,
+        width: 390,
+        chestAfterLessonId: chest?.afterLessonId,
+      );
+      final position = layout.chestPosition;
+      expect(position, isNotNull, reason: unit.id);
+      final center = position!;
+      for (final node in layout.nodes) {
+        expect(
+          (node.position - center).distance,
+          greaterThanOrEqualTo(required),
+          reason: '${unit.id}: ${node.lesson.id} overlaps the chest',
+        );
+      }
+      expect(position.dx - chestRadius, greaterThanOrEqualTo(0));
+      expect(position.dx + chestRadius, lessThanOrEqualTo(390));
+
+      // Nodes after the chest slide down by the chest slot height.
+      final chestIndex = layout.nodes.indexWhere(
+        (node) => node.lesson.id == chest?.afterLessonId,
+      );
+      expect(
+        layout.nodes[chestIndex + 1].position.dy -
+            layout.nodes[chestIndex].position.dy,
+        closeTo(PathLayout.spacing + PathLayout.chestSlot, 0.001),
+        reason: unit.id,
+      );
+    }
+  });
 }

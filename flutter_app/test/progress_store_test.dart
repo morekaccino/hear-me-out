@@ -48,6 +48,10 @@ void main() {
       expect(restored.completedLessons, contains('u1l1'));
       expect(restored.bestLessonAccuracy['u1l1'], 0.9);
       expect(restored.recentSessions.single.lessonId, 'u1l1');
+      expect(restored.gems, progress.gems);
+      expect(restored.hearts, progress.hearts);
+      expect(restored.daily.correct, 1);
+      expect(restored.daily.lessons, 1);
     });
 
     test('export and import preserve progress', () {
@@ -74,11 +78,12 @@ void main() {
       expect(restored.bestLessonAccuracy['u3l1'], 0.9);
     });
 
-    test('invalid backup text is rejected', () {
+    test('backups accept known schema versions and reject the rest', () {
       expect(importProgress('not json'), isNull);
       expect(importProgress('{"schemaVersion": 1}'), isNotNull);
       expect(importProgress('{"hello": "world"}'), isNull);
-      expect(importProgress('{"schemaVersion": 2}'), isNull);
+      expect(importProgress('{"schemaVersion": 2}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 3}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });
@@ -245,7 +250,7 @@ void main() {
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
       final notifier = container.read(appControllerProvider.notifier);
       notifier.startLesson('u1l1', micAvailable: false);
-      for (var index = 0; index < 3; index++) {
+      for (var index = 0; index < livesPerLesson; index++) {
         await notifier.submitAnswer(correct: false);
         await notifier.nextExercise();
       }

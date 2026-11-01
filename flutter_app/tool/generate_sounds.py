@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Generate the original Warm Mallet sound family used by the app.
+"""Generate the Bright Pluck sound family used by the app.
 
-The family is intentionally small and coherent: marimba body, glass-bell
-partials, muted woodblock transients, and one shared light room tail.
+The family is bright, short, and percussive: a plucked synth body, glass-bell
+sparkle, a muted low thud for errors, and a small shared room tail. It stays
+original while matching the upbeat feel of a modern language-learning app.
 
 Usage:
     python tool/generate_sounds.py
@@ -19,7 +20,6 @@ from pathlib import Path
 SAMPLE_RATE = 44100
 OUT_DIR = Path(__file__).resolve().parents[1] / "assets" / "audio"
 
-# C-major note frequencies used across the family.
 C4 = 261.6256
 D4 = 293.6648
 E4 = 329.6276
@@ -30,49 +30,71 @@ B4 = 493.8833
 C5 = 523.2511
 D5 = 587.3295
 E5 = 659.2551
+F5 = 698.4565
 G5 = 783.9909
 A5 = 880.0
+B5 = 987.7666
 C6 = 1046.5023
+D6 = 1174.6591
 E6 = 1318.5102
 G6 = 1567.9817
+
 F3 = 174.6141
+G3 = 195.9977
 A3 = 220.0
 C3 = 130.8128
+D3 = 146.8324
 
 
 def _t(index: int) -> float:
     return index / SAMPLE_RATE
 
 
-def _envelope(t: float, attack: float, decay: float) -> float:
-    if t < attack:
-        return t / max(attack, 1e-6)
-    return math.exp(-(t - attack) / max(decay, 1e-6))
+def _attack(t: float, attack: float) -> float:
+    return min(1.0, t / max(attack, 1e-6))
 
 
-def _mallet(freq: float, dur: float, amp: float = 1.0, decay: float = 0.28) -> list[float]:
+def _pluck(
+    freq: float,
+    dur: float,
+    amp: float = 1.0,
+    decay: float = 0.22,
+    bright: float = 0.9,
+) -> list[float]:
+    """A short plucked synth: fundamental, bright harmonics, tiny pitch drop."""
     length = int(dur * SAMPLE_RATE)
     out = [0.0] * length
-    partials = ((1.0, 1.0), (2.0, 0.32), (3.0, 0.14), (4.08, 0.08))
+    rng = random.Random(int(freq * 7))
     for i in range(length):
         t = _t(i)
-        env = _envelope(t, 0.003, decay)
-        value = 0.0
-        for ratio, gain in partials:
-            value += gain * math.sin(2.0 * math.pi * freq * ratio * t)
-        out[i] = amp * env * value
+        env = _attack(t, 0.002) * math.exp(-t / max(decay, 1e-6))
+        drop = 1.0 + 0.03 * math.exp(-t / 0.025)
+        phase = 2.0 * math.pi * freq * drop * t
+        value = (
+            math.sin(phase)
+            + 0.44 * bright * math.sin(phase * 2.0)
+            + 0.22 * bright * math.sin(phase * 3.0)
+            + 0.10 * bright * math.sin(phase * 4.01)
+        )
+        click = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.004) * 0.18
+        out[i] = amp * env * (value + click)
     return out
 
 
-def _bell(freq: float, dur: float, amp: float = 1.0, decay: float = 0.45) -> list[float]:
+def _bell(
+    freq: float,
+    dur: float,
+    amp: float = 1.0,
+    decay: float = 0.5,
+) -> list[float]:
     length = int(dur * SAMPLE_RATE)
     out = [0.0] * length
     partials = (
         (1.0, 1.0, 1.0),
-        (2.01, 0.34, 0.8),
+        (2.01, 0.36, 0.8),
         (3.0, 0.18, 0.62),
-        (4.16, 0.12, 0.5),
-        (5.43, 0.07, 0.4),
+        (4.17, 0.10, 0.5),
+        (5.43, 0.06, 0.4),
     )
     for i in range(length):
         t = _t(i)
@@ -81,50 +103,40 @@ def _bell(freq: float, dur: float, amp: float = 1.0, decay: float = 0.45) -> lis
             value += gain * math.sin(2.0 * math.pi * freq * ratio * t) * math.exp(
                 -t / max(decay * factor, 1e-6)
             )
-        out[i] = amp * value * _envelope(t, 0.004, 0.02 + decay)
+        out[i] = amp * value * _attack(t, 0.003)
     return out
 
 
-def _woodblock(freq: float, dur: float = 0.08, amp: float = 0.8) -> list[float]:
-    rng = random.Random(int(freq))
+def _blip(freq: float, dur: float = 0.06, amp: float = 0.7) -> list[float]:
+    return _pluck(freq, dur, amp=amp, decay=0.035, bright=0.5)
+
+
+def _thud(freq: float, dur: float = 0.3, amp: float = 0.7) -> list[float]:
+    rng = random.Random(int(freq * 11))
     length = int(dur * SAMPLE_RATE)
     out = [0.0] * length
     for i in range(length):
         t = _t(i)
-        env = _envelope(t, 0.001, 0.026)
-        pitch = freq * (1.0 - 0.28 * min(t / dur, 1.0))
+        env = _attack(t, 0.003) * math.exp(-t / 0.13)
+        pitch = freq * (1.0 - 0.25 * min(t / dur, 1.0))
         body = math.sin(2.0 * math.pi * pitch * t)
-        click = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.004)
-        out[i] = amp * env * (body + 0.4 * click)
+        body += 0.22 * math.sin(2.0 * math.pi * pitch * 2.0 * t)
+        click = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.016)
+        out[i] = amp * env * (body + 0.3 * click)
     return out
 
 
-def _thud(freq: float, dur: float = 0.35, amp: float = 0.7) -> list[float]:
-    rng = random.Random(int(freq * 10))
-    length = int(dur * SAMPLE_RATE)
-    out = [0.0] * length
-    for i in range(length):
-        t = _t(i)
-        env = _envelope(t, 0.004, 0.16)
-        pitch = freq * (1.0 - 0.22 * min(t / dur, 1.0))
-        body = math.sin(2.0 * math.pi * pitch * t)
-        body += 0.18 * math.sin(2.0 * math.pi * pitch * 2.0 * t)
-        click = rng.uniform(-1.0, 1.0) * math.exp(-t / 0.018)
-        out[i] = amp * env * (body + 0.28 * click)
-    return out
-
-
-def _whoosh(dur: float = 0.4, amp: float = 0.25, rising: bool = True) -> list[float]:
-    rng = random.Random(41 if rising else 42)
+def _whoosh(dur: float = 0.35, amp: float = 0.2, rising: bool = True) -> list[float]:
+    rng = random.Random(73 if rising else 74)
     length = int(dur * SAMPLE_RATE)
     out = [0.0] * length
     lowpass = 0.0
     for i in range(length):
         t = _t(i)
         progress = min(t / dur, 1.0)
-        cutoff = 0.015 + 0.18 * (progress if rising else 1.0 - progress)
+        cutoff = 0.02 + 0.22 * (progress if rising else 1.0 - progress)
         lowpass += cutoff * (rng.uniform(-1.0, 1.0) - lowpass)
-        env = math.sin(math.pi * progress) ** 1.5
+        env = math.sin(math.pi * progress) ** 1.4
         out[i] = amp * env * lowpass
     return out
 
@@ -141,19 +153,18 @@ def _mix(length: float, events: list[tuple[float, list[float]]]) -> list[float]:
     return out
 
 
-def _room_tail(samples: list[float], amount: float = 0.09) -> list[float]:
-    """A tiny shared early-reflection bed, not a long reverb."""
+def _room_tail(samples: list[float], amount: float = 0.08) -> list[float]:
     if amount <= 0:
         return samples
     out = samples[:]
-    for delay_ms, gain in ((17.0, 0.55), (29.0, 0.35), (43.0, 0.22)):
+    for delay_ms, gain in ((13.0, 0.5), (23.0, 0.32), (37.0, 0.2)):
         delay = int(SAMPLE_RATE * delay_ms / 1000.0)
         for i in range(delay, len(out)):
             out[i] += samples[i - delay] * gain * amount
     return out
 
 
-def _normalize(samples: list[float], peak: float = 0.82) -> list[float]:
+def _normalize(samples: list[float], peak: float = 0.86) -> list[float]:
     high = max((abs(sample) for sample in samples), default=0.0)
     if high == 0:
         return samples
@@ -161,7 +172,11 @@ def _normalize(samples: list[float], peak: float = 0.82) -> list[float]:
     return [sample * scale for sample in samples]
 
 
-def _fade(samples: list[float], fade_in: float = 0.002, fade_out: float = 0.02) -> list[float]:
+def _fade(
+    samples: list[float],
+    fade_in: float = 0.0015,
+    fade_out: float = 0.02,
+) -> list[float]:
     out = samples[:]
     in_count = min(len(out), int(fade_in * SAMPLE_RATE))
     out_count = min(len(out), int(fade_out * SAMPLE_RATE))
@@ -172,7 +187,7 @@ def _fade(samples: list[float], fade_in: float = 0.002, fade_out: float = 0.02) 
     return out
 
 
-def _write(name: str, samples: list[float], room: float = 0.09) -> None:
+def _write(name: str, samples: list[float], room: float = 0.08) -> None:
     samples = _fade(_normalize(_room_tail(samples, room)))
     path = OUT_DIR / name
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -191,216 +206,244 @@ def _write(name: str, samples: list[float], room: float = 0.09) -> None:
 def build_sounds() -> dict[str, tuple[list[float], float]]:
     sounds: dict[str, tuple[list[float], float]] = {}
 
-    sounds["ui_tap_primary.wav"] = (_woodblock(760.0), 0.03)
-    sounds["ui_tap_secondary.wav"] = (_woodblock(540.0, amp=0.62), 0.02)
-    sounds["ui_select.wav"] = (_woodblock(930.0, dur=0.05, amp=0.5), 0.01)
+    sounds["ui_tap_primary.wav"] = (_blip(880.0, 0.06, 0.7), 0.02)
+    sounds["ui_tap_secondary.wav"] = (_blip(660.0, 0.055, 0.55), 0.02)
+    sounds["ui_select.wav"] = (_blip(1040.0, 0.05, 0.45), 0.01)
     sounds["ui_navigate.wav"] = (
-        _mix(0.13, [(0.0, _woodblock(680.0, dur=0.05, amp=0.35)), (0.035, _whoosh(0.09, 0.12))]),
+        _mix(
+            0.12,
+            [(0.0, _blip(760.0, 0.05, 0.4)), (0.035, _whoosh(0.08, 0.1))],
+        ),
         0.02,
     )
-    sounds["ui_locked.wav"] = (_thud(165.0, dur=0.22, amp=0.55), 0.02)
-    sounds["ui_page.wav"] = (_whoosh(0.26, 0.2), 0.02)
+    sounds["ui_locked.wav"] = (_thud(150.0, 0.2, 0.5), 0.02)
+    sounds["ui_page.wav"] = (_whoosh(0.24, 0.18), 0.02)
     sounds["ui_toggle_on.wav"] = (
-        _mix(0.12, [(0.0, _woodblock(620.0, dur=0.05, amp=0.4)), (0.045, _woodblock(880.0, dur=0.05, amp=0.35))]),
+        _mix(
+            0.12,
+            [(0.0, _blip(700.0, 0.05, 0.45)), (0.045, _blip(1050.0, 0.05, 0.4))],
+        ),
         0.02,
     )
     sounds["ui_toggle_off.wav"] = (
-        _mix(0.12, [(0.0, _woodblock(880.0, dur=0.05, amp=0.35)), (0.045, _woodblock(620.0, dur=0.05, amp=0.4))]),
+        _mix(
+            0.12,
+            [(0.0, _blip(1050.0, 0.05, 0.4)), (0.045, _blip(700.0, 0.05, 0.45))],
+        ),
         0.02,
     )
     sounds["tuner_on.wav"] = (
-        _mix(0.15, [(0.0, _woodblock(560.0, amp=0.5)), (0.04, _mallet(G5, 0.18, 0.22, 0.1))]),
+        _mix(
+            0.14,
+            [(0.0, _blip(620.0, 0.05, 0.5)), (0.04, _pluck(G5, 0.16, 0.2, 0.08))],
+        ),
         0.02,
     )
     sounds["tuner_off.wav"] = (
-        _mix(0.15, [(0.0, _woodblock(700.0, amp=0.4)), (0.04, _mallet(C5, 0.18, 0.18, 0.1))]),
+        _mix(
+            0.14,
+            [(0.0, _blip(760.0, 0.05, 0.45)), (0.04, _pluck(D5, 0.16, 0.18, 0.08))],
+        ),
         0.02,
     )
     sounds["copy_success.wav"] = (
-        _mix(0.42, [(0.0, _bell(G5, 0.4, 0.25)), (0.1, _bell(C6, 0.35, 0.2))]),
-        0.07,
-    )
-    sounds["error_soft.wav"] = (_mix(0.24, [(0.0, _thud(210.0, 0.2, 0.4)), (0.04, _woodblock(330.0, amp=0.25))]), 0.02)
-
-    sounds["lesson_start.wav"] = (
-        _mix(0.4, [(0.0, _whoosh(0.3, 0.14)), (0.08, _mallet(C5, 0.3, 0.2)), (0.18, _mallet(E5, 0.3, 0.16))]),
-        0.05,
-    )
-
-    sounds["answer_correct.wav"] = (
-        _mix(
-            0.55,
-            [
-                (0.0, _mallet(C5, 0.5, 0.7)),
-                (0.0, _bell(C5, 0.4, 0.16)),
-                (0.1, _mallet(E5, 0.45, 0.72)),
-                (0.1, _bell(E5, 0.35, 0.16)),
-            ],
-        ),
-        0.1,
-    )
-    sounds["answer_correct_combo.wav"] = (
-        _mix(
-            0.85,
-            [
-                (0.0, _mallet(C5, 0.45, 0.65)),
-                (0.08, _mallet(E5, 0.45, 0.72)),
-                (0.16, _mallet(G5, 0.5, 0.7)),
-                (0.24, _bell(C6, 0.45, 0.22)),
-                (0.24, _bell(E6, 0.4, 0.12)),
-            ],
-        ),
-        0.12,
-    )
-    sounds["answer_wrong.wav"] = (
-        _mix(
-            0.5,
-            [
-                (0.0, _mallet(A3, 0.35, 0.4, 0.18)),
-                (0.1, _mallet(F3, 0.35, 0.34, 0.2)),
-                (0.0, _thud(125.0, 0.3, 0.28)),
-            ],
-        ),
-        0.05,
-    )
-    sounds["answer_octave.wav"] = (
-        _mix(
-            0.6,
-            [
-                (0.0, _mallet(C5, 0.3, 0.45, 0.2)),
-                (0.14, _mallet(C4, 0.35, 0.4, 0.22)),
-                (0.14, _thud(180.0, 0.25, 0.16)),
-            ],
-        ),
+        _mix(0.4, [(0.0, _bell(G5, 0.38, 0.24)), (0.09, _bell(C6, 0.34, 0.2))]),
         0.06,
     )
-    sounds["life_lost.wav"] = (
+    sounds["error_soft.wav"] = (
         _mix(
-            0.4,
+            0.24,
+            [(0.0, _thud(200.0, 0.2, 0.38)), (0.04, _blip(330.0, 0.06, 0.22))],
+        ),
+        0.02,
+    )
+
+    sounds["lesson_start.wav"] = (
+        _mix(
+            0.38,
             [
-                (0.0, _thud(150.0, 0.3, 0.45)),
-                (0.12, _thud(105.0, 0.3, 0.32)),
-                (0.06, _mallet(F3, 0.3, 0.16)),
+                (0.0, _whoosh(0.28, 0.12)),
+                (0.07, _pluck(C5, 0.26, 0.22, 0.12)),
+                (0.17, _pluck(E5, 0.28, 0.2, 0.12)),
             ],
         ),
         0.04,
     )
-    sounds["lesson_complete.wav"] = (
+
+    sounds["answer_correct.wav"] = (
         _mix(
-            1.45,
+            0.52,
             [
-                (0.0, _mallet(C5, 0.8, 0.65)),
-                (0.12, _mallet(E5, 0.8, 0.7)),
-                (0.24, _mallet(G5, 0.8, 0.7)),
-                (0.36, _mallet(C6, 1.0, 0.72)),
-                (0.36, _bell(C6, 0.9, 0.24)),
-                (0.44, _bell(G5, 0.7, 0.15)),
-            ],
-        ),
-        0.16,
-    )
-    sounds["lesson_perfect.wav"] = (
-        _mix(
-            1.7,
-            [
-                (0.0, _mallet(C5, 0.8, 0.62)),
-                (0.12, _mallet(E5, 0.8, 0.68)),
-                (0.24, _mallet(G5, 0.8, 0.68)),
-                (0.36, _mallet(C6, 1.1, 0.72)),
-                (0.36, _bell(C6, 1.0, 0.24)),
-                (0.5, _bell(E6, 0.8, 0.2)),
-                (0.62, _bell(G6, 0.75, 0.18)),
-                (0.74, _bell(C6, 0.7, 0.14)),
-            ],
-        ),
-        0.18,
-    )
-    sounds["lesson_failed.wav"] = (
-        _mix(
-            1.15,
-            [
-                (0.0, _mallet(A4, 0.55, 0.38, 0.24)),
-                (0.18, _mallet(F4, 0.6, 0.36, 0.26)),
-                (0.36, _mallet(D4, 0.75, 0.36, 0.28)),
-                (0.36, _thud(110.0, 0.5, 0.18)),
-            ],
-        ),
-        0.1,
-    )
-    sounds["practice_complete.wav"] = (
-        _mix(
-            0.7,
-            [
-                (0.0, _mallet(C5, 0.5, 0.55)),
-                (0.14, _mallet(G5, 0.6, 0.58)),
-                (0.14, _bell(G5, 0.5, 0.16)),
-            ],
-        ),
-        0.1,
-    )
-    sounds["reward_streak.wav"] = (
-        _mix(
-            0.75,
-            [
-                (0.0, _whoosh(0.45, 0.15)),
-                (0.12, _mallet(G4, 0.45, 0.35)),
-                (0.28, _mallet(C5, 0.5, 0.38)),
-                (0.28, _bell(G5, 0.45, 0.12)),
+                (0.0, _pluck(C5, 0.42, 0.7, 0.2)),
+                (0.0, _bell(C5, 0.36, 0.14)),
+                (0.085, _pluck(E5, 0.4, 0.72, 0.2)),
+                (0.085, _bell(E5, 0.32, 0.14)),
             ],
         ),
         0.08,
     )
-    sounds["reward_streak_milestone.wav"] = (
+    sounds["answer_correct_combo.wav"] = (
         _mix(
-            1.25,
+            0.82,
             [
-                (0.0, _whoosh(0.55, 0.2)),
-                (0.12, _mallet(C5, 0.45, 0.4)),
-                (0.24, _mallet(E5, 0.45, 0.45)),
-                (0.36, _mallet(G5, 0.5, 0.45)),
-                (0.48, _mallet(C6, 0.7, 0.48)),
-                (0.58, _bell(E6, 0.5, 0.15)),
+                (0.0, _pluck(C5, 0.4, 0.62, 0.18)),
+                (0.075, _pluck(E5, 0.4, 0.68, 0.18)),
+                (0.15, _pluck(G5, 0.42, 0.7, 0.2)),
+                (0.225, _pluck(C6, 0.42, 0.72, 0.22)),
+                (0.225, _bell(E6, 0.36, 0.16)),
+            ],
+        ),
+        0.1,
+    )
+    sounds["answer_wrong.wav"] = (
+        _mix(
+            0.48,
+            [
+                (0.0, _pluck(A4, 0.3, 0.4, 0.16)),
+                (0.09, _pluck(F4, 0.32, 0.36, 0.18)),
+                (0.0, _thud(140.0, 0.26, 0.24)),
+            ],
+        ),
+        0.04,
+    )
+    sounds["answer_octave.wav"] = (
+        _mix(
+            0.58,
+            [
+                (0.0, _pluck(C5, 0.26, 0.44, 0.16)),
+                (0.13, _pluck(C4, 0.32, 0.4, 0.18)),
+                (0.13, _thud(175.0, 0.22, 0.14)),
+            ],
+        ),
+        0.05,
+    )
+    sounds["life_lost.wav"] = (
+        _mix(
+            0.38,
+            [
+                (0.0, _thud(155.0, 0.26, 0.42)),
+                (0.11, _thud(105.0, 0.26, 0.3)),
+                (0.05, _pluck(F4, 0.26, 0.15, 0.14)),
+            ],
+        ),
+        0.03,
+    )
+    sounds["lesson_complete.wav"] = (
+        _mix(
+            1.3,
+            [
+                (0.0, _pluck(C5, 0.7, 0.62, 0.24)),
+                (0.1, _pluck(E5, 0.7, 0.66, 0.24)),
+                (0.2, _pluck(G5, 0.72, 0.68, 0.26)),
+                (0.3, _pluck(C6, 0.9, 0.72, 0.3)),
+                (0.3, _bell(C6, 0.8, 0.22)),
+                (0.38, _bell(G5, 0.65, 0.14)),
             ],
         ),
         0.14,
     )
-    sounds["reward_daily_goal.wav"] = (
+    sounds["lesson_perfect.wav"] = (
         _mix(
-            0.85,
+            1.55,
             [
-                (0.0, _bell(E5, 0.6, 0.3)),
-                (0.12, _bell(G5, 0.6, 0.28)),
-                (0.24, _bell(C6, 0.6, 0.3)),
-                (0.36, _bell(E6, 0.45, 0.18)),
+                (0.0, _pluck(C5, 0.7, 0.6, 0.22)),
+                (0.1, _pluck(E5, 0.7, 0.64, 0.22)),
+                (0.2, _pluck(G5, 0.72, 0.66, 0.24)),
+                (0.3, _pluck(C6, 0.95, 0.72, 0.3)),
+                (0.3, _bell(C6, 0.9, 0.22)),
+                (0.44, _bell(E6, 0.7, 0.18)),
+                (0.55, _bell(G6, 0.65, 0.16)),
+                (0.66, _bell(C6, 0.6, 0.12)),
+            ],
+        ),
+        0.16,
+    )
+    sounds["lesson_failed.wav"] = (
+        _mix(
+            1.05,
+            [
+                (0.0, _pluck(A4, 0.5, 0.36, 0.2)),
+                (0.16, _pluck(F4, 0.55, 0.34, 0.22)),
+                (0.32, _pluck(D4, 0.7, 0.34, 0.26)),
+                (0.32, _thud(110.0, 0.45, 0.16)),
+            ],
+        ),
+        0.08,
+    )
+    sounds["practice_complete.wav"] = (
+        _mix(
+            0.66,
+            [
+                (0.0, _pluck(C5, 0.46, 0.52, 0.18)),
+                (0.12, _pluck(G5, 0.52, 0.56, 0.2)),
+                (0.12, _bell(G5, 0.46, 0.14)),
+            ],
+        ),
+        0.08,
+    )
+    sounds["reward_streak.wav"] = (
+        _mix(
+            0.7,
+            [
+                (0.0, _whoosh(0.4, 0.12)),
+                (0.1, _pluck(G4, 0.4, 0.34, 0.15)),
+                (0.24, _pluck(C5, 0.44, 0.38, 0.18)),
+                (0.24, _bell(G5, 0.4, 0.1)),
+            ],
+        ),
+        0.07,
+    )
+    sounds["reward_streak_milestone.wav"] = (
+        _mix(
+            1.2,
+            [
+                (0.0, _whoosh(0.5, 0.16)),
+                (0.1, _pluck(C5, 0.4, 0.38, 0.16)),
+                (0.21, _pluck(E5, 0.4, 0.42, 0.16)),
+                (0.32, _pluck(G5, 0.45, 0.44, 0.18)),
+                (0.43, _pluck(C6, 0.6, 0.48, 0.22)),
+                (0.52, _bell(E6, 0.45, 0.14)),
             ],
         ),
         0.12,
     )
-    sounds["reward_level_up.wav"] = (
+    sounds["reward_daily_goal.wav"] = (
         _mix(
-            1.0,
+            0.8,
             [
-                (0.0, _bell(C5, 0.5, 0.28)),
-                (0.11, _bell(E5, 0.5, 0.28)),
-                (0.22, _bell(G5, 0.5, 0.3)),
-                (0.33, _bell(C6, 0.7, 0.34)),
-                (0.33, _mallet(C5, 0.7, 0.28)),
+                (0.0, _bell(E5, 0.55, 0.28)),
+                (0.1, _bell(G5, 0.55, 0.26)),
+                (0.2, _bell(C6, 0.55, 0.28)),
+                (0.32, _bell(E6, 0.4, 0.16)),
             ],
         ),
-        0.13,
+        0.1,
     )
-    sounds["reward_unlock.wav"] = (
+    sounds["reward_level_up.wav"] = (
         _mix(
-            0.7,
+            0.95,
             [
-                (0.0, _bell(G5, 0.55, 0.28)),
-                (0.12, _bell(C6, 0.6, 0.32)),
-                (0.24, _bell(G6, 0.5, 0.16)),
+                (0.0, _bell(C5, 0.45, 0.26)),
+                (0.09, _bell(E5, 0.45, 0.26)),
+                (0.18, _bell(G5, 0.45, 0.28)),
+                (0.27, _bell(C6, 0.62, 0.32)),
+                (0.27, _pluck(C5, 0.6, 0.26, 0.2)),
             ],
         ),
         0.11,
     )
-    sounds["xp_tick.wav"] = (_bell(C6, 0.14, 0.3), 0.03)
+    sounds["reward_unlock.wav"] = (
+        _mix(
+            0.66,
+            [
+                (0.0, _bell(G5, 0.5, 0.26)),
+                (0.1, _bell(C6, 0.55, 0.3)),
+                (0.2, _bell(G6, 0.45, 0.14)),
+            ],
+        ),
+        0.09,
+    )
+    sounds["xp_tick.wav"] = (_bell(C6, 0.12, 0.28), 0.02)
     return sounds
 
 

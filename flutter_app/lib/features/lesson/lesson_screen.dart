@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/audio/note_matcher.dart';
 import '../../core/audio/pitch_source.dart';
+import '../../core/learning/progress.dart';
 import '../../core/learning/session_builder.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/guitar.dart';
@@ -927,7 +928,7 @@ class _FeedbackForRun extends StatelessWidget {
     final octaveError = !correct && run.lastOctaveError;
     final outOfLives = !run.isPractice && !correct && run.outOfLives;
     final title = outOfLives
-        ? 'Out of lives'
+        ? 'Out of hearts'
         : correct
         ? (run.combo >= 3 ? 'Combo x${run.combo}!' : 'Correct!')
         : octaveError
@@ -1040,6 +1041,10 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
   Widget build(BuildContext context) {
     final result = widget.result;
     final isCheckpoint = lessonById[result.lessonId]?.isReview ?? false;
+    final progress = ref.watch(appControllerProvider).asData?.value.progress;
+    final hearts = progress?.hearts ?? maxHearts;
+    final canRefill =
+        !result.passed && hearts <= 0 && (progress?.gems ?? 0) >= heartRefillCost;
     return Scaffold(
       body: Stack(
         children: [
@@ -1061,10 +1066,12 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                       result.passed
                           ? (result.isPractice
                                 ? 'Practice complete!'
+                                : result.lessonId.startsWith('jump_')
+                                ? 'Section unlocked!'
                                 : isCheckpoint
                                 ? 'Unit complete!'
                                 : 'Lesson complete!')
-                          : 'Out of lives',
+                          : 'Out of hearts',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 30,
@@ -1120,7 +1127,20 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                     if (result.passed)
                       DuoButton(label: 'CONTINUE', onPressed: widget.onContinue)
                     else ...[
-                      DuoButton(label: 'TRY AGAIN', onPressed: widget.onRetry),
+                      if (canRefill)
+                        DuoButton(
+                          label: 'REFILL & RETRY',
+                          onPressed: () async {
+                            final bought = await ref
+                                .read(appControllerProvider.notifier)
+                                .buyHeartRefill();
+                            if (bought) widget.onRetry();
+                          },
+                        )
+                      else if (hearts <= 0)
+                        DuoButton(label: 'OUT OF HEARTS', onPressed: null)
+                      else
+                        DuoButton(label: 'TRY AGAIN', onPressed: widget.onRetry),
                       const SizedBox(height: 10),
                       OutlineDuoButton(
                         label: 'BACK TO PATH',

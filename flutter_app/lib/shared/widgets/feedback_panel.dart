@@ -23,96 +23,99 @@ class FeedbackPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final background = correct ? AppColors.greenSoft : AppColors.redSoft;
-    final accent = correct ? AppColors.greenDark : AppColors.redDark;
+    final accent = correct ? AppColors.green : AppColors.red;
+    final accentDark = correct ? AppColors.greenDark : AppColors.redDark;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       decoration: BoxDecoration(
-        color: background,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+        color: accent,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      correct ? Icons.check_rounded : Icons.close_rounded,
+                      color: accentDark,
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 23,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white.withValues(alpha: 0.92),
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (detail != null) ...[
+                const SizedBox(height: 12),
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
-                    color: accent,
-                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(
-                    correct ? Icons.check_rounded : Icons.close_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: accent,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: accent.withValues(alpha: 0.85),
-                          height: 1.3,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    detail!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
-            ),
-            if (detail != null) ...[
-              const SizedBox(height: 12),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  detail!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: accent,
-                  ),
-                ),
+              const SizedBox(height: 16),
+              DuoButton(
+                label: continueLabel,
+                onPressed: onContinue,
+                color: Colors.white,
+                textColor: accentDark,
+                height: 56,
               ),
             ],
-            const SizedBox(height: 16),
-            DuoButton(
-              label: continueLabel,
-              onPressed: onContinue,
-              color: accent,
-              height: 54,
-            ),
-          ],
+          ),
         ),
       ),
     );

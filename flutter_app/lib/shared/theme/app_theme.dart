@@ -4,18 +4,20 @@ class AppColors {
   AppColors._();
 
   static const green = Color(0xFF58CC02);
-  static const greenDark = Color(0xFF46A302);
+  static const greenDark = Color(0xFF58A700);
   static const greenSoft = Color(0xFFD7FFB8);
   static const blue = Color(0xFF1CB0F6);
-  static const blueDark = Color(0xFF1289C7);
+  static const blueDark = Color(0xFF1899D6);
   static const blueSoft = Color(0xFFDDF4FF);
   static const red = Color(0xFFFF4B4B);
-  static const redDark = Color(0xFFD33131);
+  static const redDark = Color(0xFFEA2B2B);
   static const redSoft = Color(0xFFFFDFE0);
   static const yellow = Color(0xFFFFC800);
-  static const yellowDark = Color(0xFFE6A700);
+  static const yellowDark = Color(0xFFE5A400);
+  static const orange = Color(0xFFFF9600);
+  static const orangeDark = Color(0xFFE08600);
   static const purple = Color(0xFFCE82FF);
-  static const purpleDark = Color(0xFFA568CC);
+  static const purpleDark = Color(0xFFA560E8);
   static const purpleSoft = Color(0xFFF7E6FF);
   static const background = Color(0xFFFFFFFF);
   static const surface = Color(0xFFF7F7F7);

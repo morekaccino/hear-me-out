@@ -18,7 +18,7 @@ flutter_app/lib/
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
 │   └── storage/     shared_preferences JSON store, export/import
-├── features/        onboarding, path, lesson, practice, profile
+├── features/        onboarding, path, lesson, practice, quests, shop, profile
 ├── shared/          theme, reusable widgets, sound service
 └── state/           Riverpod AppController, pitch-source, sound providers
 ```
@@ -55,7 +55,8 @@ progress and answer choices.
 
 - `soundingMidiForWritten(written) == written.midi - 12`.
 - Open strings are sounding E2 A2 D3 G3 B3 E4, written E3 A3 D4 G4 B4 E5.
-- `bestPosition` prefers the lowest fret, then the lowest-numbered string.
+- `bestPosition` prefers the lowest fret, then the lowest-pitched (highest-numbered)
+  string.
 
 `curriculum.dart` holds the 3 sections / 6 units / 25 lessons, the unit focus
 and guidebook metadata, the note catalog used for answer choices, and the
@@ -69,6 +70,8 @@ legacy lesson-ID map used by progress migration.
   correct-day set, cent samples
 - completed lessons and best accuracy
 - XP, streak, daily XP
+- gems, hearts, next heart time, streak freezes, XP boost
+- opened chests, daily quest counters, claimed quests
 - settings
 - `curriculumVersion` plus a migration path from the old 4-unit lesson IDs
 - last 30 session summaries
@@ -84,7 +87,10 @@ Intervals are `0, 10 min, 1 day, 3 days, 7 days, 21 days`. Mastery requires
 box >= 4, at least five correct answers, and correct days on at least two
 different calendar dates.
 
-Streak and daily XP are calendar-day based; `dayKey` uses local time.
+Streak and daily XP are calendar-day based; `dayKey` uses local time. Hearts
+regenerate lazily in `refreshHearts`, one every four hours, and daily quest
+counters reset in `refreshDaily`. Streak freezes are consumed only when the
+next completed lesson finds a gap. All values are local and validated on load.
 
 ## Session planning
 
@@ -109,10 +115,12 @@ It draws from due notes, weak notes, or all learned notes. If the profile is
 empty it falls back to the first lesson notes so a practice screen never opens
 empty.
 
-`LessonRun` holds the mutable session state: index, lives, correct/wrong,
-combo, result feedback, and `isPractice`. A wrong answer queues the note for a
-short end-of-lesson retry; distinct notes are capped at four. Practice sessions
-never decrement lives and never end on `outOfLives`; only lessons do.
+`LessonRun` holds the mutable session state: index, hearts snapshot, correct/
+wrong, combo, result feedback, and `isPractice`. A wrong answer spends a shared
+heart and queues the note for a short end-of-lesson retry; distinct notes are
+capped at four. Practice sessions never spend hearts and never end on
+`outOfLives`; only lessons do. `isJumpTest` runs a 15-exercise section test and
+unlocks earlier sections on a pass.
 
 `features/path/path_layout.dart` is pure geometry. It builds a section-wide
 curve where each unit continues the same sine that the previous unit ended on,
@@ -154,7 +162,7 @@ open string. It does not use `NoteMatcher`.
 
 ### Sound feedback
 
-`shared/audio/sound_service.dart` owns the original Warm Mallet family. Core
+`shared/audio/sound_service.dart` owns the original Bright Pluck family. Core
 cues are preloaded; rare reward cues are created lazily. `SoundService.enabled`
 mirrors `AppSettings.soundEffects`. UI and result screens call the service; the
 domain layer does not know about audio. Sound is never played while the tuner or
@@ -193,13 +201,16 @@ and exposes lesson/practice lifecycle methods. Screens read it through Riverpod.
 Screens:
 
 - `OnboardingScreen` — welcome, explanation, optional mic check, daily goal.
-- `PathScreen` — lesson map, streak/XP/daily goal, lesson launch.
-- `LessonScreen` — staff, name/play answers, lives, feedback, result.
-- `PracticeScreen` — tuner, due/weak/free practice, stats.
+- `PathScreen` — lesson map, counters, chests, jump-ahead tests, lesson launch.
+- `LessonScreen` — staff, name/play answers, hearts, feedback, result.
+- `PracticeScreen` — tuner, due/weak/free practice, heart recovery, stats.
+- `QuestsScreen` — three daily quests and gem claims.
+- `ShopScreen` — heart refill, streak freezes, double XP.
 - `ProfileScreen` — stats, per-note boxes, settings, backup/restore, reset.
 
-`PageFrame` keeps content in a centered 520 px column. `HomeShell` owns the
-three bottom tabs.
+`PageFrame` keeps content in a responsive centered column (600 px default,
+720 px hubs). `HomeShell` owns five destinations and switches between a 252 px
+side rail at 900 px and wider, and a five-item bottom bar below that.
 
 ## Persistence
 
@@ -208,9 +219,10 @@ three bottom tabs.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which requires a numeric
-`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 1.
-Arbitrary JSON such as `{"hello":"world"}` is rejected. Future versions are
-rejected rather than being partially parsed.
+`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 2.
+Version 1 documents load with default economy values (500 gems, five hearts,
+no chests or quests). Arbitrary JSON such as `{"hello":"world"}` is rejected.
+Future versions are rejected rather than being partially parsed.
 
 Backups are copied as pretty JSON via the clipboard. Restore validates first,
 then replaces the state and saves it. Corrupt/missing storage falls back to a
@@ -231,6 +243,7 @@ fresh profile.
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
+| `test/economy_test.dart` | Hearts, gems, chests, quests, boosts, jump tests |
 
 `test/support/fakes.dart` contains an in-memory store, controllable
 `FakePitchSource` / `FakePitchSourceFactory`, and `FakeSoundService`. Use

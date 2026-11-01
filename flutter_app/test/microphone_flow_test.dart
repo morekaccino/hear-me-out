@@ -109,9 +109,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.music_note_outlined));
+    await tester.tap(find.text('Practice'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Free practice'));
+    await tester.scrollUntilVisible(find.text('Free practice'), 300);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Free practice'));
     await tester.pumpAndSettle();
@@ -173,7 +173,7 @@ void main() {
     await tester.tap(find.text('USE NOTE NAMES INSTEAD'));
     await tester.pumpAndSettle();
 
-    for (var index = 0; index < 3; index++) {
+    for (var index = 0; index < maxHearts; index++) {
       final run = container.read(appControllerProvider).requireValue.run!;
       final wrong = run.current.choices.firstWhere(
         (note) => note.id != run.current.note.id,
@@ -189,8 +189,11 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    expect(find.text('Out of lives'), findsOneWidget);
-    await tester.tap(find.text('TRY AGAIN'));
+    expect(find.text('Out of hearts'), findsOneWidget);
+    final retry = find.text('TRY AGAIN').evaluate().isNotEmpty
+        ? find.text('TRY AGAIN')
+        : find.text('REFILL & RETRY');
+    await tester.tap(retry);
     await tester.pumpAndSettle();
 
     await answerUntilPlay();

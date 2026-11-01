@@ -91,16 +91,29 @@ master a note.
 notes are those with at least two attempts and accuracy below 75%. Lesson
 review slots use due notes first, then weak notes, then recently seen notes.
 
-## 5. Gamification
+## 5. Gamification and the gem economy
 
-- **Lives:** three per lesson. A wrong answer costs one. At zero the lesson ends
-  and can be retried. Practice never costs lives.
+- **Hearts:** five shared hearts. A wrong lesson answer costs one. At zero the
+  lesson ends. Hearts regenerate one every four hours, a completed practice
+  session restores one, and 350 gems refills all five. Practice never costs
+  hearts.
 - **XP:** 10 for a lesson, 15 for a review lesson, +5 for a perfect lesson.
   Replaying a completed lesson gives 5 XP (plus 3 for a perfect replay).
-  Practice gives 5 XP.
+  Practice gives 5 XP. A jump test gives 20 XP. Double XP multiplies the award
+  for 15 minutes.
 - **Streak:** increments on the first completed lesson of a calendar day.
   Completing two lessons in one day does not double it. Missing a day resets it
-  to 1 on the next completed lesson.
+  to 1 on the next completed lesson unless a streak freeze is equipped; one
+  freeze is consumed and the streak continues.
+- **Gems:** new profiles start with 500. Chests and claimed daily quests award
+  more. The shop spends them on heart refills (350), streak freezes (200, max
+  two), and double XP (100).
+- **Chests:** one per unit, placed after the unit's second lesson. It unlocks
+  when that lesson is complete and pays its gems once.
+- **Daily quests:** complete one lesson (10 gems), answer ten notes correctly
+  (10), and reach a five-answer combo (15). Claim each once per local day.
+- **Jump ahead:** a 15-exercise test of earlier material unlocks the sections
+  before the target section. Passing keeps all existing note progress.
 - **Daily goal:** 10, 20, or 30 XP. XP is tracked per local calendar day.
 
 ## 6. Pitch detection and matching
@@ -135,8 +148,9 @@ A versioned `ProgressState` JSON document is stored under
 `hear_me_out_progress_v1` in `shared_preferences`.
 
 It contains notes, boxes, due dates, accuracy, correct-day sets, completed
-lessons, best lesson accuracy, XP, streak, daily XP, settings, and the last 30
-sessions. Corrupt or missing data falls back to a fresh profile instead of
+lessons, best lesson accuracy, XP, streak, daily XP, gems, hearts, chests,
+daily quests, streak freezes, XP boosts, settings, and the last 30 sessions.
+The schema version is 2; version 1 documents load with default economy values. Corrupt or missing data falls back to a fresh profile instead of
 crashing. Backup exports the same document to the clipboard; restore validates
 it before replacing local progress.
 

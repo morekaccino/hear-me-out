@@ -25,7 +25,7 @@ flutter build web --release
   current verification state
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style design language,
   copy, and gamification
-- [`docs/SOUND.md`](docs/SOUND.md) — Warm Mallet family, assets, event map,
+- [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map,
   and sound settings
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — layers, data flow, and
   invariants

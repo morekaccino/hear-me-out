@@ -1,15 +1,15 @@
 # Sound Design
 
-Hear Me Out uses an original **Warm Mallet / Practice Bell** sound family. The
-goal is a friendly, musical learning loop like Duolingo, without copying
-Duolingo’s copyrighted audio.
+Hear Me Out uses an original **Bright Pluck** sound family. The goal is a
+friendly, musical learning loop like Duolingo, without copying Duolingo’s
+copyrighted audio.
 
 ## Family rules
 
-- **Body:** marimba / soft mallet, short warm decay.
+- **Body:** short plucked synth with a bright second and third harmonic.
 - **Reward:** glass-bell partials, bright but gentle.
-- **UI:** muted woodblock click, short and dry.
-- **Negative:** soft low mallet thud or descending phrase — never a harsh buzzer.
+- **UI:** dry high blip, short and quiet.
+- **Negative:** soft low plucked thud or descending phrase — never a harsh buzzer.
 - **Key center:** C major for every reward cue.
 - **Processing:** shared EQ, a very short room tail, peak normalized to −1.7 dBFS.
 - **No** chiptune leads, cinematic risers, spoken words, or random stock clips.
@@ -42,10 +42,10 @@ PCM WAV. The family is intentionally small.
 | `answer_correct_combo.wav` | Correct answer with combo >= 3 |
 | `answer_wrong.wav` | Wrong answer |
 | `answer_octave.wav` | Right note, wrong octave |
-| `life_lost.wav` | Wrong answer that takes the last life |
+| `life_lost.wav` | Wrong answer that takes the last heart |
 | `lesson_complete.wav` | Passed lesson |
 | `lesson_perfect.wav` | Passed lesson with 100% accuracy |
-| `lesson_failed.wav` | Out of lives |
+| `lesson_failed.wav` | Out of hearts |
 | `practice_complete.wav` | Passed practice session |
 | `reward_streak.wav` | Streak advanced |
 | `reward_streak_milestone.wav` | Streak hits 7/14/30/50/100/180/365 |
@@ -64,11 +64,14 @@ PCM WAV. The family is intentionally small.
   `uiPage`; final “Let’s Play” uses `rewardUnlock`; mic test/skip uses button
   sounds; no sound is played while the mic is listening.
 - **Path:** current/completed lesson node → `lessonStart`; locked node →
-  `uiLocked`; opening a unit guidebook → `uiSelect`.
+  `uiLocked`; opening a unit guidebook → `uiSelect`; opening a chest or claiming
+  a quest → `copySuccess`.
 - **Lesson:** correct → `answerCorrect`; combo 3+ → `answerCorrectCombo`;
-  wrong → `answerWrong`; octave → `answerOctave`; last-life wrong →
+  wrong → `answerWrong`; octave → `answerOctave`; last-heart wrong →
   `lifeLost`; result screen → completion/failure cue, then one reward cue
   (level > daily goal > streak milestone > streak) and `xpTick`.
+- **Shop:** successful purchase → `copySuccess`; refused purchase → `uiLocked`;
+  double XP → `rewardLevelUp`.
 - **Practice:** tuner button uses `tunerOn`/`tunerOff`; string select uses
   `uiSelect`; starting due/weak/free practice uses `lessonStart`; answer and
   result cues reuse the lesson family.
@@ -122,9 +125,9 @@ tool; it is not part of the Flutter app.
 
 ## Review notes
 
-- Correct/combo/complete/perfect share a C-major marimba + bell palette.
-- Wrong/octave/failure use lower, softer mallet phrases rather than buzzers.
-- UI taps are short woodblock transients and are mixed at a lower volume.
+- Correct/combo/complete/perfect share a C-major pluck + bell palette.
+- Wrong/octave/failure use lower, softer plucked phrases rather than buzzers.
+- UI taps are short dry blips and are mixed at a lower volume.
 - `xp_tick` is deliberately quiet; it is a tally, not a celebration.
 - Do not add a continuous tuner beep: the microphone would hear it.
 - Do not use rips of Duolingo sounds or other copyrighted app audio. The family

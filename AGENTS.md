@@ -31,9 +31,11 @@ features or monetization.
 
 ## Design language
 
-The visual language is **Duolingo-inspired, not a Duolingo clone**. Original
-mascot and art only; do not copy the owl, proprietary illustrations, or exact
-screen layouts.
+The visual language **follows current Duolingo**: bright white surfaces, heavy
+Nunito type, thick outlines, hard offset shadows, circular path nodes, heart /
+gem / streak counters, chests, and a responsive side rail on wide screens. Keep
+the mascot and all artwork original; do not copy the owl, proprietary
+illustrations, font files, or trademarked assets.
 
 - Bright white background, `Nunito`, heavy `w700`/`w800` text, thick outlines,
   rounded corners, and hard offset shadows with blur `0`.
@@ -41,20 +43,23 @@ screen layouts.
   `SectionCard`, `AnswerOption`, `FeedbackPanel`, `Mascot`, `PageFrame`) before
   inventing new styles.
 - Green = primary/success and Foundations; purple = First Position and free
-  practice; blue = info/secondary and Accidentals; red = error/lives; yellow =
+  practice; blue = info/secondary and Accidentals; red = error/hearts; yellow =
   reward/progress.
 - Primary buttons default to 56 px tall, uppercase, radius 16, with a visible
   bottom edge and a 3 px press movement; compact variants use 48–54 px. Answer
   options are 64 px tall.
-- Content stays in a centered 520 px column and must fit a 390×844 viewport.
+- Content stays in a centered responsive column (600 px for path and lessons,
+  720 px for hubs) and must fit a 390×844 viewport. Widths at or above 900 px
+  use a 252 px side rail; narrower widths use five bottom tabs.
 - Feedback is immediate, specific, and encouraging. Prefer “Not quite” and a
   concrete string/fret hint over generic praise or blame.
 - Confetti only on a passed result. Haptics: light for correct, medium for
   incorrect, respecting the setting.
-- Sound follows the original Warm Mallet family: marimba body, glass-bell
-  rewards, muted woodblock UI, soft low errors. Never play while the tuner or
-  lesson mic is listening; respect the persisted Sound effects setting.
-- No leaderboards, leagues, duels, ads, subscriptions, accounts, or fake stats.
+- Sound follows the original Bright Pluck family: short plucked synth body,
+  glass-bell sparkle, dry UI blips, soft low errors. Never play while the tuner
+  or lesson mic is listening; respect the persisted Sound effects setting.
+- No leaderboards, leagues, duels, ads, subscriptions, accounts, real-money
+  purchases, or fake stats. The shop spends earned gems only.
 
 Full palette, typography, component dimensions, motion, screen intent, copy
 tone, accessibility notes, and non-goals are in
@@ -68,8 +73,8 @@ tone, accessibility notes, and non-goals are in
    detection, and staff geometry must stay pure Dart and testable.
 3. **Written pitch is not sounding pitch.** Guitar notation is written one
    octave above sounding pitch. Use `Guitar.soundingMidiForWritten`.
-4. **Practice never costs lives.** Lessons have three lives; practice does not.
-   Do not regress this.
+4. **Practice never costs hearts.** Lessons share a five-heart pool; practice does
+   not spend hearts and restores one on completion. Do not regress this.
 5. **Mastery needs space.** A note is mastered only at box >= 4, with at least
    five correct answers across at least two calendar days.
 6. **Do not fake stats or progress.** Every number must come from
@@ -144,7 +149,7 @@ Then open <http://127.0.0.1:8080/>.
 | `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher |
 | `flutter_app/lib/core/notation/` | Staff geometry and Bravura painter |
 | `flutter_app/lib/core/storage/` | JSON progress store and backup validation |
-| `flutter_app/lib/features/` | Onboarding, path, lesson, practice, profile |
+| `flutter_app/lib/features/` | Onboarding, path, lesson, practice, quests, shop, profile |
 | `flutter_app/lib/shared/` | Theme and reusable Duolingo-style widgets |
 | `flutter_app/lib/state/` | Riverpod app controller and audio providers |
 | `flutter_app/test/` | Unit and widget tests; fakes live in `test/support/` |
@@ -161,11 +166,25 @@ Then open <http://127.0.0.1:8080/>.
 - **Answer modes:** mixed starts each new note with naming and includes at
   least three play exercises when possible; name-only never starts the mic;
   play-only plays everything.
-- **Lives:** three per lesson; zero ends the lesson. Practice has no life cost.
+- **Hearts:** five shared hearts. A wrong lesson answer spends one; zero ends the
+  lesson. Hearts refill one per four hours, a practice session restores one, and
+  the shop can refill all five for 350 gems. Practice never spends hearts.
+- **Gems and shop:** fresh profiles start with 500 gems. Gems come from chests
+  and daily quests and buy heart refills, streak freezes, and double XP. No
+  real-money purchases.
+- **Chests:** one per unit, unlocked by the lesson before it, opened once for
+  gems. Opening persists in `openedChests`.
+- **Daily quests:** complete a lesson, answer ten notes, and build a five-answer
+  combo. Claiming awards gems once per local day.
+- **Streak freeze:** up to two equipped; one is consumed when a completed lesson
+  arrives after a missed day and preserves the streak.
+- **Double XP:** 15 minutes of doubled lesson/practice XP after purchase.
+- **Jump ahead:** passing a 15-exercise test unlocks the sections before the
+  target section without deleting note progress.
 - **Curriculum migration:** bump `curriculumVersion` and map old lesson IDs;
   never silently drop completed lessons, XP, or note progress.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
-  practice 5.
+  practice 5; jump test 20. Double XP multiplies the award.
 - **Streak:** first completed lesson of a local calendar day; practice does not
   advance it.
 - **Mic matching:** require three stable frames, accept within the configured
@@ -194,14 +213,15 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Current verified state
 
-Last verified on 2026-10-31 with Flutter 3.47.9 / Dart 3.13.7:
+Last verified on 2026-11-01 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` — no issues
-- `flutter test` — 121 tests passing
+- `flutter test` — 138 tests passing
 - `flutter build web --release` — succeeds
-- Web app loads, onboarding completes, the sectioned path renders, and a
-  lesson answer produces feedback
-- 28 original Warm Mallet cues are bundled in `assets/audio/`; all decode
+- Web app loads, onboarding completes, the path renders chests and counters, and
+  lessons, quests, shop, practice, and profile are reachable on narrow and wide
+  layouts
+- 28 original Bright Pluck cues are bundled in `assets/audio/`; all decode
   successfully in Chrome and the soundboard is available at
   `flutter_app/tool/soundboard.html`
 
@@ -222,7 +242,7 @@ analyze/test/build commands as the source of truth.
 
 - [`README.md`](README.md) — product overview, features, device checklist
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style language, copy, gamification
-- [`docs/SOUND.md`](docs/SOUND.md) — Warm Mallet family, assets, event map, settings
+- [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map, settings
 - [`LEARNING_ALGORITHM.md`](LEARNING_ALGORITHM.md) — scheduling and session rules
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — layers, data flow, invariants
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — setup, run, debug, common failures

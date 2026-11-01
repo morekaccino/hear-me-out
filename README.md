@@ -40,8 +40,8 @@ hit the note, missed it, or played the right note in the wrong octave.
   note is mastered only after five correct answers across at least two days,
   not after three lucky taps in one session.
 - **Duolingo-style path** — section and unit banners, a winding lesson map,
-  guidebooks, streak, XP, daily goal, and three lives per lesson. No fake
-  leaderboards.
+  guidebooks, streak / gem / heart counters, chests, jump-ahead tests, daily
+  quests, and a five-heart pool. No fake leaderboards or leagues.
 - **A voice of its own** — original marimba/bell/woodblock cues for correct,
   wrong, combo, lesson, practice, streak, goal, and level-up moments, with a
   persisted sound-effects setting.
@@ -53,16 +53,20 @@ hit the note, missed it, or played the right note in the wrong octave.
 ## Screens
 
 - **Path** — a sectioned winding lesson map with completed, current, and locked
-  nodes, unit guidebooks, checkpoints, plus streak, XP, and daily-goal progress.
+  nodes, chests, unit guidebooks, checkpoints, jump-ahead tests, and streak /
+  gem / heart / XP progress.
 - **Lesson** — a treble-staff card, four note-name choices or a live mic meter,
-  feedback with the correct string and fret, and three lives.
+  feedback with the correct string and fret, and five hearts.
 - **Practice** — a standard-tuning guitar tuner plus due-review, weak-note, and
-  free-practice drills.
+  free-practice drills. Practice never spends hearts and restores one.
+- **Quests** — three local daily quests that pay gems.
+- **Shop** — heart refills, streak freezes, and double XP, bought with earned
+  gems only.
 - **Profile** — real stats, per-note box progress, settings, backup/restore, and
   reset.
 
-The app is designed for a phone. On tablets and desktop web it stays in a
-centered 520 px column.
+The app is phone-first. At 900 px and wider it uses a left side rail and a
+wider centered content column; below that it uses five bottom tabs.
 
 ## Run it
 
@@ -110,7 +114,9 @@ The suite covers:
   noise
 - note matching, cents tolerance, octave errors, and re-arming
 - JSON persistence, corrupt-storage fallbacks, and a simulated app restart
-- onboarding, path, and lesson widget flows
+- onboarding, path, lesson, quests, shop, and responsive-shell widget flows
+- hearts, gems, chests, daily quests, streak freezes, double XP, and jump-ahead
+  tests
 
 ### Device checklist
 
@@ -154,7 +160,7 @@ session rules.
 
 - [AGENTS.md](AGENTS.md) — operating guide for coding agents
 - [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
-- [docs/SOUND.md](docs/SOUND.md) — Warm Mallet sound family and event map
+- [docs/SOUND.md](docs/SOUND.md) — Bright Pluck sound family and event map
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, invariants
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — setup, debug, manual checks
 - [CONTRIBUTING.md](CONTRIBUTING.md) — contribution workflow
@@ -165,6 +171,8 @@ session rules.
 - Progress is stored in `shared_preferences` on the device.
 - There is no Firebase, no Firestore, no auth, no analytics, and no network
   persistence layer.
+- The shop is a closed gem economy. It takes no money and has no subscriptions
+  or ads.
 - The only way data leaves the app is if you copy a backup JSON to your
   clipboard.
 

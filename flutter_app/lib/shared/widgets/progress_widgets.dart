@@ -42,7 +42,7 @@ class HeartsRow extends StatelessWidget {
   const HeartsRow({
     super.key,
     required this.lives,
-    this.maxLives = 3,
+    this.maxLives = 5,
     this.size = 26,
   });
 

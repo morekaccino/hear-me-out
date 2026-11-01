@@ -42,6 +42,7 @@ class ProfileScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: PageFrame(
+          maxWidth: 720,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
             children: [
@@ -123,6 +124,18 @@ class ProfileScreen extends ConsumerWidget {
                     color: const Color(0xFFFFB020),
                     value: '${progress.xp}',
                     label: 'Total XP',
+                  ),
+                  _StatCard(
+                    icon: Icons.diamond_rounded,
+                    color: AppColors.blue,
+                    value: '${progress.gems}',
+                    label: 'Gems',
+                  ),
+                  _StatCard(
+                    icon: Icons.favorite_rounded,
+                    color: AppColors.red,
+                    value: '${progress.hearts}/$maxHearts',
+                    label: 'Hearts',
                   ),
                 ],
               ),
@@ -329,7 +342,7 @@ class ProfileScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const Center(
                 child: Text(
-                  'Hear Me Out 3.0',
+                  'Hear Me Out 4.0',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,

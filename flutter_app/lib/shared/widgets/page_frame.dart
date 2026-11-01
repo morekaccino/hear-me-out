@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Keeps the app in a phone-like column on tablets and desktop browsers.
+/// Keeps reading content in a comfortable centered column on any width.
 class PageFrame extends StatelessWidget {
-  const PageFrame({super.key, required this.child, this.maxWidth = 520});
+  const PageFrame({super.key, required this.child, this.maxWidth = 600});
 
   final Widget child;
   final double maxWidth;

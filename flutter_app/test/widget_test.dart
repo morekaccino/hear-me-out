@@ -36,6 +36,33 @@ void main() {
   }
 
   testWidgets('path shows real units and the next lesson', (tester) async {
+    tester.view.physicalSize = const Size(390, 4800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.diamond_rounded), findsOneWidget);
+    expect(find.text('Daily goal'), findsOneWidget);
+    expect(find.text('UP NEXT'), findsOneWidget);
+    expect(find.text('The Staff'), findsOneWidget);
+    expect(find.text('START'), findsOneWidget);
+  });
+
+  testWidgets('quests and shop are reachable from the bottom bar', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -53,10 +80,41 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Hear Me Out'), findsOneWidget);
-    expect(find.text('Daily goal'), findsOneWidget);
+    await tester.tap(find.text('Quests'));
+    await tester.pumpAndSettle();
+    expect(find.text('Daily quests'), findsOneWidget);
+    expect(find.text('Complete a lesson'), findsOneWidget);
+
+    await tester.tap(find.text('Shop'));
+    await tester.pumpAndSettle();
+    expect(find.text('Refill hearts'), findsOneWidget);
+    expect(find.text('Streak freeze'), findsOneWidget);
+    expect(find.text('Double XP'), findsOneWidget);
+  });
+
+  testWidgets('wide layouts use the side rail instead of bottom tabs', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Local only'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('The Staff'), findsOneWidget);
-    expect(find.text('START'), findsOneWidget);
   });
 
   testWidgets('unit guidebook opens with string and fret hints', (

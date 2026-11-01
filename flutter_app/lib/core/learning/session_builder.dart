@@ -8,7 +8,7 @@ const int exercisesPerLesson = 12;
 const int reviewExercisesPerLesson = 15;
 const int newNoteExposures = 4;
 const int maxMistakeRetries = 4;
-const int livesPerLesson = 3;
+const int livesPerLesson = 5;
 
 class Exercise {
   Exercise({
@@ -34,6 +34,8 @@ class LessonRun {
     required this.exercises,
     required this.isPractice,
     this.practiceTitle,
+    this.isJumpTest = false,
+    this.jumpTargetSectionId,
   }) : baseExercises = exercises.length;
 
   final LessonDefinition lesson;
@@ -41,6 +43,8 @@ class LessonRun {
   final int baseExercises;
   final bool isPractice;
   final String? practiceTitle;
+  final bool isJumpTest;
+  final String? jumpTargetSectionId;
 
   int index = 0;
   int lives = livesPerLesson;
@@ -83,7 +87,7 @@ class LessonRun {
   int get earnedXp {
     if (isPractice) return 5;
     final perfect = answered > 0 && wrong == 0;
-    final base = lesson.isReview ? 15 : 10;
+    final base = isJumpTest ? 20 : (lesson.isReview ? 15 : 10);
     return base + (perfect ? 5 : 0);
   }
 

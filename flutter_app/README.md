@@ -23,7 +23,7 @@ flutter build web --release
 
 - [`../AGENTS.md`](../AGENTS.md) — rules and verification steps for coding agents
 - [`../docs/DESIGN.md`](../docs/DESIGN.md) — mission and Duolingo-style design language
-- [`../docs/SOUND.md`](../docs/SOUND.md) — Warm Mallet sound family and event map
+- [`../docs/SOUND.md`](../docs/SOUND.md) — Bright Pluck sound family and event map
 - [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) — layers, data flow, invariants
 - [`../docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md) — setup, debug, manual checks
 - [`../LEARNING_ALGORITHM.md`](../LEARNING_ALGORITHM.md) — scheduling and session rules
@@ -35,9 +35,9 @@ flutter build web --release
 - `lib/core/audio/` — YIN pitch detection, PCM capture, note matcher
 - `lib/core/notation/` — staff geometry and painter
 - `lib/core/storage/` — local progress store
-- `lib/features/` — onboarding, path, lesson, practice, profile
+- `lib/features/` — onboarding, path, lesson, practice, quests, shop, profile
 - `lib/shared/` — theme, reusable widgets
-- `lib/state/` — Riverpod controller and pitch source factory
+- `lib/state/` — Riverpod controller, economy actions, pitch source factory
 
 ## Microphone
 

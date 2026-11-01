@@ -84,7 +84,7 @@ and whether another application is holding the microphone.
 
 ## Sound assets
 
-The original Warm Mallet family lives in `flutter_app/assets/audio/` and is
+The original Bright Pluck family lives in `flutter_app/assets/audio/` and is
 generated deterministically by `tool/generate_sounds.py`:
 
 ```powershell

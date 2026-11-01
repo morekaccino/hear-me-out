@@ -70,18 +70,19 @@ Use `AppColors`; do not add one-off hex values in widgets.
 | Token | Hex | Use |
 |---|---|---|
 | `green` | `#58CC02` | Primary action, success, current lesson |
-| `greenDark` | `#46A302` | Pressed/shadow side, success text |
+| `greenDark` | `#58A700` | Pressed/shadow side, success text |
 | `greenSoft` | `#D7FFB8` | Success background, selected nav pill |
 | `blue` | `#1CB0F6` | Secondary action, info, practice, Accidentals |
-| `blueDark` | `#1289C7` | Secondary pressed/text |
+| `blueDark` | `#1899D6` | Secondary pressed/text |
 | `blueSoft` | `#DDF4FF` | Info panels, mic idle surface |
-| `red` | `#FF4B4B` | Error, wrong answer, lives |
-| `redDark` | `#D33131` | Error text, pressed red |
+| `red` | `#FF4B4B` | Error, wrong answer, hearts |
+| `redDark` | `#EA2B2B` | Error text, pressed red |
 | `redSoft` | `#FFDFE0` | Error/feedback background |
 | `yellow` | `#FFC800` | Achievement, XP, completed lesson |
-| `yellowDark` | `#E6A700` | Achievement text/shadow |
+| `yellowDark` | `#E5A400` | Achievement text/shadow |
 | `purple` | `#CE82FF` | First Position section, free practice accent |
-| `purpleDark` | `#A568CC` | Purple pressed/text |
+| `purpleDark` | `#A560E8` | Purple pressed/text |
+| `orange` | `#FF9600` | Streak flame and streak reward |
 | `purpleSoft` | `#F7E6FF` | Purple section background |
 | `background` | `#FFFFFF` | App background |
 | `surface` | `#F7F7F7` | Cards, neutral fills |
@@ -123,15 +124,18 @@ unit banner.
 
 ### Spacing and layout
 
-- Phone-first, centered, maximum content width **520 px** (`PageFrame`).
+- Phone-first, centered, responsive content width: **600 px** for the path and
+  lessons, **720 px** for hubs (`PageFrame`).
+- At **900 px and wider**, replace the five bottom tabs with a 252 px left side
+  rail. The content stays centered beside it.
 - Use `SafeArea`; keep the bottom navigation clear of the content.
 - Prefer the existing spacing rhythm: `4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24,
   28, 32`.
 - Cards use `EdgeInsets.all(18)` by default.
 - One primary action per screen. Secondary actions are outline buttons or text
   buttons.
-- The app should fit a 390×844 viewport without clipping. On tablets/desktop it
-  stays a centered phone-like column.
+- The app should fit a 390×844 viewport without clipping. On tablets and
+  desktop it widens into a centered reading column and uses the side rail.
 
 ### Components
 
@@ -145,16 +149,19 @@ Use the shared widgets before creating new ones.
   padding.
 - **`AnswerOption`** — answer choice. Height 64, radius 16, 2 px border, 22 px
   label, hard bottom shadow when idle; states are idle/correct/wrong/dimmed.
-- **`FeedbackPanel`** — bottom feedback. Soft green/red background, top radius
-  26, circular icon, title 22, subtitle 15, optional detail card, 54 px
-  continue button.
+- **`FeedbackPanel`** — bottom feedback. Solid green/red background, top radius
+  24, white circular icon, white title, optional translucent detail card, white
+  continue button with colored text.
 - **`LessonProgressBar`** — 16 px default height, rounded, 280 ms fill.
-- **`HeartsRow`** — three 26 px hearts for lessons only; practice shows a
+- **`HeartsRow`** — five 26 px hearts for lessons only; practice shows a
   `PRACTICE` label instead.
+- **`StatPill` / pill counters** — compact icon+number pills for streak, gems,
+  hearts, and XP. Use the orange flame, blue diamond, and red heart
+  consistently; the learn column shows them without borders.
 - **`Mascot`** — original green music-note character with `happy`, `cheer`, and
   `thinking` moods. Use at onboarding, empty/result states, and profile; do not
   crowd every card with it.
-- **`PageFrame`** — 520 px max-width column.
+- **`PageFrame`** — responsive centered column (600 px default, 720 px hubs).
 - **`StatPill`**, **`SectionCard`**, and the shared theme handles most stat/row
   layout.
 
@@ -183,7 +190,8 @@ The staff itself is the hero visual on lesson screens.
 
 - Use Material rounded icons (`Icons.*_rounded`) consistently.
 - Common status icons: flame for streak, bolt for XP, flag for daily goal,
-  favorite/heart for lives, mic for play, music note for notation.
+  favorite/heart for hearts, diamond for gems, mic for play, music note for
+  notation.
 - Most icons are 20–28 px; navigation icons are 26 px.
 - Icons reinforce text; they should not be the only way to understand a value
   or action.
@@ -204,8 +212,8 @@ The staff itself is the hero visual on lesson screens.
   before this one” snackbar.
 - **Correct:** green feedback, check icon, concrete note/string/fret hint.
 - **Incorrect:** red feedback, close icon, correct answer, and a recovery action.
-- **Out of lives:** clear lesson result, try-again action; practice must never
-  reach this state.
+- **Out of hearts:** clear lesson result, refill-and-retry action when gems
+  allow, back-to-path action; practice must never reach this state.
 
 ### Musical content rules
 
@@ -217,18 +225,19 @@ The staff itself is the hero visual on lesson screens.
 - String/fret hints use standard tuning and first-position-friendly choices.
 - The treble clef, staff lines, ledger lines, accidentals, and note head must
   remain musically legible before decorative styling is added.
-- There are no UI sound effects. Audio input is for pitch detection only.
+- Audio input is for pitch detection. Short original UI cues are separate from
+  the tuner and respect the Sound effects setting.
 
 ## Sound
 
 Sound is part of the design language, not an afterthought. The app uses an
-original **Warm Mallet / Practice Bell** family: marimba body, glass-bell
-rewards, muted woodblock UI clicks, and soft low error cues. It should feel
-musical and friendly, never arcade-loud or punitive.
+original **Bright Pluck** family: a short plucked synth body, glass-bell
+sparkle, dry UI blips, and soft low error cues. It should feel musical and
+friendly, never arcade-loud or punitive.
 
-- Correct/combo/complete/perfect share a C-major mallet and bell palette.
-- Wrong/octave/failed use lower, softer mallet phrases; no harsh buzzers.
-- UI taps are short and mixed lower than answer feedback.
+- Correct/combo/complete/perfect share a C-major pluck and bell palette.
+- Wrong/octave/failed use lower, softer plucked phrases; no harsh buzzers.
+- UI taps are short, dry blips mixed lower than answer feedback.
 - Never play a continuous tone while the tuner or lesson mic is listening.
 - Respect **Profile → Sound effects**; it persists independently of haptics.
 - Do not stack a tap, answer sound, and reward sound. Play one deliberate cue,
@@ -245,25 +254,38 @@ The home screen. Show the next lesson clearly, the current section and unit,
 streak, XP, and daily goal. The path is organized as sections and units, not a
 flat list.
 
-- **Section header:** a slim divider with a color bar, section number, title,
-  one sentence of intent, and section progress. It is not another card.
-  Foundations is green, First Position purple, Accidentals blue.
+- **Section header:** a large colored card with the section number, title,
+  one sentence of intent, section progress, and a compact **JUMP HERE?** test
+  action for sections 2 and 3. Foundations is green, First Position purple,
+  Accidentals blue.
 - **Unit banner:** a compact rounded banner with `UNIT n`, the unit title,
-  one-line focus, thin unit progress, and a guidebook icon. The current unit
-  uses the section color; completed units use yellow; future units stay
+  one-line focus, unit progress, and a guidebook icon. The current unit uses a
+  light tint of the section color; completed units use yellow; future units stay
   neutral. New-note lists live in the guidebook, not in the banner.
 - **Guidebook:** a bottom sheet listing the unit's notes with first-position
   string/fret hints. New notes are marked; the sheet is reference material, not
   a new lesson.
 - **Path geometry:** one continuous section curve instead of a per-unit
   restart. Units pick up the same sine at the offset where the previous unit
-  ended, so the path does not reset to center between units. Nodes are 76 px
-  circles on an 88 px vertical rhythm, joined by cubic curves.
-- **Nodes:** completed yellow check, current green mascot/START, locked neutral
-  lock, checkpoints trophy. Only current and completed lessons open. The
-  current node bobs gently and settles; motion never blocks a tap.
-- **Daily goal:** a compact strip under the top bar, not a large card. The path
-  should begin soon after the header.
+  ended, so the path does not reset to center between units. Nodes are 84 px
+  circles on a 116 px vertical rhythm, joined by cubic curves. A chest gets its
+  own 120 px slot: nodes after it slide down, so the chest never overlaps its
+  neighbors.
+- **Backdrop:** soft translucent blobs and a faint dot grid in the section
+  color sit behind the path so the route does not float on bare white.
+- **Path header:** the learn column shows compact, end-aligned icon+number
+  counters (c flame, blue diamond, red heart) with the wordmark in the side
+  rail only, then a bordered daily-goal card, then the section banner.
+- **Section banners:** large colored cards for the section; a unit banner in a
+  light tint of the section color sits underneath, and an `UP NEXT` marker
+  precedes the section after the player's current one.
+- **Nodes:** completed yellow star, current green star with a green START pill
+  above; locked nodes tint their lock toward the section color, checkpoints are
+  trophy nodes with a yellow border. A 56 px mascot stands beside the current
+  node, on the side away from the curve. Only current and completed lessons
+  open. The current node bobs gently and settles; motion never blocks a tap.
+- **Chests:** one 58 px chest per unit, occupying its own slot on the path. It
+  is locked until the lesson before it is complete, then opens once for gems.
 - **No labels under every node.** The unit banner and guidebook carry context;
   the nodes stay scannable.
 
@@ -279,7 +301,7 @@ then a feedback panel. The learner should always know:
 - whether they were right,
 - and what to do next.
 
-Show the correct string/fret on feedback. Keep the three lives visible for
+Show the correct string/fret on feedback. Keep the five hearts visible for
 lessons; show `PRACTICE` instead for practice. A checkpoint is a 15-exercise
 mixed review with trophy copy and the standard lesson flow.
 
@@ -291,7 +313,8 @@ specific repair, not a second lesson.
 
 Low-pressure drilling. The tuner is a utility; smart practice is the main event.
 Due, weak, and free practice are separate intents. Never imply a practice
-session is a test. Practice does not consume lives.
+session is a test. Practice does not consume hearts and restores one on
+completion.
 
 ### Profile
 
@@ -310,14 +333,25 @@ should reach the path in under a minute.
 - **Streak:** a daily habit signal, not a punishment. It increments on the first
   completed lesson of a local day. Practice does not advance it.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
-  practice 5. Show real earned amounts.
-- **Lives:** three per lesson. A wrong answer costs one; zero ends the lesson.
-  Practice never costs lives.
+  practice 5; jump test 20. Double XP doubles the award. Show real earned
+  amounts.
+- **Hearts:** five shared hearts. A wrong lesson answer costs one; zero ends the
+  lesson. One heart regenerates every four hours, practice restores one, and a
+  350-gem refill fills all five. Practice never costs hearts.
+- **Gems:** earned from chests and claimed daily quests. Spent only in the
+  local shop on heart refills, streak freezes, and double XP.
+- **Chests:** one per unit, unlocked by the lesson before it, opened once.
+- **Daily quests:** complete a lesson, answer ten notes, and build a five-answer
+  combo. Each pays gems once per local day.
+- **Streak freeze:** up to two equipped; one protects a missed day.
 - **Daily goal:** 10/20/30 XP, tracked per local day.
 - **Combo:** positive feedback only; do not add a combo loss mechanic.
 - **Level:** `xp ~/ 100 + 1`; do not invent a separate progression currency.
-- **No leaderboards, leagues, friend duels, ads, subscriptions, or social
-  pressure.** Those are explicit non-goals.
+- **Jump ahead:** a 15-exercise test can unlock earlier sections without
+  deleting note progress.
+- **No leaderboards, leagues, friend duels, ads, subscriptions, real-money
+  purchases, or social pressure.** Those are explicit non-goals. The shop is a
+  closed gem economy, not a storefront.
 
 ## Copy and tone
 

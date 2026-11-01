@@ -387,6 +387,41 @@ final Map<String, UnitDefinition> unitById = {
   for (final unit in curriculum) unit.id: unit,
 };
 
+/// A chest sits on the path after [afterLessonId] and unlocks with it.
+class ChestDefinition {
+  const ChestDefinition({
+    required this.id,
+    required this.unitId,
+    required this.afterLessonId,
+    required this.gems,
+  });
+
+  final String id;
+  final String unitId;
+  final String afterLessonId;
+  final int gems;
+}
+
+const List<ChestDefinition> chests = [
+  ChestDefinition(id: 'u1c1', unitId: 'u1', afterLessonId: 'u1l2', gems: 20),
+  ChestDefinition(id: 'u2c1', unitId: 'u2', afterLessonId: 'u2l2', gems: 25),
+  ChestDefinition(id: 'u3c1', unitId: 'u3', afterLessonId: 'u3l2', gems: 30),
+  ChestDefinition(id: 'u4c1', unitId: 'u4', afterLessonId: 'u4l2', gems: 40),
+  ChestDefinition(id: 'u5c1', unitId: 'u5', afterLessonId: 'u5l2', gems: 50),
+  ChestDefinition(id: 'u6c1', unitId: 'u6', afterLessonId: 'u6l2', gems: 60),
+];
+
+final Map<String, ChestDefinition> chestById = {
+  for (final chest in chests) chest.id: chest,
+};
+
+ChestDefinition? chestForUnit(String unitId) {
+  for (final chest in chests) {
+    if (chest.unitId == unitId) return chest;
+  }
+  return null;
+}
+
 /// Every note that can appear as an answer option.
 final List<Note> noteCatalog = _uniqueNotes([
   ..._allNaturalNotes,

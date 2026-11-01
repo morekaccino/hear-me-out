@@ -80,6 +80,8 @@ class AppController extends AsyncNotifier<AppData> {
     } catch (_) {
       progress = ProgressState.fresh();
     }
+    progress.refreshHearts(DateTime.now());
+    progress.refreshDaily(DateTime.now());
     _applySoundSettings(progress.settings);
     return AppData(progress: progress);
   }
@@ -131,6 +133,7 @@ class AppController extends AsyncNotifier<AppData> {
       exercises: exercises,
       isPractice: false,
     );
+    run.lives = data.progress.hearts;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
   }
 
@@ -163,6 +166,56 @@ class AppController extends AsyncNotifier<AppData> {
       isPractice: true,
       practiceTitle: title,
     );
+    run.lives = data.progress.hearts;
+    state = AsyncData(data.copyWith(run: run, clearResult: true));
+  }
+
+  /// Starts a 15-exercise test of the material before [sectionId]. Passing it
+  /// marks every earlier lesson complete, mirroring Duolingo's jump-ahead.
+  void startJumpTest({
+    required String sectionId,
+    required bool micAvailable,
+  }) {
+    final sectionIndex = sections.indexWhere(
+      (section) => section.id == sectionId,
+    );
+    if (sectionIndex <= 0) return;
+    _lastMicAvailable = micAvailable;
+    final data = _data;
+    final notes = <Note>[];
+    final seen = <String>{};
+    for (var index = 0; index < sectionIndex; index++) {
+      for (final unit in sections[index].units) {
+        for (final lesson in unit.lessons) {
+          for (final note in [...lesson.newNotes, ...lesson.reviewNotes]) {
+            if (seen.add(note.id)) notes.add(note);
+          }
+        }
+      }
+    }
+    final lesson = LessonDefinition(
+      id: 'jump_$sectionId',
+      unitId: 'jump',
+      title: 'Jump ahead test',
+      newNotes: const [],
+      reviewNotes: notes,
+      isReview: true,
+    );
+    final exercises = buildLessonExercises(
+      lesson: lesson,
+      progress: data.progress,
+      now: DateTime.now(),
+      micAvailable: micAvailable,
+      mode: data.progress.settings.answerMode,
+    );
+    final run = LessonRun(
+      lesson: lesson,
+      exercises: exercises,
+      isPractice: false,
+      isJumpTest: true,
+      jumpTargetSectionId: sectionId,
+    );
+    run.lives = data.progress.hearts;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
   }
 
@@ -177,10 +230,11 @@ class AppController extends AsyncNotifier<AppData> {
     if (run == null || run.awaitingNext || run.isFinished) return;
 
     final target = run.current.note;
+    final now = DateTime.now();
     data.progress.recordAnswer(
       note: target,
       correctAnswer: correct,
-      now: DateTime.now(),
+      now: now,
       absCents: cents,
     );
 
@@ -195,12 +249,14 @@ class AppController extends AsyncNotifier<AppData> {
       run.correct++;
       run.combo++;
       run.bestCombo = run.bestCombo < run.combo ? run.combo : run.bestCombo;
+      data.progress.recordDailyCombo(run.combo, now);
     } else {
       run.wrong++;
       run.combo = 0;
       run.queueMistake(run.current);
       if (!run.isPractice) {
-        run.lives = run.lives > 0 ? run.lives - 1 : 0;
+        data.progress.loseHeart(now);
+        run.lives = data.progress.hearts;
       }
     }
 
@@ -245,16 +301,24 @@ class AppController extends AsyncNotifier<AppData> {
     final streakBefore = data.progress.effectiveStreak;
     final alreadyCompleted = !run.isPractice &&
         data.progress.completedLessons.contains(run.lesson.id);
+    final multiplier = data.progress.xpMultiplierAt(now);
     var earnedXp = 0;
 
     if (run.isPractice) {
       if (passed) {
-        earnedXp = run.earnedXp;
+        earnedXp = run.earnedXp * multiplier;
         data.progress.addXp(earnedXp, now);
+        data.progress.recordPractice(now);
+        // Practice is the free way back into a lesson when hearts run low.
+        data.progress.gainHeart(now);
       }
     } else if (passed) {
       earnedXp = alreadyCompleted ? 5 : run.earnedXp;
       if (alreadyCompleted && run.wrong == 0) earnedXp += 3;
+      earnedXp *= multiplier;
+      if (run.isJumpTest && run.jumpTargetSectionId != null) {
+        _unlockSectionsBefore(run.jumpTargetSectionId!, data.progress);
+      }
       data.progress.completeLesson(
         lessonId: run.lesson.id,
         accuracy: accuracy,
@@ -287,7 +351,9 @@ class AppController extends AsyncNotifier<AppData> {
       leveledUp: earnedXp > 0 && data.progress.level > levelBefore,
       dailyGoalReached:
           earnedXp > 0 && !goalBefore && data.progress.xpTodayForDisplay >= goal,
-      lessonUnlocked: passed && !run.isPractice && !alreadyCompleted,
+      lessonUnlocked: passed &&
+          !run.isPractice &&
+          (run.isJumpTest || !alreadyCompleted),
       streakAdvanced: passed && !run.isPractice && streakAfter > streakBefore,
       streakMilestone:
           passed &&
@@ -321,9 +387,85 @@ class AppController extends AsyncNotifier<AppData> {
         kind: result.lessonId.replaceFirst('practice_', ''),
         micAvailable: _lastMicAvailable,
       );
+    } else if (result.lessonId.startsWith('jump_')) {
+      startJumpTest(
+        sectionId: result.lessonId.replaceFirst('jump_', ''),
+        micAvailable: _lastMicAvailable,
+      );
     } else {
       startLesson(result.lessonId, micAvailable: _lastMicAvailable);
     }
+  }
+
+  void _unlockSectionsBefore(String sectionId, ProgressState progress) {
+    final sectionIndex = sections.indexWhere(
+      (section) => section.id == sectionId,
+    );
+    if (sectionIndex <= 0) return;
+    for (var index = 0; index < sectionIndex; index++) {
+      for (final unit in sections[index].units) {
+        for (final lesson in unit.lessons) {
+          progress.completedLessons.add(lesson.id);
+          progress.bestLessonAccuracy[lesson.id] =
+              progress.bestLessonAccuracy[lesson.id] ?? 1;
+        }
+      }
+    }
+  }
+
+  Future<bool> openChest(String chestId) async {
+    final chest = chestById[chestId];
+    if (chest == null) return false;
+    final data = _data;
+    final opened = data.progress.openChest(chest.id, chest.gems);
+    if (!opened) return false;
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+    return true;
+  }
+
+  Future<bool> claimQuest(String questId) async {
+    QuestDefinition? quest;
+    for (final candidate in dailyQuestDefinitions) {
+      if (candidate.id == questId) {
+        quest = candidate;
+        break;
+      }
+    }
+    if (quest == null) return false;
+    final data = _data;
+    final claimed = data.progress.claimQuest(quest, DateTime.now());
+    if (!claimed) return false;
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+    return true;
+  }
+
+  Future<bool> buyHeartRefill() async {
+    final data = _data;
+    final bought = data.progress.refillHearts(DateTime.now());
+    if (!bought) return false;
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+    return true;
+  }
+
+  Future<bool> buyStreakFreeze() async {
+    final data = _data;
+    final bought = data.progress.buyStreakFreeze();
+    if (!bought) return false;
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+    return true;
+  }
+
+  Future<bool> buyXpBoost() async {
+    final data = _data;
+    final bought = data.progress.buyXpBoost(DateTime.now());
+    if (!bought) return false;
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+    return true;
   }
 
   Future<void> resetProgress() async {

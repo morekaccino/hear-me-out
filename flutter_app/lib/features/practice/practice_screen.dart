@@ -177,18 +177,70 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
       body: SafeArea(
         bottom: false,
         child: PageFrame(
+          maxWidth: 720,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
             children: [
-              const Text(
-                'Practice',
-                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Practice',
+                      style: TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  StatPill(
+                    icon: Icons.favorite_rounded,
+                    value: '${progress.hearts}',
+                    iconColor: AppColors.red,
+                  ),
+                  const SizedBox(width: 12),
+                  StatPill(
+                    icon: Icons.diamond_rounded,
+                    value: '${progress.gems}',
+                    iconColor: AppColors.blue,
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               const Text(
                 'Tune up, then drill the notes that need work.',
                 style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
+              if (progress.hearts < maxHearts) ...[
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.redSoft,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.red, width: 1.5),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.favorite_rounded,
+                        color: AppColors.red,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Finish any practice session to earn one heart back.',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.redDark,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               _TunerCard(
                 selectedString: _selectedString,
