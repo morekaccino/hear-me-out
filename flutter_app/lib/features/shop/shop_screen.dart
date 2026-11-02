@@ -30,7 +30,7 @@ class ShopScreen extends ConsumerWidget {
         child: PageFrame(
           maxWidth: 720,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               Row(
                 children: [
@@ -59,7 +59,7 @@ class ShopScreen extends ConsumerWidget {
                   color: AppColors.textMuted,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               _ShopCard(
                 icon: Icons.favorite_rounded,
                 color: AppColors.red,
@@ -90,7 +90,7 @@ class ShopScreen extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _ShopCard(
                 icon: Icons.ac_unit_rounded,
                 color: AppColors.blue,
@@ -122,7 +122,7 @@ class ShopScreen extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _ShopCard(
                 icon: Icons.bolt_rounded,
                 color: AppColors.yellowDark,
@@ -151,7 +151,7 @@ class ShopScreen extends ConsumerWidget {
                   );
                 },
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -167,7 +167,7 @@ class ShopScreen extends ConsumerWidget {
                       color: AppColors.textMuted,
                       size: 20,
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Everything here is bought with gems earned in the app. There are no real-money purchases, subscriptions, ads, or accounts.',
@@ -230,7 +230,7 @@ class _ShopCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 2),
         boxShadow: [
           BoxShadow(
@@ -251,7 +251,7 @@ class _ShopCard extends StatelessWidget {
             ),
             child: Icon(icon, color: color, size: 30),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -281,7 +281,7 @@ class _ShopCard extends StatelessWidget {
                       size: 15,
                       color: AppColors.blue,
                     ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 4),
                     Text(
                       '$price',
                       style: const TextStyle(
@@ -295,7 +295,7 @@ class _ShopCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           SizedBox(
             width: 104,
             child: DuoButton(

@@ -19,8 +19,9 @@ fret 3.
 
 ## 2. Curriculum
 
-The course has **3 sections, 6 units, and 25 lessons**. Units alternate between
-staff reading, string groups, a mixed first-position unit, and accidentals.
+The course has **5 sections, 10 units, and 40 lessons**. Units cover staff
+reading, string groups, first position, accidentals, meters and keys, capo,
+open chords, and rhythm.
 
 | Section | Unit | Focus | Lessons |
 |---|---|---|---|
@@ -30,40 +31,61 @@ staff reading, string groups, a mixed first-position unit, and accidentals.
 | First Position | 4. Low Strings | Low E/A strings | A/B, low E/F, G below, low-string review |
 | First Position | 5. First Position | Mix all six strings | lower half, upper half, full position, checkpoint |
 | Accidentals | 6. Accidentals | Sharps and flats | F♯, C♯, B♭, accidental review |
+| Harmony | 7. Counting and Keys | Meters and key signatures | beats and bars, G/F, D and 6/8, checkpoint |
+| Harmony | 8. Capo | Move shapes into new keys | capo two and three, checkpoint |
+| Harmony | 9. Open Chords | Read chord diagrams | G/C, D/Em, Am/E, checkpoint |
+| Rhythm | 10. Pulse | Hold a beat and tap what you read | quarters/halves, long and short, rests and waltz, strum feel, checkpoint |
 
-Each normal lesson introduces at most two notes. A new note gets **4 exposures**
-while it is still in box 0–1. Every unit ends with a 15-exercise checkpoint with
-no new notes. Review material deliberately reappears across units.
+Each normal lesson introduces at most two objectives. A note gets **4 exposures**
+while it is still in box 0–1; topic objectives get **3**. Those exposures always
+use different question shapes. Every unit ends with a 15-slot checkpoint with no
+new objectives. Review material deliberately reappears across units.
 
 ## 3. Session planner
 
-`buildLessonExercises` creates exactly **12 exercises** for a normal lesson and
-**15** for a checkpoint:
+A session is built in three pure steps: a **shape**, a **composer**, and a
+**validator**.
 
-1. Put four copies of each new note into the pool.
-2. Fill the remaining slots with a **review quota** from prior notes: due first,
-   weak second, then recently seen notes. A normal lesson has at least four
-   review slots when prior material exists.
-3. Arrange the pool so the most frequent note comes first and the same note is
-   not reused within the last two positions when an alternative exists.
-4. Mark the first four occurrences of each new note as new exposures 0–3.
-5. Assign answer modes:
-   - No mic or Name mode: every exercise is naming.
-   - Play mode: every exercise is playing.
-   - Mixed: the first exposure of a new note is naming; later exercises split
-     between naming and playing, with at least three play exercises when
-     possible.
-6. Build four plausible answer choices for naming exercises. Natural-note
-   questions never show accidentals; accidental questions may show the natural
-   neighbor.
+`SessionShape` decides how many slots a session has (up to 12 normal, 15
+checkpoint), how many objectives are new, and how many slots are left for
+review. The session factory caps the length at `distinct objectives x
+exposures`, with an 8-slot floor, so a two-note lesson does not ask the same
+note six times.
+
+`SessionComposer` fills the slots from a ranked pool of objectives:
+
+1. Each new objective gets four exposures: a **teach card**, a **guided
+   attempt**, and two independent applications.
+2. Remaining slots are a review quota from prior objectives: due first, weak
+   second, then recently seen. A normal lesson has at least four review slots
+   when prior material exists.
+3. Objectives are interleaved so the same one is not reused within the last two
+   positions when an alternative exists.
+4. Each objective's exposures rotate through different question shapes. A note
+   might be taught, then named, then placed on the staff, then played. The
+   composer never asks the same shape twice in a row for one objective.
+5. An answer surface is chosen per slot:
+   - No mic or Name mode: every scored slot is naming.
+   - Play mode: every scored slot is playing.
+   - Mixed: the teach card is ungraded, the guided attempt is naming, and later
+     slots alternate with at least three play exercises when possible.
+
+Teach cards show the note on the staff with its name and fretboard position and
+are never scored, so meeting a new note cannot cost a heart. Guided attempts
+offer three options, including one deliberately distant choice, so the first
+attempt is a choice between ideas rather than between neighbouring staff steps.
+
+`SessionValidator` asserts the pacing rules on every generated session: slot
+count, teach-before-question, one teach card per objective, and objective
+spacing. Add a rule there before adding a new question style.
 
 If a note is answered incorrectly, it is added to a **mistake queue**. The base
 lesson is completed first, then the missed notes return in a short “Mistake
-review” phase at the end. Each distinct missed note is retried once, capped at
-four retries per session.
+review” phase at the end. Each distinct note is retried once, capped at four
+retries per session.
 
-Practice sessions use the same planner without new notes and also use 12
-exercises. They draw from due notes, weak notes, or every learned note.
+Practice sessions use the same planner without new objectives and also use 12
+slots. They draw from due notes, weak notes, or every learned note.
 
 ## 4. Spaced repetition
 

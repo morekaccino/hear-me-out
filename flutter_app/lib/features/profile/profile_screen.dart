@@ -44,7 +44,7 @@ class ProfileScreen extends ConsumerWidget {
         child: PageFrame(
           maxWidth: 720,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               Row(
                 children: [
@@ -79,13 +79,13 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
                 childAspectRatio: 2.15,
                 children: [
                   _StatCard(
@@ -139,7 +139,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const Text(
                 'Your notes',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
@@ -153,7 +153,7 @@ class ProfileScreen extends ConsumerWidget {
                   color: AppColors.textMuted,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               SectionCard(
                 child: notes.isEmpty
                     ? Text(
@@ -176,12 +176,12 @@ class ProfileScreen extends ConsumerWidget {
                         ],
                       ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const Text(
                 'Settings',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               SectionCard(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -323,7 +323,7 @@ class ProfileScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -338,7 +338,7 @@ class ProfileScreen extends ConsumerWidget {
                       color: AppColors.blueDark,
                       size: 20,
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'No account. No cloud. Your progress, streak, and settings stay on this device. Audio is analyzed live and never recorded.',
@@ -544,7 +544,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
@@ -606,7 +606,7 @@ class _NoteChip extends StatelessWidget {
         ? AppColors.blue
         : AppColors.textMuted;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
@@ -623,7 +623,7 @@ class _NoteChip extends StatelessWidget {
               color: color,
             ),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           for (var box = 1; box <= 5; box++)
             Container(
               width: 4,

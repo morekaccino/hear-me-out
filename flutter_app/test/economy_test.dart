@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
-import 'package:hear_me_out/core/learning/session_builder.dart';
+import 'package:hear_me_out/core/learning/lesson_run.dart';
 import 'package:hear_me_out/core/music/curriculum.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';

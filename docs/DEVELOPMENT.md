@@ -45,7 +45,7 @@ flutter build web --release
 Useful focused commands:
 
 ```powershell
-flutter test test/session_builder_test.dart
+flutter test test/session_factory_test.dart
 flutter test test/microphone_flow_test.dart
 flutter analyze lib/features/lesson/lesson_screen.dart
 ```

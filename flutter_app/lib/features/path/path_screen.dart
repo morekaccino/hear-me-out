@@ -9,7 +9,9 @@ import '../../core/music/curriculum.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
 import '../../shared/audio/sound_service.dart';
+import '../../shared/navigation/duo_route.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../state/app_controller.dart';
@@ -17,6 +19,7 @@ import '../../state/providers.dart';
 import '../lesson/lesson_screen.dart';
 import 'learn_rail.dart';
 import 'path_layout.dart';
+import 'path_node.dart';
 
 class PathScreen extends ConsumerWidget {
   const PathScreen({super.key, this.onOpenQuests});
@@ -63,7 +66,12 @@ class PathScreen extends ConsumerWidget {
                   child: SizedBox(
                     height: _counterSlot,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+                      padding: const EdgeInsets.fromLTRB(
+                        DuoSpacing.md,
+                        DuoSpacing.sm,
+                        DuoSpacing.md,
+                        DuoSpacing.xs,
+                      ),
                       child: PathCounters(
                         streak: progress.effectiveStreak,
                         gems: progress.gems,
@@ -116,11 +124,16 @@ class PathScreen extends ConsumerWidget {
                                     .read(soundServiceProvider)
                                     .play(Sfx.uiLocked),
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Finish the lesson before this one first.',
-                                  ),
+                              unawaited(
+                                _showLockedSheet(
+                                  context,
+                                  ref,
+                                  title: 'Lesson locked',
+                                  message: currentLesson == null
+                                      ? 'Finish the earlier lessons to unlock this one.'
+                                      : 'Finish “${currentLesson.title}” first. Lessons unlock one at a time.',
+                                  next: currentLesson,
+                                  progress: progress,
                                 ),
                               );
                               return;
@@ -132,9 +145,13 @@ class PathScreen extends ConsumerWidget {
                     ],
                   ),
               ],
-              const SliverToBoxAdapter(child: SizedBox(height: 28)),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: DuoSpacing.xl),
+              ),
               const SliverToBoxAdapter(child: _FooterNote()),
-              const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: DuoSpacing.xl),
+              ),
             ];
 
             final scroll = _StickyPath(
@@ -279,6 +296,104 @@ class PathScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _showLockedSheet(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required String message,
+    required ProgressState progress,
+    LessonDefinition? next,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.all(DuoSpacing.md),
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.border, width: 2),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.borderStrong,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: DuoSpacing.lg),
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.redSoft,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.lock_rounded,
+                      color: AppColors.redDark,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: DuoSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: DuoSpacing.sm),
+              Text(
+                message,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: DuoSpacing.lg),
+              if (next != null) ...[
+                DuoButton(
+                  label: 'START “${next.title.toUpperCase()}”',
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    unawaited(_launchLesson(context, ref, next, progress));
+                  },
+                  color: AppColors.green,
+                ),
+                const SizedBox(height: DuoSpacing.xs),
+              ],
+              OutlineDuoButton(
+                label: next == null ? 'GOT IT' : 'NOT NOW',
+                onPressed: () => Navigator.pop(sheetContext),
+                color: AppColors.textMuted,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _launchLesson(
     BuildContext context,
     WidgetRef ref,
@@ -383,7 +498,7 @@ class PathScreen extends ConsumerWidget {
         .startJumpTest(sectionId: section.id, micAvailable: micAvailable);
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const LessonScreen()));
+    ).push(duoLessonRoute<void>((_) => const LessonScreen()));
   }
 
   Future<void> _openChest(
@@ -394,10 +509,16 @@ class PathScreen extends ConsumerWidget {
   ) async {
     if (!progress.completedLessons.contains(chest.afterLessonId)) {
       unawaited(ref.read(soundServiceProvider).play(Sfx.uiLocked));
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Finish the lesson before this chest first.'),
-        ),
+      final next = lessonById[chest.afterLessonId];
+      await _showLockedSheet(
+        context,
+        ref,
+        title: 'Chest locked',
+        message: next == null
+            ? 'Finish the earlier lesson to open this chest.'
+            : 'Finish “${next.title}” to open this chest.',
+        next: next,
+        progress: progress,
       );
       return;
     }
@@ -414,7 +535,7 @@ class PathScreen extends ConsumerWidget {
         content: Row(
           children: [
             const Icon(Icons.diamond_rounded, color: AppColors.blue, size: 30),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               '+${chest.gems} gems',
               style: const TextStyle(
@@ -473,11 +594,11 @@ class PathScreen extends ConsumerWidget {
     controller.startLesson(lessonId, micAvailable: micAvailable);
     await Navigator.of(
       context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const LessonScreen()));
+    ).push(duoLessonRoute<void>((_) => const LessonScreen()));
   }
 }
 
-const double _counterSlot = 56;
+const double _counterSlot = 64;
 
 class _StickyPath extends StatefulWidget {
   const _StickyPath({required this.initialOffset, required this.child});
@@ -528,7 +649,7 @@ class _UnitBannerDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback onGuidebook;
   final double? backOffset;
 
-  static const double extent = 88;
+  static const double extent = 80;
 
   @override
   double get minExtent => extent;
@@ -546,7 +667,12 @@ class _UnitBannerDelegate extends SliverPersistentHeaderDelegate {
     return ColoredBox(
       color: AppColors.background,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        padding: const EdgeInsets.fromLTRB(
+          DuoSpacing.md,
+          DuoSpacing.xs,
+          DuoSpacing.md,
+          DuoSpacing.xs,
+        ),
         child: _UnitBanner(
           unit: unit,
           section: section,
@@ -587,7 +713,8 @@ class _UnitBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = duoUnitColor(unit.number).face;
+    final unitColor = duoUnitColor(unit.number);
+    final color = unitColor.face;
     final compact = MediaQuery.sizeOf(context).width < 480;
     final guidebookBorder = Border.all(
       color: Colors.white.withValues(alpha: 0.85),
@@ -595,14 +722,23 @@ class _UnitBanner extends StatelessWidget {
     );
     return Container(
       padding: EdgeInsets.fromLTRB(
-        compact ? 8 : (backOffset == null ? 18 : 10),
+        compact
+            ? DuoSpacing.xs
+            : (backOffset == null ? DuoSpacing.md : DuoSpacing.xs),
         0,
-        8,
+        DuoSpacing.xs,
         0,
       ),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: unitColor.dark,
+            offset: const Offset(0, 4),
+            blurRadius: 0,
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -658,8 +794,8 @@ class _UnitBanner extends StatelessWidget {
             scale: 0.94,
             child: compact
                 ? Container(
-                    width: 38,
-                    height: 38,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: guidebookBorder,
@@ -671,10 +807,12 @@ class _UnitBanner extends StatelessWidget {
                     ),
                   )
                 : Container(
-                    height: 42,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DuoSpacing.md,
+                    ),
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(DuoSpacing.sm),
                       border: guidebookBorder,
                     ),
                     child: Row(
@@ -684,7 +822,7 @@ class _UnitBanner extends StatelessWidget {
                           size: 20,
                           color: Colors.white,
                         ),
-                        const SizedBox(width: 7),
+                        const SizedBox(width: DuoSpacing.xs),
                         Text(
                           'GUIDEBOOK',
                           style: TextStyle(
@@ -758,16 +896,17 @@ class _SectionBreak extends StatelessWidget {
   final VoidCallback onJump;
 
   static const double _upNextSlot = 40;
-  static const double _titleSlot = 28;
+  static const double _titleSlot = 32;
+  static const double _jumpSlot = 56;
 
   static double heightFor({required bool isUpNext}) =>
-      (isUpNext ? _upNextSlot : 12) + _titleSlot + 54;
+      (isUpNext ? _upNextSlot : DuoSpacing.md) + _titleSlot + _jumpSlot;
 
   @override
   Widget build(BuildContext context) {
     final dark = _sectionDark(section.number);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
+      padding: const EdgeInsets.symmetric(horizontal: DuoSpacing.md),
       child: Column(
         children: [
           if (isUpNext)
@@ -776,7 +915,7 @@ class _SectionBreak extends StatelessWidget {
               child: _UpNextLabel(),
             )
           else
-            const SizedBox(height: 12),
+            const SizedBox(height: DuoSpacing.md),
           SizedBox(
             height: _titleSlot,
             child: Row(
@@ -810,14 +949,16 @@ class _SectionBreak extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 54,
+            height: _jumpSlot,
             child: Center(
               child: _Pressable(
                 onTap: onJump,
                 scale: 0.94,
                 child: Container(
-                  height: 42,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DuoSpacing.md,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.background,
                     borderRadius: BorderRadius.circular(12),
@@ -915,9 +1056,6 @@ class _LessonPath extends StatelessWidget {
         final chestPosition = layout.chestPosition;
         final chestUnlocked =
             chest != null && completed.contains(chest.afterLessonId);
-        final unitColor = duoUnitColor(unit.number);
-        final accent = unitColor.face;
-        final accentDark = unitColor.dark;
 
         return SizedBox(
           height: layout.height,
@@ -929,12 +1067,12 @@ class _LessonPath extends StatelessWidget {
                 Positioned(
                   left: node.position.dx - PathLayout.nodeSize / 2,
                   top: node.position.dy - PathLayout.nodeHeight / 2,
-                  child: _LessonNode(
+                  child: LessonNode(
                     lesson: node.lesson,
                     completed: completed.contains(node.lesson.id),
                     current: node.lesson.id == currentLessonId,
-                    accent: accent,
-                    accentDark: accentDark,
+                    unitNumber: unit.number,
+                    index: node.index,
                     onTap: () => onLessonTap(node.lesson),
                   ),
                 ),
@@ -942,7 +1080,7 @@ class _LessonPath extends StatelessWidget {
                 Positioned(
                   left: chestPosition.dx - PathLayout.chestSize / 2,
                   top: chestPosition.dy - PathLayout.chestSize / 2,
-                  child: _ChestNode(
+                  child: ChestNode(
                     chest: chest,
                     unlocked: chestUnlocked,
                     opened: openedChests.contains(chest.id),
@@ -960,363 +1098,6 @@ class _LessonPath extends StatelessWidget {
 
 }
 
-class _ChestNode extends StatelessWidget {
-  const _ChestNode({
-    required this.chest,
-    required this.unlocked,
-    required this.opened,
-    required this.onTap,
-  });
-
-  final ChestDefinition chest;
-  final bool unlocked;
-  final bool opened;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: opened
-          ? 'Chest opened'
-          : unlocked
-          ? 'Open chest'
-          : 'Locked chest',
-      excludeSemantics: true,
-      child: GestureDetector(
-        onTap: onTap,
-        child: CustomPaint(
-          size: const Size(
-            PathLayout.chestSize,
-            PathLayout.chestSize,
-          ),
-          painter: _ChestPainter(opened: opened, unlocked: unlocked),
-        ),
-      ),
-    );
-  }
-}
-
-class _LessonNode extends StatefulWidget {
-  const _LessonNode({
-    required this.lesson,
-    required this.completed,
-    required this.current,
-    required this.accent,
-    required this.accentDark,
-    required this.onTap,
-  });
-
-  final LessonDefinition lesson;
-  final bool completed;
-  final bool current;
-  final Color accent;
-  final Color accentDark;
-  final VoidCallback onTap;
-
-  @override
-  State<_LessonNode> createState() => _LessonNodeState();
-}
-
-class _LessonNodeState extends State<_LessonNode> {
-  bool _hovered = false;
-  bool _pressed = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final isReview = widget.lesson.isReview;
-    final reached = widget.completed || widget.current;
-    final face = reached ? widget.accent : AppColors.border;
-    final base = Color.lerp(face, Colors.black, 0.1)!;
-    final hoverFace = Color.lerp(
-      face,
-      Colors.white,
-      AppColors.isDark ? 0.08 : 0.06,
-    )!;
-    final markColor = reached ? Colors.white : AppColors.textLight;
-    const width = PathLayout.nodeSize;
-    const height = PathLayout.faceHeight;
-    const baseTop = PathLayout.nodeHeight - PathLayout.faceHeight;
-    final ellipse = BorderRadius.all(
-      Radius.elliptical(width / 2, height / 2),
-    );
-
-    final node = SizedBox(
-      width: width,
-      height: PathLayout.nodeHeight,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.topCenter,
-        children: [
-          if (widget.current) ...[
-            Positioned(
-              top: -5,
-              child: Container(
-                width: width + 12,
-                height: height + 13,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.all(
-                    Radius.elliptical((width + 12) / 2, (height + 13) / 2),
-                  ),
-                  border: Border.all(color: AppColors.border, width: 2),
-                ),
-              ),
-            ),
-            Positioned(
-              top: -44,
-              left: -28,
-              right: -28,
-              child: Center(
-                child: GestureDetector(
-                  onTap: widget.onTap,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: widget.accent,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: widget.accentDark,
-                              offset: const Offset(0, 3),
-                              blurRadius: 0,
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          'START',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.6,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      CustomPaint(
-                        size: const Size(14, 7),
-                        painter: _StartTailPainter(widget.accent),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-          Positioned(
-            top: baseTop,
-            child: Container(
-              width: width,
-              height: height,
-              decoration: BoxDecoration(color: base, borderRadius: ellipse),
-            ),
-          ),
-          Positioned(
-            top: 0,
-            child: Semantics(
-              button: true,
-              label: isReview
-                  ? 'Unit checkpoint: ${widget.lesson.title}'
-                  : 'Lesson: ${widget.lesson.title}',
-              excludeSemantics: true,
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                onEnter: (_) => setState(() => _hovered = true),
-                onExit: (_) => setState(() => _hovered = false),
-                child: GestureDetector(
-                  key: widget.current
-                      ? const ValueKey('current-lesson-node')
-                      : null,
-                  onTapDown: (_) => setState(() => _pressed = true),
-                  onTapCancel: () => setState(() => _pressed = false),
-                  onTapUp: (_) => setState(() => _pressed = false),
-                  onTap: widget.onTap,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: width,
-                    height: height,
-                    decoration: BoxDecoration(
-                      color: _hovered ? hoverFace : face,
-                      borderRadius: ellipse,
-                    ),
-                    child: Icon(
-                      isReview
-                          ? Icons.emoji_events_rounded
-                          : widget.current
-                          ? Icons.star_rounded
-                          : Icons.music_note_rounded,
-                      color: markColor,
-                      size: widget.current ? 36 : 32,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 380),
-      curve: Curves.easeOut,
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.scale(scale: 0.88 + 0.12 * value, child: child),
-      ),
-      child: AnimatedScale(
-        scale: _pressed ? 0.94 : _hovered ? 1.04 : 1,
-        duration: const Duration(milliseconds: 120),
-        curve: Curves.easeOut,
-        child: widget.current ? _Bobbing(child: node) : node,
-      ),
-    );
-  }
-}
-
-class _Bobbing extends StatefulWidget {
-  const _Bobbing({required this.child});
-
-  final Widget child;
-
-  @override
-  State<_Bobbing> createState() => _BobbingState();
-}
-
-class _BobbingState extends State<_Bobbing>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 800),
-  )..repeat(reverse: true, count: 2);
-  late final Animation<double> _bob = CurvedAnimation(
-    parent: _controller,
-    curve: Curves.easeInOut,
-  );
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _bob,
-      child: widget.child,
-      builder: (context, child) => Transform.translate(
-        offset: Offset(0, -3 * _bob.value),
-        child: child,
-      ),
-    );
-  }
-}
-
-class _StartTailPainter extends CustomPainter {
-  const _StartTailPainter(this.color);
-
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(covariant _StartTailPainter oldDelegate) =>
-      oldDelegate.color != color;
-}
-
-class _ChestPainter extends CustomPainter {
-  const _ChestPainter({required this.opened, required this.unlocked});
-
-  final bool opened;
-  final bool unlocked;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final width = size.width;
-    final height = size.height;
-    final body = unlocked
-        ? AppColors.yellow
-        : opened
-        ? AppColors.surface
-        : AppColors.border;
-    final edge = unlocked
-        ? AppColors.yellowDark
-        : opened
-        ? AppColors.borderStrong
-        : AppColors.textLight;
-
-    final lid = RRect.fromRectAndRadius(
-      Rect.fromLTWH(width * 0.14, height * 0.24, width * 0.72, height * 0.26),
-      const Radius.circular(7),
-    );
-    canvas
-      ..drawCircle(
-        Offset(width / 2, height / 2),
-        width / 2,
-        Paint()..color = AppColors.background,
-      )
-      ..drawRRect(lid.shift(const Offset(0, 3)), Paint()..color = edge)
-      ..drawRRect(lid, Paint()..color = body)
-      ..drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            width * 0.14,
-            height * 0.48,
-            width * 0.72,
-            height * 0.3,
-          ),
-          const Radius.circular(6),
-        ),
-        Paint()..color = body,
-      )
-      ..drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            width * 0.42,
-            height * 0.45,
-            width * 0.16,
-            height * 0.2,
-          ),
-          const Radius.circular(3),
-        ),
-        Paint()..color = edge,
-      );
-    if (opened) {
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(
-            width * 0.2,
-            height * 0.52,
-            width * 0.6,
-            height * 0.22,
-          ),
-          const Radius.circular(4),
-        ),
-        Paint()..color = AppColors.background,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _ChestPainter oldDelegate) =>
-      oldDelegate.opened != opened || oldDelegate.unlocked != unlocked;
-}
 
 class _GuidebookSheet extends StatelessWidget {
   const _GuidebookSheet({required this.unit});
@@ -1340,8 +1121,18 @@ class _GuidebookSheet extends StatelessWidget {
         constraints: BoxConstraints(
           maxHeight: MediaQuery.sizeOf(context).height * 0.78,
         ),
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+        margin: const EdgeInsets.fromLTRB(
+          DuoSpacing.md,
+          0,
+          DuoSpacing.md,
+          DuoSpacing.md,
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          DuoSpacing.lg,
+          DuoSpacing.md,
+          DuoSpacing.lg,
+          DuoSpacing.lg,
+        ),
         decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.circular(24),
@@ -1353,7 +1144,7 @@ class _GuidebookSheet extends StatelessWidget {
           children: [
             Center(
               child: Container(
-                width: 38,
+                width: 40,
                 height: 4,
                 decoration: BoxDecoration(
                   color: AppColors.borderStrong,
@@ -1361,7 +1152,7 @@ class _GuidebookSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: DuoSpacing.md),
             Text(
               'UNIT ${unit.number} GUIDEBOOK',
               style: TextStyle(
@@ -1378,7 +1169,7 @@ class _GuidebookSheet extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: DuoSpacing.xs),
             Text(
               unit.focus,
               style: TextStyle(
@@ -1388,25 +1179,26 @@ class _GuidebookSheet extends StatelessWidget {
                 height: 1.35,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: DuoSpacing.md),
             Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: notes.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: DuoSpacing.xs),
                 itemBuilder: (_, index) {
                   final note = notes[index];
                   final position = Guitar.bestPosition(note);
                   return Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
+                      horizontal: DuoSpacing.sm,
+                      vertical: DuoSpacing.xs,
                     ),
                     decoration: BoxDecoration(
                       color: newIds.contains(note.id)
                           ? AppColors.greenSoft
                           : AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(DuoSpacing.sm),
                     ),
                     child: Row(
                       children: [
@@ -1422,14 +1214,18 @@ class _GuidebookSheet extends StatelessWidget {
                         ),
                         if (newIds.contains(note.id))
                           Container(
-                            margin: const EdgeInsets.only(right: 8),
+                            margin: const EdgeInsets.only(
+                              right: DuoSpacing.xs,
+                            ),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
+                              horizontal: DuoSpacing.xs,
+                              vertical: DuoSpacing.xxs,
                             ),
                             decoration: BoxDecoration(
                               color: AppColors.green,
-                              borderRadius: BorderRadius.circular(5),
+                              borderRadius: BorderRadius.circular(
+                                DuoSpacing.xxs,
+                              ),
                             ),
                             child: const Text(
                               'NEW',

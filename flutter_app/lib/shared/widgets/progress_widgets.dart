@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../theme/motion.dart';
 
 class LessonProgressBar extends StatelessWidget {
   const LessonProgressBar({
@@ -8,7 +9,7 @@ class LessonProgressBar extends StatelessWidget {
     required this.value,
     this.color = AppColors.green,
     this.height = 16,
-    this.duration = const Duration(milliseconds: 280),
+    this.duration = DuoMotion.slow,
   });
 
   final double value;
@@ -19,20 +20,39 @@ class LessonProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final clamped = value.clamp(0.0, 1.0);
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(height / 2),
+    return Semantics(
+      label: 'Lesson progress',
+      value: '${(clamped * 100).round()} percent',
       child: Container(
         height: height,
-        color: AppColors.border,
-        child: FractionallySizedBox(
+        decoration: BoxDecoration(
+          // The track has to be visible, otherwise the bar reads as a floating
+          // green sliver with no start or end.
+          color: AppColors.borderStrong.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(height / 2),
+          border: Border.all(color: AppColors.borderStrong, width: 1.5),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Align(
           alignment: Alignment.centerLeft,
-          widthFactor: clamped,
-          child: AnimatedContainer(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: clamped),
             duration: duration,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(height / 2),
-            ),
+            curve: DuoMotion.overshoot,
+            builder: (context, animated, _) {
+              final width = animated.clamp(0.0, 1.0);
+              if (width == 0) return const SizedBox.shrink();
+              return FractionallySizedBox(
+                widthFactor: width,
+                heightFactor: 1,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(height / 2),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -54,21 +74,37 @@ class HeartsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (var index = 0; index < maxLives; index++)
-          Padding(
-            padding: const EdgeInsets.only(left: 3),
-            child: Icon(
-              index < lives
-                  ? Icons.favorite_rounded
-                  : Icons.favorite_border_rounded,
-              color: index < lives ? AppColors.red : AppColors.borderStrong,
-              size: size,
+    return Semantics(
+      label: '$lives of $maxLives hearts left',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (var index = 0; index < maxLives; index++)
+            Padding(
+              padding: const EdgeInsets.only(left: DuoSpacing.xxs),
+              child: AnimatedSwitcher(
+                duration: DuoMotion.base,
+                transitionBuilder: (child, animation) => ScaleTransition(
+                  scale: CurvedAnimation(
+                    parent: animation,
+                    curve: DuoMotion.overshoot,
+                  ),
+                  child: FadeTransition(opacity: animation, child: child),
+                ),
+                child: Icon(
+                  index < lives
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  key: ValueKey(index < lives),
+                  color: index < lives
+                      ? AppColors.red
+                      : AppColors.borderStrong,
+                  size: size,
+                ),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -132,14 +168,14 @@ class PathCounters extends StatelessWidget {
           color: AppColors.orange,
           label: 'Streak $streak',
         ),
-        const SizedBox(width: 22),
+        const SizedBox(width: DuoSpacing.lg),
         _Counter(
           icon: Icons.diamond_rounded,
           value: '$gems',
           color: AppColors.blue,
           label: 'Gems $gems',
         ),
-        const SizedBox(width: 22),
+        const SizedBox(width: DuoSpacing.lg),
         _Counter(
           icon: Icons.favorite_rounded,
           value: '$hearts',
@@ -193,7 +229,7 @@ class SectionCard extends StatelessWidget {
   const SectionCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(18),
+    this.padding = const EdgeInsets.all(DuoSpacing.md),
     this.color,
     this.borderColor,
   });
@@ -209,7 +245,7 @@ class SectionCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: color ?? AppColors.background,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(DuoSpacing.md),
         border: Border.all(
           color: borderColor ?? AppColors.border,
           width: 2,

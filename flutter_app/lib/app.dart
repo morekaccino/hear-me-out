@@ -137,12 +137,12 @@ class _StartupError extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Mascot(size: 110, mood: MascotMood.thinking),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             const Text(
               'Could not start',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),

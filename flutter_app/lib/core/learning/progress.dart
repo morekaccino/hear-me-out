@@ -2,15 +2,9 @@ import 'dart:math';
 
 import '../music/curriculum.dart';
 import '../music/note.dart';
+import 'prompt.dart';
 
-enum AnswerMode { mixed, name, play }
-
-AnswerMode answerModeFromName(String? value) {
-  return AnswerMode.values.firstWhere(
-    (mode) => mode.name == value,
-    orElse: () => AnswerMode.mixed,
-  );
-}
+export 'prompt.dart' show AnswerMode, answerModeFromName;
 
 enum AppThemeMode { system, light, dark }
 

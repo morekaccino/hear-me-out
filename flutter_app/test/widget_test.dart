@@ -4,11 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/learning/prompt.dart';
 import 'package:hear_me_out/core/music/curriculum.dart';
 import 'package:hear_me_out/core/music/guitar.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/features/path/path_layout.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
 import 'package:hear_me_out/state/app_controller.dart';
@@ -59,6 +61,50 @@ void main() {
     expect(find.text('Up next'), findsOneWidget);
     expect(find.text('The Staff'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
+  });
+
+  testWidgets('path nodes expose their 3D face and state', (tester) async {
+    tester.view.physicalSize = const Size(390, 4800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final semantics = tester.ensureSemantics();
+
+    final progress = ProgressState.fresh(
+      settings: const AppSettings(
+        onboardingComplete: true,
+        answerMode: AnswerMode.name,
+      ),
+    )..completedLessons.add('u1l1');
+
+    await tester.pumpWidget(buildApp(progress));
+    await tester.pumpAndSettle();
+
+    final faceSize = Size(
+      PathLayout.nodeSize,
+      PathLayout.faceHeight,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('lesson-face-u1l1'))),
+      faceSize,
+    );
+    expect(
+      tester.getSize(find.byKey(const ValueKey('lesson-face-u1l2'))),
+      faceSize,
+    );
+    expect(
+      find.bySemanticsLabel('Lesson: E and F, completed'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Lesson: G and A, current'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel('Lesson: B and C, locked'),
+      findsOneWidget,
+    );
+    semantics.dispose();
   });
 
   testWidgets('quests and shop are reachable from the bottom bar', (
@@ -199,6 +245,35 @@ void main() {
     expect(find.byKey(const ValueKey('current-lesson-node')), findsOneWidget);
   });
 
+  testWidgets('practice and profile fit a 390 px phone', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Practice'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Practice'), findsWidgets);
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('Guitarist'), findsOneWidget);
+  });
+
   testWidgets('unit guidebook opens with string and fret hints', (
     tester,
   ) async {
@@ -247,6 +322,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('A new note'), findsOneWidget);
+    expect(find.text('GOT IT'), findsOneWidget);
+    expect(find.byType(StaffView), findsOneWidget);
+
+    // Both new notes are introduced before the first question.
+    await tester.tap(find.text('GOT IT'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('GOT IT'));
     await tester.pumpAndSettle();
 
     expect(find.text('What note is this?'), findsOneWidget);
@@ -333,24 +418,43 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
     await tester.pumpAndSettle();
 
-    for (var index = 0; index < 2; index++) {
+    var answered = 0;
+    var guard = 0;
+    while (answered < 2 && guard < 10) {
+      guard++;
       final run = container.read(appControllerProvider).requireValue.run!;
-      expect(run.current.isPlay, isFalse);
-      await tester.tap(find.text(run.current.note.display));
+      final prompt = run.current;
+      if (prompt.isTeach) {
+        await tester.tap(find.text('GOT IT'));
+        await tester.pumpAndSettle();
+        continue;
+      }
+      final notePrompt = prompt is NotePrompt ? prompt : null;
+      if (notePrompt == null) {
+        await container
+            .read(appControllerProvider.notifier)
+            .submitAnswer(correct: true);
+        await container.read(appControllerProvider.notifier).nextExercise();
+        await tester.pumpAndSettle();
+        continue;
+      }
+      expect(notePrompt.isPlay, isFalse);
+      await tester.tap(find.text(notePrompt.note.display));
       await tester.pumpAndSettle();
       expect(find.text('Correct!'), findsOneWidget);
       await tester.tap(find.text('CONTINUE'));
       await tester.pumpAndSettle();
+      answered++;
     }
 
     final run = container.read(appControllerProvider).requireValue.run!;
-    expect(run.current.isPlay, isTrue);
+    expect(run.current.usesMicrophone, isTrue);
     expect(sources.created.length, greaterThanOrEqualTo(2));
     final source = sources.created.last;
     expect(source.started, isTrue);
 
     final frequency = midiToFrequency(
-      Guitar.soundingMidiForWritten(run.current.note).toDouble(),
+      Guitar.soundingMidiForWritten(run.currentNote!.note).toDouble(),
     );
     for (var frame = 0; frame < 3; frame++) {
       source.emit(

@@ -12,6 +12,10 @@ import '../shared/audio/sound_service.dart';
 import '../shared/theme/app_theme.dart';
 import '../state/providers.dart';
 
+/// Yellow needs its darker variant to stay readable on a light surface.
+Color _accentFor(Color color) =>
+    color == AppColors.yellow ? AppColors.yellowDark : color;
+
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -183,17 +187,22 @@ class _BottomItem extends StatefulWidget {
 
 class _BottomItemState extends State<_BottomItem> {
   bool _pressed = false;
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
     final destination = widget.destination;
     final selected = widget.selected;
-    final accent = destination.color == AppColors.yellow
-        ? AppColors.yellowDark
-        : destination.color;
-    final color = selected ? accent : AppColors.textLight;
+    final accent = _accentFor(destination.color);
+    final color = selected
+        ? accent
+        : _hovered
+        ? AppColors.text
+        : AppColors.textLight;
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => setState(() => _pressed = true),
@@ -201,7 +210,7 @@ class _BottomItemState extends State<_BottomItem> {
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
         child: AnimatedScale(
-          scale: _pressed ? 0.94 : 1,
+          scale: _pressed ? 0.94 : (_hovered ? 1.04 : 1),
           duration: const Duration(milliseconds: 110),
           curve: Curves.easeOut,
           child: Column(
@@ -215,6 +224,8 @@ class _BottomItemState extends State<_BottomItem> {
                 decoration: BoxDecoration(
                   color: selected
                       ? destination.color.withValues(alpha: 0.16)
+                      : _hovered
+                      ? destination.color.withValues(alpha: 0.10)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -272,7 +283,7 @@ class _SideRail extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
             child: GestureDetector(
               onTap: () => onSelected(0),
               child: const Text(
@@ -321,63 +332,79 @@ class _RailItem extends StatefulWidget {
 
 class _RailItemState extends State<_RailItem> {
   bool _hover = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final selected = widget.selected;
-    final color = selected
-        ? (AppColors.isDark ? AppColors.text : AppColors.blue)
+    // Same rule as the bottom bar: only the selected item wears its colour.
+    final accent = _accentFor(widget.destination.color);
+    final iconColor = selected
+        ? accent
+        : _hover
+        ? AppColors.text
         : AppColors.textMuted;
-    final selectedBorder = AppColors.isDark
-        ? AppColors.borderStrong
-        : AppColors.blueLine;
     return MouseRegion(
+      cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: selected
-                ? AppColors.blueSoft
-                : _hover
-                ? AppColors.surface
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: selected ? selectedBorder : Colors.transparent,
-              width: 2,
+        child: AnimatedScale(
+          scale: _pressed ? 0.98 : 1,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: selected
+                  ? accent.withValues(alpha: 0.14)
+                  : _hover
+                  ? accent.withValues(alpha: 0.10)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: selected
+                    ? accent.withValues(alpha: 0.45)
+                    : Colors.transparent,
+                width: 2,
+              ),
             ),
-          ),
-          child: Row(
-            children: [
-              AnimatedScale(
-                scale: selected || _hover ? 1.08 : 1,
-                duration: const Duration(milliseconds: 150),
-                curve: Curves.easeOut,
-                child: Icon(
-                  widget.destination.selectedIcon,
-                  size: 28,
-                  color: widget.destination.color,
+            child: Row(
+              children: [
+                AnimatedScale(
+                  scale: selected || _hover ? 1.08 : 1,
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  child: Icon(
+                    selected
+                        ? widget.destination.selectedIcon
+                        : widget.destination.icon,
+                    size: 28,
+                    color: iconColor,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 14),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 150),
-                curve: Curves.easeOut,
-                style: TextStyle(
-                  fontFamily: 'Nunito',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 0.6,
-                  color: color,
+                const SizedBox(width: 12),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 150),
+                  curve: Curves.easeOut,
+                  style: TextStyle(
+                    fontFamily: 'Nunito',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.6,
+                    color: selected ? accent : AppColors.textMuted,
+                  ),
+                  child: Text(widget.destination.label.toUpperCase()),
                 ),
-                child: Text(widget.destination.label.toUpperCase()),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

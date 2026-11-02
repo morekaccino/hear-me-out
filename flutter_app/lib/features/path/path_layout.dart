@@ -39,7 +39,7 @@ class PathLayout {
         ? -1
         : unit.lessons.indexWhere((lesson) => lesson.id == currentLessonId);
     final center = width / 2;
-    final amplitude = math.min(52.0, width / 2 - nodeSize / 2 - 12);
+    final amplitude = math.min(80.0, width / 2 - nodeSize / 2 - 16);
 
     nodes = [
       for (var index = 0; index < count; index++)
@@ -65,18 +65,20 @@ class PathLayout {
   }
 
   /// Node width. The face is an ellipse: [nodeSize] wide and [faceHeight] tall.
-  static const double nodeSize = 70;
-  static const double faceHeight = 57;
-  static const double nodeHeight = 65;
+  /// The face sits on an 8 px extruded base, so the hit area is [nodeHeight].
+  static const double nodeSize = 80;
+  static const double faceHeight = 72;
+  static const double nodeHeight = 84;
 
-  static const double spacing = 94;
-  static const double topPadding = 64;
-  static const double bottomPadding = 24;
-  static const double chestSlot = 84;
-  static const double chestSize = 64;
+  /// Duolingo's 4 px rhythm: 84 px node plus a 20 px gap.
+  static const double spacing = 104;
+  static const double topPadding = 72;
+  static const double bottomPadding = 32;
+  static const double chestSlot = 96;
+  static const double chestSize = 72;
 
   /// Extra room above the active lesson for the START bubble.
-  static const double startSlot = 36;
+  static const double startSlot = 48;
 
   static const double _period = 6;
 

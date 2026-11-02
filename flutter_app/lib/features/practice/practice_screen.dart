@@ -9,10 +9,12 @@ import '../../core/learning/progress.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
 import '../../shared/audio/sound_service.dart';
+import '../../shared/navigation/duo_route.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/duo_button.dart';
+import '../../shared/widgets/tappable.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../lesson/lesson_screen.dart';
@@ -156,7 +158,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
       controller.startPractice(kind: kind, micAvailable: micAvailable);
       await Navigator.of(
         context,
-      ).push(MaterialPageRoute<void>(builder: (_) => const LessonScreen()));
+      ).push(duoLessonRoute<void>((_) => const LessonScreen()));
     } finally {
       _openingPractice = false;
     }
@@ -179,7 +181,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
         child: PageFrame(
           maxWidth: 720,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 28),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               Row(
                 children: [
@@ -211,9 +213,9 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
               if (progress.hearts < maxHearts) ...[
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.redSoft,
                     borderRadius: BorderRadius.circular(16),
@@ -226,7 +228,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                         color: AppColors.red,
                         size: 20,
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Finish any practice session to earn one heart back.',
@@ -241,7 +243,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                   ),
                 ),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
               _TunerCard(
                 selectedString: _selectedString,
                 onStringSelected: (index) {
@@ -258,7 +260,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 a4: progress.settings.a4Hz,
                 onToggle: _toggleTuner,
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 24),
               Row(
                 children: [
                   Expanded(
@@ -268,7 +270,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                       color: AppColors.green,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _MiniStat(
                       value: '$learned',
@@ -276,7 +278,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                       color: AppColors.blue,
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _MiniStat(
                       value: '${(progress.accuracy * 100).round()}%',
@@ -286,12 +288,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const Text(
                 'Smart practice',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _PracticeRow(
                 icon: Icons.event_repeat_rounded,
                 color: AppColors.blue,
@@ -304,7 +306,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 badge: due == 0 ? null : '$due',
                 onTap: () => _startPractice('due'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _PracticeRow(
                 icon: Icons.healing_rounded,
                 color: AppColors.red,
@@ -317,7 +319,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 badge: weak == 0 ? null : '$weak',
                 onTap: () => _startPractice('weak'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               _PracticeRow(
                 icon: Icons.shuffle_rounded,
                 color: AppColors.purple,
@@ -390,7 +392,7 @@ class _TunerCard extends StatelessWidget {
                 size: 20,
                 color: AppColors.blueDark,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               const Text(
                 'Standard tuning',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
@@ -401,7 +403,7 @@ class _TunerCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.circle, size: 8, color: AppColors.red),
-                    SizedBox(width: 5),
+                    SizedBox(width: 4),
                     Text(
                       'LIVE',
                       style: TextStyle(
@@ -422,8 +424,9 @@ class _TunerCard extends StatelessWidget {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: GestureDetector(
+                    child: DuoTappable(
                       onTap: () => onStringSelected(index),
+                      pressedScale: 0.95,
                       child: Container(
                         height: 38,
                         alignment: Alignment.center,
@@ -506,7 +509,7 @@ class _TunerCard extends StatelessWidget {
                           size: 40,
                           color: AppColors.textLight,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           starting
                               ? 'Starting microphone…'
@@ -568,7 +571,7 @@ class _MiniStat extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Column(
@@ -614,10 +617,10 @@ class _PracticeRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return DuoTappable(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.circular(16),
@@ -660,7 +663,7 @@ class _PracticeRow extends StatelessWidget {
             ),
             if (badge != null)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: color,
                   borderRadius: BorderRadius.circular(10),

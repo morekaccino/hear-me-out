@@ -123,8 +123,8 @@ section's anchor color.
 
 ### Shape, borders, and depth
 
-- Rounded corners are a core part of the brand: cards `18–22`, controls `16`,
-  chips `10–12`, feedback panel top `26`.
+- Rounded corners are a core part of the brand: cards `16`, controls `16`,
+  chips `12`, feedback panel top `24`.
 - Use visible outlines (`1.5–2 px`) rather than relying only on fills.
 - The signature “Duolingo” depth is a **hard offset shadow**: blur `0`, offset
   `3–5 px`, usually using a darker version of the fill. Avoid soft Material
@@ -141,9 +141,10 @@ section's anchor color.
 - At **900 px and wider**, replace the five bottom tabs with a 232–256 px left side
   rail. The content stays centered beside it.
 - Use `SafeArea`; keep the bottom navigation clear of the content.
-- Prefer the existing spacing rhythm: `4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24,
-  28, 32`.
-- Cards use `EdgeInsets.all(18)` by default.
+- Use Duolingo's **4 px scale** for every gutter, gap, and inset:
+  `4, 8, 12, 16, 24, 32, 48, 64` (`DuoSpacing` in `app_theme.dart`). Phone
+  gutters and card padding are `16`; section gaps are `24`.
+- Cards use `EdgeInsets.all(16)` by default.
 - One primary action per screen. Secondary actions are outline buttons or text
   buttons.
 - The app should fit a 390×844 viewport without clipping. On tablets and
@@ -153,11 +154,12 @@ section's anchor color.
 
 Use the shared widgets before creating new ones.
 
-- **`DuoButton`** — primary action. Default height 56, radius 16, uppercase
-  label, 16 px text, bottom edge depth, pressed translate. Compact instances
-  (feedback/tuner) use 48–54 px.
-- **`OutlineDuoButton`** — secondary action. Height 52, radius 16, 2 px outline.
-- **`SectionCard`** — neutral content card. Radius 20, 2 px border, 18 px
+- **`DuoButton`** — primary action. Default height 56, radius 16, 24 px
+  horizontal padding, uppercase label, 16 px text, bottom edge depth, pressed
+  translate. Compact instances (feedback/tuner) use 48–54 px.
+- **`OutlineDuoButton`** — secondary action. Height 52, radius 16, 24 px
+  horizontal padding, 2 px outline.
+- **`SectionCard`** — neutral content card. Radius 16, 2 px border, 16 px
   padding.
 - **`AnswerOption`** — answer choice. Height 64, radius 16, 2 px border, 22 px
   label, hard bottom shadow when idle; states are idle/correct/wrong/dimmed.
@@ -179,21 +181,35 @@ Use the shared widgets before creating new ones.
 
 ### Motion
 
-- Press feedback: about 70–120 ms (buttons move down 3 px, path nodes scale to
-  94%).
-- Hover feedback: 150–200 ms (nav icons lift to 1.08, paths brighten like Duo's
-  `filter 0.2s`).
-- Node entrance: 380 ms fade + scale from 88%.
-- Path icons (guidebook, back, jump): press to 94%, hover to 103%, 120 ms.
-- Progress bar fill: 280 ms in lessons, 600 ms in the quest rail.
-- Onboarding page transition: about 320 ms ease-out.
-- Current path node: an 800 ms bob, two gentle cycles when the path appears.
-  The mascot stays out of the path. Motion on the path comes from node
-  entrances, hover/press states, and the START bob.
-- Guidebook bottom sheet: standard 320 ms transition.
-- Confetti is reserved for a passed lesson/practice result. Do not use it for
-  every correct answer.
-- Respect the haptics setting: light impact for correct, medium for incorrect.
+Use the tokens in `shared/theme/motion.dart`; do not invent durations.
+
+- `fast` (140 ms): things leaving, taps, press feedback.
+- `base` (220 ms): question changes, panels arriving, hearts popping.
+- `slow` (320 ms): opening a lesson, filling the progress bar.
+- `overshoot` (`Cubic(0.34, 1.56, 0.64, 1)`): fills, pops, and reveals. Use it
+  for arrival, never for dismissal.
+- `enter` / `exit`: `easeOutCubic` / `easeInCubic`.
+
+Each moment gets one feeling, not the same bounce everywhere:
+
+- **Opening a lesson:** fade plus a 97% → 100% scale, 320 ms. Feels like the
+  lesson grows out of the path.
+- **Closing a lesson:** the reverse at 220 ms. Leaving is faster than arriving.
+- **Changing question:** shared-axis horizontal slide with fade, 220 ms. The
+  old question leaves left, the new one arrives from the right.
+- **Answers in:** they sit in a bottom slot and slide up 14% with a fade when
+  the question changes.
+- **Feedback band:** slides up into place with a fade. The CONTINUE button pops
+  from 90% with the overshoot curve.
+- **Progress bar:** the fill springs to its new value with `overshoot`, so
+  finishing an exercise feels like a small win. The track has a visible border
+  and a `Step 3 of 8` caption; a bar with no visible track is a bug.
+- **Heart lost:** the heart flips to hollow with a scale pop.
+- **Press feedback:** buttons move down 3 px; answer chips scale to 97%.
+
+Confetti is reserved for a passed lesson/practice result. Do not use it for
+every correct answer. Respect the haptics setting: light impact for correct,
+medium for incorrect.
 
 ### Mascot and illustration
 
@@ -224,8 +240,10 @@ The staff itself is the hero visual on lesson screens.
 - **Empty notes:** explain that notes appear after the first lesson; do not show
   an empty card with no next action.
 - **No due/weak notes:** say so plainly and offer free practice.
-- **Locked lesson:** neutral node, no fake progress, brief “finish the lesson
-  before this one” snackbar.
+- **Locked lesson:** neutral node, no fake progress. Tapping it opens a bottom
+  sheet that names the blocking lesson and offers `START “<lesson>”` plus
+  `NOT NOW`. Never a toast: a lock is a dead end unless the UI shows the way out.
+  Locked chests use the same sheet with chest copy.
 - **Correct:** green feedback, check icon, concrete note/string/fret hint.
 - **Incorrect:** red feedback, close icon, correct answer, and a recovery action.
 - **Out of hearts:** clear lesson result, refill-and-retry action when gems
@@ -292,12 +310,12 @@ line.
 - **Guidebook:** a bottom sheet listing the unit's notes with first-position
   string/fret hints. New notes are marked; the sheet is reference material, not
   a new lesson.
-- **Path geometry:** one continuous low-amplitude wave across the whole course.
-  The phase keeps advancing across unit banners instead of restarting at the
-  center, with `52 px × sin(2π × lessonIndex / 6)`. Node hit areas are 70×65;
-  faces are 70×57 ellipses on a 94 px vertical rhythm. The active lesson adds a
-  36 px slot above it for the START bubble. A chest gets its own 84 px slot:
-  nodes after it slide down, so the chest never overlaps its neighbors.
+- **Path geometry:** one continuous wave across the whole course. The phase
+  keeps advancing across unit banners instead of restarting at the center, with
+  `80 px × sin(2π × lessonIndex / 6)`. Node hit areas are 80×84; faces are
+  80×72 ellipses on a 104 px vertical rhythm. The active lesson adds a 48 px
+  slot above it for the START bubble. A chest gets its own 96 px slot: nodes
+  after it slide down, so the chest never overlaps its neighbors.
 - **Path header:** on narrow screens the learn column shows end-aligned
   icon+number counters (orange flame, blue diamond, red heart). On wide screens
   the same counters sit at the top of the quest rail. There is no daily-goal
@@ -307,15 +325,15 @@ line.
   The break is a centered section title between two rules, then a **JUMP
   HERE?** outline pill. Foundations is green, First Position purple,
   Accidentals blue.
-- **Nodes:** elliptical buttons with a soft 10% darker base and a white rounded
-  star. Completed and current nodes use the **unit color**; the current one adds
-  a `surface` ring with a `border` outline and a matching `START` pill above.
-  Locked nodes use the neutral border fill with a `textLight` music note.
-  Regular lessons show a music note, the current lesson a star, and checkpoints
-  a trophy. No mascot sits on the path. Only current and completed lessons open.
-  Nodes fade/scale in over 380 ms, brighten over 200 ms on hover, and press down
-  6%; motion never blocks a tap.
-- **Chests:** one 64 px chest per unit, occupying its own slot on the path. It
+- **Nodes:** three-dimensional elliptical buttons with an 8 px extruded base, a
+  top gloss, a white edge, and a hard contact shadow. Completed lessons show a
+  white check, the current lesson a white star inside a 3 px white ring with a
+  pulsing unit-color halo, and locked lessons a muted music note. Checkpoints
+  use the reward gold face with a dark trophy, so they separate from the unit
+  color at a glance. The current lesson carries a matching `START` pill above.
+  No mascot sits on the path. Only current and completed lessons open. Nodes
+  fade/scale in with a short stagger; motion never blocks a tap.
+- **Chests:** one 72 px chest per unit, occupying its own slot on the path. It
   is locked until the lesson before it is complete, then opens once for gems.
 - **Quest rail:** `Daily Quests` card with real quest progress bars, counts
   inside the bar, a chest at the end of each row, and a `VIEW ALL` link, then a
@@ -323,7 +341,7 @@ line.
   upsells.
 - **Responsive components:** the nav narrows from 256 to 232 px, the quest rail
   from 372 to 320 px, the path column caps at 600 px, and the banner switches to
-  an icon-only 38 px guidebook button below 480 px. Node and counter sizes stay
+  an icon-only 40 px guidebook button below 480 px. Node and counter sizes stay
   fixed; the path must fit 320 px without overflow.
 - **No labels under every node.** The unit banner and guidebook carry context;
   the nodes stay scannable.
@@ -332,13 +350,67 @@ The path should feel like a route, not a game board or a spreadsheet.
 
 ### Lesson
 
-The focus screen. One staff card, one prompt, four choices or a live mic meter,
-then a feedback panel. The learner should always know:
+The focus screen. One staff card, one prompt, then either a teach panel, a set of
+choices, or a live mic meter, then a feedback panel. The learner should always
+know:
 
 - what note is being asked,
 - how to answer,
 - whether they were right,
 - and what to do next.
+
+A lesson follows a teaching arc. A new note first appears as a **teach card**:
+the title reads "A new note", the panel uses `blueSoft` with a blue border, the
+note name is large, and the string/fret hint follows it. The only action is
+`GOT IT`, and no heart can be lost. The next exposure is a **guided attempt**
+with three choices, one of them deliberately distant from the target. After that
+the note joins normal practice.
+
+The same note is then asked in different ways, never the same way twice: name it
+from the staff, place it on a tappable staff, find it on a fretboard, or play it.
+Topic lessons reuse the same chrome with a chord diagram, a four-option theory
+question, or a tap pad for rhythm. New surfaces must reuse the staff card, the
+feedback panel, and the answer chips rather than inventing their own.
+
+Teach cards also show where the note lives on a first-position neck. The board
+uses the `fretboard`, `fretboardLine`, and `fretboardInlay` palette tokens, with
+string names on the left, fret numbers on top, a heavier nut, inlay dots at 3
+and 5, and a green dot on the position. The tappable version is the same drawing
+with hit targets over every string and fret.
+
+The lesson is responsive, not phone-only:
+
+The lesson is one narrow column at every width, with the answers docked to the
+bottom of the screen:
+
+- The question scrolls above, in a centred column of max 640 px.
+- The action dock is pinned to the bottom: answer options, the mic meter, or the
+  teach card's `GOT IT`. It has a 1.5 px top border so it reads as a control
+  bar, not floating content.
+- Only the dock is wrapped in `SafeArea`. The page itself uses the full height,
+  so the iPhone home indicator never covers a button and the rest of the lesson
+  is not pushed down by inset padding.
+
+Do not split the question and its answers into two columns, and do not put the
+answers inline on desktop. A lesson is a focus mode: the question stays at the
+top, the action stays at the bottom, and the width is margin.
+
+Do not split the question and its answers into two columns. A lesson is a focus
+mode: the width follows the content, and the surplus is margin, not extra
+panels. That is the Duolingo web lesson pattern and the reason the column stays
+narrow even at 1600 px.
+
+Every interactive surface is pointer-aware: buttons lighten on hover, answer
+chips lift their shadow and take a blue border, and staff steps and fret cells
+show a soft `blueSoft` highlight under the cursor. Cursors are `click` only when
+the control is enabled.
+
+The navigation rail and bottom bar both react on hover: the item takes a 10%
+tint of its destination colour, the icon scales to 1.08, and the cursor becomes
+a hand. Pressing scales the item down. Only the selected item wears its colour;
+unselected icons and labels stay muted at every width. A cursor change with no visual response,
+or a hover with no cursor, is a bug; use `HoverRegion` or `DuoTappable` instead
+of a bare `GestureDetector`.
 
 Show the correct string/fret on feedback. Keep the five hearts visible for
 lessons; show `PRACTICE` instead for practice. A checkpoint is a 15-exercise

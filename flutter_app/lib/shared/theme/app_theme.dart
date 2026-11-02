@@ -38,6 +38,9 @@ class AppColors {
   static Color get blueSoft => _p.blueSoft;
   static Color get purpleSoft => _p.purpleSoft;
   static Color get redSoft => _p.redSoft;
+  static Color get fretboard => _p.fretboard;
+  static Color get fretboardLine => _p.fretboardLine;
+  static Color get fretboardInlay => _p.fretboardInlay;
   static Color get background => _p.background;
   static Color get surface => _p.surface;
   static Color get border => _p.border;
@@ -45,6 +48,21 @@ class AppColors {
   static Color get text => _p.text;
   static Color get textMuted => _p.textMuted;
   static Color get textLight => _p.textLight;
+}
+
+/// Duolingo's 4 px spacing scale. Use these tokens for gutters, card padding,
+/// and gaps instead of one-off values.
+class DuoSpacing {
+  DuoSpacing._();
+
+  static const double xxs = 4;
+  static const double xs = 8;
+  static const double sm = 12;
+  static const double md = 16;
+  static const double lg = 24;
+  static const double xl = 32;
+  static const double xxl = 48;
+  static const double xxxl = 64;
 }
 
 /// A unit's path color and its darker pressed edge.
@@ -83,6 +101,9 @@ class DuoPalette {
     required this.purpleSoft,
     required this.redSoft,
     required this.snackbar,
+    required this.fretboard,
+    required this.fretboardLine,
+    required this.fretboardInlay,
   });
 
   static const light = DuoPalette(
@@ -98,6 +119,9 @@ class DuoPalette {
     purpleSoft: Color(0xFFF7E6FF),
     redSoft: Color(0xFFFFDFE0),
     snackbar: Color(0xFF1F1F1F),
+    fretboard: Color(0xFFF6E7C9),
+    fretboardLine: Color(0xFFD9C39A),
+    fretboardInlay: Color(0xFFE6D4AF),
   );
 
   static const dark = DuoPalette(
@@ -113,6 +137,9 @@ class DuoPalette {
     purpleSoft: Color(0xFF33243D),
     redSoft: Color(0xFF3A2022),
     snackbar: Color(0xFF202F36),
+    fretboard: Color(0xFF2B3A34),
+    fretboardLine: Color(0xFF3E5148),
+    fretboardInlay: Color(0xFF4A5F54),
   );
 
   final Color background;
@@ -127,6 +154,9 @@ class DuoPalette {
   final Color purpleSoft;
   final Color redSoft;
   final Color snackbar;
+  final Color fretboard;
+  final Color fretboardLine;
+  final Color fretboardInlay;
 }
 
 class AppTheme {

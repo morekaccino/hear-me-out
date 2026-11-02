@@ -220,8 +220,8 @@ void main() {
         for (final section in sections) ...section.units,
       ];
       expect(sectionUnits, curriculum);
-      expect(curriculum, hasLength(6));
-      expect(allLessons, hasLength(25));
+      expect(curriculum, hasLength(10));
+      expect(allLessons, hasLength(40));
     });
 
     test('every unit ends with a checkpoint and has a clear focus', () {

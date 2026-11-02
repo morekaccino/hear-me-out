@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/learning/progress.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../../shared/widgets/tappable.dart';
 
 /// Right column on the learn page. Quest progress only — no leagues or ads.
 class LearnRail extends StatelessWidget {
@@ -23,7 +24,12 @@ class LearnRail extends StatelessWidget {
 
     return Padding(
       key: const ValueKey('learn-rail'),
-      padding: const EdgeInsets.fromLTRB(8, 14, 20, 28),
+      padding: const EdgeInsets.fromLTRB(
+        DuoSpacing.md,
+        DuoSpacing.md,
+        DuoSpacing.lg,
+        DuoSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -32,7 +38,7 @@ class LearnRail extends StatelessWidget {
               gems: progress.gems,
               hearts: progress.hearts,
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: DuoSpacing.lg),
             _RailCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,46 +49,55 @@ class LearnRail extends StatelessWidget {
                         child: Text(
                           'Daily Quests',
                           style: TextStyle(
-                            fontSize: 19,
+                            fontSize: 18,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: onOpenQuests,
-                        child: const Text(
-                          'VIEW ALL',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: AppColors.blue,
+                      if (onOpenQuests != null)
+                        DuoTappable(
+                          onTap: onOpenQuests!,
+                          pressedScale: 0.94,
+                          child: const Text(
+                            'VIEW ALL',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                              color: AppColors.blue,
+                            ),
                           ),
                         ),
-                      ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  for (final quest in dailyQuestDefinitions) ...[
+                  const SizedBox(height: DuoSpacing.md),
+                  for (
+                    var index = 0;
+                    index < dailyQuestDefinitions.length;
+                    index++
+                  ) ...[
                     _QuestRow(
-                      quest: quest,
-                      value: progress.questProgress(quest),
+                      quest: dailyQuestDefinitions[index],
+                      value: progress.questProgress(
+                        dailyQuestDefinitions[index],
+                      ),
                     ),
-                    const SizedBox(height: 14),
+                    if (index < dailyQuestDefinitions.length - 1)
+                      const SizedBox(height: DuoSpacing.md),
                   ],
                 ],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: DuoSpacing.lg),
             _RailCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Daily goal',
-                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: DuoSpacing.md),
                   Row(
                     children: [
                       const Icon(
@@ -90,7 +105,7 @@ class LearnRail extends StatelessWidget {
                         size: 22,
                         color: AppColors.greenDark,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: DuoSpacing.xs),
                       Expanded(
                         child: _QuestProgress(
                           value: ratio,
@@ -101,7 +116,7 @@ class LearnRail extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: DuoSpacing.xs),
                   Text(
                     ratio >= 1
                         ? 'Goal complete. Nice work today.'
@@ -131,7 +146,7 @@ class _RailCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.all(DuoSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(16),
@@ -161,8 +176,8 @@ class _QuestRow extends StatelessWidget {
 
     return Row(
       children: [
-        Icon(icon, size: 30, color: color),
-        const SizedBox(width: 12),
+        Icon(icon, size: 28, color: color),
+        const SizedBox(width: DuoSpacing.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -174,7 +189,7 @@ class _QuestRow extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: DuoSpacing.xs),
               Row(
                 children: [
                   Expanded(
@@ -183,7 +198,7 @@ class _QuestRow extends StatelessWidget {
                       label: '$value / ${quest.target}',
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: DuoSpacing.xs),
                   const Icon(
                     Icons.inventory_2_rounded,
                     size: 22,

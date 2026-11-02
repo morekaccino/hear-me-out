@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/learning/prompt.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
@@ -158,12 +159,26 @@ void main() {
     await tester.pumpAndSettle();
 
     Future<void> answerUntilPlay() async {
-      for (var index = 0; index < 12; index++) {
+      final notifier = container.read(appControllerProvider.notifier);
+      for (var index = 0; index < 16; index++) {
         final run = container.read(appControllerProvider).requireValue.run;
-        if (run == null || run.current.isPlay) return;
-        await tester.tap(find.text(run.current.note.display).first);
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('CONTINUE'));
+        if (run == null) return;
+        final prompt = run.current;
+        if (prompt.usesMicrophone) return;
+        if (prompt.isTeach) {
+          await tester.tap(find.text('GOT IT'));
+          await tester.pumpAndSettle();
+          continue;
+        }
+        if (prompt is NotePrompt) {
+          await tester.tap(find.text(prompt.note.display).first);
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('CONTINUE'));
+          await tester.pumpAndSettle();
+          continue;
+        }
+        await notifier.submitAnswer(correct: true);
+        await notifier.nextExercise();
         await tester.pumpAndSettle();
       }
     }
@@ -173,10 +188,27 @@ void main() {
     await tester.tap(find.text('USE NOTE NAMES INSTEAD'));
     await tester.pumpAndSettle();
 
-    for (var index = 0; index < maxHearts; index++) {
+    var guard = 0;
+    while (container.read(appControllerProvider).requireValue.run != null &&
+        guard < 20) {
+      guard++;
+      final notifier = container.read(appControllerProvider.notifier);
       final run = container.read(appControllerProvider).requireValue.run!;
-      final wrong = run.current.choices.firstWhere(
-        (note) => note.id != run.current.note.id,
+      final prompt = run.current;
+      if (prompt.isTeach) {
+        await tester.tap(find.text('GOT IT'));
+        await tester.pumpAndSettle();
+        continue;
+      }
+      final notePrompt = prompt is NotePrompt ? prompt : null;
+      if (notePrompt == null) {
+        await notifier.submitAnswer(correct: false);
+        await notifier.nextExercise();
+        await tester.pumpAndSettle();
+        continue;
+      }
+      final wrong = notePrompt.choices.firstWhere(
+        (note) => note.id != notePrompt.note.id,
       );
       await tester.tap(find.text(wrong.display));
       await tester.pumpAndSettle();

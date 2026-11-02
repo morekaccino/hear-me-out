@@ -30,7 +30,7 @@ class QuestsScreen extends ConsumerWidget {
         child: PageFrame(
           maxWidth: 720,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 32),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
               Row(
                 children: [
@@ -59,9 +59,9 @@ class QuestsScreen extends ConsumerWidget {
                   color: AppColors.textMuted,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               _QuestBanner(progress: progress),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               const Text(
                 'Daily quests',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
@@ -102,7 +102,7 @@ class QuestsScreen extends ConsumerWidget {
                     }
                   },
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
               ],
               const SizedBox(height: 8),
               Container(
@@ -119,7 +119,7 @@ class QuestsScreen extends ConsumerWidget {
                       color: AppColors.blueDark,
                       size: 20,
                     ),
-                    SizedBox(width: 10),
+                    SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Quests are tracked on this device. There are no leagues, leaderboards, or friend challenges.',
@@ -166,7 +166,7 @@ class _QuestBanner extends StatelessWidget {
         .length;
 
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.yellow,
         borderRadius: BorderRadius.circular(20),
@@ -182,7 +182,7 @@ class _QuestBanner extends StatelessWidget {
       child: Row(
         children: [
           const Icon(Icons.workspace_premium_rounded, size: 46, color: Colors.white),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,10 +244,10 @@ class _QuestCard extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 2),
         boxShadow: [
           BoxShadow(
@@ -264,7 +264,7 @@ class _QuestCard extends StatelessWidget {
             height: 54,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 28),
           ),
@@ -309,7 +309,7 @@ class _QuestCard extends StatelessWidget {
                     color: AppColors.textMuted,
                   ),
                 ),
-                const SizedBox(height: 7),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
@@ -333,7 +333,7 @@ class _QuestCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 8),
           SizedBox(
             width: 92,
             child: claimed
@@ -362,7 +362,7 @@ class _ClaimedBadge extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.greenSoft,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: const Text(
         'DONE',

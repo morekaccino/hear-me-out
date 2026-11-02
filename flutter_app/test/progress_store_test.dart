@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
-import 'package:hear_me_out/core/learning/session_builder.dart';
+import 'package:hear_me_out/core/learning/lesson_run.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/state/app_controller.dart';
@@ -156,10 +156,23 @@ void main() {
 
       final notifier = container.read(appControllerProvider.notifier);
       notifier.startLesson('u1l1', micAvailable: false);
+      final scored = container
+          .read(appControllerProvider)
+          .requireValue
+          .run!
+          .scoredCount;
+      final length = container
+          .read(appControllerProvider)
+          .requireValue
+          .run!
+          .exercises
+          .length;
 
-      for (var index = 0; index < exercisesPerLesson; index++) {
+      for (var index = 0; index < length; index++) {
         final run = container.read(appControllerProvider).requireValue.run!;
-        expect(run.current.mode, AnswerMode.name);
+        if (run.current.isScored) {
+          expect(run.current.usesMicrophone, isFalse);
+        }
         await notifier.submitAnswer(correct: true);
         await notifier.nextExercise();
       }
@@ -168,7 +181,7 @@ void main() {
       expect(data.result, isNotNull);
       expect(data.result!.passed, isTrue);
       expect(data.result!.xp, 15);
-      expect(data.result!.answered, exercisesPerLesson);
+      expect(data.result!.answered, scored);
       expect(data.progress.isLessonCompleted('u1l1'), isTrue);
       expect(data.progress.xp, 15);
       expect(data.progress.streak, 1);
@@ -216,11 +229,19 @@ void main() {
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
       final notifier = container.read(appControllerProvider.notifier);
       notifier.startLesson('u1l1', micAvailable: false);
-
-      final missed = container.read(appControllerProvider).requireValue.run!.current.note;
+      var openingRun = container.read(appControllerProvider).requireValue.run!;
+      while (!openingRun.current.isScored) {
+        await notifier.nextExercise();
+        openingRun = container.read(appControllerProvider).requireValue.run!;
+      }
+      final missed = openingRun.currentNote!.note;
       await notifier.submitAnswer(correct: false);
       await notifier.nextExercise();
-      for (var index = 1; index < exercisesPerLesson; index++) {
+      while (!container
+          .read(appControllerProvider)
+          .requireValue
+          .run!
+          .isReviewingMistakes) {
         await notifier.submitAnswer(correct: true);
         await notifier.nextExercise();
       }
@@ -229,14 +250,14 @@ void main() {
       expect(beforeRetry.result, isNull);
       final retryRun = beforeRetry.run!;
       expect(retryRun.isReviewingMistakes, isTrue);
-      expect(retryRun.current.note.id, missed.id);
+      expect(retryRun.currentNote!.note.id, missed.id);
 
       await notifier.submitAnswer(correct: true);
       await notifier.nextExercise();
       final data = container.read(appControllerProvider).requireValue;
       expect(data.result, isNotNull);
       expect(data.result!.passed, isTrue);
-      expect(data.result!.answered, exercisesPerLesson + 1);
+      expect(data.result!.answered, beforeRetry.run!.scoredCount);
     });
 
     test('a failed lesson does not unlock the next one', () async {
@@ -251,7 +272,10 @@ void main() {
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
       final notifier = container.read(appControllerProvider.notifier);
       notifier.startLesson('u1l1', micAvailable: false);
-      for (var index = 0; index < livesPerLesson; index++) {
+      var guard = 0;
+      while (container.read(appControllerProvider).requireValue.result == null &&
+          guard < exercisesPerLesson) {
+        guard++;
         await notifier.submitAnswer(correct: false);
         await notifier.nextExercise();
       }

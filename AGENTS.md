@@ -149,7 +149,8 @@ Then open <http://127.0.0.1:8080/>.
 | Path | Purpose |
 |---|---|
 | `flutter_app/lib/core/music/` | Note math, guitar transposition, curriculum |
-| `flutter_app/lib/core/learning/` | Scheduler, progress model, session planner |
+| `flutter_app/lib/core/learning/` | Objectives, prompts, composer, scheduler, progress model |
+| `flutter_app/lib/content/` | Note-reading objectives, templates, and session factories |
 | `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher |
 | `flutter_app/lib/core/notation/` | Staff geometry and Bravura painter |
 | `flutter_app/lib/core/storage/` | JSON progress store and backup validation |
@@ -160,11 +161,28 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Behavior worth protecting
 
-- **Curriculum shape:** 3 sections, 6 units, 25 lessons. Every unit has a
-  focus, a guidebook, and a 15-exercise checkpoint.
-- **Session size:** 12 exercises per normal lesson, 15 per checkpoint.
+- **Curriculum shape:** 5 sections, 10 units, 40 lessons. Every unit has a
+  focus, a guidebook, and a checkpoint.
+- **Session size:** up to 12 exercises per normal lesson, 15 per checkpoint.
+  A lesson whose material cannot fill 12 without repeating an objective is
+  shortened (8 minimum), so no note is asked more than four times.
 - **New-note teaching:** each new note gets four exposures while its box is
-  below 2. A normal lesson also reserves review slots from prior notes.
+  below 2: an unscored teach card, a guided attempt, and two independent
+  applications. Those four exposures use four different question shapes, never
+  the same one twice.
+- **Question variety:** a note can be named, played, placed on the staff, or
+  found on the neck. The composer rotates templates per objective, so a lesson
+  never asks the same question four times.
+- **Engine boundaries:** `core/learning` is topic-agnostic. Objectives,
+  prompts, and composers never import notes, and `lib/core` never imports
+  `lib/content`. Adding a topic should touch `lib/content/` and at most one new
+  prompt type, never the composer.
+- **Pointer and touch:** every interactive control works with a finger and a
+  mouse. Give it a pointer cursor (only when enabled) and a hover state, and
+  size tap targets for thumbs. Lessons must not assume a phone; the layout
+  switches at 900 px. Use `HoverRegion` for hover-only surfaces and
+  `DuoTappable` for anything tapped; do not hand-roll a `GestureDetector`
+  without a cursor.
 - **Mistake resurfacing:** missed notes return once at the end of the lesson,
   capped at four retries.
 - **Answer modes:** mixed starts each new note with naming and includes at
@@ -220,10 +238,10 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Current verified state
 
-Last verified on 2026-11-01 with Flutter 3.47.9 / Dart 3.13.7:
+Last verified on 2026-11-02 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` — no issues
-- `flutter test` — 145 tests passing
+- `flutter test` — 184 tests passing
 - `flutter build web --release` — succeeds
 - Web app loads, onboarding completes, the path renders chests and counters, and
   lessons, quests, shop, practice, and profile are reachable on narrow and wide

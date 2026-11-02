@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../state/providers.dart';
 import '../audio/sound_service.dart';
 import '../theme/app_theme.dart';
+import 'hover_region.dart';
 
 class DuoButton extends ConsumerStatefulWidget {
   const DuoButton({
@@ -42,68 +43,82 @@ class _DuoButtonState extends ConsumerState<DuoButton> {
 
   @override
   Widget build(BuildContext context) {
-    final color = _enabled ? widget.color : AppColors.border;
-    final dark = Color.lerp(color, Colors.black, 0.18)!;
-    final foreground = _enabled ? widget.textColor : AppColors.textLight;
-
-    return Semantics(
-      button: true,
+    return HoverRegion(
       enabled: _enabled,
-      label: widget.label,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
-        onTapCancel: _enabled ? () => setState(() => _pressed = false) : null,
-        onTapUp: _enabled
-            ? (_) {
-                setState(() => _pressed = false);
-                unawaited(
-                  ref
-                      .read(soundServiceProvider)
-                      .play(widget.sound ?? Sfx.uiTapPrimary),
-                );
-                widget.onPressed?.call();
-              }
-            : null,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 70),
-          transform: Matrix4.translationValues(0, _pressed ? 3 : 0, 0),
-          height: widget.height,
-          width: widget.expanded ? double.infinity : null,
-          padding: EdgeInsets.symmetric(horizontal: widget.expanded ? 20 : 26),
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(16),
-            border: Border(
-              bottom: BorderSide(color: dark, width: _pressed ? 2 : 4),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: widget.expanded ? MainAxisSize.max : MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, color: foreground, size: widget.fontSize + 5),
-                const SizedBox(width: 8),
-              ],
-              Flexible(
-                child: Text(
-                  widget.label,
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: widget.fontSize,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.4,
-                    color: foreground,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+      builder: (context, hovered) {
+        final base = _enabled ? widget.color : AppColors.border;
+        final color = hovered ? Color.lerp(base, Colors.white, 0.12)! : base;
+        final dark = Color.lerp(color, Colors.black, 0.18)!;
+        final foreground = _enabled ? widget.textColor : AppColors.textLight;
+
+        return Semantics(
+          button: true,
+          enabled: _enabled,
+          label: widget.label,
+          excludeSemantics: true,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: _enabled ? (_) => setState(() => _pressed = true) : null,
+            onTapCancel: _enabled
+                ? () => setState(() => _pressed = false)
+                : null,
+            onTapUp: _enabled
+                ? (_) {
+                    setState(() => _pressed = false);
+                    unawaited(
+                      ref
+                          .read(soundServiceProvider)
+                          .play(widget.sound ?? Sfx.uiTapPrimary),
+                    );
+                    widget.onPressed?.call();
+                  }
+                : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 70),
+              transform: Matrix4.translationValues(0, _pressed ? 3 : 0, 0),
+              height: widget.height,
+              width: widget.expanded ? double.infinity : null,
+              padding: const EdgeInsets.symmetric(horizontal: DuoSpacing.lg),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+                border: Border(
+                  bottom: BorderSide(color: dark, width: _pressed ? 2 : 4),
                 ),
               ),
-            ],
+              child: Row(
+                mainAxisSize: widget.expanded
+                    ? MainAxisSize.max
+                    : MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (widget.icon != null) ...[
+                    Icon(
+                      widget.icon,
+                      color: foreground,
+                      size: widget.fontSize + 5,
+                    ),
+                    const SizedBox(width: DuoSpacing.xs),
+                  ],
+                  Flexible(
+                    child: Text(
+                      widget.label,
+                      style: TextStyle(
+                        fontFamily: 'Nunito',
+                        fontSize: widget.fontSize,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.4,
+                        color: foreground,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -128,50 +143,57 @@ class OutlineDuoButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: onPressed == null
-          ? null
-          : () {
-              unawaited(
-                ref
-                    .read(soundServiceProvider)
-                    .play(sound ?? Sfx.uiTapSecondary),
-              );
-              onPressed?.call();
-            },
-      child: Container(
-        height: 52,
-        width: expanded ? double.infinity : null,
-        padding: EdgeInsets.symmetric(horizontal: expanded ? 20 : 20),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.borderStrong, width: 2),
-        ),
-        child: Row(
-          mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-            ],
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    fontFamily: 'Nunito',
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: color,
+    return HoverRegion(
+      enabled: onPressed != null,
+      builder: (context, hovered) => GestureDetector(
+        onTap: onPressed == null
+            ? null
+            : () {
+                unawaited(
+                  ref
+                      .read(soundServiceProvider)
+                      .play(sound ?? Sfx.uiTapSecondary),
+                );
+                onPressed?.call();
+              },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 90),
+          height: 52,
+          width: expanded ? double.infinity : null,
+          padding: const EdgeInsets.symmetric(horizontal: DuoSpacing.lg),
+          decoration: BoxDecoration(
+            color: hovered ? AppColors.surface : AppColors.background,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: hovered ? color : AppColors.borderStrong,
+              width: 2,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: color, size: 20),
+                const SizedBox(width: DuoSpacing.xs),
+              ],
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontFamily: 'Nunito',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

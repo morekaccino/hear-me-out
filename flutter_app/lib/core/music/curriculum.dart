@@ -9,6 +9,9 @@ class LessonDefinition {
     required this.title,
     required this.newNotes,
     required this.reviewNotes,
+    this.teaches = const <String>[],
+    this.reviews = const <String>[],
+    this.exposures = 4,
     this.isReview = false,
   });
 
@@ -21,6 +24,16 @@ class LessonDefinition {
 
   /// Notes that may appear as review material.
   final List<Note> reviewNotes;
+
+  /// Non-note objectives introduced by this lesson, by catalog id.
+  final List<String> teaches;
+
+  /// Non-note objectives that may appear as review material, by catalog id.
+  final List<String> reviews;
+
+  /// Teaching exposures per new objective. Notes need four; a tapped rhythm
+  /// or a diagram question needs fewer.
+  final int exposures;
 
   /// A checkpoint lesson at the end of a unit.
   final bool isReview;
@@ -347,6 +360,194 @@ final UnitDefinition _unitSix = UnitDefinition(
   ],
 );
 
+final UnitDefinition _unitSeven = UnitDefinition(
+  id: 'u7',
+  number: 7,
+  title: 'Counting and Keys',
+  focus: 'Feel the bar and know which notes a key raises',
+  lessons: [
+    LessonDefinition(
+      id: 'u7l1',
+      unitId: 'u7',
+      title: 'Beats and bars',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['meter:4_4', 'meter:3_4'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u7l2',
+      unitId: 'u7',
+      title: 'G and F major',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['key:G', 'key:F'],
+      reviews: ['meter:4_4', 'meter:3_4'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u7l3',
+      unitId: 'u7',
+      title: 'D major and 6/8',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['key:D', 'meter:6_8'],
+      reviews: ['key:G', 'key:F'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u7l4',
+      unitId: 'u7',
+      title: 'Counting and keys checkpoint',
+      newNotes: const [],
+      reviewNotes: const [],
+      reviews: ['meter:4_4', 'meter:3_4', 'key:G', 'key:F', 'key:D'],
+      isReview: true,
+    ),
+  ],
+);
+
+final UnitDefinition _unitEight = UnitDefinition(
+  id: 'u8',
+  number: 8,
+  title: 'Capo',
+  focus: 'Move familiar shapes into new keys',
+  lessons: [
+    LessonDefinition(
+      id: 'u8l1',
+      unitId: 'u8',
+      title: 'Capo two and three',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['capo:2', 'capo:3'],
+      reviews: ['key:G', 'key:D'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u8l2',
+      unitId: 'u8',
+      title: 'Capo checkpoint',
+      newNotes: const [],
+      reviewNotes: const [],
+      reviews: ['capo:2', 'capo:3', 'key:G', 'key:D'],
+      isReview: true,
+    ),
+  ],
+);
+
+final UnitDefinition _unitNine = UnitDefinition(
+  id: 'u9',
+  number: 9,
+  title: 'Open Chords',
+  focus: 'Read a chord diagram and name the shape',
+  lessons: [
+    LessonDefinition(
+      id: 'u9l1',
+      unitId: 'u9',
+      title: 'G and C',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['chord:G', 'chord:C'],
+      reviews: ['key:G', 'capo:2'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u9l2',
+      unitId: 'u9',
+      title: 'D and E minor',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['chord:D', 'chord:Em'],
+      reviews: ['chord:G', 'key:D'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u9l3',
+      unitId: 'u9',
+      title: 'A minor and E',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['chord:Am', 'chord:E'],
+      reviews: ['chord:C', 'capo:3'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u9l4',
+      unitId: 'u9',
+      title: 'Chord checkpoint',
+      newNotes: const [],
+      reviewNotes: const [],
+      reviews: ['chord:G', 'chord:C', 'chord:D', 'chord:Em', 'chord:Am'],
+      isReview: true,
+    ),
+  ],
+);
+
+final UnitDefinition _unitTen = UnitDefinition(
+  id: 'u10',
+  number: 10,
+  title: 'Pulse',
+  focus: 'Hold a steady beat and tap the rhythm you see',
+  lessons: [
+    LessonDefinition(
+      id: 'u10l1',
+      unitId: 'u10',
+      title: 'Quarter and half notes',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['rhythm:quarters', 'rhythm:halves'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u10l2',
+      unitId: 'u10',
+      title: 'Long and short',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['rhythm:quarter-half-quarter', 'rhythm:eighths'],
+      reviews: ['rhythm:quarters', 'rhythm:halves'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u10l3',
+      unitId: 'u10',
+      title: 'Rests and waltz',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['rhythm:rest-three', 'rhythm:waltz'],
+      reviews: ['rhythm:quarters', 'rhythm:eighths'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u10l4',
+      unitId: 'u10',
+      title: 'Strum feel',
+      newNotes: const [],
+      reviewNotes: const [],
+      teaches: ['rhythm:down-up'],
+      reviews: ['rhythm:halves', 'rhythm:quarter-half-quarter'],
+      exposures: 3,
+    ),
+    LessonDefinition(
+      id: 'u10l5',
+      unitId: 'u10',
+      title: 'Pulse checkpoint',
+      newNotes: const [],
+      reviewNotes: const [],
+      reviews: [
+        'rhythm:quarters',
+        'rhythm:halves',
+        'rhythm:quarter-half-quarter',
+        'rhythm:eighths',
+        'rhythm:rest-three',
+        'rhythm:waltz',
+        'rhythm:down-up',
+      ],
+      isReview: true,
+    ),
+  ],
+);
+
 final List<SectionDefinition> sections = [
   SectionDefinition(
     id: 's1',
@@ -368,6 +569,20 @@ final List<SectionDefinition> sections = [
     title: 'Accidentals',
     subtitle: 'Add sharps and flats to the staff',
     units: [_unitSix],
+  ),
+  SectionDefinition(
+    id: 's4',
+    number: 4,
+    title: 'Harmony',
+    subtitle: 'Meters, keys, capo, and open chords',
+    units: [_unitSeven, _unitEight, _unitNine],
+  ),
+  SectionDefinition(
+    id: 's5',
+    number: 5,
+    title: 'Rhythm',
+    subtitle: 'Hold the pulse and tap what you read',
+    units: [_unitTen],
   ),
 ];
 
@@ -409,6 +624,10 @@ const List<ChestDefinition> chests = [
   ChestDefinition(id: 'u4c1', unitId: 'u4', afterLessonId: 'u4l2', gems: 40),
   ChestDefinition(id: 'u5c1', unitId: 'u5', afterLessonId: 'u5l2', gems: 50),
   ChestDefinition(id: 'u6c1', unitId: 'u6', afterLessonId: 'u6l2', gems: 60),
+  ChestDefinition(id: 'u7c1', unitId: 'u7', afterLessonId: 'u7l2', gems: 70),
+  ChestDefinition(id: 'u8c1', unitId: 'u8', afterLessonId: 'u8l1', gems: 75),
+  ChestDefinition(id: 'u9c1', unitId: 'u9', afterLessonId: 'u9l2', gems: 80),
+  ChestDefinition(id: 'u10c1', unitId: 'u10', afterLessonId: 'u10l2', gems: 85),
 ];
 
 final Map<String, ChestDefinition> chestById = {
@@ -455,7 +674,15 @@ List<Note> _uniqueNotes(List<Note> notes) {
 }
 
 /// Plausible answer buttons for the current note, including [correct].
-List<Note> answerChoices(Note correct, {int count = 4, Random? random}) {
+///
+/// [guided] adds one distant option, so a learner meeting a note for the first
+/// time chooses between ideas rather than between neighbouring staff steps.
+List<Note> answerChoices(
+  Note correct, {
+  int count = 4,
+  bool guided = false,
+  Random? random,
+}) {
   final rng = random ?? Random();
   final source = correct.accidental == Accidental.natural
       ? noteCatalog.where((note) => note.accidental == Accidental.natural)
@@ -471,8 +698,18 @@ List<Note> answerChoices(Note correct, {int count = 4, Random? random}) {
     return a.id.compareTo(b.id);
   });
 
+  final chosen = <Note>[];
+  if (guided && candidates.length > 3) {
+    final far = candidates.sublist(candidates.length ~/ 2)..shuffle(rng);
+    chosen.add(far.first);
+  }
   final nearby = candidates.take(8).toList()..shuffle(rng);
-  final chosen = nearby.take(count - 1).toList();
+  for (final note in nearby) {
+    if (chosen.length >= count - 1) break;
+    if (chosen.any((candidate) => candidate.id == note.id)) continue;
+    chosen.add(note);
+  }
+
   final options = [...chosen, correct]..shuffle(rng);
   return options;
 }

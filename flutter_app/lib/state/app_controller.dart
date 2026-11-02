@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../content/session_factory.dart';
 import '../core/learning/progress.dart';
-import '../core/learning/session_builder.dart';
+import '../core/learning/prompt.dart';
+import '../core/learning/lesson_run.dart';
 import '../core/music/curriculum.dart';
 import '../core/music/note.dart';
 import '../core/storage/progress_store.dart';
@@ -121,7 +123,7 @@ class AppController extends AsyncNotifier<AppData> {
     if (lesson == null) return;
     _lastMicAvailable = micAvailable;
     final data = _data;
-    final exercises = buildLessonExercises(
+    final exercises = buildLessonSession(
       lesson: lesson,
       progress: data.progress,
       now: DateTime.now(),
@@ -201,7 +203,7 @@ class AppController extends AsyncNotifier<AppData> {
       reviewNotes: notes,
       isReview: true,
     );
-    final exercises = buildLessonExercises(
+    final exercises = buildLessonSession(
       lesson: lesson,
       progress: data.progress,
       now: DateTime.now(),
@@ -229,14 +231,19 @@ class AppController extends AsyncNotifier<AppData> {
     final run = data.run;
     if (run == null || run.awaitingNext || run.isFinished) return;
 
-    final target = run.current.note;
+    final prompt = run.current;
+    if (!prompt.isScored) return;
+
+    final target = prompt is NotePrompt ? prompt.note : null;
     final now = DateTime.now();
-    data.progress.recordAnswer(
-      note: target,
-      correctAnswer: correct,
-      now: now,
-      absCents: cents,
-    );
+    if (target != null) {
+      data.progress.recordAnswer(
+        note: target,
+        correctAnswer: correct,
+        now: now,
+        absCents: cents,
+      );
+    }
 
     run.lastTarget = target;
     run.lastCorrect = correct;
@@ -253,7 +260,7 @@ class AppController extends AsyncNotifier<AppData> {
     } else {
       run.wrong++;
       run.combo = 0;
-      run.queueMistake(run.current);
+      run.queueMistake(prompt);
       if (!run.isPractice) {
         data.progress.loseHeart(now);
         run.lives = data.progress.hearts;
@@ -267,7 +274,9 @@ class AppController extends AsyncNotifier<AppData> {
   Future<void> nextExercise() async {
     final data = _data;
     final run = data.run;
-    if (run == null || !run.awaitingNext) return;
+    if (run == null || run.isFinished) return;
+    // Teach cards are informational, so they advance without an answer.
+    if (!run.awaitingNext && run.current.isScored) return;
 
     if (!run.isPractice && run.outOfLives) {
       await _finish(passed: false);

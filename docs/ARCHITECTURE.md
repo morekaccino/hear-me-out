@@ -14,10 +14,11 @@ gamification, see [`DESIGN.md`](DESIGN.md).
 flutter_app/lib/
 ├── core/
 │   ├── music/       Note, Accidental, guitar transposition, curriculum
-│   ├── learning/    ProgressState, scheduler, session builder, LessonRun
+│   ├── learning/    Objectives, prompts, templates, composer, LessonRun
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
 │   └── storage/     shared_preferences JSON store, export/import
+├── content/         lesson material: objectives, templates, session factories
 ├── features/        onboarding, path, lesson, practice, quests, shop, profile
 ├── shared/          theme, reusable widgets, sound service
 └── state/           Riverpod AppController, pitch-source, sound providers
@@ -26,10 +27,16 @@ flutter_app/lib/
 Dependency direction:
 
 ```
-features -> state -> core/learning -> core/music
+features -> state -> content -> core/learning -> core/music
 features -> core/audio, core/notation
-core/* does not import features or shared widgets
+core/* does not import content, features, or shared widgets
 ```
+
+The `core`/`content` split is the load-bearing one. `core/learning` knows about
+families, roles, and capabilities, never about notes, staffs, or chords.
+`content` holds everything teachable and depends on `core`, not the other way
+around. A test in `test/composer_test.dart` enforces that `lib/core` never
+imports `lib/content`.
 
 `core/learning` imports `core/music`; it does not import Flutter widgets.
 `core/audio/note_matcher.dart` depends on `core/music/guitar.dart` and
@@ -58,9 +65,10 @@ progress and answer choices.
 - `bestPosition` prefers the lowest fret, then the lowest-pitched (highest-numbered)
   string.
 
-`curriculum.dart` holds the 3 sections / 6 units / 25 lessons, the unit focus
-and guidebook metadata, the note catalog used for answer choices, and the
-legacy lesson-ID map used by progress migration.
+`curriculum.dart` holds the 5 sections / 10 units / 40 lessons, the unit focus
+metadata, the note catalog used for answer choices, and the legacy lesson-ID map
+used by progress migration. Lessons name non-note objectives by id
+(`teaches` / `reviews`), which resolve through `lib/content/objectives.dart`.
 
 ## Progress and scheduling
 
@@ -94,33 +102,97 @@ next completed lesson finds a gap. All values are local and validated on load.
 
 ## Session planning
 
-`buildLessonExercises` returns exactly 12 exercises for a normal lesson and 15
-for a checkpoint:
+A session is a `SessionShape` filled by a `SessionComposer` and checked by a
+`SessionValidator`.
 
-1. Select up to two new notes whose box is below 2.
-2. Add four copies of each new note.
-3. Fill the rest from a review quota: due notes, weak notes, then recently seen
-   notes.
-4. Order by frequency/priority while keeping the same note out of the last two
-   positions when another choice exists.
-5. Assign `isNew` and `newExposure` based on occurrence order.
-6. Assign modes:
-   - no mic or name mode: all naming
-   - play mode: all playing
-   - mixed: first exposure of a new note is naming; later exercises alternate
-     and guarantee at least three play exercises when possible.
+- `SessionShape.standard(total: n, newObjectives: k)` reserves four slots per
+  new objective and gives the rest to review. The factory lowers `n` when the
+  available objectives are too few to fill it, with a floor of 8.
+- `SessionComposer.compose` builds one entry per slot, interleaves them so the
+  same objective is never reused within two positions, then picks an answer
+  surface per slot from the `ContentPack`.
+- `SessionValidator` asserts slot count, teach-before-question, one teach card
+  per objective, unscored teach cards, and objective spacing.
 
-`buildPracticeExercises` reuses the same planner without teaching new notes.
-It draws from due notes, weak notes, or all learned notes. If the profile is
-empty it falls back to the first lesson notes so a practice screen never opens
-empty.
+Roles come from `SessionShape.roleForOccurrence`: occurrence 0 is a `teach`
+card, 1 is `guided`, and the rest are `apply`. Review slots use `review`.
+
+Answer surfaces are `AnswerMode.name`, `AnswerMode.play`, or null for the
+unscored teach card. Mode policy:
+
+- no mic or name mode: all scored slots name
+- play mode: all scored slots play
+- mixed: guided is name, later slots alternate, and at least three play
+  exercises are guaranteed when the microphone is available
+
+`buildLessonExercises` and `buildPracticeExercises` live in
+`content/session_factory.dart`. They do the note-specific selection (which notes
+are new, which are due or weak) and hand objective refs to the composer.
+`buildPracticeExercises` draws from due notes, weak notes, or all learned notes,
+and falls back to the first lesson so practice never opens empty.
 
 `LessonRun` holds the mutable session state: index, hearts snapshot, correct/
 wrong, combo, result feedback, and `isPractice`. A wrong answer spends a shared
-heart and queues the note for a short end-of-lesson retry; distinct notes are
-capped at four. Practice sessions never spend hearts and never end on
-`outOfLives`; only lessons do. `isJumpTest` runs a 15-exercise section test and
-unlocks earlier sections on a pass.
+heart and queues the objective for a short end-of-lesson retry; distinct
+objectives are capped at four. Practice sessions never spend hearts and never
+end on `outOfLives`; only lessons do. `isJumpTest` runs a 15-slot section test
+and unlocks earlier sections on a pass.
+
+### Prompt and template types
+
+`core/learning/prompt.dart` holds the sealed prompt union:
+
+| Prompt | Answer | Families |
+|---|---|---|
+| `NotePrompt` | choice or pitch | note reading |
+| `StaffTapPrompt` | staff position | note reading |
+| `FretTapPrompt` | string and fret | note reading, fretboard |
+| `ChoicePrompt` | option id | theory, harmony |
+| `RhythmPrompt` | timed taps | rhythm |
+
+`ChoicePrompt.reveal` turns it into an unscored teach card. `ChoicePrompt.chord`
+renders a fretboard diagram above the options.
+
+`core/learning/verifier.dart` owns one verifier per answer type. Taps on the
+staff compare diatonic indices, fret taps accept any valid position for the
+written note, and rhythm taps are graded against the pattern onsets with a
+0.28-beat tolerance.
+
+`features/exercises/prompt_view.dart` renders every non-note prompt. The lesson
+screen keeps the note-reading UI and delegates the rest.
+
+`features/lesson/lesson_layout.dart` owns the lesson layout. The lesson is a
+single centred column (max 640 px) at every width, following Duolingo's web
+lesson. The question scrolls at the top; the answers (or the teach card's
+`GOT IT`) sit in a bottom dock with a top border. Only the dock is wrapped in
+`SafeArea`, so the iPhone home indicator never covers a control and the page is
+not inset twice. The top bar uses the same 640 px column: close on the left
+edge, hearts on the right edge, progress bar edge to edge, caption centred.
+`shared/widgets/hover_region.dart` adds a pointer cursor and hover state to any
+surface. `shared/theme/motion.dart` is the single source of durations and
+curves, and `shared/navigation/duo_route.dart` opens a lesson with a fade plus a
+97% scale. The lesson uses `PageTransitionSwitcher` (shared-axis horizontal)
+from the `animations` package for question changes.
+
+### Adding a topic
+
+The engine is designed so a new topic is additive:
+
+1. Add objective ids and builders in `lib/content/<topic>/objectives.dart`.
+2. If the answer surface is new, add a `Prompt` subclass in
+   `lib/core/learning/prompt.dart` and an `Answer`/`Verifier` pair in
+   `lib/core/learning/verifier.dart`.
+3. Add `ExerciseTemplate`s in `lib/content/<topic>/templates.dart`, declaring
+   family, roles, answer mode, and required `Capability`.
+4. Register the templates in `lib/content/packs.dart`.
+5. Render the prompt. `LessonScreen` reads prompts through `LessonRun.current`
+   and already routes answers through `PromptVerifier`.
+6. If the topic selects its own material, add a factory beside
+   `buildLessonExercises` in `content/session_factory.dart`.
+
+No change to `SessionComposer`, `SessionShape`, or `SessionValidator` is needed
+for steps 1–4. If a new topic forces a change there, fix the abstraction before
+adding the second template.
 
 `features/path/path_layout.dart` is pure geometry. It builds one continuous
 low-amplitude sine across the course, where each unit continues the phase the
@@ -239,7 +311,11 @@ fresh profile.
 | `test/guitar_test.dart` | Written/sounding transposition, fingerings |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
-| `test/session_builder_test.dart` | All lessons, choices, modes, ordering |
+| `test/session_factory_test.dart` | All lessons, teach cards, choices, modes, ordering, pacing |
+| `test/composer_test.dart` | Family-agnostic composer, determinism, core/content layering |
+| `test/topics_test.dart` | Template rotation, theory/chord/rhythm prompts, verifiers |
+| `test/prompt_view_test.dart` | Staff tap, fret tap, chord diagram, rhythm view at 390 px |
+| `test/placement_flow_test.dart` | A placed note grades, shows feedback, and advances |
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |

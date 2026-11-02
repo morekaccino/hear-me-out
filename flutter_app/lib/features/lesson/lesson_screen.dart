@@ -8,7 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/audio/note_matcher.dart';
 import '../../core/audio/pitch_source.dart';
 import '../../core/learning/progress.dart';
-import '../../core/learning/session_builder.dart';
+import '../../core/learning/prompt.dart';
+import '../../core/learning/lesson_run.dart';
+import '../../core/learning/verifier.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
@@ -22,6 +24,9 @@ import '../../shared/widgets/feedback_panel.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../exercises/fret_tap_view.dart';
+import '../exercises/prompt_view.dart';
+import 'lesson_layout.dart';
 
 /// Converts a sounding pitch to the written guitar note, keeping the spelling
 /// of the exercise target so B-flat does not turn into A-sharp.
@@ -76,8 +81,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     }
     if (state == AppLifecycleState.resumed && mounted) {
       final run = ref.read(appControllerProvider).asData?.value.run;
+      final prompt = run?.current;
       if (run != null &&
-          run.current.isPlay &&
+          prompt is NotePrompt &&
+          prompt.isPlay &&
           !run.awaitingNext &&
           !_forceName) {
         unawaited(_ensureMic());
@@ -128,8 +135,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       }
       final data = ref.read(appControllerProvider).asData?.value;
       final run = data?.run;
+      final prompt = run?.current;
       if (run == null ||
-          !run.current.isPlay ||
+          prompt is! NotePrompt ||
+          !prompt.isPlay ||
           run.awaitingNext ||
           _forceName) {
         await source.dispose();
@@ -161,7 +170,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     if (run == null || matcher == null || run.awaitingNext || _submitting) {
       return;
     }
-    if (!run.current.isPlay || _forceName) return;
+    final prompt = run.current;
+    if (prompt is! NotePrompt || !prompt.isPlay || _forceName) return;
 
     final result = matcher.addFrame(frame);
     if (mounted) {
@@ -170,34 +180,38 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
     switch (result.state) {
       case MatchState.correct:
-        unawaited(
-          _submit(
-            correct: true,
-            cents: result.reading.cents,
-            detected: result.reading.note,
-          ),
-        );
       case MatchState.wrong:
-        unawaited(
-          _submit(
-            correct: false,
-            cents: result.reading.voiced ? result.reading.cents : null,
-            detected: result.reading.note,
-          ),
-        );
       case MatchState.octave:
-        unawaited(
-          _submit(
-            correct: false,
-            cents: result.reading.voiced ? result.reading.cents : null,
-            detected: result.reading.note,
-            octaveError: true,
-          ),
-        );
+        _submitPitch(prompt, result);
       case MatchState.listening:
       case MatchState.silent:
         break;
     }
+  }
+
+  /// Routes the audio matcher's verdict through the shared verifier so the
+  /// screen never decides correctness on its own.
+  void _submitPitch(NotePrompt prompt, MatchResult result) {
+    final verdict = const PromptVerifier().verify(
+      PitchAnswer(
+        outcome: switch (result.state) {
+          MatchState.correct => PitchOutcome.correct,
+          MatchState.octave => PitchOutcome.octave,
+          _ => PitchOutcome.wrong,
+        },
+        cents: result.reading.voiced ? result.reading.cents : null,
+        detected: result.reading.note,
+      ),
+      prompt,
+    );
+    unawaited(
+      _submit(
+        correct: verdict.correct,
+        cents: result.reading.voiced ? result.reading.cents : null,
+        detected: result.reading.note,
+        octaveError: verdict.octaveError,
+      ),
+    );
   }
 
   Future<void> _submit({
@@ -256,7 +270,13 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     await ref.read(appControllerProvider.notifier).nextExercise();
   }
 
-  void _prepareExercise(LessonRun run, bool showPlay) {
+  /// Routes any tap-based prompt through the shared verifier.
+  void _submitPrompt(Prompt prompt, Answer answer) {
+    final verdict = const PromptVerifier().verify(answer, prompt);
+    unawaited(_submit(correct: verdict.correct));
+  }
+
+  void _prepareExercise(LessonRun run, NotePrompt exercise, bool showPlay) {
     if (!mounted) return;
     _selectedOptionId = null;
     _reading = PitchReading.silent;
@@ -272,7 +292,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
         toleranceCents: settings.toleranceCents,
       );
       matcher.startExercise(
-        run.current.note,
+        exercise.note,
         grace: ref.read(lessonGraceProvider),
       );
       _matcher = matcher;
@@ -348,14 +368,84 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    final exercise = run.current;
+    final prompt = run.current;
+    final exercise = prompt is NotePrompt ? prompt : null;
+    if (exercise == null) {
+      final question = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            run.isPractice ? 'Practice' : 'Lesson',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: AppColors.textLight,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            promptTitle(prompt),
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          PromptView(
+            key: ValueKey(
+              '${run.index}-${prompt.templateId}-${prompt.isTeach}',
+            ),
+            prompt: prompt,
+            onAnswer: (answer) => _submitPrompt(prompt, answer),
+          ),
+        ],
+      );
+
+      return PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop) _confirmExit();
+        },
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: SafeArea(bottom: false,
+            child: LessonLayout(
+              header: _LessonTopBar(
+                run: run,
+                onClose: () {
+                  _play(Sfx.uiTapSecondary);
+                  _confirmExit();
+                },
+              ),
+              question: question,
+              questionKey: '${run.index}-${prompt.templateId}',
+              answers: prompt.isTeach
+                  ? DuoButton(
+                      label: 'GOT IT',
+                      onPressed: _continue,
+                      color: AppColors.blue,
+                    )
+                  : null,
+              feedback: run.awaitingNext
+                  ? _FeedbackForRun(
+                      key: ValueKey('feedback-${run.index}-${run.lastCorrect}'),
+                      run: run,
+                      onContinue: _continue,
+                    )
+                  : null,
+            ),
+          ),
+        ),
+      );
+    }
     final showPlay = exercise.isPlay && !_forceName;
     final activationKey =
         '${run.index}|${exercise.note.id}|$showPlay|${run.awaitingNext}|$_forceName';
     if (activationKey != _activeKey) {
       _activeKey = activationKey;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _prepareExercise(run, showPlay);
+        if (mounted) _prepareExercise(run, exercise, showPlay);
       });
     }
 
@@ -366,106 +456,106 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: PageFrame(
-            child: Column(
+        body: SafeArea(bottom: false,
+          child: LessonLayout(
+            header: _LessonTopBar(
+              run: run,
+              onClose: () {
+                _play(Sfx.uiTapSecondary);
+                _confirmExit();
+              },
+            ),
+            question: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _LessonTopBar(
-                  run: run,
-                  onClose: () {
-                    _play(Sfx.uiTapSecondary);
-                    _confirmExit();
-                  },
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          run.isPractice
-                              ? (run.practiceTitle ?? 'Practice')
-                              : run.isReviewingMistakes
-                              ? 'Mistake review'
-                              : (run.lesson.isReview
-                                    ? 'Unit checkpoint'
-                                    : 'Lesson'),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1,
-                            color: AppColors.textLight,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          run.isReviewingMistakes
-                              ? 'Try this note again'
-                              : showPlay
-                              ? 'Play this note'
-                              : 'What note is this?',
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _StaffCard(note: exercise.note, isNew: exercise.isNew),
-                        const SizedBox(height: 18),
-                        if (showPlay)
-                          _MicAnswer(
-                            reading: _reading,
-                            target: exercise.note,
-                            toleranceCents: data.progress.settings.toleranceCents,
-                            starting: _startingMic,
-                            error: _micError,
-                            onUseNames: () {
-                              setState(() {
-                                _forceName = true;
-                                _activeKey = null;
-                              });
-                            },
-                            onSkip: () => _submit(correct: false),
-                          )
-                        else
-                          _NameAnswer(
-                            exercise: exercise,
-                            run: run,
-                            selectedOptionId: _selectedOptionId,
-                            onSelected: (option) {
-                              setState(() => _selectedOptionId = option.id);
-                              _submit(correct: option.id == exercise.note.id);
-                            },
-                          ),
-                      ],
-                    ),
+                Text(
+                  run.isPractice
+                      ? (run.practiceTitle ?? 'Practice')
+                      : run.isReviewingMistakes
+                      ? 'Mistake review'
+                      : (run.lesson.isReview
+                            ? 'Unit checkpoint'
+                            : 'Lesson'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                    color: AppColors.textLight,
                   ),
                 ),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  switchInCurve: Curves.easeOutCubic,
-                  switchOutCurve: Curves.easeInCubic,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.18),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
+                const SizedBox(height: 2),
+                Text(
+                  exercise.isTeach
+                      ? 'A new note'
+                      : run.isReviewingMistakes
+                      ? 'Try this note again'
+                      : showPlay
+                      ? 'Play this note'
+                      : 'What note is this?',
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
                   ),
-                  child: run.awaitingNext
-                      ? _FeedbackForRun(
-                          key: ValueKey('feedback-${run.index}-${run.lastCorrect}'),
-                          run: run,
-                          onContinue: _continue,
-                        )
-                      : const SizedBox.shrink(key: ValueKey('no-feedback')),
                 ),
+                const SizedBox(height: 12),
+                _StaffCard(note: exercise.note, isNew: exercise.isNew),
+                if (exercise.isTeach) ...[
+                  const SizedBox(height: 16),
+                  _TeachCard(prompt: exercise),
+                ],
               ],
             ),
+            questionKey: '${run.index}-${exercise.note.id}',
+            answers: KeyedSubtree(
+              key: ValueKey('answers-${run.index}'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (exercise.isTeach)
+                    DuoButton(
+                      label: 'GOT IT',
+                      onPressed: _continue,
+                      color: AppColors.blue,
+                    )
+                  else if (showPlay)
+                    _MicAnswer(
+                      reading: _reading,
+                      target: exercise.note,
+                      toleranceCents: data.progress.settings.toleranceCents,
+                      starting: _startingMic,
+                      error: _micError,
+                      onUseNames: () {
+                        setState(() {
+                          _forceName = true;
+                          _activeKey = null;
+                        });
+                      },
+                      onSkip: () => _submit(correct: false),
+                    )
+                  else
+                    _NameAnswer(
+                      exercise: exercise,
+                      run: run,
+                      selectedOptionId: _selectedOptionId,
+                      onSelected: (option) {
+                        setState(() => _selectedOptionId = option.id);
+                        final verdict = const PromptVerifier().verify(
+                          ChoiceAnswer(option.id),
+                          exercise,
+                        );
+                        _submit(correct: verdict.correct);
+                      },
+                    ),
+                ],
+              ),
+            ),
+            feedback: run.awaitingNext
+                ? _FeedbackForRun(
+                    key: ValueKey('feedback-${run.index}-${run.lastCorrect}'),
+                    run: run,
+                    onContinue: _continue,
+                  )
+                : null,
           ),
         ),
       ),
@@ -481,37 +571,68 @@ class _LessonTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onClose,
-            icon: const Icon(Icons.close_rounded),
-            color: AppColors.textLight,
-            tooltip: 'Quit lesson',
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final wide = constraints.maxWidth >= LessonLayout.wideBreakpoint;
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            wide ? 24 : 16,
+            8,
+            wide ? 24 : 16,
+            6,
           ),
-          Expanded(
-            child: LessonProgressBar(
-              value: run.progress,
-              height: 16,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: LessonLayout.columnWidth,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: onClose,
+                        icon: const Icon(Icons.close_rounded),
+                        color: AppColors.textLight,
+                        tooltip: 'Quit lesson',
+                      ),
+                      const Spacer(),
+                      if (run.isPractice)
+                        const Text(
+                          'PRACTICE',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                            color: AppColors.blueDark,
+                          ),
+                        )
+                      else
+                        HeartsRow(lives: run.lives),
+                    ],
+                  ),
+                  // The bar shares the content column, so its edges line up
+                  // with the staff card instead of floating at a different
+                  // centre.
+                  LessonProgressBar(value: run.progress, height: 14),
+                  const SizedBox(height: 4),
+                  Text(
+                    run.stepLabel,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.5,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 12),
-          if (run.isPractice)
-            const Text(
-              'PRACTICE',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-                color: AppColors.blueDark,
-              ),
-            )
-          else
-            HeartsRow(lives: run.lives),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -528,7 +649,7 @@ class _StaffCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border, width: 2),
         boxShadow: const [
           BoxShadow(
@@ -593,6 +714,65 @@ class _StaffCard extends StatelessWidget {
   }
 }
 
+class _TeachCard extends StatelessWidget {
+  const _TeachCard({required this.prompt});
+
+  final NotePrompt prompt;
+
+  @override
+  Widget build(BuildContext context) {
+    final position = Guitar.bestPosition(prompt.note);
+    final positions = Guitar.positionsFor(prompt.note, maxFret: 4);
+    return SectionCard(
+      color: AppColors.blueSoft,
+      borderColor: AppColors.blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'NEW NOTE',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1,
+              color: AppColors.blueDark,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            prompt.note.display,
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            position == null
+                ? 'Find it on the staff, then say its name.'
+                : '${position.label}. Here it is on the neck.',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              height: 1.35,
+              color: AppColors.textMuted,
+            ),
+          ),
+          if (positions.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            FretboardDiagram(
+              maxFret: 4,
+              positions: positions,
+              height: 170,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
 class _NameAnswer extends StatelessWidget {
   const _NameAnswer({
     required this.exercise,
@@ -601,7 +781,7 @@ class _NameAnswer extends StatelessWidget {
     required this.onSelected,
   });
 
-  final Exercise exercise;
+  final NotePrompt exercise;
   final LessonRun run;
   final String? selectedOptionId;
   final ValueChanged<Note> onSelected;
@@ -623,7 +803,7 @@ class _NameAnswer extends StatelessWidget {
                 onTap: run.awaitingNext ? null : () => onSelected(left),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: right == null
                   ? const SizedBox()
@@ -636,7 +816,7 @@ class _NameAnswer extends StatelessWidget {
           ],
         ),
       );
-      rows.add(const SizedBox(height: 10));
+      rows.add(const SizedBox(height: 8));
     }
 
     return Column(children: rows);
@@ -680,7 +860,7 @@ class _MicAnswer extends StatelessWidget {
             child: Row(
               children: [
                 const Icon(Icons.mic_off_rounded, color: AppColors.redDark),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     error!,
@@ -695,7 +875,7 @@ class _MicAnswer extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           DuoButton(
             label: 'USE NOTE NAMES INSTEAD',
             onPressed: onUseNames,
@@ -718,10 +898,10 @@ class _MicAnswer extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.border, width: 1.5),
           ),
           child: Row(
@@ -750,7 +930,7 @@ class _MicAnswer extends StatelessWidget {
                   size: 28,
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 child: voiced
                     ? Column(
@@ -818,9 +998,9 @@ class _MicAnswer extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         _CentsRuler(cents: voiced ? cents : null),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Row(
           children: [
             Expanded(
@@ -830,7 +1010,7 @@ class _MicAnswer extends StatelessWidget {
                 color: AppColors.blue,
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: OutlineDuoButton(
                 label: 'SKIP',
@@ -1056,7 +1236,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
           SafeArea(
             child: PageFrame(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
                     const Spacer(),
@@ -1097,7 +1277,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                         height: 1.4,
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 24),
                     Row(
                       children: [
                         Expanded(
@@ -1108,7 +1288,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                             label: 'XP',
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _ResultStat(
                             icon: Icons.speed_rounded,
@@ -1117,7 +1297,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                             label: 'Accuracy',
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _ResultStat(
                             icon: Icons.local_fire_department_rounded,
@@ -1146,7 +1326,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                         DuoButton(label: 'OUT OF HEARTS', onPressed: null)
                       else
                         DuoButton(label: 'TRY AGAIN', onPressed: widget.onRetry),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       OutlineDuoButton(
                         label: 'BACK TO PATH',
                         onPressed: widget.onContinue,
@@ -1201,7 +1381,7 @@ class _ResultStat extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.border, width: 1.5),
       ),
       child: Column(

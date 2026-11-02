@@ -16,6 +16,7 @@ import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../../shared/widgets/tappable.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -157,13 +158,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
                 child: Row(
                   children: [
                     for (var index = 0; index < 4; index++)
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           child: LessonProgressBar(
                             value: index <= _page ? 1 : 0,
                             height: 8,
@@ -236,11 +237,11 @@ class _WelcomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
         child: Column(
           children: [
             const Mascot(size: 160),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             Text(
               'Read music.\nPlay guitar.',
               textAlign: TextAlign.center,
@@ -251,7 +252,7 @@ class _WelcomePage extends StatelessWidget {
                 color: AppColors.text,
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
               'See a note on the staff. Name it, or play it on your guitar and get instant feedback.',
               textAlign: TextAlign.center,
@@ -262,7 +263,7 @@ class _WelcomePage extends StatelessWidget {
                 color: AppColors.textMuted,
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
@@ -298,7 +299,7 @@ class _FeaturePill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: AppColors.greenDark),
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
           Text(
             label,
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
@@ -327,12 +328,12 @@ class _HowItWorksPage extends StatelessWidget {
               'Two ways to answer',
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Both build the same note-reading skill.',
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             SectionCard(
               child: Column(
                 children: [
@@ -346,7 +347,7 @@ class _HowItWorksPage extends StatelessWidget {
                           onTap: () => onModeChanged(0),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _ModeTab(
                           label: 'PLAY IT',
@@ -357,7 +358,7 @@ class _HowItWorksPage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   SizedBox(
                     height: 190,
                     child: StaffView(
@@ -409,10 +410,10 @@ class _HowItWorksPage extends StatelessWidget {
                   else
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: AppColors.blueSoft,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
                         children: [
@@ -420,7 +421,7 @@ class _HowItWorksPage extends StatelessWidget {
                             Icons.graphic_eq_rounded,
                             color: AppColors.blueDark,
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'Play G on your guitar. The mic hears the pitch and tells you how close you are.',
@@ -438,7 +439,7 @@ class _HowItWorksPage extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             Text(
               'No account. No cloud. Your progress stays on this device.',
               textAlign: TextAlign.center,
@@ -466,8 +467,9 @@ class _ModeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return DuoTappable(
       onTap: onTap,
+      pressedScale: 0.96,
       child: Container(
         height: 44,
         decoration: BoxDecoration(
@@ -486,7 +488,7 @@ class _ModeTab extends StatelessWidget {
               size: 18,
               color: selected ? AppColors.greenDark : AppColors.textMuted,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
@@ -526,17 +528,17 @@ class _MicCheckPage extends StatelessWidget {
     final cents = reading.cents;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           children: [
             const Mascot(size: 100, mood: MascotMood.thinking),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             const Text(
               'Check your microphone',
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Play any note on your guitar. If the mic works, you will see it here.',
               textAlign: TextAlign.center,
@@ -546,7 +548,7 @@ class _MicCheckPage extends StatelessWidget {
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 16),
             SectionCard(
               child: SizedBox(
                 height: 120,
@@ -581,7 +583,7 @@ class _MicCheckPage extends StatelessWidget {
                               size: 38,
                               color: AppColors.textLight,
                             ),
-                            SizedBox(height: 6),
+                            SizedBox(height: 8),
                             Text(
                               'Waiting for a note…',
                               style: TextStyle(
@@ -607,7 +609,7 @@ class _MicCheckPage extends StatelessWidget {
                 ),
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
             if (reading.note == null)
               DuoButton(
                 label: checking
@@ -656,7 +658,7 @@ class _GoalPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
           children: [
             const Mascot(size: 110, mood: MascotMood.cheer),
@@ -666,18 +668,19 @@ class _GoalPage extends StatelessWidget {
               style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               'Small and steady beats one long session.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 24),
             for (final goal in [10, 20, 30])
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: GestureDetector(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: DuoTappable(
                   onTap: () => onSelected(goal),
+                  pressedScale: 0.98,
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 16,
