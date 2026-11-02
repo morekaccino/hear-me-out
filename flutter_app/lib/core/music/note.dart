@@ -137,6 +137,35 @@ class Note {
     return Note(letter, octave, accidental: accidental);
   }
 
+  /// Spells [midi] with [letter] where possible, adding a sharp or flat to
+  /// match the pitch. Falls back to a chromatic spelling for double accidentals.
+  static Note spelledFromMidi(int midi, String letter) {
+    const naturalPitchClasses = <String, int>{
+      'C': 0,
+      'D': 2,
+      'E': 4,
+      'F': 5,
+      'G': 7,
+      'A': 9,
+      'B': 11,
+    };
+    final targetPitchClass = midi % 12;
+    final naturalPitchClass = naturalPitchClasses[letter]!;
+    var difference = targetPitchClass - naturalPitchClass;
+    if (difference > 6) difference -= 12;
+    if (difference < -6) difference += 12;
+    final accidental = switch (difference) {
+      0 => Accidental.natural,
+      1 => Accidental.sharp,
+      -1 => Accidental.flat,
+      _ => null,
+    };
+    if (accidental == null) {
+      return Note.fromMidi(midi, preferFlats: difference < 0);
+    }
+    return Note(letter, midi ~/ 12 - 1, accidental: accidental);
+  }
+
   double frequency({double a4 = 440}) =>
       midiToFrequency(midi.toDouble(), a4: a4);
 

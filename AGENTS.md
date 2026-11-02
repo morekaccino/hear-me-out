@@ -148,10 +148,10 @@ Then open <http://127.0.0.1:8080/>.
 
 | Path | Purpose |
 |---|---|
-| `flutter_app/lib/core/music/` | Note math, guitar transposition, curriculum |
-| `flutter_app/lib/core/learning/` | Objectives, prompts, composer, scheduler, progress model |
-| `flutter_app/lib/content/` | Note-reading objectives, templates, and session factories |
-| `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher |
+| `flutter_app/lib/core/music/` | Note math, intervals, keys, scales, chords, progressions, rhythm, guitar transposition, curriculum model |
+| `flutter_app/lib/core/learning/` | Skill scheduler, course specs, objectives, prompts, composer, progress model |
+| `flutter_app/lib/content/` | Objectives, templates, verifiers, and session factories |
+| `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher, local WAV synth |
 | `flutter_app/lib/core/notation/` | Staff geometry and Bravura painter |
 | `flutter_app/lib/core/storage/` | JSON progress store and backup validation |
 | `flutter_app/lib/features/` | Onboarding, path, lesson, practice, quests, shop, profile |
@@ -161,18 +161,19 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Behavior worth protecting
 
-- **Curriculum shape:** 5 sections, 10 units, 40 lessons. Every unit has a
-  focus, a guidebook, and a checkpoint.
-- **Session size:** up to 12 exercises per normal lesson, 15 per checkpoint.
-  A lesson whose material cannot fill 12 without repeating an objective is
-  shortened (8 minimum), so no note is asked more than four times.
-- **New-note teaching:** each new note gets four exposures while its box is
-  below 2: an unscored teach card, a guided attempt, and two independent
-  applications. Those four exposures use four different question shapes, never
-  the same one twice.
-- **Question variety:** a note can be named, played, placed on the staff, or
-  found on the neck. The composer rotates templates per objective, so a lesson
-  never asks the same question four times.
+- **Curriculum shape:** 8 sections, 40 units, 240 lessons. Every unit has a
+  focus, a guidebook, six lessons, and a checkpoint. The six-lesson arc is
+  Discover, Build, Connect, Apply, Integrate, Checkpoint.
+- **Session size:** up to 16 exercises per normal lesson; checkpoints use 14–30
+  items. A lesson whose material cannot fill the target is shortened (8
+  minimum). New objectives get five exposures.
+- **New-objective teaching:** each new objective gets a teach card, a guided
+  attempt, an apply item, a transfer item, and a production item. Those
+  exposures use different question shapes whenever possible.
+- **Question variety:** notes, rhythm, chords, theory, ear training, fretboard,
+  technique, sight-reading, repertoire, and improvisation all have scheduled
+  objectives. The composer rotates templates per objective and never repeats
+  the same template twice in a row.
 - **Engine boundaries:** `core/learning` is topic-agnostic. Objectives,
   prompts, and composers never import notes, and `lib/core` never imports
   `lib/content`. Adding a topic should touch `lib/content/` and at most one new
@@ -240,15 +241,21 @@ Then open <http://127.0.0.1:8080/>.
 
 Last verified on 2026-11-02 with Flutter 3.47.9 / Dart 3.13.7:
 
-- `flutter analyze` — no issues
-- `flutter test` — 184 tests passing
-- `flutter build web --release` — succeeds
-- Web app loads, onboarding completes, the path renders chests and counters, and
-  lessons, quests, shop, practice, and profile are reachable on narrow and wide
-  layouts; System, Light, and Dark appearance all render with the Duo palette
-- 28 original Bright Pluck cues are bundled in `assets/audio/`; all decode
-  successfully in Chrome and the soundboard is available at
-  `flutter_app/tool/soundboard.html`
+- `flutter analyze` - no issues
+- `flutter test` - 221 tests passing
+- `flutter build web --release` - succeeds
+- The course has 8 sections, 40 units, and 240 lessons. Every unit has six
+  lessons (Discover, Build, Connect, Apply, Integrate, Checkpoint).
+- Notes, rhythm, chords, theory, ear training, fretboard, technique,
+  sight-reading, repertoire, and improvisation all use the same FSRS-style
+  skill scheduler.
+- Web app loads, onboarding completes, the path renders the Today card, chests,
+  and counters, and lessons, quests, shop, practice, and profile are reachable
+  on narrow and wide layouts; System, Light, and Dark appearance all render
+  with the Duo palette
+- 28 original Bright Pluck cues are bundled in `assets/audio/`; ear-training
+  stimuli are synthesized locally as WAV bytes and the soundboard is available
+  at `flutter_app/tool/soundboard.html`
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.

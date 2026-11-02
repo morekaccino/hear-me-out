@@ -1,187 +1,204 @@
 # Learning Algorithm
 
-Hear Me Out uses two layers: a **session planner** that builds a focused
-12-exercise lesson (15 for checkpoints) and a **spaced-repetition scheduler**
-that decides when each note should come back.
+Hear Me Out is now a **240-lesson, 48-week guitar musicianship course**. The
+learning engine has two layers:
 
-## 1. Written pitch vs sounding pitch
+1. a **session planner** that mixes new material, due review, and production
+   work into a short lesson;
+2. a **skill scheduler** that gives every objective its own memory state and
+   decides when it should return.
 
-Guitar music is written one octave above sounding pitch.
+The old note-only Leitner boxes are still visible as note chips, but they are no
+longer the source of truth. Every note, chord, interval, scale, rhythm, theory
+fact, ear skill, technique, and repertoire piece is scheduled.
 
-- Written C4 (the staff) sounds C3 (MIDI 48).
-- Written E3 (low E string) sounds E2 (MIDI 40).
-- Open strings: written E3 A3 D4 G4 B4 E5.
+## 1. Course shape
 
-The staff shows the written note. The microphone compares against
-`soundingMidi = writtenMidi - 12`. The string/fret hint uses the same mapping.
-This is why a guitarist can read a written C4 and be told to use the A string,
-fret 3.
-
-## 2. Curriculum
-
-The course has **5 sections, 10 units, and 40 lessons**. Units cover staff
-reading, string groups, first position, accidentals, meters and keys, capo,
-open chords, and rhythm.
-
-| Section | Unit | Focus | Lessons |
-|---|---|---|---|
-| Foundations | 1. The Staff | Read the staff | E/F, G/A, B/C, D/E, staff review |
-| Foundations | 2. High Strings | B/high E strings; add F5 | B/C again, D/E again, high F, high-string review |
-| Foundations | 3. Below the Staff | C4/D4, recall E–A | C/D below, E/F again, G/A again, below-staff review |
-| First Position | 4. Low Strings | Low E/A strings | A/B, low E/F, G below, low-string review |
-| First Position | 5. First Position | Mix all six strings | lower half, upper half, full position, checkpoint |
-| Accidentals | 6. Accidentals | Sharps and flats | F♯, C♯, B♭, accidental review |
-| Harmony | 7. Counting and Keys | Meters and key signatures | beats and bars, G/F, D and 6/8, checkpoint |
-| Harmony | 8. Capo | Move shapes into new keys | capo two and three, checkpoint |
-| Harmony | 9. Open Chords | Read chord diagrams | G/C, D/Em, Am/E, checkpoint |
-| Rhythm | 10. Pulse | Hold a beat and tap what you read | quarters/halves, long and short, rests and waltz, strum feel, checkpoint |
-
-Each normal lesson introduces at most two objectives. A note gets **4 exposures**
-while it is still in box 0–1; topic objectives get **3**. Those exposures always
-use different question shapes. Every unit ends with a 15-slot checkpoint with no
-new objectives. Review material deliberately reappears across units.
-
-## 3. Session planner
-
-A session is built in three pure steps: a **shape**, a **composer**, and a
-**validator**.
-
-`SessionShape` decides how many slots a session has (up to 12 normal, 15
-checkpoint), how many objectives are new, and how many slots are left for
-review. The session factory caps the length at `distinct objectives x
-exposures`, with an 8-slot floor, so a two-note lesson does not ask the same
-note six times.
-
-`SessionComposer` fills the slots from a ranked pool of objectives:
-
-1. Each new objective gets four exposures: a **teach card**, a **guided
-   attempt**, and two independent applications.
-2. Remaining slots are a review quota from prior objectives: due first, weak
-   second, then recently seen. A normal lesson has at least four review slots
-   when prior material exists.
-3. Objectives are interleaved so the same one is not reused within the last two
-   positions when an alternative exists.
-4. Each objective's exposures rotate through different question shapes. A note
-   might be taught, then named, then placed on the staff, then played. The
-   composer never asks the same shape twice in a row for one objective.
-5. An answer surface is chosen per slot:
-   - No mic or Name mode: every scored slot is naming.
-   - Play mode: every scored slot is playing.
-   - Mixed: the teach card is ungraded, the guided attempt is naming, and later
-     slots alternate with at least three play exercises when possible.
-
-Teach cards show the note on the staff with its name and fretboard position and
-are never scored, so meeting a new note cannot cost a heart. Guided attempts
-offer three options, including one deliberately distant choice, so the first
-attempt is a choice between ideas rather than between neighbouring staff steps.
-
-`SessionValidator` asserts the pacing rules on every generated session: slot
-count, teach-before-question, one teach card per objective, and objective
-spacing. Add a rule there before adding a new question style.
-
-If a note is answered incorrectly, it is added to a **mistake queue**. The base
-lesson is completed first, then the missed notes return in a short “Mistake
-review” phase at the end. Each distinct note is retried once, capped at four
-retries per session.
-
-Practice sessions use the same planner without new objectives and also use 12
-slots. They draw from due notes, weak notes, or every learned note.
-
-## 4. Spaced repetition
-
-Each note has a box 0–5 and a due timestamp.
-
-| Box | After a correct answer |
+| Item | Value |
 |---|---|
-| 0 | due immediately |
-| 1 | 10 minutes |
-| 2 | 1 day |
-| 3 | 3 days |
-| 4 | 7 days |
-| 5 | 21 days |
+| Sections | 8 |
+| Units | 40 |
+| Lessons | 240 |
+| Lessons per unit | 6 |
+| Pace | 5 sessions/week × 48 weeks |
+| Session length | 12–18 minutes |
 
-**Correct answer:** box + 1 (maximum 5), due = now + interval for the new box,
-rolling accuracy updated.
+Each unit follows the same arc:
 
-**Wrong answer:** box − 2 (minimum 0), due = now + 1 minute, streak reset.
+1. **Discover** — teach cards and guided attempts.
+2. **Build** — apply the new idea slowly.
+3. **Connect** — interleave it with earlier material.
+4. **Apply** — production: play, tap, build, or notate.
+5. **Integrate** — mixed review in a new context.
+6. **Checkpoint** — 14–30 mixed items with an 80–85% mastery gate.
 
-**Mastery:** box ≥ 4 **and** at least five correct answers **and** correct on at
-least two different calendar days. Three correct taps in one session cannot
-master a note.
+The generated course lives in
+[`flutter_app/lib/core/learning/course/`](../flutter_app/lib/core/learning/course/).
+Forty `UnitSpec`s expand into 240 lessons through `LessonFactory`. A unit is the
+authoring unit; a lesson is generated.
 
-**Due queue:** notes whose due timestamp is in the past, oldest first. Weak
-notes are those with at least two attempts and accuracy below 75%. Lesson
-review slots use due notes first, then weak notes, then recently seen notes.
+## 2. Skill cards
 
-## 5. Gamification and the gem economy
+The scheduler stores one `SkillProgress` per objective:
 
-- **Hearts:** five shared hearts. A wrong lesson answer costs one. At zero the
-  lesson ends. Hearts regenerate one every four hours, a completed practice
-  session restores one, and 350 gems refills all five. Practice never costs
-  hearts.
-- **XP:** 10 for a lesson, 15 for a review lesson, +5 for a perfect lesson.
-  Replaying a completed lesson gives 5 XP (plus 3 for a perfect replay).
-  Practice gives 5 XP. A jump test gives 20 XP. Double XP multiplies the award
-  for 15 minutes.
-- **Streak:** increments on the first completed lesson of a calendar day.
-  Completing two lessons in one day does not double it. Missing a day resets it
-  to 1 on the next completed lesson unless a streak freeze is equipped; one
-  freeze is consumed and the streak continues.
-- **Gems:** new profiles start with 500. Chests and claimed daily quests award
-  more. The shop spends them on heart refills (350), streak freezes (200, max
-  two), and double XP (100).
-- **Chests:** one per unit, placed after the unit's second lesson. It unlocks
-  when that lesson is complete and pays its gems once.
-- **Daily quests:** complete one lesson (10 gems), answer ten notes correctly
-  (10), and reach a five-answer combo (15). Claim each once per local day.
-- **Jump ahead:** a 15-exercise test of earlier material unlocks the sections
-  before the target section. Passing keeps all existing note progress.
-- **Daily goal:** 10, 20, or 30 XP. XP is tracked per local calendar day.
+```text
+objectiveId, family, stabilityDays, difficulty, dueAt, lastSeenAt,
+reps, lapses, correct, incorrect, correctDays,
+productionCorrect, transferCorrect, averageResponseMs,
+level, fragile, masteredAt, recentTemplateIds, cents samples
+```
 
-## 6. Pitch detection and matching
+Stable objective IDs are namespaced:
 
-**Capture:** mono PCM16 at 44.1 kHz. Frames of 4096 samples are decimated by two
-to ~22.05 kHz and analyzed every 2048 samples (about 46 ms).
+- `note:E4`
+- `interval:m3:melodic`
+- `chord:G:maj`
+- `keysig:G`
+- `ear:interval:m3:melodic`
+- `rhythm:eighths`
+- `fret:C4:5`
+- `scale:C:maj:3`
+- `progression:I-IV-V-I:C`
 
-**YIN:**
-1. Remove DC and gate on RMS.
-2. Difference function over lags 70–1000 Hz.
-3. Cumulative mean normalized difference.
-4. First dip below 0.15, refined by parabolic interpolation.
-5. Frequency = sample rate / lag; clarity = 1 − normalized difference.
+A note is no longer a special scheduling case. It is one family among many.
 
-**Matching:**
-- Reject frames with clarity < 0.5.
-- Require three stable frames of the same MIDI note.
-- Accept the target when |cents| ≤ 30 (configurable: 20/30/40).
-- Flag an octave error when the detected MIDI is target ± 12 for six frames.
-- Flag a wrong note when another pitch is stable for six frames.
-- Ignore the first 250 ms of a new exercise so the tail of the previous note
-  cannot trigger a false answer.
-- Show cents sharp/flat and allow retuning. A note that is close but out of tune
-  is not accepted.
+## 3. Scheduler
 
-The tuner uses the same detector but compares against the selected open string
-instead of a lesson target.
+The scheduler is an FSRS-6-style model in
+[`core/learning/skill.dart`](../flutter_app/lib/core/learning/skill.dart):
 
-## 7. Persistence
+- **Retrievability:** `R(t,S) = (1 + factor × t/S)^-w20`, where
+  `factor = 0.9^(-1/w20) - 1`; by construction `R(S,S) = 0.9`.
+- **Stability** is the interval at which recall is about 90%.
+- **Difficulty** is clamped to 1–10 and updates with mean reversion.
+- **Ratings:** Again, Hard, Good, Easy.
+- **Initial stability and difficulty** come from the first rating.
+- **Success** increases stability using difficulty, current stability, and
+  retrievability.
+- **Failure** sharply reduces stability and increases difficulty.
+- **Same-day reviews** use the FSRS same-day formula.
+- **Caps:** performance skills are capped at 30 days of stability; declarative
+  facts at 180 days. Mastered performance skills still return for maintenance.
 
-A versioned `ProgressState` JSON document is stored under
-`hear_me_out_progress_v1` in `shared_preferences`.
+The default weights are pinned in `FsrsScheduler.defaultWeights`. The scheduler
+is pure Dart and deterministic in tests.
 
-It contains notes, boxes, due dates, accuracy, correct-day sets, completed
-lessons, best lesson accuracy, XP, streak, daily XP, gems, hearts, chests,
-daily quests, streak freezes, XP boosts, settings, and the last 30 sessions.
-The schema version is 3; version 1 documents load with default economy values
-and version 2 adds the System appearance default. Corrupt or missing data falls
-back to a fresh profile instead of crashing. Backup exports the same document
-to the clipboard; restore validates it before replacing local progress.
+### Rating inference
 
-No network or cloud service is involved.
+The learner does not rate a card. The app infers the rating:
 
-## 8. Why this is better than “3 in a row”
+| Rating | Condition |
+|---|---|
+| Again | Wrong, revealed, or answered after 2.5× the target time |
+| Hard | Correct after 1.3× target time, or with a hint |
+| Good | Correct within target, no hint |
+| Easy | Correct under 0.6× target, no hint, production/transfer surface |
 
-A short-term streak measures working memory, not retention. Requiring spaced
-correct answers across days, with wrong answers demoting two boxes, produces
-durable recall. The session planner also prevents the two common failure modes:
-introducing five new notes at once, and showing the same note twice in a row.
+Target times are per family: note naming is faster than playing a phrase.
+
+## 4. Mastery
+
+A skill is mastered only when **all** of these are true:
+
+- stability ≥ 21 days,
+- at least 4 spaced reps,
+- correct on at least 3 different calendar days,
+- at least one production success,
+- at least one transfer success (new key, position, or context),
+- the unit checkpoint is passed at 80–85%.
+
+One good session cannot master a skill. A mastered skill is not retired; it
+returns for maintenance.
+
+## 5. Repair chain
+
+Wrong answers immediately enter a repair path:
+
+1. Explain the correct answer.
+2. Require a corrective retry.
+3. Reinsert the objective 2–4 slots later in the session.
+4. Create a next-day repair card with three different question surfaces.
+5. Schedule a 3-day recheck.
+6. Two lapses marks the skill **fragile**.
+7. Four lapses marks it a **leech** and recommends a prerequisite micro-lesson.
+
+Smart review prioritises due, fragile, and weak skills. The daily review queue
+is capped at about 30 items so a backlog never becomes an avalanche.
+
+## 6. Session planner
+
+A normal lesson contains:
+
+- **Warm-up (about 25%)** — due review, interleaved.
+- **Core (about 55%)** — new objective: teach → guided → apply → transfer →
+  produce.
+- **Cool-down (about 20%)** — older material plus one ear or rhythm item.
+
+Checkpoints are 50% review and 50% assessment. They contain no teach cards and
+at least two production items.
+
+Rules enforced by the planner and validator:
+
+- at least 30% review in a normal lesson,
+- at least 50% review in a checkpoint,
+- at least 30% production in a normal lesson,
+- at least 50% production in a checkpoint,
+- no objective more than twice in a session,
+- no template twice in a row for one objective,
+- no family above 40% of the session when alternatives exist,
+- new objectives get five exposures while they are still fragile.
+
+## 7. Anti-flying-through rules
+
+- Distractors are plausible: nearby staff steps, same interval quality, same
+  chord family, one accidental away.
+- Four options is standard; three only on the guided attempt.
+- After a skill reaches box 2, recognition questions switch to free recall:
+  note pad, staff placement, build/order, play, tap.
+- Every normal lesson has at least 30% production.
+- Slow-but-correct answers are rated Hard and return sooner.
+- Above 90% accuracy for two sessions raises item difficulty; below 70% lowers
+  it.
+- A failed checkpoint generates a repair session from missed objectives.
+- Lessons pass at 80%; checkpoints at 85%.
+
+## 8. Practice
+
+Practice never spends hearts and restores one heart on completion.
+
+Modes:
+
+- **Smart review** — due + fragile + weak skills across every family.
+- **Due review** — skills whose due date has passed.
+- **Weak skills** — skills below 75% accuracy or flagged fragile.
+- **Free practice** — every skill the learner has met.
+- **Tuner** — standard tuning, live pitch and cents.
+
+If the learner has no skills yet, practice falls back to the first note lesson.
+
+## 9. Persistence
+
+`ProgressState` schema 4 stores:
+
+- `skills` — the full skill map;
+- `notes` — legacy note boxes kept for the note chips;
+- completed lessons and checkpoints;
+- legacy completed lesson IDs;
+- XP, streak, gems, hearts, chests, quests, settings, recent sessions.
+
+Version 3 documents migrate note boxes into skill cards: box 0 → 0.5 days, 1 → 1
+day, 2 → 3 days, 3 → 7 days, 4 → 21 days, 5 → 45 days. XP, streak, gems, hearts,
+chests, and quests are preserved. Old lesson IDs map through
+`legacyLessonIdMap`. Future schema versions are rejected, not guessed.
+
+## 10. Why this is better than a fixed box ladder
+
+A fixed six-box ladder makes every note return on the same schedule regardless
+of how hard it was, how long it has been, or whether the learner can produce it.
+FSRS tracks stability, difficulty, and retrievability separately, so difficult
+skills return sooner and easy ones wait. The repair chain and production/transfer
+requirements stop a learner from “passing” by tapping a lucky multiple-choice
+answer.
+
+The 240-lesson course is long enough to be a year, but the scheduler is what
+makes it a course rather than a playlist.

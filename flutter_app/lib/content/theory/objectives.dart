@@ -1,34 +1,8 @@
+import '../../core/learning/choice_objective.dart';
 import '../../core/learning/objective.dart';
-import '../../core/learning/prompt.dart';
 import '../../core/music/chords.dart';
 
-/// Builds a multiple-choice objective whose content lives in the pack rather
-/// than in code.
-ObjectiveRef choiceObjective({
-  required String id,
-  required SkillFamily family,
-  required String question,
-  required List<String> answers,
-  required int correctIndex,
-  String? hint,
-  ChordShape? chord,
-}) {
-  final options = [
-    for (var index = 0; index < answers.length; index++)
-      ChoiceOption('$id:$index', answers[index]),
-  ];
-  return ObjectiveRef(
-    id,
-    family: family,
-    data: {
-      'question': question,
-      'options': options,
-      'correctId': options[correctIndex].id,
-      'hint': hint,
-      'chord': chord,
-    },
-  );
-}
+export '../../core/learning/choice_objective.dart';
 
 final List<ObjectiveRef> theoryObjectives = [
   choiceObjective(

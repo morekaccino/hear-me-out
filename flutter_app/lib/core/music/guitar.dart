@@ -52,6 +52,29 @@ class Guitar {
   static Note soundingNoteForWritten(Note written) =>
       Note.fromMidi(soundingMidiForWritten(written));
 
+  static GuitarString? stringByNumber(int number) {
+    for (final string in standardTuning) {
+      if (string.number == number) return string;
+    }
+    return null;
+  }
+
+  /// Sounding pitch of [stringNumber] at [fret], where 0 is open.
+  static Note soundingNoteAt(int stringNumber, int fret) {
+    final string = stringByNumber(stringNumber);
+    if (string == null || fret < 0) {
+      throw ArgumentError('Invalid guitar position: string $stringNumber, fret $fret');
+    }
+    return Note.fromMidi(string.open.midi + fret);
+  }
+
+  /// Written pitch of [stringNumber] at [fret]. Guitar notation is written one
+  /// octave above sounding pitch.
+  static Note writtenNoteAt(int stringNumber, int fret) {
+    final sounding = soundingNoteAt(stringNumber, fret);
+    return Note.fromMidi(sounding.midi + 12);
+  }
+
   static List<GuitarPosition> positionsFor(Note written, {int maxFret = 4}) {
     final soundingMidi = soundingMidiForWritten(written);
     final positions = <GuitarPosition>[];

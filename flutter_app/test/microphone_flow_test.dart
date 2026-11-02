@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/learning/prompt.dart';
+import 'package:hear_me_out/core/music/curriculum.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
@@ -128,12 +129,18 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final store = MemoryProgressStore(
-      ProgressState.fresh(
-        settings: const AppSettings(
-          onboardingComplete: true,
-          answerMode: AnswerMode.mixed,
-        ),
-      ),
+      () {
+        final progress = ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.mixed,
+          ),
+        );
+        for (final lesson in sections.first.units.first.lessons) {
+          progress.completedLessons.add(lesson.id);
+        }
+        return progress;
+      }(),
     );
     final sources = FakePitchSourceFactory(startResult: false);
     final sounds = FakeSoundService();
@@ -160,7 +167,7 @@ void main() {
 
     Future<void> answerUntilPlay() async {
       final notifier = container.read(appControllerProvider.notifier);
-      for (var index = 0; index < 16; index++) {
+      for (var index = 0; index < 30; index++) {
         final run = container.read(appControllerProvider).requireValue.run;
         if (run == null) return;
         final prompt = run.current;

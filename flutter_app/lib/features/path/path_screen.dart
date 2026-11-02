@@ -9,12 +9,14 @@ import '../../core/learning/progress.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
+import '../../content/objectives.dart';
 import '../../shared/audio/sound_service.dart';
 import '../../shared/navigation/duo_route.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../lesson/lesson_screen.dart';
@@ -23,9 +25,10 @@ import 'path_layout.dart';
 import 'path_node.dart';
 
 class PathScreen extends ConsumerWidget {
-  const PathScreen({super.key, this.onOpenQuests});
+  const PathScreen({super.key, this.onOpenQuests, this.onOpenPractice});
 
   final VoidCallback? onOpenQuests;
+  final VoidCallback? onOpenPractice;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -80,6 +83,31 @@ class PathScreen extends ConsumerWidget {
                     ),
                   ),
                 ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    DuoSpacing.md,
+                    DuoSpacing.xs,
+                    DuoSpacing.md,
+                    DuoSpacing.sm,
+                  ),
+                  child: _TodayCard(
+                    progress: progress,
+                    currentLesson: currentLesson,
+                    onContinue: currentLesson == null
+                        ? null
+                        : () => _launchLesson(
+                            context,
+                            ref,
+                            currentLesson,
+                            progress,
+                          ),
+                    onReview: onOpenPractice,
+                    onCourseMap: () =>
+                        _showCourseMap(context, ref, progress),
+                  ),
+                ),
+              ),
               for (final section in sections) ...[
                 if (section.number > currentSectionNumber)
                   SliverToBoxAdapter(
@@ -291,6 +319,26 @@ class PathScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _GuidebookSheet(unit: unit),
+    );
+  }
+
+  Future<void> _showCourseMap(
+    BuildContext context,
+    WidgetRef ref,
+    ProgressState progress,
+  ) async {
+    unawaited(ref.read(soundServiceProvider).play(Sfx.uiSelect));
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _CourseMapSheet(
+        progress: progress,
+        onUnitTap: (unit) {
+          Navigator.pop(context);
+          _showGuidebook(context, ref, unit);
+        },
+      ),
     );
   }
 
@@ -1099,6 +1147,243 @@ class _LessonPath extends StatelessWidget {
   }
 }
 
+class _CourseMapSheet extends StatelessWidget {
+  const _CourseMapSheet({required this.progress, required this.onUnitTap});
+
+  final ProgressState progress;
+  final ValueChanged<UnitDefinition> onUnitTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final completed = progress.completedLessons.length;
+    return SafeArea(
+      top: false,
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+        ),
+        margin: const EdgeInsets.fromLTRB(
+          DuoSpacing.md,
+          0,
+          DuoSpacing.md,
+          DuoSpacing.md,
+        ),
+        padding: const EdgeInsets.fromLTRB(
+          DuoSpacing.lg,
+          DuoSpacing.md,
+          DuoSpacing.lg,
+          DuoSpacing.lg,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.border, width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.borderStrong,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: DuoSpacing.md),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'COURSE MAP',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                      color: AppColors.greenDark,
+                    ),
+                  ),
+                ),
+                Text(
+                  '$completed/${allLessons.length} lessons',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            const Text(
+              '8 sections · 40 units · 240 lessons',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: DuoSpacing.sm),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final section in sections) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        top: DuoSpacing.sm,
+                        bottom: DuoSpacing.xs,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: duoUnitColor(
+                                section.units.first.number,
+                              ).face,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              '${section.number}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              section.title.toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.8,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    for (final unit in section.units)
+                      _CourseUnitTile(
+                        unit: unit,
+                        progress: progress,
+                        onTap: () => onUnitTap(unit),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseUnitTile extends StatelessWidget {
+  const _CourseUnitTile({
+    required this.unit,
+    required this.progress,
+    required this.onTap,
+  });
+
+  final UnitDefinition unit;
+  final ProgressState progress;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = duoUnitColor(unit.number);
+    final done = unit.lessons
+        .where((lesson) => progress.completedLessons.contains(lesson.id))
+        .length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: DuoTappable(
+        onTap: onTap,
+        pressedScale: 0.99,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border, width: 1.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: color.face,
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${unit.number}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      unit.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      unit.focus,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.25,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$done/6',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: done == 6 ? AppColors.greenDark : AppColors.textMuted,
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18,
+                color: AppColors.textLight,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _GuidebookSheet extends StatelessWidget {
   const _GuidebookSheet({required this.unit});
 
@@ -1114,6 +1399,15 @@ class _GuidebookSheet extends StatelessWidget {
       }
     }
     final newIds = unit.newNotes.map((note) => note.id).toSet();
+    final concepts = <String>[];
+    for (final lesson in unit.lessons) {
+      for (final id in lesson.teaches) {
+        final question = objectiveCatalog[id]?.data['question'] as String?;
+        if (question != null && !concepts.contains(question)) {
+          concepts.add(question);
+        }
+      }
+    }
 
     return SafeArea(
       top: false,
@@ -1177,7 +1471,35 @@ class _GuidebookSheet extends StatelessWidget {
               ),
             ),
             const SizedBox(height: DuoSpacing.md),
-            Flexible(
+            if (notes.isEmpty && concepts.isNotEmpty)
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: concepts.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: DuoSpacing.xs),
+                  itemBuilder: (_, index) => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DuoSpacing.sm,
+                      vertical: DuoSpacing.xs,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(DuoSpacing.sm),
+                    ),
+                    child: Text(
+                      concepts[index],
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: notes.length,
@@ -1249,6 +1571,190 @@ class _GuidebookSheet extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({
+    required this.progress,
+    required this.currentLesson,
+    this.onContinue,
+    this.onReview,
+    this.onCourseMap,
+  });
+
+  final ProgressState progress;
+  final LessonDefinition? currentLesson;
+  final VoidCallback? onContinue;
+  final VoidCallback? onReview;
+  final VoidCallback? onCourseMap;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final due = progress.dueSkills(now).length;
+    final fragile = progress.fragileSkills(limit: 99).length;
+    final goal = progress.settings.dailyGoalXp;
+    final xp = progress.xpTodayForDisplay;
+    final ratio = goal <= 0 ? 0.0 : (xp / goal).clamp(0.0, 1.0);
+    final lessonNumber = currentLesson == null
+        ? allLessons.length
+        : allLessons.indexWhere((lesson) => lesson.id == currentLesson!.id) + 1;
+
+    return SectionCard(
+      color: AppColors.greenSoft,
+      borderColor: AppColors.green,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'TODAY',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                  color: AppColors.greenDark,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Lesson $lessonNumber of ${allLessons.length}',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            currentLesson == null
+                ? 'Course complete'
+                : 'Next: ${currentLesson!.title}',
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          LessonProgressBar(value: ratio, height: 12),
+          const SizedBox(height: 4),
+          Text(
+            '$xp / $goal XP today',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+            ),
+          ),
+          if (due > 0 || fragile > 0) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (due > 0)
+                  _TodayChip(
+                    icon: Icons.event_repeat_rounded,
+                    label: '$due due',
+                    color: AppColors.blueDark,
+                  ),
+                if (fragile > 0)
+                  _TodayChip(
+                    icon: Icons.healing_rounded,
+                    label: '$fragile fragile',
+                    color: AppColors.redDark,
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DuoButton(
+                  label: currentLesson == null ? 'REVIEW' : 'CONTINUE',
+                  color: AppColors.green,
+                  height: 48,
+                  onPressed: currentLesson == null ? onReview : onContinue,
+                ),
+              ),
+              if (currentLesson != null && due > 0 && onReview != null) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlineDuoButton(
+                    label: 'REVIEW',
+                    onPressed: onReview,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (onCourseMap != null) ...[
+            const SizedBox(height: 4),
+            TextButton.icon(
+              onPressed: onCourseMap,
+              icon: const Icon(Icons.map_rounded, size: 18),
+              label: const Text(
+                'VIEW COURSE MAP',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.greenDark,
+                minimumSize: const Size(0, 40),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TodayChip extends StatelessWidget {
+  const _TodayChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

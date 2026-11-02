@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/learning/progress.dart';
+import '../../core/learning/skill.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/note.dart';
 import '../../core/storage/progress_store.dart';
@@ -37,6 +38,19 @@ class ProfileScreen extends ConsumerWidget {
             if (boxA != boxB) return boxB.compareTo(boxA);
             return a.id.compareTo(b.id);
           });
+    final skillAttempts = progress.totalSkillAttempts;
+    final skillCorrect = progress.skills.values.fold(
+      0,
+      (sum, skill) => sum + skill.correct,
+    );
+    final skillAccuracy = skillAttempts == 0
+        ? 0.0
+        : skillCorrect / skillAttempts;
+    final familyCounts = <SkillFamily, int>{};
+    for (final skill in progress.skills.values) {
+      if (skill.attempts == 0) continue;
+      familyCounts[skill.family] = (familyCounts[skill.family] ?? 0) + 1;
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -103,13 +117,13 @@ class ProfileScreen extends ConsumerWidget {
                   _StatCard(
                     icon: Icons.music_note_rounded,
                     color: AppColors.green,
-                    value: '${progress.masteredCount}',
+                    value: '${progress.masteredSkillCount}',
                     label: 'Mastered',
                   ),
                   _StatCard(
                     icon: Icons.speed_rounded,
                     color: AppColors.blue,
-                    value: '${(progress.accuracy * 100).round()}%',
+                    value: '${(skillAccuracy * 100).round()}%',
                     label: 'Accuracy',
                   ),
                   _StatCard(
@@ -141,12 +155,50 @@ class ProfileScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               const Text(
+                'Skills',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Notes, rhythm, chords, theory, and ear training share one review schedule.',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: 8),
+              SectionCard(
+                child: familyCounts.isEmpty
+                    ? Text(
+                        'No skills practised yet. Start a lesson on the Learn tab.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                        ),
+                      )
+                    : Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final family in SkillFamily.values)
+                            if ((familyCounts[family] ?? 0) > 0)
+                              _SkillFamilyChip(
+                                family: family,
+                                count: familyCounts[family]!,
+                              ),
+                        ],
+                      ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
                 'Your notes',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
               Text(
-                'Boxes fill as notes move into long-term memory.',
+                'Note-reading boxes fill as notes move into long-term memory.',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -582,6 +634,59 @@ class _StatCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkillFamilyChip extends StatelessWidget {
+  const _SkillFamilyChip({required this.family, required this.count});
+
+  final SkillFamily family;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (family) {
+      SkillFamily.noteReading => AppColors.greenDark,
+      SkillFamily.fretboard => AppColors.tealDark,
+      SkillFamily.rhythm => AppColors.blueDark,
+      SkillFamily.ear => AppColors.purpleDark,
+      SkillFamily.harmony => AppColors.pinkDark,
+      SkillFamily.theory => AppColors.orange,
+      SkillFamily.technique => AppColors.yellowDark,
+      SkillFamily.sightReading => AppColors.blueDark,
+      SkillFamily.repertoire => AppColors.greenDark,
+      SkillFamily.improvisation => AppColors.purpleDark,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            family.label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMuted,
             ),
           ),
         ],

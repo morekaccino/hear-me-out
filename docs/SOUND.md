@@ -20,6 +20,14 @@ copyrighted audio.
   deliberate cue at a time; result screens may play one base cue followed by one
   reward cue and one XP tick.
 
+## Ear-training audio
+
+Ear-training questions use a local synth (`core/audio/synth.dart`) rather than
+bundled per-pitch assets. It renders a short plucked-string WAV from a
+`SoundSpec` (single note, interval, chord, progression, or melody). The engine
+stops any stimulus before the microphone starts. The synth is a musical prompt,
+not UI feedback, so it is mixed quieter than answer cues.
+
 ## Asset map
 
 All files live in `flutter_app/assets/audio/`. They are mono 44.1 kHz, 16-bit

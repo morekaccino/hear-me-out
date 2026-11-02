@@ -1,6 +1,7 @@
 import '../music/chords.dart';
 import '../music/note.dart';
 import '../music/rhythm.dart';
+import '../music/sound_spec.dart';
 import 'objective.dart';
 
 /// How the learner prefers to answer. [mixed] is the default.
@@ -184,6 +185,7 @@ final class ChoicePrompt extends Prompt {
     required this.correctId,
     this.hint,
     this.chord,
+    this.audio,
     this.reveal = false,
     this.isNew = false,
     this.exposure = 0,
@@ -194,6 +196,10 @@ final class ChoicePrompt extends Prompt {
   final String correctId;
   final String? hint;
   final ChordShape? chord;
+
+  /// Optional audio stimulus for ear-training questions.
+  final SoundSpec? audio;
+
   final bool reveal;
 
   @override
@@ -219,6 +225,7 @@ final class ChoicePrompt extends Prompt {
     correctId: correctId,
     hint: hint,
     chord: chord,
+    audio: audio,
   );
 }
 

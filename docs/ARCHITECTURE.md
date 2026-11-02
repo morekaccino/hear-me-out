@@ -65,35 +65,38 @@ progress and answer choices.
 - `bestPosition` prefers the lowest fret, then the lowest-pitched (highest-numbered)
   string.
 
-`curriculum.dart` holds the 5 sections / 10 units / 40 lessons, the unit focus
-metadata, the note catalog used for answer choices, and the legacy lesson-ID map
-used by progress migration. Lessons name non-note objectives by id
-(`teaches` / `reviews`), which resolve through `lib/content/objectives.dart`.
+`curriculum.dart` exposes the generated 8-section / 40-unit / 240-lesson course,
+the unit focus metadata, the note catalog used for answer choices, and the legacy
+lesson-ID map used by progress migration. The course is authored as 40
+`UnitSpec`s in `core/learning/course/` and expanded by `LessonFactory` into six
+lessons per unit. Lessons name non-note objectives by id (`teaches` / `reviews`),
+which resolve through `lib/content/objectives.dart`.
 
 ## Progress and scheduling
 
 `ProgressState` is the persisted domain aggregate:
 
-- per-note `NoteProgress`: box, due time, correct/incorrect counts, streak,
-  correct-day set, cent samples
-- completed lessons and best accuracy
+- per-skill `SkillProgress`: stability, difficulty, due time, reps, lapses,
+  correct/incorrect, correct-day set, production/transfer evidence, response
+  time, level, fragile flag, cent samples
+- per-note `NoteProgress`: legacy boxes kept for the note chips
+- completed lessons, checkpoints, and best accuracy
 - XP, streak, daily XP
 - gems, hearts, next heart time, streak freezes, XP boost
 - opened chests, daily quest counters, claimed quests
 - settings
-- `curriculumVersion` plus a migration path from the old 4-unit lesson IDs
+- `curriculumVersion` plus a migration path from the old 40-lesson IDs
 - last 30 session summaries
 
-`NoteProgress.recordAnswer` is the scheduler:
+`SkillProgress.recordAnswer` is the scheduler. It applies the FSRS-6 model in
+`core/learning/skill.dart`: stability, difficulty, and retrievability. Performance
+skills are capped at 30 days of stability; declarative facts at 180 days.
+Mastery requires at least 21 days of stability, four spaced reps, three correct
+days, one production success, one transfer success, and a passed checkpoint.
 
-| Result | Box | Next due |
-|---|---|---|
-| correct | +1 (max 5) | interval for the new box |
-| wrong | -2 (min 0) | 1 minute |
-
-Intervals are `0, 10 min, 1 day, 3 days, 7 days, 21 days`. Mastery requires
-box >= 4, at least five correct answers, and correct days on at least two
-different calendar dates.
+A wrong answer is not just a box change: it queues a same-session repair, a
+next-day repair card, and a 3-day recheck. Two lapses marks the skill fragile;
+four marks it a leech.
 
 Streak and daily XP are calendar-day based; `dayKey` uses local time. Hearts
 regenerate lazily in `refreshHearts`, one every four hours, and daily quest
@@ -147,11 +150,13 @@ and unlocks earlier sections on a pass.
 | `NotePrompt` | choice or pitch | note reading |
 | `StaffTapPrompt` | staff position | note reading |
 | `FretTapPrompt` | string and fret | note reading, fretboard |
-| `ChoicePrompt` | option id | theory, harmony |
+| `ChoicePrompt` | option id | theory, harmony, ear, technique, sight-reading, repertoire, improvisation |
 | `RhythmPrompt` | timed taps | rhythm |
 
 `ChoicePrompt.reveal` turns it into an unscored teach card. `ChoicePrompt.chord`
-renders a fretboard diagram above the options.
+renders a fretboard diagram above the options. `ChoicePrompt.audio` carries a
+`SoundSpec` for ear-training questions; the UI renders a replay button and the
+synth in `core/audio/synth.dart` generates the WAV bytes locally.
 
 `core/learning/verifier.dart` owns one verifier per answer type. Taps on the
 staff compare diatonic indices, fret taps accept any valid position for the
@@ -232,6 +237,14 @@ YIN (`core/audio/yin.dart`):
 
 The tuner uses the same pitch source and compares frequency against the selected
 open string. It does not use `NoteMatcher`.
+
+### Ear-training audio
+
+Ear-training questions carry a `SoundSpec` (notes, intervals, chords,
+progressions, or melodies). `core/audio/synth.dart` renders it to a small PCM16
+WAV with a plucked-string timbre. `shared/audio/audio_engine.dart` plays the
+bytes; widget tests override the engine. Audio is stopped before any microphone
+exercise starts.
 
 ### Sound feedback
 
@@ -318,11 +331,11 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which requires a numeric
-`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 3.
+`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 4.
 Version 1 documents load with default economy values (500 gems, five hearts,
-no chests or quests); version 2 documents load with the System appearance.
-Arbitrary JSON such as `{"hello":"world"}` is rejected.
-Future versions are rejected rather than being partially parsed.
+no chests or quests); version 2 adds the System appearance; version 3 documents
+migrate note boxes into skill cards. Future versions are rejected rather than
+partially parsed.
 
 Backups are copied as pretty JSON via the clipboard. Restore validates first,
 then replaces the state and saves it. Corrupt/missing storage falls back to a

@@ -3,6 +3,7 @@ import 'dart:math';
 import '../music/curriculum.dart';
 import '../music/note.dart';
 import 'prompt.dart';
+import 'skill.dart';
 
 export 'prompt.dart' show AnswerMode, answerModeFromName;
 
@@ -346,15 +347,19 @@ class SessionSummary {
 }
 
 class ProgressState {
-  static const int currentSchemaVersion = 3;
-  static const int currentCurriculumVersion = 2;
+  static const int currentSchemaVersion = 4;
+  static const int currentCurriculumVersion = 3;
 
   ProgressState({
     this.schemaVersion = currentSchemaVersion,
     this.curriculumVersion = currentCurriculumVersion,
     Map<String, NoteProgress>? notes,
+    Map<String, SkillProgress>? skills,
     Set<String>? completedLessons,
+    Set<String>? legacyCompletedLessons,
     Map<String, double>? bestLessonAccuracy,
+    Set<String>? completedCheckpoints,
+    this.placementUnitId,
     this.xp = 0,
     this.streak = 0,
     this.bestStreak = 0,
@@ -373,8 +378,11 @@ class ProgressState {
     this.settings = const AppSettings(),
     List<SessionSummary>? recentSessions,
   }) : notes = notes ?? <String, NoteProgress>{},
+       skills = skills ?? <String, SkillProgress>{},
        completedLessons = completedLessons ?? <String>{},
+       legacyCompletedLessons = legacyCompletedLessons ?? <String>{},
        bestLessonAccuracy = bestLessonAccuracy ?? <String, double>{},
+       completedCheckpoints = completedCheckpoints ?? <String>{},
        openedChests = openedChests ?? <String>{},
        daily = daily ?? DailyCounters(),
        claimedQuests = claimedQuests ?? <String>{},
@@ -383,8 +391,12 @@ class ProgressState {
   final int schemaVersion;
   int curriculumVersion;
   final Map<String, NoteProgress> notes;
+  final Map<String, SkillProgress> skills;
   final Set<String> completedLessons;
+  final Set<String> legacyCompletedLessons;
   final Map<String, double> bestLessonAccuracy;
+  final Set<String> completedCheckpoints;
+  String? placementUnitId;
   int xp;
   int streak;
   int bestStreak;
@@ -408,8 +420,19 @@ class ProgressState {
 
   NoteProgress? progressFor(Note note) => notes[note.id];
 
+  SkillProgress? skillProgressFor(String objectiveId) => skills[objectiveId];
+
+  SkillProgress skillFor(String objectiveId, SkillFamily family) =>
+      skills.putIfAbsent(
+        objectiveId,
+        () => SkillProgress(objectiveId: objectiveId, family: family),
+      );
+
   bool isLessonCompleted(String lessonId) =>
       completedLessons.contains(lessonId);
+
+  bool isCheckpointCompleted(String checkpointId) =>
+      completedCheckpoints.contains(checkpointId);
 
   int get masteredCount => notes.values.where((note) => note.mastered).length;
 
@@ -589,17 +612,52 @@ class ProgressState {
     return true;
   }
 
+  void recordSkillAnswer(SkillAnswer answer) {
+    refreshDaily(answer.now);
+    if (answer.correct) daily.correct++;
+    final skill = skillFor(answer.objectiveId, answer.family);
+    skill.recordAnswer(answer);
+
+    if (answer.family == SkillFamily.noteReading &&
+        answer.objectiveId.startsWith('note:')) {
+      final note = Note.tryParse(answer.objectiveId.substring(5));
+      if (note != null) {
+        noteFor(note).recordAnswer(
+          correctAnswer: answer.correct,
+          now: answer.now,
+          absCents: answer.absCents,
+        );
+      }
+    }
+  }
+
   void recordAnswer({
     required Note note,
     required bool correctAnswer,
     required DateTime now,
     double? absCents,
+    bool production = false,
+    bool transfer = false,
+    bool usedHint = false,
+    bool revealed = false,
+    int responseMs = 0,
+    String? templateId,
   }) {
-    refreshDaily(now);
-    if (correctAnswer) daily.correct++;
-    noteFor(
-      note,
-    ).recordAnswer(correctAnswer: correctAnswer, now: now, absCents: absCents);
+    recordSkillAnswer(
+      SkillAnswer(
+        objectiveId: 'note:${note.id}',
+        family: SkillFamily.noteReading,
+        correct: correctAnswer,
+        now: now,
+        absCents: absCents,
+        production: production,
+        transfer: transfer,
+        usedHint: usedHint,
+        revealed: revealed,
+        responseMs: responseMs,
+        templateId: templateId,
+      ),
+    );
   }
 
   void completeLesson({
@@ -704,12 +762,55 @@ class ProgressState {
     ];
   }
 
+  List<SkillProgress> dueSkills(DateTime now, {Iterable<SkillProgress>? pool}) {
+    final due = <SkillProgress>[
+      for (final skill in pool ?? skills.values)
+        if (skill.dueAt != null && !skill.dueAt!.isAfter(now)) skill,
+    ]..sort((a, b) => a.dueAt!.compareTo(b.dueAt!));
+    return due;
+  }
+
+  List<SkillProgress> weakSkills({int limit = 20}) {
+    final weak =
+        skills.values
+            .where(
+              (skill) =>
+                  skill.attempts >= 2 &&
+                  (skill.accuracy < 0.75 || skill.fragile),
+            )
+            .toList()
+          ..sort((a, b) {
+            final fragility = (b.fragile ? 1 : 0).compareTo(a.fragile ? 1 : 0);
+            if (fragility != 0) return fragility;
+            return a.accuracy.compareTo(b.accuracy);
+          });
+    return weak.take(limit).toList();
+  }
+
+  List<SkillProgress> fragileSkills({int limit = 20}) {
+    final fragile = skills.values.where((skill) => skill.fragile).toList()
+      ..sort((a, b) => a.accuracy.compareTo(b.accuracy));
+    return fragile.take(limit).toList();
+  }
+
+  int get masteredSkillCount =>
+      skills.values.where((skill) => skill.mastered).length;
+
+  int get totalSkillAttempts =>
+      skills.values.fold(0, (sum, skill) => sum + skill.attempts);
+
   ProgressState copy() => ProgressState(
     schemaVersion: schemaVersion,
     curriculumVersion: curriculumVersion,
     notes: {for (final entry in notes.entries) entry.key: entry.value.copy()},
+    skills: {
+      for (final entry in skills.entries) entry.key: entry.value.copy(),
+    },
     completedLessons: {...completedLessons},
+    legacyCompletedLessons: {...legacyCompletedLessons},
     bestLessonAccuracy: {...bestLessonAccuracy},
+    completedCheckpoints: {...completedCheckpoints},
+    placementUnitId: placementUnitId,
     xp: xp,
     streak: streak,
     bestStreak: bestStreak,
@@ -735,8 +836,14 @@ class ProgressState {
     'notes': {
       for (final entry in notes.entries) entry.key: entry.value.toJson(),
     },
+    'skills': {
+      for (final entry in skills.entries) entry.key: entry.value.toJson(),
+    },
     'completedLessons': completedLessons.toList(),
+    'legacyCompletedLessons': legacyCompletedLessons.toList(),
     'bestLessonAccuracy': bestLessonAccuracy,
+    'completedCheckpoints': completedCheckpoints.toList(),
+    'placementUnitId': placementUnitId,
     'xp': xp,
     'streak': streak,
     'bestStreak': bestStreak,
@@ -766,9 +873,22 @@ class ProgressState {
             in (json['notes'] as Map<String, dynamic>? ?? const {}).entries)
           entry.key: NoteProgress.fromJson(entry.value as Map<String, dynamic>),
       },
+      skills: {
+        for (final entry
+            in (json['skills'] as Map<String, dynamic>? ?? const {}).entries)
+          if (entry.value is Map<String, dynamic>)
+            entry.key: SkillProgress.fromJson(
+              entry.value as Map<String, dynamic>,
+            ),
+      },
       completedLessons: {
         for (final id
             in (json['completedLessons'] as List<dynamic>? ?? const []))
+          if (id is String) id,
+      },
+      legacyCompletedLessons: {
+        for (final id
+            in (json['legacyCompletedLessons'] as List<dynamic>? ?? const []))
           if (id is String) id,
       },
       bestLessonAccuracy: {
@@ -777,6 +897,12 @@ class ProgressState {
                 .entries)
           entry.key: (entry.value as num?)?.toDouble() ?? 0,
       },
+      completedCheckpoints: {
+        for (final id
+            in (json['completedCheckpoints'] as List<dynamic>? ?? const []))
+          if (id is String) id,
+      },
+      placementUnitId: json['placementUnitId'] as String?,
       xp: (json['xp'] as num?)?.toInt() ?? 0,
       streak: (json['streak'] as num?)?.toInt() ?? 0,
       bestStreak: (json['bestStreak'] as num?)?.toInt() ?? 0,
@@ -806,7 +932,43 @@ class ProgressState {
       ],
     );
     state._migrateCurriculum();
+    state._migrateNotesToSkills();
     return state;
+  }
+
+  void _migrateNotesToSkills() {
+    if (skills.isNotEmpty) return;
+    for (final entry in notes.entries) {
+      final note = entry.value;
+      final stability = switch (note.box) {
+        0 => 0.5,
+        1 => 1.0,
+        2 => 3.0,
+        3 => 7.0,
+        4 => 21.0,
+        5 => 45.0,
+        _ => 0.5,
+      };
+      final difficulty = (10 - note.accuracy * 8).clamp(1.0, 10.0);
+      skills['note:${entry.key}'] = SkillProgress(
+        objectiveId: 'note:${entry.key}',
+        family: SkillFamily.noteReading,
+        stabilityDays: stability,
+        difficulty: difficulty,
+        dueAt: note.dueAt,
+        lastSeenAt: note.lastSeenAt,
+        reps: note.attempts,
+        lapses: note.incorrect,
+        correct: note.correct,
+        incorrect: note.incorrect,
+        correctDays: {...note.correctDays},
+        centsSamples: note.centsSamples,
+        centsTotal: note.centsTotal,
+        box: note.box,
+        streak: note.streak,
+        bestStreak: note.bestStreak,
+      );
+    }
   }
 
   void _migrateCurriculum() {

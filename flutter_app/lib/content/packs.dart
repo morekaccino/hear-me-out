@@ -7,11 +7,17 @@ import 'theory/templates.dart';
 ///
 /// New topics add their templates to this list. The composer never changes.
 const ContentPack appContentPack = ContentPack(
-  id: 'hear_me_out.reading.v3',
+  id: 'hear_me_out.reading.v4',
   templates: [
     ...noteReadingTemplates,
+    ...fretboardTemplates,
     ...theoryTemplates,
     ...harmonyTemplates,
+    ...earTemplates,
+    ...techniqueTemplates,
+    ...sightReadingTemplates,
+    ...repertoireTemplates,
+    ...improvisationTemplates,
     ...rhythmTemplates,
   ],
 );

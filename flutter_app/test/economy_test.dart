@@ -112,7 +112,7 @@ void main() {
   group('Chests', () {
     test('opening a chest awards gems once', () {
       final state = ProgressState.fresh();
-      final chest = chestById['u1c1']!;
+      final chest = chestById['c3u1c1']!;
       expect(state.openChest(chest.id, chest.gems), isTrue);
       expect(state.gems, startingGems + chest.gems);
       expect(state.openedChests, contains(chest.id));
@@ -173,9 +173,41 @@ void main() {
       addTearDown(container.dispose);
       await container.read(appControllerProvider.future);
       final notifier = container.read(appControllerProvider.notifier);
-      expect(await notifier.openChest('u1c1'), isTrue);
-      expect(store.value!.openedChests, contains('u1c1'));
-      expect(store.value!.gems, startingGems + chestById['u1c1']!.gems);
+      expect(await notifier.openChest('c3u1c1'), isTrue);
+      expect(store.value!.openedChests, contains('c3u1c1'));
+      expect(store.value!.gems, startingGems + chestById['c3u1c1']!.gems);
+    });
+
+    test('a checkpoint does not spend hearts', () async {
+      final store = MemoryProgressStore(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [progressStoreProvider.overrideWithValue(store)],
+      );
+      addTearDown(container.dispose);
+      await container.read(appControllerProvider.future);
+      final notifier = container.read(appControllerProvider.notifier);
+      notifier.startLesson('c3u1l6', micAvailable: false);
+
+      final before = container.read(appControllerProvider).requireValue.progress
+          .hearts;
+      final run = container
+          .read(appControllerProvider)
+          .requireValue
+          .run!;
+      expect(run.lesson.isReview, isTrue);
+      await notifier.submitAnswer(correct: false);
+
+      final after = container.read(appControllerProvider).requireValue;
+      expect(after.progress.hearts, before);
+      expect(after.run!.lives, before);
+      expect(after.run!.lastCorrect, isFalse);
     });
 
     test('a passing jump test unlocks the earlier section', () async {
@@ -193,7 +225,7 @@ void main() {
       addTearDown(container.dispose);
       await container.read(appControllerProvider.future);
       final notifier = container.read(appControllerProvider.notifier);
-      notifier.startJumpTest(sectionId: 's2', micAvailable: false);
+      notifier.startJumpTest(sectionId: 'c3s2', micAvailable: false);
 
       var run = container.read(appControllerProvider).requireValue.run!;
       expect(run.isJumpTest, isTrue);

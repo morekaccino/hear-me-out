@@ -220,23 +220,32 @@ void main() {
         for (final section in sections) ...section.units,
       ];
       expect(sectionUnits, curriculum);
-      expect(curriculum, hasLength(10));
-      expect(allLessons, hasLength(40));
+      expect(curriculum, hasLength(40));
+      expect(allLessons, hasLength(240));
     });
 
-    test('every unit ends with a checkpoint and has a clear focus', () {
+    test('every unit has six lessons and ends with a checkpoint', () {
       for (final unit in curriculum) {
         expect(unit.focus, isNotEmpty);
+        expect(unit.lessons, hasLength(6), reason: unit.id);
         expect(unit.lessons.last.isReview, isTrue, reason: unit.id);
-        expect(unit.lessons.where((lesson) => lesson.isReview), hasLength(1));
+        expect(
+          unit.lessons.where((lesson) => lesson.isReview),
+          hasLength(1),
+          reason: unit.id,
+        );
       }
     });
 
-    test('every curriculum note has a first-position fingering', () {
+    test('every curriculum note is playable within fifteen frets', () {
       for (final lesson in allLessons) {
         for (final note in [...lesson.newNotes, ...lesson.reviewNotes]) {
           expect(Note.tryParse(note.id), isNotNull);
-          expect(Guitar.bestPosition(note), isNotNull, reason: note.id);
+          expect(
+            Guitar.positionsFor(note, maxFret: 15),
+            isNotEmpty,
+            reason: note.id,
+          );
         }
       }
     });

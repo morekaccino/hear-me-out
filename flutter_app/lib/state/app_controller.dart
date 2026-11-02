@@ -3,9 +3,10 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../content/session_factory.dart';
+import '../core/learning/lesson_run.dart';
 import '../core/learning/progress.dart';
 import '../core/learning/prompt.dart';
-import '../core/learning/lesson_run.dart';
+import '../core/learning/skill.dart';
 import '../core/music/curriculum.dart';
 import '../core/music/note.dart';
 import '../core/storage/progress_store.dart';
@@ -142,7 +143,7 @@ class AppController extends AsyncNotifier<AppData> {
   void startPractice({required String kind, required bool micAvailable}) {
     _lastMicAvailable = micAvailable;
     final data = _data;
-    final exercises = buildPracticeExercises(
+    final exercises = buildSkillPracticeExercises(
       kind: kind,
       progress: data.progress,
       now: DateTime.now(),
@@ -150,8 +151,9 @@ class AppController extends AsyncNotifier<AppData> {
       mode: data.progress.settings.answerMode,
     );
     final title = switch (kind) {
+      'smart' => 'Smart review',
       'due' => 'Due review',
-      'weak' => 'Weak notes',
+      'weak' => 'Weak skills',
       _ => 'Free practice',
     };
     final lesson = LessonDefinition(
@@ -195,6 +197,9 @@ class AppController extends AsyncNotifier<AppData> {
         }
       }
     }
+    if (notes.isEmpty) {
+      notes.addAll(noteCatalog.take(8));
+    }
     final lesson = LessonDefinition(
       id: 'jump_$sectionId',
       unitId: 'jump',
@@ -226,6 +231,7 @@ class AppController extends AsyncNotifier<AppData> {
     double? cents,
     Note? detected,
     bool octaveError = false,
+    int responseMs = 0,
   }) async {
     final data = _data;
     final run = data.run;
@@ -236,14 +242,24 @@ class AppController extends AsyncNotifier<AppData> {
 
     final target = prompt is NotePrompt ? prompt.note : null;
     final now = DateTime.now();
-    if (target != null) {
-      data.progress.recordAnswer(
-        note: target,
-        correctAnswer: correct,
+    final production =
+        prompt.usesMicrophone ||
+        prompt is RhythmPrompt ||
+        prompt is FretTapPrompt ||
+        prompt is StaffTapPrompt;
+    data.progress.recordSkillAnswer(
+      SkillAnswer(
+        objectiveId: prompt.objective.id,
+        family: prompt.objective.family,
+        correct: correct,
         now: now,
         absCents: cents,
-      );
-    }
+        production: production,
+        transfer: !prompt.isNew,
+        templateId: prompt.templateId,
+        responseMs: responseMs,
+      ),
+    );
 
     run.lastTarget = target;
     run.lastCorrect = correct;
@@ -261,7 +277,9 @@ class AppController extends AsyncNotifier<AppData> {
       run.wrong++;
       run.combo = 0;
       run.queueMistake(prompt);
-      if (!run.isPractice) {
+      // Checkpoints are assessments: a wrong answer lowers the score, not the
+      // shared heart pool. Practice is also heart-free.
+      if (!run.isPractice && !run.lesson.isReview) {
         data.progress.loseHeart(now);
         run.lives = data.progress.hearts;
       }
@@ -283,7 +301,9 @@ class AppController extends AsyncNotifier<AppData> {
       return;
     }
     if (run.index >= run.exercises.length - 1 && !run.appendNextMistake()) {
-      await _finish(passed: true);
+      final threshold = run.lesson.isReview ? 0.85 : 0.8;
+      final passed = run.isPractice || run.accuracy >= threshold;
+      await _finish(passed: passed);
       return;
     }
 
@@ -335,6 +355,9 @@ class AppController extends AsyncNotifier<AppData> {
         answered: answered,
         now: now,
       );
+      if (run.lesson.isReview) {
+        data.progress.completedCheckpoints.add(run.lesson.id);
+      }
     } else {
       data.progress.recordFailedSession(
         lessonId: run.lesson.id,

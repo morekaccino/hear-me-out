@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/learning/prompt.dart';
+import 'package:hear_me_out/core/music/curriculum.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
@@ -21,12 +22,18 @@ void main() {
       overrides: [
         progressStoreProvider.overrideWithValue(
           MemoryProgressStore(
-            ProgressState.fresh(
-              settings: const AppSettings(
-                onboardingComplete: true,
-                answerMode: AnswerMode.name,
-              ),
-            ),
+            () {
+              final progress = ProgressState.fresh(
+                settings: const AppSettings(
+                  onboardingComplete: true,
+                  answerMode: AnswerMode.name,
+                ),
+              );
+              for (final lesson in sections.first.units.first.lessons) {
+                progress.completedLessons.add(lesson.id);
+              }
+              return progress;
+            }(),
           ),
         ),
         pitchSourceFactoryProvider.overrideWithValue(
@@ -50,19 +57,17 @@ void main() {
 
     final notifier = container.read(appControllerProvider.notifier);
 
-    // Skip teach cards until a placement prompt is on screen.
+    // Skip other questions until a staff-placement prompt is on screen.
     var guard = 0;
-    while (guard < 14) {
+    while (guard < 40) {
       guard++;
       final run = container.read(appControllerProvider).requireValue.run!;
       final prompt = run.current;
       if (prompt is StaffTapPrompt) break;
-      if (prompt.isTeach) {
-        await tester.tap(find.text('GOT IT'));
-      } else {
+      if (prompt.isScored) {
         await notifier.submitAnswer(correct: true);
-        await notifier.nextExercise();
       }
+      await notifier.nextExercise();
       await tester.pumpAndSettle();
     }
 

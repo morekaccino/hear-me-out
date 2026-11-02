@@ -1,15 +1,10 @@
 import '../../core/learning/objective.dart';
+import '../../core/learning/rhythm_objective.dart';
 import '../../core/music/rhythm.dart';
 
-ObjectiveRef rhythmObjective(RhythmPattern pattern) => ObjectiveRef(
-  'rhythm:${pattern.id}',
-  family: SkillFamily.rhythm,
-  data: {'pattern': pattern},
-);
+export '../../core/learning/rhythm_objective.dart';
 
 final Map<String, ObjectiveRef> rhythmObjectives = {
-  for (final pattern in rhythmPatterns) 'rhythm:${pattern.id}': rhythmObjective(pattern),
+  for (final pattern in rhythmPatterns)
+    'rhythm:${pattern.id}': rhythmObjective(pattern),
 };
-
-RhythmPattern? patternOf(ObjectiveRef ref) =>
-    ref.data['pattern'] as RhythmPattern?;

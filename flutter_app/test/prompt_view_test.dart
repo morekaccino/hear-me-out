@@ -7,6 +7,7 @@ import 'package:hear_me_out/core/learning/verifier.dart';
 import 'package:hear_me_out/core/music/chords.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/music/rhythm.dart';
+import 'package:hear_me_out/core/music/sound_spec.dart';
 import 'package:hear_me_out/features/exercises/fret_tap_view.dart';
 import 'package:hear_me_out/features/exercises/prompt_view.dart';
 import 'package:hear_me_out/features/exercises/staff_tap_view.dart';
@@ -16,12 +17,15 @@ import 'support/fakes.dart';
 
 void main() {
   Answer? captured;
+  FakeAudioEngine? audioEngine;
 
   Widget host(Prompt prompt) {
     captured = null;
+    audioEngine = FakeAudioEngine();
     return ProviderScope(
       overrides: [
         soundServiceProvider.overrideWithValue(FakeSoundService()),
+        audioEngineProvider.overrideWithValue(audioEngine!),
       ],
       child: MaterialApp(
         home: Scaffold(
@@ -164,6 +168,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(captured, isA<ChoiceAnswer>());
     expect((captured! as ChoiceAnswer).optionId, 'b');
+  });
+
+  testWidgets('an ear question plays its stimulus', (tester) async {
+    final spec = SoundSpec.interval(
+      Note.parse('C4'),
+      Note.parse('E4'),
+    );
+    await tester.pumpWidget(
+      host(
+        ChoicePrompt(
+          objective: const ObjectiveRef('ear:interval:M3', family: SkillFamily.ear),
+          templateId: 'ear.ask',
+          question: 'Listen. Which interval do you hear?',
+          options: const [
+            ChoiceOption('a', 'major third'),
+            ChoiceOption('b', 'minor third'),
+            ChoiceOption('c', 'perfect fifth'),
+          ],
+          correctId: 'a',
+          audio: spec,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('PLAY SOUND'), findsOneWidget);
+    await tester.tap(find.text('PLAY SOUND'));
+    await tester.pumpAndSettle();
+    expect(audioEngine!.played, hasLength(1));
+    expect(audioEngine!.played.single.events, hasLength(2));
   });
 
   testWidgets('a rhythm question fits a phone and can be started', (

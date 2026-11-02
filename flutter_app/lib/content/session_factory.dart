@@ -6,6 +6,7 @@ import '../core/learning/objective.dart';
 import '../core/learning/progress.dart';
 import '../core/learning/prompt.dart';
 import '../core/learning/session_shape.dart';
+import '../core/learning/skill.dart';
 import '../core/learning/template.dart';
 import '../core/music/curriculum.dart';
 import '../core/music/note.dart';
@@ -27,9 +28,9 @@ List<Prompt> buildLessonSession({
   Random? random,
 }) {
   final rng = random ?? Random(now.millisecondsSinceEpoch);
-  final baseCount = lesson.isReview
-      ? reviewExercisesPerLesson
-      : exercisesPerLesson;
+  final baseCount =
+      lesson.exerciseCount ??
+      (lesson.isReview ? reviewExercisesPerLesson : exercisesPerLesson);
 
   // A note is still "new" until it has reached box 2. Exiting early or getting
   // one wrong answer must not rob it of its teaching exposures.
@@ -73,7 +74,10 @@ List<Prompt> buildLessonSession({
     for (final ref in newRefs) ref.id,
     for (final ref in effectivePool) ref.id,
   }.length;
-  final budget = distinct * lesson.exposures;
+  // New material gets the full five-exposure arc. A review-only lesson should
+  // not drill one objective five times, so it is capped at two exposures.
+  final maxPerObjective = newRefs.isEmpty ? 2 : lesson.exposures;
+  final budget = distinct * maxPerObjective;
   final total = budget < baseCount ? (budget < 8 ? 8 : budget) : baseCount;
 
   final shape = SessionShape.standard(
@@ -118,6 +122,86 @@ List<Prompt> buildPracticeExercises({
     capabilities: _capabilities(micAvailable),
     random: rng,
   );
+}
+
+/// Practice across every skill family, not just notes. This is the review
+/// engine that makes a year-long course possible: theory, ear, rhythm, chords,
+/// and technique all come back when they are due.
+List<Prompt> buildSkillPracticeExercises({
+  required String kind,
+  required ProgressState progress,
+  required DateTime now,
+  required bool micAvailable,
+  AnswerMode mode = AnswerMode.mixed,
+  int total = exercisesPerLesson,
+  Random? random,
+}) {
+  final rng = random ?? Random(now.millisecondsSinceEpoch);
+  final skills = _skillPool(kind, progress, now);
+  final refs = _refsForSkills(skills, progress);
+  if (refs.isEmpty) {
+    return buildPracticeExercises(
+      kind: kind,
+      progress: progress,
+      now: now,
+      micAvailable: micAvailable,
+      mode: mode,
+      random: rng,
+    );
+  }
+
+  final shape = SessionShape.standard(total: total, newObjectives: 0);
+  return const SessionComposer(appContentPack).compose(
+    shape: shape,
+    newObjectives: const [],
+    reviewPool: refs,
+    mode: mode,
+    capabilities: _capabilities(micAvailable),
+    random: rng,
+  );
+}
+
+List<SkillProgress> _skillPool(
+  String kind,
+  ProgressState progress,
+  DateTime now,
+) {
+  final due = progress.dueSkills(now);
+  final fragile = progress.fragileSkills(limit: 12);
+  final weak = progress.weakSkills(limit: 12);
+  final learned = progress.skills.values
+      .where((skill) => skill.attempts > 0)
+      .toList();
+  final pool = switch (kind) {
+    'due' => due,
+    'weak' => [...fragile, ...weak],
+    'smart' => [...due, ...fragile, ...weak],
+    _ => learned,
+  };
+  final seen = <String>{};
+  return [
+    for (final skill in pool)
+      if (seen.add(skill.objectiveId)) skill,
+  ].take(24).toList();
+}
+
+List<ObjectiveRef> _refsForSkills(
+  List<SkillProgress> skills,
+  ProgressState progress,
+) {
+  final refs = <ObjectiveRef>[];
+  for (final skill in skills) {
+    if (skill.objectiveId.startsWith('note:')) {
+      final note = Note.tryParse(skill.objectiveId.substring(5));
+      if (note != null) {
+        refs.add(noteObjective(note, stage: skill.box));
+      }
+      continue;
+    }
+    final objective = objectiveCatalog[skill.objectiveId];
+    if (objective != null) refs.add(objective);
+  }
+  return refs;
 }
 
 Set<Capability> _capabilities(bool micAvailable) {
@@ -176,9 +260,16 @@ List<Note> _practicePool(String kind, ProgressState progress, DateTime now) {
   }
 
   if (pool.isEmpty) {
-    pool = [...curriculum.first.lessons.first.newNotes];
+    pool = _firstNotePool();
   }
   return pool;
+}
+
+List<Note> _firstNotePool() {
+  for (final lesson in allLessons) {
+    if (lesson.newNotes.isNotEmpty) return lesson.newNotes;
+  }
+  return noteCatalog.take(8).toList();
 }
 
 List<Note> _learnedNotes(ProgressState progress) {

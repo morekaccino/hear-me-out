@@ -3,7 +3,9 @@ import 'dart:convert';
 
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/music/sound_spec.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/shared/audio/audio_engine.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
 
 class MemoryProgressStore implements ProgressStore {
@@ -118,6 +120,24 @@ class FakeSoundService implements SoundService {
     for (final sound in sounds) {
       await play(sound);
     }
+  }
+
+  @override
+  Future<void> dispose() async {}
+}
+
+class FakeAudioEngine implements AudioEngine {
+  final played = <SoundSpec>[];
+  int stopCount = 0;
+
+  @override
+  Future<void> play(SoundSpec spec) async {
+    played.add(spec);
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCount++;
   }
 
   @override

@@ -3,6 +3,7 @@ import '../../core/learning/prompt.dart';
 import '../../core/learning/session_shape.dart';
 import '../../core/learning/template.dart';
 import '../../core/music/curriculum.dart';
+import '../../core/music/guitar.dart';
 import 'objectives.dart';
 
 const String noteTeachTemplateId = 'note.teach';
@@ -208,11 +209,13 @@ class NoteFretboardTemplate implements ExerciseTemplate {
   Prompt? build(ObjectiveRef objective, PromptContext context) {
     final note = noteOf(objective);
     if (note == null) return null;
+    final best = Guitar.bestPosition(note, maxFret: 15);
+    final maxFret = best == null ? 12 : (best.fret < 4 ? 4 : best.fret);
     return FretTapPrompt(
       objective: objective,
       templateId: id,
       note: note,
-      maxFret: 4,
+      maxFret: maxFret,
       isNew: context.isNew,
       exposure: context.occurrence,
     );
@@ -226,3 +229,94 @@ const List<ExerciseTemplate> noteReadingTemplates = [
   NotePlaceTemplate(),
   NoteFretboardTemplate(),
 ];
+
+/// A fretboard question for the `fretboard` family. The objective carries the
+/// target note and a max fret; the prompt asks the learner to find it.
+class FretFindTemplate implements ExerciseTemplate {
+  const FretFindTemplate();
+
+  @override
+  String get id => 'fret.find';
+
+  @override
+  int get priority => 0;
+
+  @override
+  SkillFamily get family => SkillFamily.fretboard;
+
+  @override
+  Set<SlotRole> get roles => const {
+    SlotRole.guided,
+    SlotRole.apply,
+    SlotRole.review,
+  };
+
+  @override
+  bool get usesMicrophone => false;
+
+  @override
+  Set<Capability> get requires => const {};
+
+  @override
+  Prompt? build(ObjectiveRef objective, PromptContext context) {
+    final note = noteOf(objective);
+    if (note == null) return null;
+    return FretTapPrompt(
+      objective: objective,
+      templateId: id,
+      note: note,
+      maxFret: objective.data['maxFret'] as int? ?? 5,
+      isNew: context.isNew,
+      exposure: context.occurrence,
+    );
+  }
+}
+
+const List<ExerciseTemplate> fretboardTemplates = [
+  FretboardTeachTemplate(),
+  FretFindTemplate(),
+];
+
+/// A teach card for a fretboard objective. Shows the target note and every
+/// first-position place it can be played.
+class FretboardTeachTemplate implements ExerciseTemplate {
+  const FretboardTeachTemplate();
+
+  @override
+  String get id => 'fret.teach';
+
+  @override
+  int get priority => 0;
+
+  @override
+  SkillFamily get family => SkillFamily.fretboard;
+
+  @override
+  Set<SlotRole> get roles => const {SlotRole.teach};
+
+  @override
+  bool get usesMicrophone => false;
+
+  @override
+  Set<Capability> get requires => const {};
+
+  @override
+  Prompt? build(ObjectiveRef objective, PromptContext context) {
+    final note = noteOf(objective);
+    if (note == null) return null;
+    final maxFret = objective.data['maxFret'] as int? ?? 5;
+    final positions = Guitar.positionsFor(note, maxFret: maxFret);
+    final label = positions.isEmpty
+        ? 'Find it on the neck.'
+        : positions.map((position) => position.label).join(' or ');
+    return ChoicePrompt(
+      objective: objective,
+      templateId: id,
+      question: 'Where is ${note.display}?',
+      options: [ChoiceOption('answer', label)],
+      correctId: 'answer',
+      reveal: true,
+      isNew: true,
+    );
+  }
+}

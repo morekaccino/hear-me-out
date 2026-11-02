@@ -171,9 +171,17 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
       return const Center(child: CircularProgressIndicator());
     }
     final progress = data.progress;
-    final due = progress.dueNotes(DateTime.now()).length;
-    final weak = progress.weakNotes(limit: 20).length;
-    final learned = progress.notes.values.where((n) => n.attempts > 0).length;
+    final due = progress.dueSkills(DateTime.now()).length;
+    final weak = progress.weakSkills(limit: 20).length;
+    final learned = progress.skills.values
+        .where((skill) => skill.attempts > 0)
+        .length;
+    final skillAttempts = progress.totalSkillAttempts;
+    final skillCorrect = progress.skills.values.fold(
+      0,
+      (sum, skill) => sum + skill.correct,
+    );
+    final accuracy = skillAttempts == 0 ? 0 : skillCorrect / skillAttempts;
 
     return Scaffold(
       body: SafeArea(
@@ -209,7 +217,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
               ),
               const SizedBox(height: 4),
               Text(
-                'Tune up, then drill the notes that need work.',
+                'Tune up, then review the skills that need work.',
                 style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
               if (progress.hearts < maxHearts) ...[
@@ -265,7 +273,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 children: [
                   Expanded(
                     child: _MiniStat(
-                      value: '${progress.masteredCount}',
+                      value: '${progress.masteredSkillCount}',
                       label: 'Mastered',
                       color: AppColors.green,
                     ),
@@ -281,7 +289,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: _MiniStat(
-                      value: '${(progress.accuracy * 100).round()}%',
+                      value: '${(accuracy * 100).round()}%',
                       label: 'Accuracy',
                       color: const Color(0xFFFF9600),
                     ),
@@ -295,14 +303,25 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
               ),
               const SizedBox(height: 8),
               _PracticeRow(
+                icon: Icons.auto_awesome_rounded,
+                color: AppColors.purple,
+                title: 'Smart review',
+                subtitle: due + weak == 0
+                    ? 'Nothing needs repair right now'
+                    : '${due + weak} skills due or fragile',
+                badge: due + weak == 0 ? null : '${due + weak}',
+                onTap: () => _startPractice('smart'),
+              ),
+              const SizedBox(height: 8),
+              _PracticeRow(
                 icon: Icons.event_repeat_rounded,
                 color: AppColors.blue,
                 title: 'Due review',
                 subtitle: due == 0
                     ? 'Nothing due right now'
                     : due == 1
-                    ? '1 note ready to review'
-                    : '$due notes ready to review',
+                    ? '1 skill ready to review'
+                    : '$due skills ready to review',
                 badge: due == 0 ? null : '$due',
                 onTap: () => _startPractice('due'),
               ),
@@ -310,12 +329,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
               _PracticeRow(
                 icon: Icons.healing_rounded,
                 color: AppColors.red,
-                title: 'Weak notes',
+                title: 'Weak skills',
                 subtitle: weak == 0
-                    ? 'No weak notes yet'
+                    ? 'No weak skills yet'
                     : weak == 1
-                    ? '1 note below 75% accuracy'
-                    : '$weak notes below 75% accuracy',
+                    ? '1 skill below 75% accuracy'
+                    : '$weak skills below 75% accuracy',
                 badge: weak == 0 ? null : '$weak',
                 onTap: () => _startPractice('weak'),
               ),
@@ -325,8 +344,8 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 color: AppColors.purple,
                 title: 'Free practice',
                 subtitle: learned == 0
-                    ? 'Start with E and F'
-                    : 'Mix every note you have met',
+                    ? 'Start with the first note lesson'
+                    : 'Mix every skill you have met',
                 onTap: () => _startPractice('all'),
               ),
               const SizedBox(height: 16),

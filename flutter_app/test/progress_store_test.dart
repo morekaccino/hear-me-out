@@ -31,7 +31,7 @@ void main() {
         absCents: 8,
       );
       progress.completeLesson(
-        lessonId: 'u1l1',
+        lessonId: 'c3u2l1',
         accuracy: 0.9,
         earnedXp: 10,
         answered: 10,
@@ -45,9 +45,9 @@ void main() {
       expect(restored.settings.soundEffects, isFalse);
       expect(restored.notes['G4']!.correct, 1);
       expect(restored.notes['G4']!.averageAbsCents, 8);
-      expect(restored.completedLessons, contains('u1l1'));
-      expect(restored.bestLessonAccuracy['u1l1'], 0.9);
-      expect(restored.recentSessions.single.lessonId, 'u1l1');
+      expect(restored.completedLessons, contains('c3u2l1'));
+      expect(restored.bestLessonAccuracy['c3u2l1'], 0.9);
+      expect(restored.recentSessions.single.lessonId, 'c3u2l1');
       expect(restored.gems, progress.gems);
       expect(restored.hearts, progress.hearts);
       expect(restored.daily.correct, 1);
@@ -62,7 +62,7 @@ void main() {
       expect(restored!.xp, 25);
     });
 
-    test('old lesson ids migrate to the sectioned curriculum', () {
+    test('old lesson ids migrate to the new curriculum', () {
       final restored = ProgressState.fromJson({
         'schemaVersion': 1,
         'curriculumVersion': 1,
@@ -72,10 +72,10 @@ void main() {
       expect(restored.curriculumVersion, ProgressState.currentCurriculumVersion);
       expect(
         restored.completedLessons,
-        containsAll(['u1l1', 'u3l1', 'u4l1', 'u6l1']),
+        containsAll(['c3u4l1', 'c3u4l2', 'c3u3l1']),
       );
       expect(restored.completedLessons, isNot(contains('u2l1')));
-      expect(restored.bestLessonAccuracy['u3l1'], 0.9);
+      expect(restored.bestLessonAccuracy['c3u4l2'], 0.9);
     });
 
     test('backups accept known schema versions and reject the rest', () {
@@ -84,7 +84,8 @@ void main() {
       expect(importProgress('{"hello": "world"}'), isNull);
       expect(importProgress('{"schemaVersion": 2}'), isNotNull);
       expect(importProgress('{"schemaVersion": 3}'), isNotNull);
-      expect(importProgress('{"schemaVersion": 4}'), isNull);
+      expect(importProgress('{"schemaVersion": 4}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 5}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });
@@ -155,7 +156,7 @@ void main() {
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
 
       final notifier = container.read(appControllerProvider.notifier);
-      notifier.startLesson('u1l1', micAvailable: false);
+      notifier.startLesson('c3u2l1', micAvailable: false);
       final scored = container
           .read(appControllerProvider)
           .requireValue
@@ -182,11 +183,11 @@ void main() {
       expect(data.result!.passed, isTrue);
       expect(data.result!.xp, 15);
       expect(data.result!.answered, scored);
-      expect(data.progress.isLessonCompleted('u1l1'), isTrue);
+      expect(data.progress.isLessonCompleted('c3u2l1'), isTrue);
       expect(data.progress.xp, 15);
       expect(data.progress.streak, 1);
 
-      expect(store.value!.isLessonCompleted('u1l1'), isTrue);
+      expect(store.value!.isLessonCompleted('c3u2l1'), isTrue);
       expect(store.value!.xp, 15);
     });
 
@@ -201,8 +202,14 @@ void main() {
           .read(appControllerProvider.notifier)
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
       final notifier = first.read(appControllerProvider.notifier);
-      notifier.startLesson('u1l1', micAvailable: false);
-      for (var index = 0; index < exercisesPerLesson; index++) {
+      notifier.startLesson('c3u2l1', micAvailable: false);
+      final length = first
+          .read(appControllerProvider)
+          .requireValue
+          .run!
+          .exercises
+          .length;
+      for (var index = 0; index < length; index++) {
         await notifier.submitAnswer(correct: true);
         await notifier.nextExercise();
       }
@@ -212,7 +219,7 @@ void main() {
       );
       addTearDown(second.dispose);
       final reloaded = await second.read(appControllerProvider.future);
-      expect(reloaded.progress.isLessonCompleted('u1l1'), isTrue);
+      expect(reloaded.progress.isLessonCompleted('c3u2l1'), isTrue);
       expect(reloaded.progress.xp, 15);
       expect(reloaded.progress.streak, 1);
     });
@@ -228,13 +235,13 @@ void main() {
           .read(appControllerProvider.notifier)
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
       final notifier = container.read(appControllerProvider.notifier);
-      notifier.startLesson('u1l1', micAvailable: false);
+      notifier.startLesson('c3u2l1', micAvailable: false);
       var openingRun = container.read(appControllerProvider).requireValue.run!;
       while (!openingRun.current.isScored) {
         await notifier.nextExercise();
         openingRun = container.read(appControllerProvider).requireValue.run!;
       }
-      final missed = openingRun.currentNote!.note;
+      final missed = openingRun.current;
       await notifier.submitAnswer(correct: false);
       await notifier.nextExercise();
       while (!container
@@ -250,7 +257,7 @@ void main() {
       expect(beforeRetry.result, isNull);
       final retryRun = beforeRetry.run!;
       expect(retryRun.isReviewingMistakes, isTrue);
-      expect(retryRun.currentNote!.note.id, missed.id);
+      expect(retryRun.current.objective.id, missed.objective.id);
 
       await notifier.submitAnswer(correct: true);
       await notifier.nextExercise();
@@ -271,7 +278,7 @@ void main() {
           .read(appControllerProvider.notifier)
           .completeOnboarding(const AppSettings(answerMode: AnswerMode.name));
       final notifier = container.read(appControllerProvider.notifier);
-      notifier.startLesson('u1l1', micAvailable: false);
+      notifier.startLesson('c3u2l1', micAvailable: false);
       var guard = 0;
       while (container.read(appControllerProvider).requireValue.result == null &&
           guard < exercisesPerLesson) {
@@ -282,7 +289,7 @@ void main() {
       final data = container.read(appControllerProvider).requireValue;
       expect(data.result, isNotNull);
       expect(data.result!.passed, isFalse);
-      expect(data.progress.isLessonCompleted('u1l1'), isFalse);
+      expect(data.progress.isLessonCompleted('c3u2l1'), isFalse);
       expect(data.progress.xp, 0);
     });
 

@@ -28,17 +28,22 @@ note on a treble staff and asks you to either **name it** or **play it**. The
 microphone listens to your guitar, detects the pitch, and tells you whether you
 hit the note, missed it, or played the right note in the wrong octave.
 
-- **25 lessons across 6 units in 3 sections** — staff basics, below-staff
-  reading, low strings, full first position, and accidentals, with a guidebook
-  and 15-exercise checkpoint for every unit.
+- **240 lessons across 40 units in 8 sections** — a year-long guitar course:
+  foundations, reading fluency, rhythm and groove, chords and harmony, fretboard
+  and scales, ear training and theory, intermediate repertoire, and mastery.
+  Every unit has six lessons: Discover, Build, Connect, Apply, Integrate, and a
+  checkpoint.
+- **One schedule for every skill** — notes, rhythm, chords, theory, ear training,
+  fretboard, technique, and repertoire each have their own FSRS-style memory
+  state. Due and fragile skills return in Smart review, not just notes.
 - **Play or name** — every note can be answered by tapping its name or by
   playing it. If the mic is unavailable, the app falls back to naming.
 - **Guitar-correct notation** — written pitch is one octave above sounding
   pitch. The staff, the microphone target, and the string/fret hints all respect
   that.
-- **Real spaced repetition** — notes move through six boxes with due dates. A
-  note is mastered only after five correct answers across at least two days,
-  not after three lucky taps in one session.
+- **Real spaced repetition** — a skill is mastered only after spaced correct
+  answers across at least three days, with production and transfer evidence.
+  Wrong answers trigger a repair chain, not a single end-of-lesson retry.
 - **Duolingo-style path** — section and unit banners, a winding lesson map,
   guidebooks, streak / gem / heart counters, chests, jump-ahead tests, daily
   quests, and a five-heart pool. No fake leaderboards or leagues.
@@ -52,13 +57,14 @@ hit the note, missed it, or played the right note in the wrong octave.
 
 ## Screens
 
-- **Path** — a sectioned winding lesson map with completed, current, and locked
-  nodes, chests, unit guidebooks, checkpoints, jump-ahead tests, and streak /
-  gem / heart / XP progress.
-- **Lesson** — a treble-staff card, four note-name choices or a live mic meter,
-  feedback with the correct string and fret, and five hearts.
-- **Practice** — a standard-tuning guitar tuner plus due-review, weak-note, and
-  free-practice drills. Practice never spends hearts and restores one.
+- **Learn** — a Today card, an eight-section course map, winding unit paths,
+  guidebooks, checkpoints, jump-ahead tests, and streak / gem / heart / XP
+  progress.
+- **Lesson** — staff, fretboard, chord, rhythm, and ear-training questions with
+  real feedback and a mastery gate.
+- **Practice** — a standard-tuning guitar tuner plus Smart review across every
+  skill family, due review, weak skills, and free practice. Practice never
+  spends hearts and restores one.
 - **Quests** — three local daily quests that pay gems.
 - **Shop** — heart refills, streak freezes, and double XP, bought with earned
   gems only.
@@ -105,17 +111,19 @@ flutter test
 The suite covers:
 
 - MIDI/frequency/cents conversions and note parsing
-- guitar written-vs-sounding transposition and first-position fingerings
+- intervals, key signatures, scales, chords, progressions, and guitar transposition
 - staff geometry and ledger lines for every curriculum note
-- the spaced-repetition scheduler, streaks, and mastery rules
-- session composition for all 25 lessons, including review quotas and mistake
-  retries
-- curriculum migration from the older 17-lesson layout
+- the FSRS-style skill scheduler, mastery, fragility, and repair ratios
+- session composition for all 240 lessons, including review quotas, five
+  exposures, checkpoints, and mistake retries
+- curriculum migration from the old 40-lesson layout and schema 1–3 to schema 4
+- local WAV synthesis for notes, intervals, chords, and progressions
 - YIN pitch detection on synthetic guitar tones, harmonics, decay, silence, and
   noise
 - note matching, cents tolerance, octave errors, and re-arming
 - JSON persistence, corrupt-storage fallbacks, and a simulated app restart
-- onboarding, path, lesson, quests, shop, and responsive-shell widget flows
+- onboarding, path, lesson, quests, shop, practice, profile, and responsive-shell
+  widget flows
 - hearts, gems, chests, daily quests, streak freezes, double XP, and jump-ahead
   tests
 
@@ -130,7 +138,7 @@ run the app on a physical phone with a guitar and check:
 3. Playing the same note twice in a row works after a short mute.
 4. Ambient noise does not trigger an answer.
 5. Denying microphone permission falls back to note names without crashing.
-6. Killing and reopening the app restores XP, streak, and note boxes.
+6. Killing and reopening the app restores XP, streak, skills, and note boxes.
 
 Build an APK or app bundle with `flutter build apk` or `flutter build appbundle`
 on a machine with the Android SDK, or use `flutter run` with a connected device.

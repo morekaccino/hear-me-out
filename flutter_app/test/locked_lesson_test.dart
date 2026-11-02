@@ -40,15 +40,15 @@ void main() {
     await tester.pumpWidget(buildApp(tester));
     await tester.pumpAndSettle();
 
-    final locked = find.byKey(const ValueKey('lesson-face-u1l2'));
+    final locked = find.byKey(const ValueKey('lesson-face-c3u1l2'));
     await tester.ensureVisible(locked);
     await tester.pumpAndSettle();
     await tester.tap(locked);
     await tester.pumpAndSettle();
 
     expect(find.text('Lesson locked'), findsOneWidget);
-    expect(find.textContaining('Finish “E and F” first'), findsOneWidget);
-    expect(find.text('START “E AND F”'), findsOneWidget);
+    expect(find.textContaining('Finish “Discover” first'), findsOneWidget);
+    expect(find.text('START “DISCOVER”'), findsOneWidget);
     expect(find.text('NOT NOW'), findsOneWidget);
   });
 
@@ -56,16 +56,17 @@ void main() {
     await tester.pumpWidget(buildApp(tester));
     await tester.pumpAndSettle();
 
-    final locked = find.byKey(const ValueKey('lesson-face-u1l2'));
+    final locked = find.byKey(const ValueKey('lesson-face-c3u1l2'));
     await tester.ensureVisible(locked);
     await tester.pumpAndSettle();
     await tester.tap(locked);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('START “E AND F”'));
+    await tester.tap(find.text('START “DISCOVER”'));
     await tester.pumpAndSettle();
 
-    // The first lesson opened, so the teach card is on screen.
-    expect(find.text('A new note'), findsOneWidget);
+    // The first lesson opened, so its teach card and continue button are on
+    // screen.
+    expect(find.text('GOT IT'), findsOneWidget);
   });
 }

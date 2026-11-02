@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/audio/pitch_source.dart';
+import '../shared/audio/audio_engine.dart';
 import '../shared/audio/sound_service.dart';
 
 typedef PitchSourceFactory = PitchSource Function();
@@ -23,4 +24,12 @@ final soundServiceProvider = Provider<SoundService>((ref) {
     unawaited(service.dispose());
   });
   return service;
+});
+
+final audioEngineProvider = Provider<AudioEngine>((ref) {
+  final engine = AudioPlayersSpecEngine();
+  ref.onDispose(() {
+    unawaited(engine.dispose());
+  });
+  return engine;
 });

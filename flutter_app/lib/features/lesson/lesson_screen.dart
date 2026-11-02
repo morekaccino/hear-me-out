@@ -58,6 +58,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   int _micGeneration = 0;
   String? _activeKey;
   String? _selectedOptionId;
+  String? _promptKey;
+  DateTime? _promptStartedAt;
 
   @override
   void initState() {
@@ -242,6 +244,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
           cents: cents,
           detected: detected,
           octaveError: octaveError,
+          responseMs: _promptStartedAt == null
+              ? 0
+              : DateTime.now().difference(_promptStartedAt!).inMilliseconds,
         );
     final updatedRun = ref.read(appControllerProvider).asData?.value.run;
     if (correct) {
@@ -278,6 +283,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
   void _prepareExercise(LessonRun run, NotePrompt exercise, bool showPlay) {
     if (!mounted) return;
+    unawaited(ref.read(audioEngineProvider).stop());
     _selectedOptionId = null;
     _reading = PitchReading.silent;
     _submitting = false;
@@ -369,6 +375,11 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     }
 
     final prompt = run.current;
+    final promptKey = '${run.index}-${prompt.templateId}';
+    if (promptKey != _promptKey) {
+      _promptKey = promptKey;
+      _promptStartedAt = DateTime.now();
+    }
     final exercise = prompt is NotePrompt ? prompt : null;
     if (exercise == null) {
       final question = Column(
@@ -606,6 +617,16 @@ class _LessonTopBar extends StatelessWidget {
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1,
                             color: AppColors.blueDark,
+                          ),
+                        )
+                      else if (run.lesson.isReview)
+                        const Text(
+                          'CHECKPOINT',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                            color: AppColors.yellowDark,
                           ),
                         )
                       else

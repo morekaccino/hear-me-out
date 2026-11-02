@@ -6,6 +6,7 @@ import '../../core/learning/prompt.dart';
 import '../../core/learning/verifier.dart';
 import '../../core/music/chords.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/widgets/audio_button.dart';
 import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/feedback_panel.dart';
 import '../../shared/widgets/tappable.dart';
@@ -40,7 +41,8 @@ String promptTitle(Prompt prompt) {
     NotePrompt() => 'What note is this?',
     StaffTapPrompt() => 'Place the note',
     FretTapPrompt() => 'Find it on the neck',
-    ChoicePrompt() => 'Choose the answer',
+    ChoicePrompt( :final audio) =>
+      audio != null ? 'Listen and choose' : 'Choose the answer',
     RhythmPrompt() => 'Tap the rhythm',
   };
 }
@@ -201,6 +203,10 @@ class _ChoiceState extends State<_Choice> {
       children: [
         if (choice.chord != null) ...[
           Center(child: ChordDiagram(chord: choice.chord!)),
+          const SizedBox(height: 12),
+        ],
+        if (choice.audio != null) ...[
+          AudioPromptButton(spec: choice.audio!),
           const SizedBox(height: 12),
         ],
         Text(

@@ -21,28 +21,11 @@ void main() {
     }
   });
 
-  test('the zigzag continues across unit boundaries', () {
+  test('the zigzag stays inside the unit', () {
     final first = PathLayout(unit: curriculum[0], width: 390);
-    final fifth = PathLayout(
-      unit: curriculum[4],
-      width: 390,
-      startOffset: curriculum
-          .take(4)
-          .fold(0, (sum, unit) => sum + unit.lessons.length),
-    );
-    final second = PathLayout(
-      unit: curriculum[1],
-      width: 390,
-      startOffset: curriculum[0].lessons.length,
-    );
-
     expect(first.nodes.first.position.dx, closeTo(195, 0.001));
     expect(first.nodes[1].position.dx, greaterThan(195));
     expect(first.nodes[2].position.dx, greaterThan(195));
-    expect(fifth.nodes.first.position.dx, lessThan(195));
-    // The next unit keeps the wave phase instead of snapping to center.
-    expect(second.nodes.first.position.dx, lessThan(195));
-    expect(second.nodes.first.position.dx, isNot(closeTo(195, 0.001)));
   });
 
   test('path spacing is consistent except for the chest slot', () {

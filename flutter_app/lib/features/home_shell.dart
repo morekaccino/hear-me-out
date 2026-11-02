@@ -71,7 +71,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 900;
         final screens = [
-          PathScreen(onOpenQuests: () => _select(2)),
+          PathScreen(
+            onOpenQuests: () => _select(2),
+            onOpenPractice: () => _select(1),
+          ),
           const PracticeScreen(),
           const QuestsScreen(),
           const ShopScreen(),

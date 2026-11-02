@@ -3,7 +3,18 @@
 /// The session engine reasons about families and roles only. It never imports a
 /// note, a staff, or an audio detector, which is what lets a new topic plug in
 /// without touching the composer.
-enum SkillFamily { noteReading, rhythm, ear, fretboard, harmony, theory }
+enum SkillFamily {
+  noteReading,
+  rhythm,
+  ear,
+  fretboard,
+  harmony,
+  theory,
+  technique,
+  sightReading,
+  repertoire,
+  improvisation,
+}
 
 /// A pointer to one teachable unit, plus the data a template needs to render it.
 ///

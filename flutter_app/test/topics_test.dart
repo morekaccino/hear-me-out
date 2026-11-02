@@ -25,10 +25,10 @@ void main() {
   }
 
   test('a new note meets several question shapes, not one repeated', () {
-    final prompts = sessionFor('u1l1');
+    final prompts = sessionFor('c3u4l1');
     final shapes = <String>{};
     for (final prompt in prompts) {
-      if (prompt.objective.id != 'note:E4') continue;
+      if (prompt.objective.id != 'note:F4') continue;
       shapes.add(prompt.templateId);
     }
     expect(shapes.length, greaterThanOrEqualTo(3));
@@ -36,32 +36,32 @@ void main() {
     expect(shapes, contains('note.name'));
   });
 
-  test('every note lesson keeps four exposures per new note', () {
-    final prompts = sessionFor('u1l1');
+  test('every note lesson keeps five exposures per new note', () {
+    final prompts = sessionFor('c3u4l1');
     final exposures = <String, int>{};
     for (final prompt in prompts.where((prompt) => prompt.isNew)) {
       exposures[prompt.objective.id] =
           (exposures[prompt.objective.id] ?? 0) + 1;
     }
-    expect(exposures['note:E4'], 4);
-    expect(exposures['note:F4'], 4);
+    expect(exposures['note:F4'], 5);
+    expect(exposures['note:A4'], 5);
   });
 
   test('theory lessons ask questions from the theory family', () {
-    final prompts = sessionFor('u7l2');
-    expect(prompts.whereType<ChoicePrompt>(), hasLength(prompts.length));
+    final prompts = sessionFor('c3u8l1');
+    final newPrompts = prompts.where((prompt) => prompt.isNew).toList();
+    expect(newPrompts, isNotEmpty);
     expect(
-      prompts.every((prompt) => prompt.objective.family == SkillFamily.theory),
+      newPrompts.every(
+        (prompt) => prompt.objective.family == SkillFamily.theory,
+      ),
       isTrue,
     );
-    expect(
-      prompts.any((prompt) => prompt.isTeach),
-      isTrue,
-    );
+    expect(prompts.any((prompt) => prompt.isTeach), isTrue);
   });
 
   test('chord lessons render a diagram with the question', () {
-    final prompts = sessionFor('u9l1');
+    final prompts = sessionFor('c3u16l1');
     final questions = prompts.whereType<ChoicePrompt>().toList();
     expect(questions, isNotEmpty);
     final chordQuestions = questions.where((prompt) => prompt.chord != null);
@@ -75,7 +75,23 @@ void main() {
   });
 
   test('rhythm lessons produce tap patterns', () {
-    final prompts = sessionFor('u10l1');
+    final prompts = buildLessonSession(
+      lesson: const LessonDefinition(
+        id: 'test.rhythm',
+        unitId: 'test',
+        title: 'Rhythm',
+        newNotes: [],
+        reviewNotes: [],
+        teaches: ['rhythm:quarters', 'rhythm:halves'],
+        exposures: 5,
+        exerciseCount: 12,
+      ),
+      progress: ProgressState.fresh(),
+      now: now,
+      micAvailable: false,
+      mode: AnswerMode.name,
+      random: Random(3),
+    );
     expect(prompts, isNotEmpty);
     expect(prompts.every((prompt) => prompt is RhythmPrompt), isTrue);
     for (final prompt in prompts.whereType<RhythmPrompt>()) {

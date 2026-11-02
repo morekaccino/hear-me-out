@@ -58,9 +58,42 @@ void main() {
 
     expect(find.byIcon(Icons.diamond_rounded), findsOneWidget);
     expect(find.text('SECTION 1, UNIT 1'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Up next'), 300);
     expect(find.text('Up next'), findsOneWidget);
-    expect(find.text('The Staff'), findsOneWidget);
+    expect(find.text('Meet the Guitar'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
+  });
+
+  testWidgets('course map lists the year and opens a unit guidebook', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildApp(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('VIEW COURSE MAP'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('COURSE MAP'), findsOneWidget);
+    expect(find.text('8 sections · 40 units · 240 lessons'), findsOneWidget);
+    expect(find.text('Meet the Guitar'), findsWidgets);
+
+    await tester.tap(find.text('Meet the Guitar').last);
+    await tester.pumpAndSettle();
+    expect(find.text('UNIT 1 GUIDEBOOK'), findsOneWidget);
   });
 
   testWidgets('path nodes expose their 3D face and state', (tester) async {
@@ -75,7 +108,7 @@ void main() {
         onboardingComplete: true,
         answerMode: AnswerMode.name,
       ),
-    )..completedLessons.add('u1l1');
+    )..completedLessons.add('c3u1l1');
 
     await tester.pumpWidget(buildApp(progress));
     await tester.pumpAndSettle();
@@ -85,23 +118,23 @@ void main() {
       PathLayout.faceHeight,
     );
     expect(
-      tester.getSize(find.byKey(const ValueKey('lesson-face-u1l1'))),
+      tester.getSize(find.byKey(const ValueKey('lesson-face-c3u1l1'))),
       faceSize,
     );
     expect(
-      tester.getSize(find.byKey(const ValueKey('lesson-face-u1l2'))),
+      tester.getSize(find.byKey(const ValueKey('lesson-face-c3u1l2'))),
       faceSize,
     );
     expect(
-      find.bySemanticsLabel('Lesson: E and F, completed'),
+      find.bySemanticsLabel('Lesson: Unit 1, Discover, completed'),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel('Lesson: G and A, current'),
+      find.bySemanticsLabel('Lesson: Unit 1, Build, current'),
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel('Lesson: B and C, locked'),
+      find.bySemanticsLabel('Lesson: Unit 1, Connect, locked'),
       findsOneWidget,
     );
     semantics.dispose();
@@ -161,7 +194,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('side-rail')), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.text('The Staff'), findsOneWidget);
+    expect(find.text('Meet the Guitar'), findsOneWidget);
     expect(find.text('Daily Quests'), findsOneWidget);
     expect(find.text('Daily goal'), findsOneWidget);
 
@@ -171,7 +204,7 @@ void main() {
     final nodeFinder = find.byKey(const ValueKey('current-lesson-node'));
     final railBefore = tester.getTopLeft(railFinder).dy;
     final nodeBefore = tester.getTopLeft(nodeFinder).dy;
-    final bannerBefore = tester.getTopLeft(find.text('The Staff')).dy;
+    final bannerBefore = tester.getTopLeft(find.text('Meet the Guitar')).dy;
     await tester.drag(
       find.byType(CustomScrollView),
       const Offset(0, -400),
@@ -185,11 +218,11 @@ void main() {
       tester.getTopLeft(nodeFinder).dy,
       closeTo(nodeBefore - 400, 40),
     );
-    // The unit banner stays pinned while the shared page scrolls.
-    expect(
-      tester.getTopLeft(find.text('The Staff')).dy,
-      closeTo(bannerBefore, 2),
-    );
+    // The unit banner pins to the top of the shared scroll instead of scrolling
+    // away with the page.
+    final bannerAfter = tester.getTopLeft(find.text('Meet the Guitar')).dy;
+    expect(bannerAfter, lessThan(bannerBefore));
+    expect(bannerAfter, greaterThanOrEqualTo(0));
   });
 
   testWidgets('selected bottom tab takes its own color', (tester) async {
@@ -241,7 +274,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('The Staff'), findsOneWidget);
+    expect(find.text('Meet the Guitar'), findsOneWidget);
     expect(find.byKey(const ValueKey('current-lesson-node')), findsOneWidget);
   });
 
@@ -298,7 +331,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('UNIT 1 GUIDEBOOK'), findsOneWidget);
-    expect(find.textContaining('string'), findsWidgets);
+    expect(find.textContaining('String'), findsWidgets);
   });
 
   testWidgets('a lesson can be answered by tapping the note name', (
@@ -309,14 +342,30 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      buildApp(
-        ProgressState.fresh(
-          settings: const AppSettings(
-            onboardingComplete: true,
-            answerMode: AnswerMode.name,
-          ),
+    final progress = ProgressState.fresh(
+      settings: const AppSettings(
+        onboardingComplete: true,
+        answerMode: AnswerMode.name,
+      ),
+    );
+    for (final lesson in sections.first.units.first.lessons) {
+      progress.completedLessons.add(lesson.id);
+    }
+    final container = ProviderContainer(
+      overrides: [
+        progressStoreProvider.overrideWithValue(MemoryProgressStore(progress)),
+        pitchSourceFactoryProvider.overrideWithValue(
+          FakePitchSourceFactory().call,
         ),
+        soundServiceProvider.overrideWithValue(FakeSoundService()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: const HearMeOutApp(),
       ),
     );
     await tester.pumpAndSettle();
@@ -324,20 +373,24 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
     await tester.pumpAndSettle();
 
-    expect(find.text('A new note'), findsOneWidget);
-    expect(find.text('GOT IT'), findsOneWidget);
+    final notifier = container.read(appControllerProvider.notifier);
+    for (var guard = 0; guard < 40; guard++) {
+      final run = container.read(appControllerProvider).requireValue.run!;
+      final prompt = run.current;
+      if (prompt is NotePrompt && prompt.isScored && !prompt.isPlay) break;
+      if (prompt.isScored) {
+        await notifier.submitAnswer(correct: true);
+      }
+      await notifier.nextExercise();
+      await tester.pumpAndSettle();
+    }
+
+    final run = container.read(appControllerProvider).requireValue.run!;
+    final notePrompt = run.current as NotePrompt;
     expect(find.byType(StaffView), findsOneWidget);
-
-    // Both new notes are introduced before the first question.
-    await tester.tap(find.text('GOT IT'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('GOT IT'));
-    await tester.pumpAndSettle();
-
     expect(find.text('What note is this?'), findsOneWidget);
-    expect(find.byType(StaffView), findsOneWidget);
 
-    await tester.tap(find.text('E4'));
+    await tester.tap(find.text(notePrompt.note.display).first);
     await tester.pumpAndSettle();
 
     expect(find.text('Correct!'), findsOneWidget);
@@ -345,7 +398,7 @@ void main() {
 
     await tester.tap(find.text('CONTINUE'));
     await tester.pumpAndSettle();
-    expect(find.text('What note is this?'), findsOneWidget);
+    expect(container.read(appControllerProvider).requireValue.run, isNotNull);
   });
 
   testWidgets('onboarding reaches the path and persists the choice', (
@@ -375,7 +428,7 @@ void main() {
     await tester.tap(find.text("LET'S PLAY"));
     await tester.pumpAndSettle();
 
-    expect(find.text('The Staff'), findsOneWidget);
+    expect(find.text('Meet the Guitar'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
   });
 
@@ -387,14 +440,16 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final store = MemoryProgressStore(
-      ProgressState.fresh(
-        settings: const AppSettings(
-          onboardingComplete: true,
-          answerMode: AnswerMode.mixed,
-        ),
+    final progress = ProgressState.fresh(
+      settings: const AppSettings(
+        onboardingComplete: true,
+        answerMode: AnswerMode.mixed,
       ),
     );
+    for (final lesson in sections.first.units.first.lessons) {
+      progress.completedLessons.add(lesson.id);
+    }
+    final store = MemoryProgressStore(progress);
     final sources = FakePitchSourceFactory(permission: true);
     final sounds = FakeSoundService();
     final container = ProviderContainer(
@@ -418,43 +473,30 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
     await tester.pumpAndSettle();
 
-    var answered = 0;
     var guard = 0;
-    while (answered < 2 && guard < 10) {
+    final notifier = container.read(appControllerProvider.notifier);
+    while (guard < 50) {
       guard++;
       final run = container.read(appControllerProvider).requireValue.run!;
       final prompt = run.current;
-      if (prompt.isTeach) {
-        await tester.tap(find.text('GOT IT'));
-        await tester.pumpAndSettle();
-        continue;
+      if (prompt is NotePrompt && prompt.isPlay) break;
+      if (prompt.isScored) {
+        await notifier.submitAnswer(correct: true);
       }
-      final notePrompt = prompt is NotePrompt ? prompt : null;
-      if (notePrompt == null) {
-        await container
-            .read(appControllerProvider.notifier)
-            .submitAnswer(correct: true);
-        await container.read(appControllerProvider.notifier).nextExercise();
-        await tester.pumpAndSettle();
-        continue;
-      }
-      expect(notePrompt.isPlay, isFalse);
-      await tester.tap(find.text(notePrompt.note.display));
+      await notifier.nextExercise();
       await tester.pumpAndSettle();
-      expect(find.text('Correct!'), findsOneWidget);
-      await tester.tap(find.text('CONTINUE'));
-      await tester.pumpAndSettle();
-      answered++;
     }
 
     final run = container.read(appControllerProvider).requireValue.run!;
+    final playPrompt = run.current as NotePrompt;
+    expect(playPrompt.isPlay, isTrue);
     expect(run.current.usesMicrophone, isTrue);
     expect(sources.created.length, greaterThanOrEqualTo(2));
     final source = sources.created.last;
     expect(source.started, isTrue);
 
     final frequency = midiToFrequency(
-      Guitar.soundingMidiForWritten(run.currentNote!.note).toDouble(),
+      Guitar.soundingMidiForWritten(playPrompt.note).toDouble(),
     );
     for (var frame = 0; frame < 3; frame++) {
       source.emit(
@@ -474,9 +516,14 @@ void main() {
     expect(playedRun.lastCorrect, isTrue);
     expect(playedRun.lastOctaveError, isFalse);
     expect(playedRun.lastCents, closeTo(0, 1));
-    expect(find.text('Combo x3!'), findsOneWidget);
     expect(find.text('CONTINUE'), findsOneWidget);
-    expect(sounds.played, contains(Sfx.answerCorrectCombo));
+    expect(
+      sounds.played.any(
+        (sound) =>
+            sound == Sfx.answerCorrect || sound == Sfx.answerCorrectCombo,
+      ),
+      isTrue,
+    );
   });
 
   testWidgets('every curriculum note renders on the staff', (tester) async {

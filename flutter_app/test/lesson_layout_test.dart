@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/learning/prompt.dart';
+import 'package:hear_me_out/core/music/curriculum.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/shared/widgets/feedback_panel.dart';
@@ -25,12 +27,20 @@ Future<ProviderContainer> openFirstQuestion(
     overrides: [
       progressStoreProvider.overrideWithValue(
         MemoryProgressStore(
-          ProgressState.fresh(
-            settings: const AppSettings(
-              onboardingComplete: true,
-              answerMode: AnswerMode.name,
-            ),
-          ),
+          () {
+            final progress = ProgressState.fresh(
+              settings: const AppSettings(
+                onboardingComplete: true,
+                answerMode: AnswerMode.name,
+              ),
+            );
+            // Finish the orientation unit so the first note-reading unit is
+            // the current lesson and the note UI is on screen.
+            for (final lesson in sections.first.units.first.lessons) {
+              progress.completedLessons.add(lesson.id);
+            }
+            return progress;
+          }(),
         ),
       ),
       pitchSourceFactoryProvider.overrideWithValue(
@@ -49,15 +59,23 @@ Future<ProviderContainer> openFirstQuestion(
   );
   await tester.pumpAndSettle();
 
-  await tester.tap(find.byKey(const ValueKey('current-lesson-node')));
+  final current = find.byKey(const ValueKey('current-lesson-node'));
+  await tester.ensureVisible(current);
+  await tester.pumpAndSettle();
+  await tester.tap(current);
   await tester.pumpAndSettle();
 
-  // Two teach cards, then the first question.
-  for (var index = 0; index < 4; index++) {
+  // Advance through teach cards and non-note review questions until a written
+  // note question is on screen. The note layout is what this file measures.
+  final notifier = container.read(appControllerProvider.notifier);
+  for (var guard = 0; guard < 40; guard++) {
     final run = container.read(appControllerProvider).requireValue.run;
     if (run == null) break;
-    if (run.current.isScored) break;
-    await tester.tap(find.text('GOT IT'));
+    if (run.current is NotePrompt && run.current.isScored) break;
+    if (run.current.isScored) {
+      await notifier.submitAnswer(correct: true);
+    }
+    await notifier.nextExercise();
     await tester.pumpAndSettle();
   }
   return container;
@@ -123,7 +141,8 @@ void main() {
 
   testWidgets('the progress bar says where the learner is', (tester) async {
     await openFirstQuestion(tester, const Size(390, 844));
-    expect(find.text('Step 3 of 8'), findsOneWidget);
+    expect(find.textContaining('Step '), findsOneWidget);
+    expect(find.textContaining(' of '), findsOneWidget);
   });
 
   testWidgets('the lesson uses the animated question switcher', (

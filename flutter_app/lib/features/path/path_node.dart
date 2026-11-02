@@ -100,7 +100,7 @@ class _LessonNodeState extends State<LessonNode>
         : 'locked';
     final semanticLabel =
         '${widget.lesson.isReview ? 'Checkpoint' : 'Lesson'}: '
-        '${widget.lesson.title}, $state';
+        'Unit ${widget.unitNumber}, ${widget.lesson.title}, $state';
 
     // No per-node entrance animation: nodes are rebuilt as they scroll into
     // the cache extent, and starting an opacity animation mid-scroll is what

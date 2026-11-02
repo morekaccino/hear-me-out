@@ -6,12 +6,13 @@ gamification. Use it with [`../AGENTS.md`](../AGENTS.md) and the design tokens i
 
 ## Mission
 
-**Help a beginner read standard notation on guitar through short, forgiving
-practice with honest pitch feedback.**
+**Help a beginner become a confident guitarist and musician through short,
+forgiving daily practice: reading, rhythm, chords, harmony, ear training, and
+repertoire.**
 
-The tagline is **“Read music. Play guitar.”** The promise is narrow on purpose:
-a learner should be able to open the app for a few minutes, see a note, answer
-it, and understand exactly what happened.
+The tagline is **“Read music. Play guitar.”** The promise is a year-long course
+that a learner can open for a few minutes a day: one clear task at a time, honest
+pitch feedback, and a review schedule that remembers what was hard.
 
 ### Who it is for
 
