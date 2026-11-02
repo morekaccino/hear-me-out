@@ -18,6 +18,8 @@ const ContentPack appContentPack = ContentPack(
     ...sightReadingTemplates,
     ...repertoireTemplates,
     ...improvisationTemplates,
+    ...orderTheoryTemplates,
+    ...orderHarmonyTemplates,
     ...rhythmTemplates,
   ],
 );

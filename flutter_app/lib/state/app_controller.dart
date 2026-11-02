@@ -246,7 +246,8 @@ class AppController extends AsyncNotifier<AppData> {
         prompt.usesMicrophone ||
         prompt is RhythmPrompt ||
         prompt is FretTapPrompt ||
-        prompt is StaffTapPrompt;
+        prompt is StaffTapPrompt ||
+        prompt is OrderPrompt;
     data.progress.recordSkillAnswer(
       SkillAnswer(
         objectiveId: prompt.objective.id,

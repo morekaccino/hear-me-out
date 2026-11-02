@@ -151,6 +151,7 @@ and unlocks earlier sections on a pass.
 | `StaffTapPrompt` | staff position | note reading |
 | `FretTapPrompt` | string and fret | note reading, fretboard |
 | `ChoicePrompt` | option id | theory, harmony, ear, technique, sight-reading, repertoire, improvisation |
+| `OrderPrompt` | ordered token labels | theory, harmony |
 | `RhythmPrompt` | timed taps | rhythm |
 
 `ChoicePrompt.reveal` turns it into an unscored teach card. `ChoicePrompt.chord`

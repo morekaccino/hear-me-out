@@ -242,7 +242,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-02 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 221 tests passing
+- `flutter test` - 223 tests passing
 - `flutter build web --release` - succeeds
 - The course has 8 sections, 40 units, and 240 lessons. Every unit has six
   lessons (Discover, Build, Connect, Apply, Integrate, Checkpoint).

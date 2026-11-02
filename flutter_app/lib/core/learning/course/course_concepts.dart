@@ -443,6 +443,23 @@ ObjectiveRef choiceConcept({
   audio: audio,
 );
 
+/// A build-the-answer question: place [tokens] in [correctOrder].
+ObjectiveRef orderConcept({
+  required String id,
+  required SkillFamily family,
+  required String question,
+  required List<String> tokens,
+  required List<String> correctOrder,
+}) => ObjectiveRef(
+  id,
+  family: family,
+  data: {
+    'question': question,
+    'tokens': tokens,
+    'correctOrder': correctOrder,
+  },
+);
+
 // ---------------------------------------------------------------------------
 // Helpers
 

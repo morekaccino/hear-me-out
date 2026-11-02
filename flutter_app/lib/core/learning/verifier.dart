@@ -46,6 +46,13 @@ final class RhythmAnswer extends Answer {
   final List<double> tapsInBeats;
 }
 
+/// An ordered sequence of token labels.
+final class OrderAnswer extends Answer {
+  const OrderAnswer(this.values);
+
+  final List<String> values;
+}
+
 class VerifyResult {
   const VerifyResult({
     required this.correct,
@@ -186,6 +193,37 @@ class RhythmVerifier implements Verifier {
   }
 }
 
+/// Grades an ordered token sequence against the expected labels.
+class OrderVerifier implements Verifier {
+  const OrderVerifier();
+
+  @override
+  VerifyResult verify(Answer answer, Prompt prompt) {
+    if (prompt is! OrderPrompt || answer is! OrderAnswer) {
+      return const VerifyResult(correct: false);
+    }
+    final expected = prompt.correctOrder;
+    final actual = answer.values;
+    if (actual.length != expected.length) {
+      return VerifyResult(
+        correct: false,
+        detail: '${expected.length} items expected, ${actual.length} placed.',
+        evidenced: [prompt.objective],
+      );
+    }
+    for (var index = 0; index < expected.length; index++) {
+      if (actual[index] != expected[index]) {
+        return VerifyResult(
+          correct: false,
+          detail: 'The order is not quite right.',
+          evidenced: [prompt.objective],
+        );
+      }
+    }
+    return VerifyResult(correct: true, evidenced: [prompt.objective]);
+  }
+}
+
 /// Sends an answer to the verifier that matches its surface.
 class PromptVerifier implements Verifier {
   const PromptVerifier();
@@ -196,6 +234,7 @@ class PromptVerifier implements Verifier {
   static const Verifier _fret = FretTapVerifier();
   static const Verifier _option = ChoiceVerifier();
   static const Verifier _rhythm = RhythmVerifier();
+  static const Verifier _order = OrderVerifier();
 
   @override
   VerifyResult verify(Answer answer, Prompt prompt) {
@@ -204,6 +243,7 @@ class PromptVerifier implements Verifier {
       StaffAnswer() => _staff.verify(answer, prompt),
       FretAnswer() => _fret.verify(answer, prompt),
       RhythmAnswer() => _rhythm.verify(answer, prompt),
+      OrderAnswer() => _order.verify(answer, prompt),
       ChoiceAnswer() => prompt is NotePrompt
           ? _choice.verify(answer, prompt)
           : _option.verify(answer, prompt),

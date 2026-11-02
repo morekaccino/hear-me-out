@@ -99,6 +99,42 @@ void main() {
     }
   });
 
+  test('order questions build and grade a sequence', () {
+    final prompts = buildLessonSession(
+      lesson: const LessonDefinition(
+        id: 'test.order',
+        unitId: 'test',
+        title: 'Order',
+        newNotes: [],
+        reviewNotes: [],
+        teaches: ['order:triad:C'],
+        exposures: 5,
+        exerciseCount: 10,
+      ),
+      progress: ProgressState.fresh(),
+      now: now,
+      micAvailable: false,
+      mode: AnswerMode.name,
+      random: Random(4),
+    );
+    expect(prompts, isNotEmpty);
+    expect(prompts.every((prompt) => prompt is OrderPrompt), isTrue);
+    final prompt = prompts.firstWhere((p) => p.isScored) as OrderPrompt;
+    const verifier = OrderVerifier();
+    expect(
+      verifier.verify(const OrderAnswer(['C', 'E', 'G']), prompt).correct,
+      isTrue,
+    );
+    expect(
+      verifier.verify(const OrderAnswer(['C', 'G', 'E']), prompt).correct,
+      isFalse,
+    );
+    expect(
+      verifier.verify(const OrderAnswer(['C', 'E']), prompt).correct,
+      isFalse,
+    );
+  });
+
   test('staff placement accepts the right line and rejects its neighbour', () {
     const prompt = StaffTapPrompt(
       objective: ObjectiveRef('note:E4', family: SkillFamily.noteReading),

@@ -99,3 +99,75 @@ const List<ExerciseTemplate> improvisationTemplates = [
   ChoiceTemplate(id: 'improvisation.teach', family: SkillFamily.improvisation, reveal: true),
   ChoiceTemplate(id: 'improvisation.ask', family: SkillFamily.improvisation),
 ];
+
+/// Build an answer by placing labelled tokens in order.
+class OrderTemplate implements ExerciseTemplate {
+  const OrderTemplate({
+    required this.id,
+    required this.family,
+    this.reveal = false,
+  });
+
+  @override
+  final String id;
+
+  @override
+  final SkillFamily family;
+
+  /// Teach cards show the correct order instead of asking for it.
+  final bool reveal;
+
+  @override
+  int get priority => 0;
+
+  @override
+  Set<SlotRole> get roles =>
+      reveal ? const {SlotRole.teach} : const {
+        SlotRole.guided,
+        SlotRole.apply,
+        SlotRole.review,
+      };
+
+  @override
+  bool get usesMicrophone => false;
+
+  @override
+  Set<Capability> get requires => const {};
+
+  @override
+  Prompt? build(ObjectiveRef objective, PromptContext context) {
+    final question = objective.data['question'] as String?;
+    final tokens = (objective.data['tokens'] as List<dynamic>?)
+        ?.whereType<String>()
+        .toList();
+    final correctOrder = (objective.data['correctOrder'] as List<dynamic>?)
+        ?.whereType<String>()
+        .toList();
+    if (question == null ||
+        tokens == null ||
+        correctOrder == null ||
+        tokens.isEmpty) {
+      return null;
+    }
+    return OrderPrompt(
+      objective: objective,
+      templateId: id,
+      question: question,
+      tokens: tokens,
+      correctOrder: correctOrder,
+      reveal: reveal,
+      isNew: context.isNew,
+      exposure: context.occurrence,
+    );
+  }
+}
+
+const List<ExerciseTemplate> orderTheoryTemplates = [
+  OrderTemplate(id: 'order.theory.teach', family: SkillFamily.theory, reveal: true),
+  OrderTemplate(id: 'order.theory.build', family: SkillFamily.theory),
+];
+
+const List<ExerciseTemplate> orderHarmonyTemplates = [
+  OrderTemplate(id: 'order.harmony.teach', family: SkillFamily.harmony, reveal: true),
+  OrderTemplate(id: 'order.harmony.build', family: SkillFamily.harmony),
+];

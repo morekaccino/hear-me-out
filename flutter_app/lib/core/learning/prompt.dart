@@ -176,8 +176,7 @@ final class FretTapPrompt extends Prompt {
 ///
 /// [reveal] turns it into a teach card that shows the answer instead of asking
 /// for it. [chord] renders a fretboard diagram above the question.
-final class ChoicePrompt extends Prompt {
-  const ChoicePrompt({
+final class ChoicePrompt extends Prompt {  const ChoicePrompt({
     required super.objective,
     required super.templateId,
     required this.question,
@@ -226,6 +225,52 @@ final class ChoicePrompt extends Prompt {
     hint: hint,
     chord: chord,
     audio: audio,
+  );
+}
+
+/// Put labelled tokens in the correct order.
+///
+/// Used for chord spelling, scale construction, and progression building. The
+/// labels can repeat (a I–IV–V–I progression has two C chords in C), so the
+/// verifier compares the sequence of labels rather than token ids.
+final class OrderPrompt extends Prompt {
+  const OrderPrompt({
+    required super.objective,
+    required super.templateId,
+    required this.question,
+    required this.tokens,
+    required this.correctOrder,
+    this.reveal = false,
+    this.isNew = false,
+    this.exposure = 0,
+  });
+
+  final String question;
+  final List<String> tokens;
+  final List<String> correctOrder;
+  final bool reveal;
+
+  @override
+  final bool isNew;
+
+  final int exposure;
+
+  @override
+  SkillFamily get family => objective.family;
+
+  @override
+  bool get isScored => !reveal;
+
+  @override
+  bool get isTeach => reveal;
+
+  @override
+  OrderPrompt retry() => OrderPrompt(
+    objective: objective,
+    templateId: templateId,
+    question: question,
+    tokens: tokens,
+    correctOrder: correctOrder,
   );
 }
 

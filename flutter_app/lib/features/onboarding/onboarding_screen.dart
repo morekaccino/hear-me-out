@@ -254,7 +254,7 @@ class _WelcomePage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'See a note on the staff. Name it, or play it on your guitar and get instant feedback.',
+              'Read notation, build rhythm, learn chords and harmony, and train your ear with honest pitch feedback.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -269,8 +269,8 @@ class _WelcomePage extends StatelessWidget {
               spacing: 8,
               runSpacing: 8,
               children: const [
-                _FeaturePill(icon: Icons.music_note, label: 'Note reading'),
-                _FeaturePill(icon: Icons.mic, label: 'Pitch feedback'),
+                _FeaturePill(icon: Icons.music_note, label: '240 lessons'),
+                _FeaturePill(icon: Icons.mic, label: 'Ear training'),
               ],
             ),
           ],
@@ -330,7 +330,7 @@ class _HowItWorksPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Both build the same note-reading skill.',
+              'Name it or play it. Both count toward the same skill.',
               style: TextStyle(fontSize: 14, color: AppColors.textMuted),
             ),
             const SizedBox(height: 16),

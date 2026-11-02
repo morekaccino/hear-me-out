@@ -200,6 +200,33 @@ void main() {
     expect(audioEngine!.played.single.events, hasLength(2));
   });
 
+  testWidgets('an order question builds a sequence', (tester) async {
+    await tester.pumpWidget(
+      host(
+        const OrderPrompt(
+          objective: ObjectiveRef('order:triad:C', family: SkillFamily.theory),
+          templateId: 'order.theory.build',
+          question: 'Build a C major triad from the root up.',
+          tokens: ['C', 'E', 'G', 'Eb'],
+          correctOrder: ['C', 'E', 'G'],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('order-token-C')));
+    await tester.tap(find.byKey(const ValueKey('order-token-E')));
+    await tester.tap(find.byKey(const ValueKey('order-token-G')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('CHECK'), findsOneWidget);
+    await tester.tap(find.text('CHECK'));
+    await tester.pumpAndSettle();
+
+    expect(captured, isA<OrderAnswer>());
+    expect((captured! as OrderAnswer).values, ['C', 'E', 'G']);
+  });
+
   testWidgets('a rhythm question fits a phone and can be started', (
     tester,
   ) async {

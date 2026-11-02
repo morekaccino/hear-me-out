@@ -30,6 +30,7 @@ class PromptView extends StatelessWidget {
       final StaffTapPrompt placement => _StaffPlacement(prompt: placement, onAnswer: onAnswer),
       final FretTapPrompt finding => _FretFinding(prompt: finding, onAnswer: onAnswer),
       final ChoicePrompt choice => _Choice(choice: choice, onAnswer: onAnswer),
+      final OrderPrompt order => _Order(prompt: order, onAnswer: onAnswer),
       final RhythmPrompt rhythm => _Rhythm(prompt: rhythm, onAnswer: onAnswer),
       NotePrompt() => const SizedBox.shrink(),
     };
@@ -43,6 +44,7 @@ String promptTitle(Prompt prompt) {
     FretTapPrompt() => 'Find it on the neck',
     ChoicePrompt( :final audio) =>
       audio != null ? 'Listen and choose' : 'Choose the answer',
+    OrderPrompt() => 'Build the answer',
     RhythmPrompt() => 'Tap the rhythm',
   };
 }
@@ -259,6 +261,214 @@ class _ChoiceState extends State<_Choice> {
     }
     if (option.id == _selected) return AnswerOptionState.wrong;
     return AnswerOptionState.dimmed;
+  }
+}
+
+class _Order extends StatefulWidget {
+  const _Order({required this.prompt, required this.onAnswer});
+
+  final OrderPrompt prompt;
+  final ValueChanged<Answer> onAnswer;
+
+  @override
+  State<_Order> createState() => _OrderState();
+}
+
+class _OrderState extends State<_Order> {
+  final List<String> _selected = [];
+  bool _answered = false;
+
+  void _add(String token) {
+    if (_answered) return;
+    setState(() => _selected.add(token));
+  }
+
+  void _removeAt(int index) {
+    if (_answered) return;
+    setState(() => _selected.removeAt(index));
+  }
+
+  void _check() {
+    if (_answered) return;
+    if (_selected.length != widget.prompt.correctOrder.length) return;
+    setState(() => _answered = true);
+    widget.onAnswer(OrderAnswer([..._selected]));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final prompt = widget.prompt;
+    if (prompt.reveal) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            prompt.question,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final value in prompt.correctOrder)
+                _OrderToken(label: value, correct: true),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'This is the order to remember.',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          prompt.question,
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          constraints: const BoxConstraints(minHeight: 58),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border, width: 2),
+          ),
+          child: _selected.isEmpty
+              ? Text(
+                  'Tap the tokens below in order.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textMuted,
+                  ),
+                )
+              : Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (var index = 0; index < _selected.length; index++)
+                      _OrderToken(
+                        key: ValueKey('order-selected-$index'),
+                        label: _selected[index],
+                        selected: true,
+                        onTap: () => _removeAt(index),
+                      ),
+                  ],
+                ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final token in prompt.tokens)
+              _OrderToken(
+                key: ValueKey('order-token-$token'),
+                label: token,
+                onTap: _selected.length < prompt.correctOrder.length
+                    ? () => _add(token)
+                    : null,
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            TextButton(
+              onPressed: _selected.isEmpty
+                  ? null
+                  : () => setState(_selected.clear),
+              child: const Text('CLEAR'),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: 150,
+              child: DuoButton(
+                label: 'CHECK',
+                height: 48,
+                onPressed:
+                    _selected.length == prompt.correctOrder.length
+                    ? _check
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _OrderToken extends StatelessWidget {
+  const _OrderToken({
+    super.key,
+    required this.label,
+    this.onTap,
+    this.selected = false,
+    this.correct = false,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool selected;
+  final bool correct;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = correct
+        ? AppColors.greenSoft
+        : selected
+        ? AppColors.blueSoft
+        : AppColors.background;
+    final border = correct
+        ? AppColors.green
+        : selected
+        ? AppColors.blue
+        : AppColors.borderStrong;
+    return DuoTappable(
+      onTap: onTap ?? () {},
+      enabled: onTap != null,
+      pressedScale: 0.96,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: border, width: 2),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: correct
+                ? AppColors.greenDark
+                : selected
+                ? AppColors.blueDark
+                : AppColors.text,
+          ),
+        ),
+      ),
+    );
   }
 }
 

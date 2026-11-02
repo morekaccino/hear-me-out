@@ -338,6 +338,13 @@ final List<CourseSection> courseSections = [
           c.chordShapeConcept('A'),
           c.chordShapeConcept('E'),
           c.chordQualityConcept('C', ChordQuality.major),
+          c.orderConcept(
+            id: 'order:chord:G',
+            family: SkillFamily.harmony,
+            question: 'Build a G major chord from the root up.',
+            tokens: ['G', 'B', 'D', 'F'],
+            correctOrder: ['G', 'B', 'D'],
+          ),
         ],
       ),
       CourseUnit(
@@ -364,6 +371,13 @@ final List<CourseSection> courseSections = [
           c.chordQualityConcept('C', ChordQuality.augmented),
           c.intervalConcept('C4', 'E4'),
           c.intervalConcept('C4', 'G4'),
+          c.orderConcept(
+            id: 'order:triad:C',
+            family: SkillFamily.theory,
+            question: 'Build a C major triad from the root up.',
+            tokens: ['C', 'E', 'G', 'Eb'],
+            correctOrder: ['C', 'E', 'G'],
+          ),
         ],
       ),
       CourseUnit(
@@ -461,6 +475,13 @@ final List<CourseSection> courseSections = [
             answers: ['To cover the whole neck', 'To play faster only', 'To avoid the root', 'To change tuning'],
             correct: 'To cover the whole neck',
             hint: 'Each position connects to the next.',
+          ),
+          c.orderConcept(
+            id: 'order:scale:C',
+            family: SkillFamily.theory,
+            question: 'Build the C major scale from C to C.',
+            tokens: ['C', 'D', 'E', 'F', 'G', 'A', 'B'],
+            correctOrder: ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C'],
           ),
         ],
       ),
@@ -565,6 +586,13 @@ final List<CourseSection> courseSections = [
           c.earProgressionConcept('C', [6, 4, 1, 5]),
           c.progressionConcept('C', [1, 4, 5, 1]),
           c.cadenceConcept('C', CadenceType.half),
+          c.orderConcept(
+            id: 'order:progression:C:I-IV-V-I',
+            family: SkillFamily.harmony,
+            question: 'Build I–IV–V–I in C.',
+            tokens: ['C', 'F', 'G', 'Am'],
+            correctOrder: ['C', 'F', 'G', 'C'],
+          ),
         ],
       ),
       CourseUnit(
@@ -755,6 +783,13 @@ final List<CourseSection> courseSections = [
             hint: 'It tonicizes a chord that is not the key tonic.',
           ),
           c.progressionConcept('C', [2, 5, 1]),
+          c.orderConcept(
+            id: 'order:chord:Cmaj7',
+            family: SkillFamily.harmony,
+            question: 'Build a C major seventh chord from the root up.',
+            tokens: ['C', 'E', 'G', 'B', 'Bb'],
+            correctOrder: ['C', 'E', 'G', 'B'],
+          ),
         ],
       ),
       CourseUnit(
