@@ -5,10 +5,11 @@ changing code. Deeper references are linked at the bottom.
 
 ## What this project is
 
-A local-only Flutter guitar note-reading trainer. The user sees a written note
-on a treble staff and either names it or plays it. A microphone detects the
-sounding pitch and gives feedback. Progress uses a six-box spaced-repetition
-schedule and never leaves the device.
+A local-only Flutter guitar musicianship trainer. The user works through a
+240-lesson course covering notation, rhythm, chords, harmony, scales, ear
+training, technique, and repertoire. A microphone detects the sounding pitch
+and gives feedback. Every skill has its own FSRS-style review schedule, and
+progress never leaves the device.
 
 - Product code: [`flutter_app/`](flutter_app/)
 - Mission and design language: [`docs/DESIGN.md`](docs/DESIGN.md)

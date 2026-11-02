@@ -4,8 +4,9 @@
 
 ### Read music. Play guitar.
 
-A guitar note-reading trainer with a Duolingo-style lesson path, real microphone
-pitch feedback, and spaced review. Everything stays on your device.
+A year-long guitar musicianship trainer with a Duolingo-style course path, real
+microphone pitch feedback, ear training, and spaced review across every skill.
+Everything stays on your device.
 
 </div>
 
@@ -13,8 +14,9 @@ pitch feedback, and spaced review. Everything stays on your device.
 
 ## Mission
 
-**Help a beginner read standard notation on guitar through short, forgiving
-practice with honest pitch feedback.**
+**Help a beginner become a confident guitarist and musician through short,
+forgiving daily practice: reading, rhythm, chords, harmony, ear training, and
+repertoire.**
 
 Hear Me Out is built for people practicing alone on a phone, with or without a
 microphone. A session should fit into a few spare minutes, every answer should
