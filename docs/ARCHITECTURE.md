@@ -257,6 +257,31 @@ Do not remove these guards. They prevent duplicate recorders when users tap
 repeatedly, skip onboarding, leave practice, retry a lesson, or start practice
 while the tuner is starting.
 
+## Path performance
+
+The path is the heaviest screen, and it runs on mobile Safari through CanvasKit,
+where every frame is painted to a canvas. Keep it cheap:
+
+- No blurred shadows or `MaskFilter` on the path. Use hard offset shadows
+  (`blurRadius: 0`). A blurred shadow per node is re-rasterised on every scroll
+  frame.
+- No per-node entrance animations. Nodes build as they enter the cache extent,
+  so an opacity animation started mid-scroll is jank.
+- No opacity animations on large surfaces. Fading a page, a column, or a panel
+  forces `saveLayer` per frame. Use a translate with a `RepaintBoundary`
+  (`SettleIn`) instead. The lesson route, question change, and bottom dock are
+  all transform-only.
+- Each unit path, lesson node, chest, and pinned unit banner sits inside a
+  `RepaintBoundary`. Scrolling then translates cached layers instead of
+  repainting every gradient.
+- `CustomPaint` glyphs and chests set `isComplex: true` so they can be cached.
+- The scroll view prefetches 800 px (`ScrollCacheExtent.pixels(800)`) so the
+  next unit is built before it slides into view.
+
+If scrolling still stutters, profile with Safari Web Inspector before adding
+more layers. A Flutter canvas will not match native DOM scrolling; the goal is
+to keep the painter cheap, not to chase a frame budget the renderer cannot hit.
+
 ## UI and state
 
 `AppController` is an `AsyncNotifier<AppData>`:

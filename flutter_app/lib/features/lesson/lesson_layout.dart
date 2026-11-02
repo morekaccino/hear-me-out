@@ -1,8 +1,7 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 
 import '../../shared/theme/app_theme.dart';
-import '../../shared/theme/motion.dart';
+import '../../shared/widgets/settle_in.dart';
 
 /// One focused column, like Duolingo's web lesson.
 ///
@@ -26,7 +25,7 @@ class LessonLayout extends StatelessWidget {
   final Widget header;
   final Widget question;
 
-  /// Changes whenever the exercise changes, which drives the slide transition.
+  /// Changes whenever the exercise changes, which replays the settle animation.
   final Object questionKey;
 
   /// Answer surface. Null means the question already contains it.
@@ -44,22 +43,24 @@ class LessonLayout extends StatelessWidget {
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= wideBreakpoint;
 
-        final column = PageTransitionSwitcher(
-          duration: DuoMotion.base,
-          transitionBuilder: (child, primary, secondary) => SharedAxisTransition(
-            animation: primary,
-            secondaryAnimation: secondary,
-            transitionType: SharedAxisTransitionType.horizontal,
-            fillColor: Colors.transparent,
-            child: child,
-          ),
-          child: KeyedSubtree(
-            key: ValueKey(questionKey),
-            child: question,
-          ),
+        final column = SettleIn(
+          slideKey: questionKey,
+          child: question,
         );
 
         final bottom = feedback ?? answers;
+        Widget? bottomSlot;
+        if (bottom != null) {
+          bottomSlot = KeyedSubtree(
+            key: ValueKey(feedback != null ? 'feedback' : 'answers'),
+            child: feedback != null
+                ? feedback!
+                : _AnswersDock(
+                    maxHeight: constraints.maxHeight * 0.62,
+                    child: answers!,
+                  ),
+          );
+        }
 
         return Column(
           children: [
@@ -80,30 +81,11 @@ class LessonLayout extends StatelessWidget {
                 ),
               ),
             ),
-            if (bottom != null)
-              KeyedSubtree(
-                key: ValueKey(feedback != null ? 'feedback' : 'answers'),
-                child: AnimatedSwitcher(
-                  duration: DuoMotion.base,
-                  switchInCurve: DuoMotion.enter,
-                  switchOutCurve: DuoMotion.exit,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: SlideTransition(
-                      position: Tween<Offset>(
-                        begin: const Offset(0, 0.14),
-                        end: Offset.zero,
-                      ).animate(animation),
-                      child: child,
-                    ),
-                  ),
-                  child: feedback != null
-                      ? feedback!
-                      : _AnswersDock(
-                          maxHeight: constraints.maxHeight * 0.62,
-                          child: answers!,
-                        ),
-                ),
+            if (bottomSlot != null)
+              SettleIn(
+                slideKey: feedback != null ? 'feedback' : 'answers',
+                offset: const Offset(0, 24),
+                child: bottomSlot,
               ),
           ],
         );

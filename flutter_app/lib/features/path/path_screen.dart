@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/learning/progress.dart';
@@ -55,8 +56,7 @@ class PathScreen extends ConsumerWidget {
               currentLesson: currentLesson,
               showCounters: !showRail,
             );
-            final initialOffset =
-                currentLesson?.unitId == curriculum.first.id
+            final initialOffset = currentLesson?.unitId == curriculum.first.id
                 ? 0.0
                 : bannerOffsets[currentLesson?.unitId] ?? 0.0;
 
@@ -86,12 +86,8 @@ class PathScreen extends ConsumerWidget {
                     child: _SectionBreak(
                       section: section,
                       isUpNext: identical(section, nextSection),
-                      onJump: () => _confirmJump(
-                        context,
-                        ref,
-                        section,
-                        progress,
-                      ),
+                      onJump: () =>
+                          _confirmJump(context, ref, section, progress),
                     ),
                   ),
                 for (final unit in section.units)
@@ -106,58 +102,59 @@ class PathScreen extends ConsumerWidget {
                         ),
                       ),
                       SliverToBoxAdapter(
-                        child: _LessonPath(
-                          unit: unit,
-                          completed: progress.completedLessons,
-                          currentLessonId: currentLesson?.id,
-                          chest: chestForUnit(unit.id),
-                          openedChests: progress.openedChests,
-                          onChestTap: (chest) =>
-                              _openChest(context, ref, chest, progress),
-                          onLessonTap: (lesson) {
-                            final unlocked =
-                                progress.completedLessons.contains(lesson.id) ||
-                                lesson.id == currentLesson?.id;
-                            if (!unlocked) {
-                              unawaited(
-                                ref
-                                    .read(soundServiceProvider)
-                                    .play(Sfx.uiLocked),
-                              );
-                              unawaited(
-                                _showLockedSheet(
-                                  context,
-                                  ref,
-                                  title: 'Lesson locked',
-                                  message: currentLesson == null
-                                      ? 'Finish the earlier lessons to unlock this one.'
-                                      : 'Finish “${currentLesson.title}” first. Lessons unlock one at a time.',
-                                  next: currentLesson,
-                                  progress: progress,
-                                ),
-                              );
-                              return;
-                            }
-                            _launchLesson(context, ref, lesson, progress);
-                          },
+                        child: RepaintBoundary(
+                          child: _LessonPath(
+                            unit: unit,
+                            completed: progress.completedLessons,
+                            currentLessonId: currentLesson?.id,
+                            chest: chestForUnit(unit.id),
+                            openedChests: progress.openedChests,
+                            onChestTap: (chest) =>
+                                _openChest(context, ref, chest, progress),
+                            onLessonTap: (lesson) {
+                              final unlocked =
+                                  progress.completedLessons.contains(
+                                    lesson.id,
+                                  ) ||
+                                  lesson.id == currentLesson?.id;
+                              if (!unlocked) {
+                                unawaited(
+                                  ref
+                                      .read(soundServiceProvider)
+                                      .play(Sfx.uiLocked),
+                                );
+                                unawaited(
+                                  _showLockedSheet(
+                                    context,
+                                    ref,
+                                    title: 'Lesson locked',
+                                    message: currentLesson == null
+                                        ? 'Finish the earlier lessons to unlock this one.'
+                                        : 'Finish “${currentLesson.title}” first. Lessons unlock one at a time.',
+                                    next: currentLesson,
+                                    progress: progress,
+                                  ),
+                                );
+                                return;
+                              }
+                              _launchLesson(context, ref, lesson, progress);
+                            },
+                          ),
                         ),
                       ),
                     ],
                   ),
               ],
-              const SliverToBoxAdapter(
-                child: SizedBox(height: DuoSpacing.xl),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: DuoSpacing.xl)),
               const SliverToBoxAdapter(child: _FooterNote()),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: DuoSpacing.xl),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: DuoSpacing.xl)),
             ];
 
             final scroll = _StickyPath(
               initialOffset: initialOffset,
               child: showRail
                   ? CustomScrollView(
+                      scrollCacheExtent: const ScrollCacheExtent.pixels(800),
                       slivers: [
                         SliverCrossAxisGroup(
                           slivers: [
@@ -196,12 +193,13 @@ class PathScreen extends ConsumerWidget {
                         ),
                       ],
                     )
-                  : CustomScrollView(slivers: pathSlivers),
+                  : CustomScrollView(
+                      scrollCacheExtent: const ScrollCacheExtent.pixels(800),
+                      slivers: pathSlivers,
+                    ),
             );
 
-            return showRail
-                ? scroll
-                : PageFrame(maxWidth: 600, child: scroll);
+            return showRail ? scroll : PageFrame(maxWidth: 600, child: scroll);
           },
         ),
       ),
@@ -496,9 +494,8 @@ class PathScreen extends ConsumerWidget {
     ref
         .read(appControllerProvider.notifier)
         .startJumpTest(sectionId: section.id, micAvailable: micAvailable);
-    await Navigator.of(
-      context,
-    ).push(duoLessonRoute<void>((_) => const LessonScreen()));
+    await Navigator.of(context)
+        .push(duoLessonRoute<void>((_) => const LessonScreen()));
   }
 
   Future<void> _openChest(
@@ -538,10 +535,7 @@ class PathScreen extends ConsumerWidget {
             const SizedBox(width: 8),
             Text(
               '+${chest.gems} gems',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
           ],
         ),
@@ -592,9 +586,8 @@ class PathScreen extends ConsumerWidget {
       );
     }
     controller.startLesson(lessonId, micAvailable: micAvailable);
-    await Navigator.of(
-      context,
-    ).push(duoLessonRoute<void>((_) => const LessonScreen()));
+    await Navigator.of(context)
+        .push(duoLessonRoute<void>((_) => const LessonScreen()));
   }
 }
 
@@ -634,7 +627,10 @@ class _StickyPathState extends State<_StickyPath> {
 
   @override
   Widget build(BuildContext context) {
-    return PrimaryScrollController(controller: _controller, child: widget.child);
+    return PrimaryScrollController(
+      controller: _controller,
+      child: widget.child,
+    );
   }
 }
 
@@ -664,20 +660,22 @@ class _UnitBannerDelegate extends SliverPersistentHeaderDelegate {
     bool overlapsContent,
   ) {
     final section = _sectionForUnit(unit);
-    return ColoredBox(
-      color: AppColors.background,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          DuoSpacing.md,
-          DuoSpacing.xs,
-          DuoSpacing.md,
-          DuoSpacing.xs,
-        ),
-        child: _UnitBanner(
-          unit: unit,
-          section: section,
-          onGuidebook: onGuidebook,
-          backOffset: backOffset,
+    return RepaintBoundary(
+      child: ColoredBox(
+        color: AppColors.background,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            DuoSpacing.md,
+            DuoSpacing.xs,
+            DuoSpacing.md,
+            DuoSpacing.xs,
+          ),
+          child: _UnitBanner(
+            unit: unit,
+            section: section,
+            onGuidebook: onGuidebook,
+            backOffset: backOffset,
+          ),
         ),
       ),
     );
@@ -685,8 +683,7 @@ class _UnitBannerDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _UnitBannerDelegate oldDelegate) =>
-      oldDelegate.unit.id != unit.id ||
-      oldDelegate.backOffset != backOffset;
+      oldDelegate.unit.id != unit.id || oldDelegate.backOffset != backOffset;
 }
 
 class _UnitBanner extends StatelessWidget {
@@ -874,7 +871,11 @@ class _PressableState extends State<_Pressable> {
         onTapUp: (_) => setState(() => _pressed = false),
         onTap: widget.onTap,
         child: AnimatedScale(
-          scale: _pressed ? widget.scale : _hovered ? 1.03 : 1,
+          scale: _pressed
+              ? widget.scale
+              : _hovered
+              ? 1.03
+              : 1,
           duration: const Duration(milliseconds: 120),
           curve: Curves.easeOut,
           child: widget.child,
@@ -910,10 +911,7 @@ class _SectionBreak extends StatelessWidget {
       child: Column(
         children: [
           if (isUpNext)
-            const SizedBox(
-              height: _upNextSlot,
-              child: _UpNextLabel(),
-            )
+            const SizedBox(height: _upNextSlot, child: _UpNextLabel())
           else
             const SizedBox(height: DuoSpacing.md),
           SizedBox(
@@ -1067,26 +1065,30 @@ class _LessonPath extends StatelessWidget {
                 Positioned(
                   left: node.position.dx - PathLayout.nodeSize / 2,
                   top: node.position.dy - PathLayout.nodeHeight / 2,
-                  child: LessonNode(
-                    lesson: node.lesson,
-                    completed: completed.contains(node.lesson.id),
-                    current: node.lesson.id == currentLessonId,
-                    unitNumber: unit.number,
-                    index: node.index,
-                    onTap: () => onLessonTap(node.lesson),
+                  child: RepaintBoundary(
+                    child: LessonNode(
+                      lesson: node.lesson,
+                      completed: completed.contains(node.lesson.id),
+                      current: node.lesson.id == currentLessonId,
+                      unitNumber: unit.number,
+                      index: node.index,
+                      onTap: () => onLessonTap(node.lesson),
+                    ),
                   ),
                 ),
               if (chest != null && chestPosition != null)
                 Positioned(
                   left: chestPosition.dx - PathLayout.chestSize / 2,
                   top: chestPosition.dy - PathLayout.chestSize / 2,
-                  child: ChestNode(
-                    chest: chest,
-                    unlocked: chestUnlocked,
-                    opened: openedChests.contains(chest.id),
-                    onTap: chestUnlocked && onChestTap != null
-                        ? () => onChestTap!(chest)
-                        : null,
+                  child: RepaintBoundary(
+                    child: ChestNode(
+                      chest: chest,
+                      unlocked: chestUnlocked,
+                      opened: openedChests.contains(chest.id),
+                      onTap: chestUnlocked && onChestTap != null
+                          ? () => onChestTap!(chest)
+                          : null,
+                    ),
                   ),
                 ),
             ],
@@ -1095,9 +1097,7 @@ class _LessonPath extends StatelessWidget {
       },
     );
   }
-
 }
-
 
 class _GuidebookSheet extends StatelessWidget {
   const _GuidebookSheet({required this.unit});
@@ -1164,10 +1164,7 @@ class _GuidebookSheet extends StatelessWidget {
             ),
             Text(
               unit.title,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-              ),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: DuoSpacing.xs),
             Text(
@@ -1214,9 +1211,7 @@ class _GuidebookSheet extends StatelessWidget {
                         ),
                         if (newIds.contains(note.id))
                           Container(
-                            margin: const EdgeInsets.only(
-                              right: DuoSpacing.xs,
-                            ),
+                            margin: const EdgeInsets.only(right: DuoSpacing.xs),
                             padding: const EdgeInsets.symmetric(
                               horizontal: DuoSpacing.xs,
                               vertical: DuoSpacing.xxs,

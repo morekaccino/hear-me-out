@@ -102,26 +102,20 @@ class _LessonNodeState extends State<LessonNode>
         '${widget.lesson.isReview ? 'Checkpoint' : 'Lesson'}: '
         '${widget.lesson.title}, $state';
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: Duration(milliseconds: 300 + math.min(widget.index, 8) * 28),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) => Opacity(
-        opacity: value,
-        child: Transform.scale(scale: 0.86 + 0.14 * value, child: child),
-      ),
-      child: SizedBox(
-        width: PathLayout.nodeSize,
-        height: PathLayout.nodeHeight,
-        child: Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.topCenter,
-          children: [
-            if (widget.current) _halo(palette),
-            _bobbing(_face(palette, glyph, iconSize, semanticLabel)),
-            if (widget.current) _startBubble(unit.face, unit.dark),
-          ],
-        ),
+    // No per-node entrance animation: nodes are rebuilt as they scroll into
+    // the cache extent, and starting an opacity animation mid-scroll is what
+    // made the path feel heavy on mobile Safari.
+    return SizedBox(
+      width: PathLayout.nodeSize,
+      height: PathLayout.nodeHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.topCenter,
+        children: [
+          if (widget.current) _halo(palette),
+          _bobbing(_face(palette, glyph, iconSize, semanticLabel)),
+          if (widget.current) _startBubble(unit.face, unit.dark),
+        ],
       ),
     );
   }
@@ -144,10 +138,9 @@ class _LessonNodeState extends State<LessonNode>
             final t = _motionEnabled
                 ? Curves.easeInOut.transform(_idle.value)
                 : 0.45;
-            return Opacity(
-              opacity: 0.24 + 0.10 * t,
-              child: Transform.scale(scale: 1 + 0.06 * t, child: child),
-            );
+            // Scale only. Animating opacity would force a saveLayer every
+            // frame on the halo, which is exactly what stutters on Safari.
+            return Transform.scale(scale: 1 + 0.06 * t, child: child);
           },
           child: Container(
             width: PathLayout.nodeSize + 24,
@@ -254,10 +247,13 @@ class _LessonNodeState extends State<LessonNode>
                   ),
                   BoxShadow(
                     color: Colors.black.withValues(
-                      alpha: AppColors.isDark ? 0.28 : 0.10,
+                      alpha: AppColors.isDark ? 0.22 : 0.08,
                     ),
                     offset: const Offset(0, 11),
-                    blurRadius: 8,
+                    // Hard shadow on purpose: a blurred shadow per node is
+                    // re-rasterised on every scroll frame and is the main
+                    // source of path jank on iOS Safari.
+                    blurRadius: 0,
                   ),
                 ],
               ),
@@ -300,6 +296,7 @@ class _LessonNodeState extends State<LessonNode>
                       },
                       child: CustomPaint(
                         key: ValueKey(glyph),
+                        isComplex: true,
                         size: Size.square(iconSize),
                         painter: _GlyphPainter(
                           glyph: glyph,
@@ -366,6 +363,7 @@ class _LessonNodeState extends State<LessonNode>
                 ),
               ),
               CustomPaint(
+                isComplex: true,
                 size: const Size(16, 8),
                 painter: _StartTailPainter(face),
               ),
@@ -658,6 +656,7 @@ class _ChestNodeState extends State<ChestNode> {
             duration: const Duration(milliseconds: 120),
             curve: Curves.easeOut,
             child: CustomPaint(
+              isComplex: true,
               size: const Size.square(PathLayout.chestSize),
               painter: _ChestPainter(
                 opened: widget.opened,
@@ -698,15 +697,23 @@ class _ChestPainter extends CustomPainter {
       height * 0.24,
     );
 
+    // Two hard ellipses instead of MaskFilter.blur: the blur filter is very
+    // expensive on CanvasKit and this chest is redrawn while scrolling.
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(width / 2, height * 0.80),
+        width: width * 0.74,
+        height: height * 0.16,
+      ),
+      Paint()..color = Colors.black.withValues(alpha: 0.05),
+    );
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(width / 2, height * 0.79),
-        width: width * 0.6,
-        height: height * 0.11,
+        width: width * 0.58,
+        height: height * 0.10,
       ),
-      Paint()
-        ..color = Colors.black.withValues(alpha: 0.12)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      Paint()..color = Colors.black.withValues(alpha: 0.09),
     );
 
     final bodyPaint = Paint()

@@ -1,4 +1,3 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +6,7 @@ import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/shared/widgets/feedback_panel.dart';
+import 'package:hear_me_out/shared/widgets/settle_in.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
 
@@ -130,7 +130,7 @@ void main() {
     tester,
   ) async {
     final container = await openFirstQuestion(tester, const Size(390, 844));
-    expect(find.byType(PageTransitionSwitcher), findsOneWidget);
+    expect(find.byType(SettleIn), findsWidgets);
 
     final run = container.read(appControllerProvider).requireValue.run!;
     final indexBefore = run.index;

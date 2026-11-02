@@ -190,22 +190,25 @@ Use the tokens in `shared/theme/motion.dart`; do not invent durations.
   for arrival, never for dismissal.
 - `enter` / `exit`: `easeOutCubic` / `easeInCubic`.
 
-Each moment gets one feeling, not the same bounce everywhere:
+Each moment gets one feeling, not the same bounce everywhere. Use transforms,
+not opacity, on anything larger than a chip: fading a column or a page forces
+`saveLayer` on every frame and is the most expensive thing we can do on mobile
+Safari.
 
-- **Opening a lesson:** fade plus a 97% → 100% scale, 320 ms. Feels like the
-  lesson grows out of the path.
-- **Closing a lesson:** the reverse at 220 ms. Leaving is faster than arriving.
-- **Changing question:** shared-axis horizontal slide with fade, 220 ms. The
-  old question leaves left, the new one arrives from the right.
-- **Answers in:** they sit in a bottom slot and slide up 14% with a fade when
-  the question changes.
-- **Feedback band:** slides up into place with a fade. The CONTINUE button pops
-  from 90% with the overshoot curve.
-- **Progress bar:** the fill springs to its new value with `overshoot`, so
-  finishing an exercise feels like a small win. The track has a visible border
-  and a `Step 3 of 8` caption; a bar with no visible track is a bug.
+- **Opening a lesson:** slides up 3.5% with no fade, 220 ms. Compositor-only.
+- **Closing a lesson:** the reverse at 140 ms.
+- **Changing question:** the new column settles up 12 px, 220 ms, with the old
+  one removed immediately. No cross-fade, no double-painted children.
+- **Answers in:** the bottom dock settles up 24 px. The CONTINUE button still
+  pops from 90% with the overshoot curve.
+- **Progress bar:** the fill springs to its new value with `overshoot`. The
+  track has a visible border and a `Step 3 of 8` caption.
 - **Heart lost:** the heart flips to hollow with a scale pop.
 - **Press feedback:** buttons move down 3 px; answer chips scale to 97%.
+- **Current node halo:** scale only. No opacity pulse.
+
+Wrap any transform-animated subtree in a `RepaintBoundary` (`SettleIn` does it),
+otherwise every frame repaints the content instead of moving a cached layer.
 
 Confetti is reserved for a passed lesson/practice result. Do not use it for
 every correct answer. Respect the haptics setting: light impact for correct,
