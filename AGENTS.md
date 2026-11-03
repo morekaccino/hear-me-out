@@ -175,6 +175,9 @@ Then open <http://127.0.0.1:8080/>.
   technique, sight-reading, repertoire, and improvisation all have scheduled
   objectives. The composer rotates templates per objective and never repeats
   the same template twice in a row.
+- **Applied questions only:** every scored prompt asks the learner to read,
+  play, build, transcribe, or apply a concept. Standalone “What is …?”
+  definition questions are not allowed.
 - **Engine boundaries:** `core/learning` is topic-agnostic. Objectives,
   prompts, and composers never import notes, and `lib/core` never imports
   `lib/content`. Adding a topic should touch `lib/content/` and at most one new
@@ -243,7 +246,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-02 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 223 tests passing
+- `flutter test` - 224 tests passing
 - `flutter build web --release` - succeeds
 - The course has 8 sections, 40 units, and 240 lessons. Every unit has six
   lessons (Discover, Build, Connect, Apply, Integrate, Checkpoint).

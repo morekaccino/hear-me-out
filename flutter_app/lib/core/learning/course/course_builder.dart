@@ -162,11 +162,13 @@ LessonDefinition _lesson({
       : exerciseCount;
   final newNotes = <Note>[
     for (final ref in uniqueNew)
-      if (noteOf(ref) != null) noteOf(ref)!,
+      if (ref.family == SkillFamily.noteReading && noteOf(ref) != null)
+        noteOf(ref)!,
   ];
   final reviewNotes = <Note>[
     for (final ref in uniqueReview)
-      if (noteOf(ref) != null) noteOf(ref)!,
+      if (ref.family == SkillFamily.noteReading && noteOf(ref) != null)
+        noteOf(ref)!,
   ];
   return LessonDefinition(
     id: id,
@@ -176,11 +178,11 @@ LessonDefinition _lesson({
     reviewNotes: reviewNotes,
     teaches: [
       for (final ref in uniqueNew)
-        if (noteOf(ref) == null) ref.id,
+        if (ref.family != SkillFamily.noteReading) ref.id,
     ],
     reviews: [
       for (final ref in uniqueReview)
-        if (noteOf(ref) == null) ref.id,
+        if (ref.family != SkillFamily.noteReading) ref.id,
     ],
     exposures: exposures,
     isReview: isReview,

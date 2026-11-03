@@ -60,7 +60,7 @@ void main() {
     expect(find.text('SECTION 1, UNIT 1'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Up next'), 300);
     expect(find.text('Up next'), findsOneWidget);
-    expect(find.text('Meet the Guitar'), findsOneWidget);
+    expect(find.text('Open Strings'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
   });
 
@@ -89,9 +89,9 @@ void main() {
 
     expect(find.text('COURSE MAP'), findsOneWidget);
     expect(find.text('8 sections · 40 units · 240 lessons'), findsOneWidget);
-    expect(find.text('Meet the Guitar'), findsWidgets);
+    expect(find.text('Open Strings'), findsWidgets);
 
-    await tester.tap(find.text('Meet the Guitar').last);
+    await tester.tap(find.text('Open Strings').last);
     await tester.pumpAndSettle();
     expect(find.text('UNIT 1 GUIDEBOOK'), findsOneWidget);
   });
@@ -194,7 +194,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('side-rail')), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
-    expect(find.text('Meet the Guitar'), findsOneWidget);
+    expect(find.text('Open Strings'), findsOneWidget);
     expect(find.text('Daily Quests'), findsOneWidget);
     expect(find.text('Daily goal'), findsOneWidget);
 
@@ -204,7 +204,7 @@ void main() {
     final nodeFinder = find.byKey(const ValueKey('current-lesson-node'));
     final railBefore = tester.getTopLeft(railFinder).dy;
     final nodeBefore = tester.getTopLeft(nodeFinder).dy;
-    final bannerBefore = tester.getTopLeft(find.text('Meet the Guitar')).dy;
+    final bannerBefore = tester.getTopLeft(find.text('Open Strings')).dy;
     await tester.drag(
       find.byType(CustomScrollView),
       const Offset(0, -400),
@@ -220,7 +220,7 @@ void main() {
     );
     // The unit banner pins to the top of the shared scroll instead of scrolling
     // away with the page.
-    final bannerAfter = tester.getTopLeft(find.text('Meet the Guitar')).dy;
+    final bannerAfter = tester.getTopLeft(find.text('Open Strings')).dy;
     expect(bannerAfter, lessThan(bannerBefore));
     expect(bannerAfter, greaterThanOrEqualTo(0));
   });
@@ -274,7 +274,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Meet the Guitar'), findsOneWidget);
+    expect(find.text('Open Strings'), findsOneWidget);
     expect(find.byKey(const ValueKey('current-lesson-node')), findsOneWidget);
   });
 
@@ -428,7 +428,7 @@ void main() {
     await tester.tap(find.text("LET'S PLAY"));
     await tester.pumpAndSettle();
 
-    expect(find.text('Meet the Guitar'), findsOneWidget);
+    expect(find.text('Open Strings'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);
   });
 

@@ -150,7 +150,7 @@ ObjectiveRef scaleDegreeConcept(String tonic, int degree, {bool minor = false}) 
   return _choice(
     id: 'degree:${key.id}:$degree',
     family: SkillFamily.theory,
-    question: 'What is scale degree $degree in ${key.display}?',
+    question: 'Which note is scale degree $degree in ${key.display}?',
     answers: options,
     correct: target.pitchClass,
     hint: 'Spell the scale first, then count.',
@@ -252,7 +252,7 @@ ObjectiveRef scaleConcept(
   return _choice(
     id: 'scale:${scale.id}:$degree',
     family: SkillFamily.theory,
-    question: 'What is scale degree $degree of ${scale.display}?',
+    question: 'Which note is scale degree $degree of ${scale.display}?',
     answers: options,
     correct: target.pitchClass,
     hint: 'Use the mode pattern, not just the major scale.',
@@ -287,7 +287,7 @@ ObjectiveRef circleOfFifthsConcept(String tonic) {
   return _choice(
     id: 'circle:${key.id}',
     family: SkillFamily.theory,
-    question: 'What is the dominant key of ${key.display}?',
+    question: 'Which key is the dominant of ${key.display}?',
     answers: options,
     correct: dominant.display,
     hint: 'The dominant is a perfect fifth above the tonic.',

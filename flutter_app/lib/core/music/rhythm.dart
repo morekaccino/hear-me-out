@@ -128,6 +128,100 @@ const RhythmPattern downUpStrum = RhythmPattern(
   ],
 );
 
+const RhythmPattern sixEight = RhythmPattern(
+  id: 'six-eight',
+  label: 'Six eighth notes',
+  beats: 6,
+  cells: [
+    RhythmCell(start: 0, duration: 0.5),
+    RhythmCell(start: 0.5, duration: 0.5),
+    RhythmCell(start: 1, duration: 0.5),
+    RhythmCell(start: 1.5, duration: 0.5),
+    RhythmCell(start: 2, duration: 0.5),
+    RhythmCell(start: 2.5, duration: 0.5),
+    RhythmCell(start: 3, duration: 0.5),
+    RhythmCell(start: 3.5, duration: 0.5),
+    RhythmCell(start: 4, duration: 0.5),
+    RhythmCell(start: 4.5, duration: 0.5),
+    RhythmCell(start: 5, duration: 0.5),
+    RhythmCell(start: 5.5, duration: 0.5),
+  ],
+);
+
+const RhythmPattern sevenEight = RhythmPattern(
+  id: 'seven-eight',
+  label: 'Seven beats',
+  beats: 7,
+  cells: [
+    RhythmCell(start: 0, duration: 1),
+    RhythmCell(start: 1, duration: 1),
+    RhythmCell(start: 2, duration: 1),
+    RhythmCell(start: 3, duration: 1),
+    RhythmCell(start: 4, duration: 1),
+    RhythmCell(start: 5, duration: 1),
+    RhythmCell(start: 6, duration: 1),
+  ],
+);
+
+const RhythmPattern fiveFour = RhythmPattern(
+  id: 'five-four',
+  label: 'Five beats',
+  beats: 5,
+  cells: [
+    RhythmCell(start: 0, duration: 1),
+    RhythmCell(start: 1, duration: 1),
+    RhythmCell(start: 2, duration: 1),
+    RhythmCell(start: 3, duration: 1),
+    RhythmCell(start: 4, duration: 1),
+  ],
+);
+
+const RhythmPattern syncopatedOffbeat = RhythmPattern(
+  id: 'syncopated-offbeat',
+  label: 'Offbeat accents',
+  beats: 4,
+  cells: [
+    RhythmCell(start: 0, duration: 0.5),
+    RhythmCell(start: 1, duration: 0.5),
+    RhythmCell(start: 1.5, duration: 0.5),
+    RhythmCell(start: 2.5, duration: 0.5),
+    RhythmCell(start: 3, duration: 0.5),
+    RhythmCell(start: 3.5, duration: 0.5),
+  ],
+);
+
+const RhythmPattern bluesShuffle = RhythmPattern(
+  id: 'blues-shuffle',
+  label: 'Blues shuffle',
+  beats: 4,
+  cells: [
+    RhythmCell(start: 0, duration: 0.66),
+    RhythmCell(start: 0.66, duration: 0.34),
+    RhythmCell(start: 1, duration: 0.66),
+    RhythmCell(start: 1.66, duration: 0.34),
+    RhythmCell(start: 2, duration: 0.66),
+    RhythmCell(start: 2.66, duration: 0.34),
+    RhythmCell(start: 3, duration: 0.66),
+    RhythmCell(start: 3.66, duration: 0.34),
+  ],
+);
+
+const RhythmPattern fingerstyleRoll = RhythmPattern(
+  id: 'fingerstyle-roll',
+  label: 'Fingerstyle roll',
+  beats: 4,
+  cells: [
+    RhythmCell(start: 0, duration: 0.5),
+    RhythmCell(start: 0.5, duration: 0.5),
+    RhythmCell(start: 1, duration: 0.5),
+    RhythmCell(start: 1.5, duration: 0.5),
+    RhythmCell(start: 2, duration: 0.5),
+    RhythmCell(start: 2.5, duration: 0.5),
+    RhythmCell(start: 3, duration: 0.5),
+    RhythmCell(start: 3.5, duration: 0.5),
+  ],
+);
+
 const List<RhythmPattern> rhythmPatterns = [
   fourQuarters,
   twoHalves,
@@ -137,4 +231,10 @@ const List<RhythmPattern> rhythmPatterns = [
   waltz,
   waltzHalfQuarter,
   downUpStrum,
+  sixEight,
+  sevenEight,
+  fiveFour,
+  syncopatedOffbeat,
+  bluesShuffle,
+  fingerstyleRoll,
 ];

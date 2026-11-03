@@ -150,6 +150,8 @@ Rules enforced by the planner and validator:
 
 ## 7. Anti-flying-through rules
 
+- Every scored prompt must ask the learner to read, play, build, transcribe, or
+  apply a concept. Standalone “What is …?” definition questions are not allowed.
 - Distractors are plausible: nearby staff steps, same interval quality, same
   chord family, one accidental away.
 - Four options is standard; three only on the guided attempt.

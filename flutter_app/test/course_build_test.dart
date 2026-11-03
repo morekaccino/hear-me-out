@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/content/objectives.dart';
 import 'package:hear_me_out/content/session_factory.dart';
+import 'package:hear_me_out/core/learning/course/course_data.dart';
 import 'package:hear_me_out/core/learning/objective.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/learning/prompt.dart';
@@ -28,6 +29,42 @@ void main() {
           reason: unit.id,
         );
         expect(unit.focus, isNotEmpty);
+      }
+    });
+
+    test('every unit has at least four applied concepts', () {
+      for (final section in courseSections) {
+        for (final unit in section.units) {
+          expect(
+            unit.concepts.length,
+            greaterThanOrEqualTo(4),
+            reason: unit.id,
+          );
+          final questions = <String>{};
+          for (final concept in unit.concepts) {
+            final question = concept.data['question'] as String?;
+            if (question == null) continue;
+            final lower = question.toLowerCase();
+            expect(
+              lower.startsWith('what is') ||
+                  lower.startsWith('what does') ||
+                  lower.startsWith('why '),
+              isFalse,
+              reason: '${unit.id}: definition trivia "$question"',
+            );
+            final hasStimulus =
+                concept.data['chord'] != null ||
+                concept.data['audio'] != null ||
+                concept.data['tokens'] != null;
+            if (!hasStimulus) {
+              expect(
+                questions.add(question),
+                isTrue,
+                reason: '${unit.id}: duplicate question "$question"',
+              );
+            }
+          }
+        }
       }
     });
 
@@ -77,11 +114,13 @@ void main() {
           );
         }
         for (final prompt in prompts.whereType<ChoicePrompt>()) {
-          expect(
-            prompt.options.length,
-            greaterThanOrEqualTo(2),
-            reason: '${lesson.id}: ${prompt.objective.id}',
-          );
+          if (!prompt.reveal) {
+            expect(
+              prompt.options.length,
+              greaterThanOrEqualTo(2),
+              reason: '${lesson.id}: ${prompt.objective.id}',
+            );
+          }
           expect(
             prompt.options.any((option) => option.id == prompt.correctId),
             isTrue,
