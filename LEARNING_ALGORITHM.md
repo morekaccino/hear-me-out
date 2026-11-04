@@ -1,5 +1,10 @@
 # Learning Algorithm
 
+> **Status:** This document describes the current 240-lesson implementation. The
+> approved transformation plan lives in Plane (`D0.1 — START HERE`) and
+> [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md); it is
+> not implemented yet. Do not assume planned behavior is shipped.
+
 Hear Me Out is now a **240-lesson, 48-week guitar musicianship course**. The
 learning engine has two layers:
 

@@ -1,5 +1,10 @@
 # Design Language & Product Direction
 
+> **Status:** This document describes the current 240-lesson implementation. The
+> approved transformation plan lives in Plane (`D0.1 — START HERE`) and
+> [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md); it is not
+> implemented yet. Do not assume planned behavior is shipped.
+
 This is the source of truth for product intent, visual language, copy, and
 gamification. Use it with [`../AGENTS.md`](../AGENTS.md) and the design tokens in
 [`../flutter_app/lib/shared/theme/app_theme.dart`](../flutter_app/lib/shared/theme/app_theme.dart).

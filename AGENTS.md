@@ -19,19 +19,53 @@ progress never leaves the device.
 - Setup, debugging, manual checks: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 - Contribution rules: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
-## Issue tracking
+## Issue tracking and source of truth
 
-Work items live in Plane: <https://plane.mrkazemi.com/hear-me-out/>. A
-project-scoped MCP server is configured for OpenCode (`opencode.json`), Claude
-Code (`.mcp.json`), and VS Code (`.vscode/mcp.json`). Each runs
+All product direction, work breakdown, research, decisions, risks, and delivery
+status live in Plane:
+
+- **Project:** Hear Me Out — Guitar Practice OS
+  <https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780>
+- **START HERE:** `D0.1` —
+  <https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7>
+- **Operating manual:** [`docs/PLANE.md`](docs/PLANE.md)
+- **Approved plan:** [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md)
+
+A project-scoped MCP server named `plane` is configured for OpenCode
+(`opencode.json`), Claude Code / Codex / generic MCP (`.mcp.json`), VS Code
+(`.vscode/mcp.json`), Cursor (`.cursor/mcp.json`), and Gemini CLI
+(`.gemini/settings.json`). Each runs
 `uvx plane-mcp-server stdio` with the self-hosted host, workspace slug, and API
 key in its `env` block. This is a private single-user repository, so the key is
-committed on purpose.
+committed on purpose. Verify with `opencode mcp list`; it must show
+`plane connected`.
+
+**Before changing code:**
+
+1. Read `docs/PLANE.md`.
+2. Open `D0.1 — START HERE`; read `D0.2`–`D0.5`.
+3. Open the ticket for your task and read its acceptance criteria.
+4. Check `blocked_by`; do not start blocked work. Move the ticket to
+   **In Progress**.
+
+**After changing code:**
+
+1. Run `flutter analyze`, `flutter test`, and `flutter build web --release`.
+2. Comment on the ticket with files, commands, results, and device/mic evidence.
+3. Move to **Done** only when every acceptance criterion is met.
+4. Update the decision log (`T9.2`) or risk register (`T9.1`) if the change
+   changes a decision or risk.
+
+The current code is still the **240-lesson notation course**. The approved
+transformation is planned but not implemented. Do not describe planned features
+as shipped. If Plane and local docs disagree, Plane wins; update both and record
+the reason in `T9.2`.
 
 - Plane is development tooling only. Never add Plane, network, or cloud code to
   the app itself.
-- If a tool call fails with 401, replace `PLANE_API_KEY` in all three config
-  files with a fresh token from Plane profile settings.
+- If a tool call fails with 401, replace `PLANE_API_KEY` in the MCP config files
+  with a fresh workspace-scoped token from Plane profile settings. Do not paste
+  the key into tickets, chat, logs, or screenshots.
 
 ## Mission
 
@@ -86,8 +120,9 @@ tone, accessibility notes, and non-goals are in
 
 ## Hard rules
 
-1. **No network, cloud, accounts, analytics, or remote persistence.** Progress
-   lives in `shared_preferences`; audio is analyzed in memory and discarded.
+1. **No network, cloud, accounts, analytics, or remote persistence in the app.**
+   Progress lives in `shared_preferences`; audio is analyzed in memory and
+   discarded. Plane is development tooling only and is never imported by the app.
 2. **Keep `lib/core/` free of widgets.** Music math, scheduling, pitch
    detection, and staff geometry must stay pure Dart and testable.
 3. **Written pitch is not sounding pitch.** Guitar notation is written one
@@ -105,6 +140,10 @@ tone, accessibility notes, and non-goals are in
 9. **Follow the design language.** Reuse theme tokens and shared components; do
    not add one-off colors, fonts, or button styles without updating
    `docs/DESIGN.md`.
+10. **Plane is the source of truth for product work.** Before coding, read
+    `docs/PLANE.md`, `D0.1 — START HERE`, and the ticket's acceptance criteria.
+    Update the ticket with evidence and status. Do not implement unplanned
+    surfaces or reopen settled decisions without a new decision record.
 
 ## Environment
 
@@ -173,6 +212,13 @@ Then open <http://127.0.0.1:8080/>.
 | `flutter_app/lib/shared/` | Theme and reusable Duolingo-style widgets |
 | `flutter_app/lib/state/` | Riverpod app controller and audio providers |
 | `flutter_app/test/` | Unit and widget tests; fakes live in `test/support/` |
+| `docs/PLANE.md` | Plane project manual, MCP access, read order, update protocol |
+| `docs/TRANSFORMATION_PLAN_FINAL.md` | Approved v3.1 transformation plan |
+| `CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md` | Client-specific entry points to `AGENTS.md` and Plane |
+| `tools/plane_bootstrap.py` | Idempotent Plane bootstrap: docs, tickets, links, comments |
+| `tools/plane_relations.py` | Creates the `blocked_by` dependency graph |
+| `tools/plane_assign*.py` | Assigns tickets to modules and cycles |
+| `.mcp.json`, `opencode.json`, `.vscode/mcp.json`, `.cursor/mcp.json`, `.gemini/settings.json` | Plane MCP client configuration |
 
 ## Behavior worth protecting
 
@@ -257,11 +303,13 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Current verified state
 
-Last verified on 2026-11-02 with Flutter 3.47.9 / Dart 3.13.7:
+Last verified on 2026-11-04 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
 - `flutter test` - 224 tests passing
 - `flutter build web --release` - succeeds
+- `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
+  modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
 - The course has 8 sections, 40 units, and 240 lessons. Every unit has six
   lessons (Discover, Build, Connect, Apply, Integrate, Checkpoint).
 - Notes, rhythm, chords, theory, ear training, fretboard, technique,
@@ -285,15 +333,19 @@ analyze/test/build commands as the source of truth.
 - `flutter build web --release` still succeeds for user-facing changes.
 - Audio changes are checked against the device checklist in `README.md`.
 - Docs are updated when a rule, setting, storage format, or workflow changes.
+- The Plane ticket is updated with evidence and moved to Done only when its
+  acceptance criteria are met.
 - The CI workflow at `.github/workflows/flutter.yml` must be tracked by git for
   CI to run.
 
 ## Documentation map
 
-- [`README.md`](README.md) — product overview, features, device checklist
+- [`README.md`](README.md) — product overview, features, project link, device checklist
+- [`docs/PLANE.md`](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
+- [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 plan
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style language, copy, gamification
 - [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map, settings
 - [`LEARNING_ALGORITHM.md`](LEARNING_ALGORITHM.md) — scheduling and session rules
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — layers, data flow, invariants
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — setup, run, debug, common failures
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution rules and workflow
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution rules, Plane workflow, pull requests

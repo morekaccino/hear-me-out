@@ -12,6 +12,20 @@ Everything stays on your device.
 
 ---
 
+## Project management
+
+The approved transformation plan and the full work breakdown live in Plane:
+
+- **Project:** [Hear Me Out — Guitar Practice OS](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780)
+- **Start here:** [D0.1 — START HERE](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7)
+- **Operating manual:** [`docs/PLANE.md`](docs/PLANE.md)
+- **Local canonical plan:** [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md)
+
+The app in this repository is still the 240-lesson notation course. The approved
+plan changes it into a 5-minute, song-first practice system; those changes are
+planned in Plane and are not implemented yet. Do not describe planned features as
+shipped.
+
 ## Mission
 
 **Help a beginner become a confident guitarist and musician through short,
@@ -170,6 +184,8 @@ session rules.
 ## Docs
 
 - [AGENTS.md](AGENTS.md) — operating guide for coding agents
+- [docs/PLANE.md](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
+- [docs/TRANSFORMATION_PLAN_FINAL.md](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 transformation plan
 - [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
 - [docs/SOUND.md](docs/SOUND.md) — Bright Pluck sound family and event map
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, invariants

@@ -2,7 +2,8 @@
 <!-- Provide a clear description of your changes -->
 
 ## 🔗 Related Issue
-<!-- Link to the issue this PR addresses -->
+<!-- Link to the GitHub issue and the Plane ticket this PR addresses -->
+Plane: HEARM-
 Closes #
 
 ## 🎨 Type of Change
@@ -37,6 +38,7 @@ Closes #
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to the documentation
 - [ ] My changes generate no new warnings or errors
+- [ ] I have updated the related Plane ticket and met its acceptance criteria
 - [ ] I have tested with different audio inputs
 - [ ] I have tested on mobile (if applicable)
 - [ ] Any dependent changes have been merged and published

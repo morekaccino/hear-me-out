@@ -1,5 +1,10 @@
 # Architecture
 
+> **Status:** This document describes the current 240-lesson implementation. The
+> approved transformation plan lives in Plane (`D0.1 — START HERE`) and
+> [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md); it is not
+> implemented yet. Do not assume planned behavior is shipped.
+
 Hear Me Out is a Flutter app with pure-Dart domain layers and thin UI
 adapters. The main rule is that the hard parts — pitch detection, scheduling,
 session composition, and staff geometry — do not depend on widgets.

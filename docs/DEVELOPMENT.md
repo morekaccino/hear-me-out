@@ -2,6 +2,29 @@
 
 Setup, commands, and troubleshooting for working on Hear Me Out.
 
+## Plane context
+
+Plane is the source of truth for product direction and work breakdown. Before
+changing code:
+
+1. Read [`PLANE.md`](PLANE.md).
+2. Open `D0.1 — START HERE` in Plane.
+3. Read the ticket for your task, including acceptance criteria and `blocked_by`
+   relations.
+4. Move the ticket to **In Progress**.
+
+After changing code, comment on the ticket with files, commands, results, and
+device/mic evidence, then move it to **Done** only when all acceptance criteria
+are met.
+
+- Project: <https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780>
+- Start here: <https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7>
+- Verify MCP: `opencode mcp list` must show `plane connected`.
+
+The current code is still the 240-lesson notation course. The approved
+transformation is planned but not implemented; see
+[`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md).
+
 ## Requirements
 
 - Flutter 3.47 or newer
