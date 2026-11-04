@@ -1,0 +1,16 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "plane": {
+        "type": "local",
+        "command": ["uvx", "plane-mcp-server", "stdio"],
+        "environment": {
+          "PLANE_API_KEY": "plane_api_f8a6c6312f374ce0ae94e811a61ce83b",
+          "PLANE_WORKSPACE_SLUG": "hear-me-out",
+          "PLANE_BASE_URL": "https://plane.mrkazemi.com"
+        }
+      }
+    }
+  }
+}

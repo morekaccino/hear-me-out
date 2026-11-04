@@ -19,6 +19,20 @@ progress never leaves the device.
 - Setup, debugging, manual checks: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 - Contribution rules: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
+## Issue tracking
+
+Work items live in Plane: <https://plane.mrkazemi.com/hear-me-out/>. A
+project-scoped MCP server is configured for OpenCode (`opencode.json`), Claude
+Code (`.mcp.json`), and VS Code (`.vscode/mcp.json`). Each runs
+`uvx plane-mcp-server stdio` with the self-hosted host, workspace slug, and API
+key in its `env` block. This is a private single-user repository, so the key is
+committed on purpose.
+
+- Plane is development tooling only. Never add Plane, network, or cloud code to
+  the app itself.
+- If a tool call fails with 401, replace `PLANE_API_KEY` in all three config
+  files with a fresh token from Plane profile settings.
+
 ## Mission
 
 **Help a beginner read standard notation on guitar through short, forgiving
