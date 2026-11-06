@@ -89,7 +89,7 @@ Use `AppColors`; do not add one-off hex values in widgets.
 | `red` | `#FF4B4B` | same | Error, wrong answer |
 | `redDark` | `#EA2B2B` | same | Error text, pressed red |
 | `redSoft` | `#FFDFE0` | `#3A2022` | Error/feedback background |
-| `yellow` | `#FFC800` | same | Achievement, XP, chests |
+| `yellow` | `#FFC800` | same | Achievement, XP, reward |
 | `yellowDark` | `#E5A400` | same | Achievement text/shadow |
 | `purple` | `#CE82FF` | same | First Position section, free practice accent |
 | `purpleDark` | `#A560E8` | same | Purple pressed/text |
@@ -149,7 +149,7 @@ section's anchor color.
 
 - Phone-first, centered, responsive content width: **600 px** for the path and
   lessons, **720 px** for hubs (`PageFrame`).
-- At **900 px and wider**, replace the five bottom tabs with a 232–256 px left side
+- At **900 px and wider**, replace the four bottom tabs with a 232–256 px left side
   rail. The content stays centered beside it.
 - Use `SafeArea`; keep the bottom navigation clear of the content.
 - Use Duolingo's **4 px scale** for every gutter, gap, and inset:
@@ -179,8 +179,8 @@ Use the shared widgets before creating new ones.
   continue button with colored text.
 - **`LessonProgressBar`** — 16 px default height, rounded, 280 ms fill.
 - **`StatPill` / pill counters** — compact icon+number pills for the optional
-  streak, gems, and XP. Use the orange flame and blue diamond consistently; the
-  learn column shows them without borders.
+  streak and XP. Use the orange flame consistently; there is no gem or diamond
+  counter. The learn column shows the streak without a border.
 - **`Mascot`** — original green music-note character with `happy`, `cheer`, and
   `thinking` moods. Use at onboarding, empty/result states, and profile; do not
   crowd every card with it.
@@ -234,7 +234,7 @@ The staff itself is the hero visual on lesson screens.
 
 - Use Material rounded icons (`Icons.*_rounded`) consistently.
 - Common status icons: flame for the optional streak, bolt for XP, flag for the
-  weekly goal, diamond for gems, mic for play, music note for notation.
+  weekly goal and quests, mic for play, music note for notation.
 - Most icons are 20–28 px; navigation icons are 26 px.
 - Icons reinforce text; they should not be the only way to understand a value
   or action.
@@ -254,7 +254,6 @@ The staff itself is the hero visual on lesson screens.
 - **Locked lesson:** neutral node, no fake progress. Tapping it opens a bottom
   sheet that names the blocking lesson and offers `START “<lesson>”` plus
   `NOT NOW`. Never a toast: a lock is a dead end unless the UI shows the way out.
-  Locked chests use the same sheet with chest copy.
 - **Correct:** green feedback, check icon, concrete note/string/fret hint.
 - **Incorrect:** red feedback, close icon, correct answer, and a recovery action.
 - **Failed lesson:** a neutral “Not passed yet” result with try-again and
@@ -304,15 +303,15 @@ road**: units follow one another with a repeated node rhythm and no connecting
 line.
 
 - **Left nav:** 232–256 px white rail with the green `Hear Me Out` wordmark
-  only — no note mascot. Five 52 px uppercase items use colorful rounded icons:
-  gold house, blue dumbbell, orange chest, red storefront, purple avatar. The
-  selected item uses `blueSoft` with a 2 px `blueLine` border and `blue` text;
-  inactive labels are `textMuted`. A 2 px `border` line divides the rail from
-  the content in light mode. No footer.
-- **Bottom bar:** on phones the five tabs keep outlined icons when idle and
-  switch to the tab's own color when selected (gold house, blue dumbbell,
-  orange chest, red storefront, purple avatar), with a matching tinted 52×30
-  pill and colored label. Pressing scales the tab to 94%.
+  only — no note mascot. Four 52 px uppercase items use colorful rounded icons:
+  gold house/today, blue dumbbell, orange flag, purple avatar. The selected item
+  uses `blueSoft` with a 2 px `blueLine` border and `blue` text; inactive labels
+  are `textMuted`. A 2 px `border` line divides the rail from the content in
+  light mode. No footer.
+- **Bottom bar:** on phones the four tabs keep outlined icons when idle and
+  switch to the tab's own color when selected (gold house/today, blue dumbbell,
+  orange flag, purple avatar), with a matching tinted 52×30 pill and colored
+  label. Pressing scales the tab to 94%.
 - **Unit banner:** a solid section-color bar with a white back arrow,
   `SECTION n, UNIT n`, the unit title, and a white outlined `GUIDEBOOK` pill.
   The arrow scrolls to the previous unit. Banners pin to the top while their
@@ -325,12 +324,11 @@ line.
   keeps advancing across unit banners instead of restarting at the center, with
   `80 px × sin(2π × lessonIndex / 6)`. Node hit areas are 80×84; faces are
   80×72 ellipses on a 104 px vertical rhythm. The active lesson adds a 48 px
-  slot above it for the START bubble. A chest gets its own 96 px slot: nodes
-  after it slide down, so the chest never overlaps its neighbors.
-- **Path header:** on narrow screens the learn column shows end-aligned
-  icon+number counters (blue diamond, plus the orange flame only after the
-  learner opts into the streak). On wide screens the same counters sit at the
-  top of the quest rail. There is no XP daily-goal card in the path.
+  slot above it for the START bubble.
+- **Path header:** on narrow screens the learn column shows the optional
+  end-aligned streak counter (orange flame, only after the learner opts in). On
+  wide screens the same counter sits at the top of the quest rail. There is no
+  gem counter and no XP daily-goal card in the path.
 - **Section breaks:** only sections after the player's current one get a
   break. The immediate next one is preceded by a centered `Up next` label.
   The break is a centered section title between two rules, then a **JUMP
@@ -344,12 +342,10 @@ line.
   color at a glance. The current lesson carries a matching `START` pill above.
   No mascot sits on the path. Only current and completed lessons open. Nodes
   fade/scale in with a short stagger; motion never blocks a tap.
-- **Chests:** one 72 px chest per unit, occupying its own slot on the path. It
-  is locked until the lesson before it is complete, then opens once for gems.
-- **Quest rail:** `Daily Quests` card with real quest progress bars, counts
-  inside the bar, a chest at the end of each row, and a `VIEW ALL` link, then a
-  `Weekly goal` card showing measured minutes. The rail scrolls with the path.
-  No leagues, ads, or upsells.
+- **Quest rail:** a `Musical quests` card with real progress bars, counts
+  inside the bar, and a `VIEW ALL` link, then a `Weekly goal` card showing
+  measured minutes. There are no chests, currency badges, leagues, ads, or
+  upsells. The rail scrolls with the path.
 - **Responsive components:** the nav narrows from 256 to 232 px, the quest rail
   from 372 to 320 px, the path column caps at 600 px, and the banner switches to
   an icon-only 40 px guidebook button below 480 px. Node and counter sizes stay
@@ -446,7 +442,7 @@ accent. Each V1 stage has one focus (setup and posture, left hand, right hand,
 damping, shifts, or slurs), exactly three observable checklist items, exactly
 three self-rating rows, one 60-second drill, and a short demo script. Ticks and
 ratings are session-only; they are not persisted, do not change FSRS, and award
-no XP, gems, or streak.
+no XP or streak.
 
 The microphone cannot see hands. Say so on the screen: this is not automated
 hand assessment and it does not replace a teacher. Put the pain, numbness, and
@@ -485,9 +481,9 @@ now), “How well do you read?” (note names / slow reader / comfortable), and
 “Pick a first piece” (three cards with a short synth preview and a “Choose
 later” default). A progress indicator and back control stay visible. The
 microphone check is an optional secondary action on the first screen, never a
-fourth screen and never a permission gate. No hearts, XP, gems, streak, or
-quests appear during onboarding. The user should reach the path in under a
-minute.
+fourth screen and never a permission gate. No hearts, XP, streak, quests, gems,
+chests, or shop chrome appear during onboarding. The user should reach the path
+in under a minute.
 
 The first screen also carries a compact, off-by-default **Optional beta usage
 log** consent card below the optional microphone check. It is part of the first
@@ -510,20 +506,24 @@ reachable for a real new install; leaving it off records nothing. See
   time or one determinate recorded take advances it. A missed day reads as zero
   with neutral copy; there is no freeze to buy and no “you lost it” message.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
-  practice 5; jump test 20. Double XP doubles the award. Show real earned
-  amounts.
-- **Gems:** earned from chests and claimed daily quests. Spent only on the
-  local double-XP boost. T5.5 owns the full economy migration.
-- **Chests:** one per unit, unlocked by the lesson before it, opened once.
-- **Daily quests:** complete a lesson, answer ten notes, and build a five-answer
-  combo. Each pays gems once per local day.
+  practice 5; jump test 20. Show real earned amounts. There is no multiplier,
+  boost, or purchase.
+- **Musical quests:** play 3 determinate phrases (daily), record a take
+  (weekly), and learn 4 bars (weekly). No claim step, no currency, and no
+  reward. Daily counters reset at local midnight; weekly counters reset on the
+  local Monday.
+- **Quest honesty:** a determinate phrase advances `phrasesPracticed`. A bar
+  counts only when the learner completes a correct determinate take of the
+  phrase that contains it, once per phrase per week; tapping a prompt never
+  counts. The recording counter has no producer until T4.2 lands, so its quest
+  shows zero with a "coming with recordings" note.
 - **Combo:** positive feedback only; do not add a combo loss mechanic.
 - **Level:** `xp ~/ 100 + 1`; do not invent a separate progression currency.
 - **Jump ahead:** a 15-exercise test can unlock earlier sections without
   deleting note progress.
 - **No leaderboards, leagues, friend duels, ads, subscriptions, real-money
-  purchases, or social pressure.** Those are explicit non-goals. The shop is a
-  closed gem economy, not a storefront.
+  purchases, gems, chests, shops, XP boosts, paid streak freezes, or social
+  pressure.** Those are explicit non-goals.
 
 ## Copy and tone
 

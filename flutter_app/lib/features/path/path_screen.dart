@@ -39,6 +39,7 @@ class PathScreen extends ConsumerWidget {
     final progress = data.progress;
     final now = DateTime.now();
     progress.refreshDaily(now);
+    progress.refreshQuests(now);
     final currentLesson = _currentLesson(progress.completedLessons);
     final nextSection = _nextSectionAfter(currentLesson);
     final currentSectionNumber = _sectionNumberOf(currentLesson);
@@ -49,6 +50,7 @@ class PathScreen extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final showRail = constraints.maxWidth >= 960;
+            final showCounters = !showRail && progress.settings.streakEnabled;
             final railWidth = constraints.maxWidth >= 1180 ? 372.0 : 320.0;
             final pathWidth = math.min(
               600.0,
@@ -56,14 +58,14 @@ class PathScreen extends ConsumerWidget {
             );
             final bannerOffsets = _bannerOffsets(
               currentLesson: currentLesson,
-              showCounters: !showRail,
+              showCounters: showCounters,
             );
             final initialOffset = currentLesson?.unitId == curriculum.first.id
                 ? 0.0
                 : bannerOffsets[currentLesson?.unitId] ?? 0.0;
 
             final pathSlivers = <Widget>[
-              if (!showRail)
+              if (showCounters)
                 SliverToBoxAdapter(
                   child: SizedBox(
                     height: _counterSlot,
@@ -75,10 +77,7 @@ class PathScreen extends ConsumerWidget {
                         DuoSpacing.xs,
                       ),
                       child: PathCounters(
-                        streak: progress.settings.streakEnabled
-                            ? progress.effectiveStreak
-                            : null,
-                        gems: progress.gems,
+                        streak: progress.effectiveStreak,
                       ),
                     ),
                   ),
@@ -98,8 +97,7 @@ class PathScreen extends ConsumerWidget {
                         ? null
                         : () => _launchLesson(context, ref, currentLesson),
                     onReview: onOpenPractice,
-                    onCourseMap: () =>
-                        _showCourseMap(context, ref, progress),
+                    onCourseMap: () => _showCourseMap(context, ref, progress),
                   ),
                 ),
               ),
@@ -130,10 +128,6 @@ class PathScreen extends ConsumerWidget {
                             unit: unit,
                             completed: progress.completedLessons,
                             currentLessonId: currentLesson?.id,
-                            chest: chestForUnit(unit.id),
-                            openedChests: progress.openedChests,
-                            onChestTap: (chest) =>
-                                _openChest(context, ref, chest, progress),
                             onLessonTap: (lesson) {
                               final unlocked =
                                   progress.completedLessons.contains(
@@ -155,7 +149,6 @@ class PathScreen extends ConsumerWidget {
                                         ? 'Finish the earlier lessons to unlock this one.'
                                         : 'Finish “${currentLesson.title}” first. Lessons unlock one at a time.',
                                     next: currentLesson,
-                                    progress: progress,
                                   ),
                                 );
                                 return;
@@ -298,7 +291,6 @@ class PathScreen extends ConsumerWidget {
       unit: unit,
       width: 400,
       startOffset: _unitStartOffset(unit),
-      chestAfterLessonId: chestForUnit(unit.id)?.afterLessonId,
       currentLessonId: currentLessonId,
     ).height;
   }
@@ -342,7 +334,6 @@ class PathScreen extends ConsumerWidget {
     WidgetRef ref, {
     required String title,
     required String message,
-    required ProgressState progress,
     LessonDefinition? next,
   }) {
     return showModalBottomSheet<void>(
@@ -492,57 +483,6 @@ class PathScreen extends ConsumerWidget {
         .startJumpTest(sectionId: section.id, micAvailable: micAvailable);
     await Navigator.of(context)
         .push(duoLessonRoute<void>((_) => const LessonScreen()));
-  }
-
-  Future<void> _openChest(
-    BuildContext context,
-    WidgetRef ref,
-    ChestDefinition chest,
-    ProgressState progress,
-  ) async {
-    if (!progress.completedLessons.contains(chest.afterLessonId)) {
-      unawaited(ref.read(soundServiceProvider).play(Sfx.uiLocked));
-      final next = lessonById[chest.afterLessonId];
-      await _showLockedSheet(
-        context,
-        ref,
-        title: 'Chest locked',
-        message: next == null
-            ? 'Finish the earlier lesson to open this chest.'
-            : 'Finish “${next.title}” to open this chest.',
-        next: next,
-        progress: progress,
-      );
-      return;
-    }
-    if (progress.openedChests.contains(chest.id)) return;
-    final opened = await ref
-        .read(appControllerProvider.notifier)
-        .openChest(chest.id);
-    if (!context.mounted || !opened) return;
-    unawaited(ref.read(soundServiceProvider).play(Sfx.copySuccess));
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Chest opened!'),
-        content: Row(
-          children: [
-            const Icon(Icons.diamond_rounded, color: AppColors.blue, size: 30),
-            const SizedBox(width: 8),
-            Text(
-              '+${chest.gems} gems',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-            ),
-          ],
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('NICE'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<bool> _micAvailable(WidgetRef ref, AppSettings settings) async {
@@ -1022,34 +962,23 @@ class _LessonPath extends StatelessWidget {
     required this.completed,
     required this.currentLessonId,
     required this.onLessonTap,
-    this.chest,
-    this.openedChests = const {},
-    this.onChestTap,
   });
 
   final UnitDefinition unit;
   final Set<String> completed;
   final String? currentLessonId;
   final ValueChanged<LessonDefinition> onLessonTap;
-  final ChestDefinition? chest;
-  final Set<String> openedChests;
-  final ValueChanged<ChestDefinition>? onChestTap;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final chest = this.chest;
         final layout = PathLayout(
           unit: unit,
           width: constraints.maxWidth,
           startOffset: _unitStartOffset(unit),
-          chestAfterLessonId: chest?.afterLessonId,
           currentLessonId: currentLessonId,
         );
-        final chestPosition = layout.chestPosition;
-        final chestUnlocked =
-            chest != null && completed.contains(chest.afterLessonId);
 
         return SizedBox(
           height: layout.height,
@@ -1069,21 +998,6 @@ class _LessonPath extends StatelessWidget {
                       unitNumber: unit.number,
                       index: node.index,
                       onTap: () => onLessonTap(node.lesson),
-                    ),
-                  ),
-                ),
-              if (chest != null && chestPosition != null)
-                Positioned(
-                  left: chestPosition.dx - PathLayout.chestSize / 2,
-                  top: chestPosition.dy - PathLayout.chestSize / 2,
-                  child: RepaintBoundary(
-                    child: ChestNode(
-                      chest: chest,
-                      unlocked: chestUnlocked,
-                      opened: openedChests.contains(chest.id),
-                      onTap: chestUnlocked && onChestTap != null
-                          ? () => onChestTap!(chest)
-                          : null,
                     ),
                   ),
                 ),
@@ -1187,9 +1101,8 @@ class _CourseMapSheet extends StatelessWidget {
                             width: 24,
                             height: 24,
                             decoration: BoxDecoration(
-                              color: duoUnitColor(
-                                section.units.first.number,
-                              ).face,
+                              color: duoUnitColor(section.units.first.number)
+                                  .face,
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
@@ -1448,75 +1361,77 @@ class _GuidebookSheet extends StatelessWidget {
               )
             else
               Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: notes.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: DuoSpacing.xs),
-                itemBuilder: (_, index) {
-                  final note = notes[index];
-                  final position = Guitar.bestPosition(note);
-                  return Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DuoSpacing.sm,
-                      vertical: DuoSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: newIds.contains(note.id)
-                          ? AppColors.greenSoft
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(DuoSpacing.sm),
-                    ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 54,
-                          child: Text(
-                            note.display,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        if (newIds.contains(note.id))
-                          Container(
-                            margin: const EdgeInsets.only(right: DuoSpacing.xs),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: DuoSpacing.xs,
-                              vertical: DuoSpacing.xxs,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.green,
-                              borderRadius: BorderRadius.circular(
-                                DuoSpacing.xxs,
-                              ),
-                            ),
-                            child: const Text(
-                              'NEW',
-                              style: TextStyle(
-                                fontSize: 8,
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: notes.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: DuoSpacing.xs),
+                  itemBuilder: (_, index) {
+                    final note = notes[index];
+                    final position = Guitar.bestPosition(note);
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: DuoSpacing.sm,
+                        vertical: DuoSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: newIds.contains(note.id)
+                            ? AppColors.greenSoft
+                            : AppColors.surface,
+                        borderRadius: BorderRadius.circular(DuoSpacing.sm),
+                      ),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 54,
+                            child: Text(
+                              note.display,
+                              style: const TextStyle(
+                                fontSize: 16,
                                 fontWeight: FontWeight.w800,
-                                color: Colors.white,
                               ),
                             ),
                           ),
-                        Expanded(
-                          child: Text(
-                            position?.label ?? 'First-position note',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textMuted,
+                          if (newIds.contains(note.id))
+                            Container(
+                              margin: const EdgeInsets.only(
+                                right: DuoSpacing.xs,
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: DuoSpacing.xs,
+                                vertical: DuoSpacing.xxs,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.green,
+                                borderRadius: BorderRadius.circular(
+                                  DuoSpacing.xxs,
+                                ),
+                              ),
+                              child: const Text(
+                                'NEW',
+                                style: TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          Expanded(
+                            child: Text(
+                              position?.label ?? 'First-position note',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textMuted,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -1636,10 +1551,7 @@ class _TodayCard extends StatelessWidget {
               if (currentLesson != null && due > 0 && onReview != null) ...[
                 const SizedBox(width: 8),
                 Expanded(
-                  child: OutlineDuoButton(
-                    label: 'REVIEW',
-                    onPressed: onReview,
-                  ),
+                  child: OutlineDuoButton(label: 'REVIEW', onPressed: onReview),
                 ),
               ],
             ],

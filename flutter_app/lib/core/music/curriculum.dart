@@ -25,21 +25,6 @@ final Map<String, UnitDefinition> unitById = {
   for (final unit in curriculum) unit.id: unit,
 };
 
-/// One chest per unit. The generated course puts it after the unit's third
-/// lesson, so it unlocks halfway through the unit.
-final List<ChestDefinition> chests = buildCourseChests();
-
-final Map<String, ChestDefinition> chestById = {
-  for (final chest in chests) chest.id: chest,
-};
-
-ChestDefinition? chestForUnit(String unitId) {
-  for (final chest in chests) {
-    if (chest.unitId == unitId) return chest;
-  }
-  return null;
-}
-
 /// Every note that can appear as an answer option.
 final List<Note> noteCatalog = _uniqueNotes([
   _n('E3'),

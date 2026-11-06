@@ -11,6 +11,7 @@ import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
 import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/features/home_shell.dart';
 import 'package:hear_me_out/features/path/path_layout.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
@@ -41,6 +42,25 @@ void main() {
     );
   }
 
+  Widget buildShell(ProgressState progress, {required bool todayEnabled}) {
+    final store = MemoryProgressStore(progress);
+    return ProviderScope(
+      overrides: [
+        progressStoreProvider.overrideWithValue(store),
+        onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
+        audioEngineProvider.overrideWithValue(FakeAudioEngine()),
+        pitchSourceFactoryProvider.overrideWithValue(
+          FakePitchSourceFactory(permission: false).call,
+        ),
+        soundServiceProvider.overrideWithValue(FakeSoundService()),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light,
+        home: HomeShell(todayEnabled: todayEnabled),
+      ),
+    );
+  }
+
   testWidgets('path shows real units and the next lesson', (tester) async {
     tester.view.physicalSize = const Size(390, 4800);
     tester.view.devicePixelRatio = 1;
@@ -59,7 +79,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(Icons.diamond_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.diamond_rounded), findsNothing);
     expect(find.text('SECTION 1, UNIT 1'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Up next'), 300);
     expect(find.text('Up next'), findsOneWidget);
@@ -143,7 +163,7 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('quests and shop are reachable from the bottom bar', (
+  testWidgets('quests are reachable from the bottom bar and there is no shop', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -163,17 +183,108 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Shop'), findsNothing);
+
     await tester.tap(find.text('Quests'));
     await tester.pumpAndSettle();
-    expect(find.text('Daily quests'), findsOneWidget);
-    expect(find.text('Complete a lesson'), findsOneWidget);
-
-    await tester.tap(find.text('Shop'));
-    await tester.pumpAndSettle();
-    expect(find.text('Double XP'), findsOneWidget);
+    expect(find.text('Play 3 phrases'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Learn 4 bars'), 200);
+    expect(find.text('Record a take'), findsOneWidget);
+    expect(find.text('Learn 4 bars'), findsOneWidget);
+    expect(find.byIcon(Icons.diamond_rounded), findsNothing);
     expect(find.text('Refill hearts'), findsNothing);
     expect(find.text('Streak freeze'), findsNothing);
     expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+  });
+
+  testWidgets('HomeShell shows Learn when the phrase gate is closed', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildShell(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+        todayEnabled: false,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Learn'), findsOneWidget);
+    expect(find.text('Today'), findsNothing);
+    expect(find.text('Practice'), findsOneWidget);
+    expect(find.text('Quests'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Shop'), findsNothing);
+  });
+
+  testWidgets('HomeShell shows Today when the phrase gate is open', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      buildShell(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+        todayEnabled: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Learn'), findsNothing);
+    expect(find.text('Practice'), findsOneWidget);
+    expect(find.text('Quests'), findsOneWidget);
+    expect(find.text('Profile'), findsOneWidget);
+    expect(find.text('Shop'), findsNothing);
+  });
+
+  testWidgets('quests fit a phone and a wide layout without overflow', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    for (final size in <Size>[const Size(390, 844), const Size(1200, 900)]) {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(
+        buildApp(
+          ProgressState.fresh(
+            settings: const AppSettings(
+              onboardingComplete: true,
+              answerMode: AnswerMode.name,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(size.width >= 900 ? 'QUESTS' : 'Quests'));
+      await tester.pumpAndSettle();
+      expect(find.text('Quests'), findsWidgets);
+      expect(find.text('Today'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      if (size.width >= 900) {
+        expect(find.byKey(const ValueKey('side-rail')), findsOneWidget);
+      } else {
+        expect(find.byKey(const ValueKey('side-rail')), findsNothing);
+      }
+    }
   });
 
   testWidgets('wide layouts use the side rail instead of bottom tabs', (
@@ -198,13 +309,15 @@ void main() {
 
     expect(find.byKey(const ValueKey('side-rail')), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
+    expect(find.text('Shop'), findsNothing);
+    expect(find.text('SHOP'), findsNothing);
     expect(find.text('Open Strings'), findsOneWidget);
-    expect(find.text('Daily Quests'), findsOneWidget);
+    expect(find.text('Musical quests'), findsOneWidget);
     expect(find.text('Weekly goal'), findsOneWidget);
 
     // The path and the quest rail share one scrollable, like Duo.
     expect(find.byType(CustomScrollView), findsOneWidget);
-    final railFinder = find.text('Daily Quests');
+    final railFinder = find.text('Musical quests');
     final nodeFinder = find.byKey(const ValueKey('current-lesson-node'));
     final railBefore = tester.getTopLeft(railFinder).dy;
     final nodeBefore = tester.getTopLeft(nodeFinder).dy;

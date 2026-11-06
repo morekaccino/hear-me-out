@@ -28,25 +28,14 @@ void main() {
     expect(first.nodes[2].position.dx, greaterThan(195));
   });
 
-  test('path spacing is consistent except for the chest slot', () {
+  test('path spacing is consistent', () {
     for (final unit in curriculum) {
-      final chest = chestForUnit(unit.id);
-      final layout = PathLayout(
-        unit: unit,
-        width: 390,
-        chestAfterLessonId: chest?.afterLessonId,
-      );
-      final chestIndex = layout.nodes.indexWhere(
-        (node) => node.lesson.id == chest?.afterLessonId,
-      );
+      final layout = PathLayout(unit: unit, width: 390);
       for (var index = 1; index < layout.nodes.length; index++) {
         final gap =
             layout.nodes[index].position.dy -
             layout.nodes[index - 1].position.dy;
-        final expected = index - 1 == chestIndex
-            ? PathLayout.spacing + PathLayout.chestSlot
-            : PathLayout.spacing;
-        expect(gap, closeTo(expected, 0.001), reason: unit.id);
+        expect(gap, closeTo(PathLayout.spacing, 0.001), reason: unit.id);
       }
       expect(layout.height, greaterThan(layout.nodes.last.position.dy));
     }
@@ -77,31 +66,5 @@ void main() {
       first.nodes.map((node) => node.position).toList(),
       second.nodes.map((node) => node.position).toList(),
     );
-  });
-
-  test('chest slots clear neighboring lesson nodes and stay on screen', () {
-    const chestRadius = PathLayout.chestSize / 2;
-    final required = PathLayout.nodeSize / 2 + chestRadius + 4;
-
-    for (final unit in curriculum) {
-      final chest = chestForUnit(unit.id);
-      final layout = PathLayout(
-        unit: unit,
-        width: 390,
-        chestAfterLessonId: chest?.afterLessonId,
-      );
-      final position = layout.chestPosition;
-      expect(position, isNotNull, reason: unit.id);
-      final center = position!;
-      for (final node in layout.nodes) {
-        expect(
-          (node.position - center).distance,
-          greaterThanOrEqualTo(required),
-          reason: '${unit.id}: ${node.lesson.id} overlaps the chest',
-        );
-      }
-      expect(position.dx - chestRadius, greaterThanOrEqualTo(0));
-      expect(position.dx + chestRadius, lessThanOrEqualTo(390));
-    }
   });
 }

@@ -1,17 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/learning/progress.dart';
-import '../../shared/audio/sound_service.dart';
 import '../../shared/theme/app_theme.dart';
-import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../state/app_controller.dart';
-import '../../state/providers.dart';
 
+/// Musical habits, not currency. Completing the real action completes the
+/// quest, so there is no claim button and no reward to collect.
 class QuestsScreen extends ConsumerWidget {
   const QuestsScreen({super.key});
 
@@ -22,7 +19,15 @@ class QuestsScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final progress = data.progress;
-    progress.refreshDaily(DateTime.now());
+    progress.refreshQuests(DateTime.now());
+    final daily = [
+      for (final quest in questDefinitions)
+        if (quest.period == QuestPeriod.daily) quest,
+    ];
+    final weekly = [
+      for (final quest in questDefinitions)
+        if (quest.period == QuestPeriod.weekly) quest,
+    ];
 
     return Scaffold(
       body: SafeArea(
@@ -32,27 +37,14 @@ class QuestsScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
             children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'Quests',
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  StatPill(
-                    icon: Icons.diamond_rounded,
-                    value: '${progress.gems}',
-                    iconColor: AppColors.blue,
-                  ),
-                ],
+              const Text(
+                'Quests',
+                style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
               Text(
-                'Fresh quests every day. Claim them for gems.',
+                'Musical habits for today and this week. No currency, no '
+                'leaderboards.',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -63,12 +55,12 @@ class QuestsScreen extends ConsumerWidget {
               _QuestBanner(progress: progress),
               const SizedBox(height: 24),
               const Text(
-                'Daily quests',
+                'Today',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 4),
               Text(
-                'Resets at midnight. ${_resetCopy()}',
+                'Resets at local midnight. ${_resetCopy()}',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -76,32 +68,27 @@ class QuestsScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              for (final quest in dailyQuestDefinitions) ...[
-                _QuestCard(
-                  quest: quest,
-                  progress: progress.questProgress(quest),
-                  claimed: progress.isQuestClaimed(quest),
-                  onClaim: () async {
-                    final claimed = await ref
-                        .read(appControllerProvider.notifier)
-                        .claimQuest(quest.id);
-                    if (!context.mounted) return;
-                    unawaited(
-                      ref
-                          .read(soundServiceProvider)
-                          .play(claimed ? Sfx.copySuccess : Sfx.uiLocked),
-                    );
-                    if (claimed) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Claimed ${quest.rewardGems} gems. Nice work.',
-                          ),
-                        ),
-                      );
-                    }
-                  },
+              for (final quest in daily) ...[
+                _QuestCard(quest: quest, progress: progress),
+                const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 8),
+              const Text(
+                'This week',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Resets on Monday. ${_weekResetCopy()}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
                 ),
+              ),
+              const SizedBox(height: 12),
+              for (final quest in weekly) ...[
+                _QuestCard(quest: quest, progress: progress),
                 const SizedBox(height: 8),
               ],
               const SizedBox(height: 8),
@@ -122,7 +109,9 @@ class QuestsScreen extends ConsumerWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Quests are tracked on this device. There are no leagues, leaderboards, or friend challenges.',
+                        'Quests are tracked on this device. There are no '
+                        'leagues, leaderboards, currencies, or friend '
+                        'challenges.',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -145,9 +134,12 @@ class QuestsScreen extends ConsumerWidget {
     final now = DateTime.now();
     final midnight = DateTime(now.year, now.month, now.day + 1);
     final left = midnight.difference(now);
-    final hours = left.inHours;
-    final minutes = left.inMinutes % 60;
-    return '${hours}h ${minutes}m left';
+    return '${left.inHours}h ${left.inMinutes % 60}m left';
+  }
+
+  String _weekResetCopy() {
+    final days = 8 - DateTime.now().weekday;
+    return days == 1 ? '1 day left' : '$days days left';
   }
 }
 
@@ -158,11 +150,8 @@ class _QuestBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completed = dailyQuestDefinitions
+    final completed = questDefinitions
         .where((quest) => progress.isQuestComplete(quest))
-        .length;
-    final claimed = dailyQuestDefinitions
-        .where((quest) => progress.isQuestClaimed(quest))
         .length;
 
     return Container(
@@ -181,14 +170,14 @@ class _QuestBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.workspace_premium_rounded, size: 46, color: Colors.white),
+          const Icon(Icons.music_note_rounded, size: 46, color: Colors.white),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$claimed of ${dailyQuestDefinitions.length} claimed',
+                  '$completed of ${questDefinitions.length} done',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
@@ -197,9 +186,9 @@ class _QuestBanner extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  completed == dailyQuestDefinitions.length
-                      ? 'All quests complete. Collect your gems.'
-                      : 'Complete quests to earn gems for the shop.',
+                  completed == questDefinitions.length
+                      ? 'All musical quests done. Keep playing.'
+                      : 'Play phrases, record a take, and learn bars.',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -216,32 +205,23 @@ class _QuestBanner extends StatelessWidget {
 }
 
 class _QuestCard extends StatelessWidget {
-  const _QuestCard({
-    required this.quest,
-    required this.progress,
-    required this.claimed,
-    required this.onClaim,
-  });
+  const _QuestCard({required this.quest, required this.progress});
 
   final QuestDefinition quest;
-  final int progress;
-  final bool claimed;
-  final VoidCallback onClaim;
+  final ProgressState progress;
 
   @override
   Widget build(BuildContext context) {
-    final ratio = (progress / quest.target).clamp(0.0, 1.0);
-    final complete = progress >= quest.target;
-    final color = switch (quest.kind) {
-      'correct' => AppColors.blue,
-      'combo' => AppColors.purple,
-      _ => AppColors.green,
+    final value = progress.questProgress(quest);
+    final ratio = (value / quest.target).clamp(0.0, 1.0);
+    final complete = value >= quest.target;
+    final (color, icon) = switch (quest.kind) {
+      'phrases' => (AppColors.green, Icons.music_note_rounded),
+      'recordings' => (AppColors.purple, Icons.mic_rounded),
+      'bars' => (AppColors.blue, Icons.straighten_rounded),
+      _ => (AppColors.green, Icons.music_note_rounded),
     };
-    final icon = switch (quest.kind) {
-      'correct' => Icons.check_circle_rounded,
-      'combo' => Icons.local_fire_department_rounded,
-      _ => Icons.menu_book_rounded,
-    };
+    final comingSoon = quest.awaitingProducer && !complete;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -273,32 +253,12 @@ class _QuestCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        quest.title,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    Icon(
-                      Icons.diamond_rounded,
-                      size: 15,
-                      color: AppColors.blue,
-                    ),
-                    const SizedBox(width: 2),
-                    Text(
-                      '${quest.rewardGems}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.blue,
-                      ),
-                    ),
-                  ],
+                Text(
+                  quest.title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 1),
                 Text(
@@ -309,6 +269,19 @@ class _QuestCard extends StatelessWidget {
                     color: AppColors.textMuted,
                   ),
                 ),
+                if (comingSoon) ...[
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Coming with recordings. Progress stays at zero until a '
+                    'real take is saved.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      height: 1.35,
+                      color: AppColors.purpleDark,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -321,7 +294,7 @@ class _QuestCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${progress.clamp(0, quest.target)}/${quest.target}',
+                      '${value.clamp(0, quest.target)}/${quest.target}',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -335,16 +308,10 @@ class _QuestCard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 92,
-            child: claimed
-                ? const _ClaimedBadge()
-                : DuoButton(
-                    label: complete ? 'CLAIM' : 'TODO',
-                    onPressed: complete ? onClaim : null,
-                    color: AppColors.green,
-                    height: 44,
-                    fontSize: 13,
-                  ),
+            width: 100,
+            child: complete
+                ? const _DoneBadge()
+                : _TodoBadge(comingSoon: comingSoon),
           ),
         ],
       ),
@@ -352,8 +319,8 @@ class _QuestCard extends StatelessWidget {
   }
 }
 
-class _ClaimedBadge extends StatelessWidget {
-  const _ClaimedBadge();
+class _DoneBadge extends StatelessWidget {
+  const _DoneBadge();
 
   @override
   Widget build(BuildContext context) {
@@ -371,6 +338,35 @@ class _ClaimedBadge extends StatelessWidget {
           fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
           color: AppColors.greenDark,
+        ),
+      ),
+    );
+  }
+}
+
+class _TodoBadge extends StatelessWidget {
+  const _TodoBadge({required this.comingSoon});
+
+  final bool comingSoon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Text(
+        comingSoon ? 'COMING SOON' : 'IN PROGRESS',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.4,
+          color: comingSoon ? AppColors.purpleDark : AppColors.textMuted,
         ),
       ),
     );

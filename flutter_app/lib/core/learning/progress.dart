@@ -127,55 +127,149 @@ const int effectivePracticeMinutes = 3;
 /// sessions are not rounded away.
 const int practiceHistoryDays = 35;
 
-const int xpBoostCost = 100;
-const Duration xpBoostDuration = Duration(minutes: 15);
-const int startingGems = 500;
+/// The recording flow (T4.2) is not built yet. The counter and quest are
+/// visible so the musical action is honest at zero; nothing marks the quest
+/// complete until a real recording calls [ProgressState.recordRecordingMade].
+const bool recordingFlowAvailable = false;
 
-/// Local-only quests. Each one maps to a counter in [DailyCounters].
+enum QuestPeriod { daily, weekly }
+
+/// A local-only musical quest. Quests have no currency reward and are never
+/// claimed: finishing the real action completes them.
 class QuestDefinition {
   const QuestDefinition({
     required this.id,
     required this.title,
     required this.subtitle,
     required this.kind,
+    required this.period,
     required this.target,
-    required this.rewardGems,
+    this.awaitingProducer = false,
   });
 
   final String id;
   final String title;
   final String subtitle;
   final String kind;
+  final QuestPeriod period;
   final int target;
-  final int rewardGems;
+
+  /// True when the counter has no producer in this build. The quest stays
+  /// visible with honest progress instead of pretending to complete.
+  final bool awaitingProducer;
 }
 
-const List<QuestDefinition> dailyQuestDefinitions = [
+/// Musical habits, not answer counts. The playlist rotates between playing,
+/// recording, and learning repertoire.
+const List<QuestDefinition> questDefinitions = [
   QuestDefinition(
-    id: 'lesson',
-    title: 'Complete a lesson',
-    subtitle: 'Finish one lesson today',
-    kind: 'lessons',
+    id: 'phrases',
+    title: 'Play 3 phrases',
+    subtitle: 'Finish three determinate phrase takes today',
+    kind: 'phrases',
+    period: QuestPeriod.daily,
+    target: 3,
+  ),
+  QuestDefinition(
+    id: 'recordings',
+    title: 'Record a take',
+    subtitle: 'Save one take with the recorder',
+    kind: 'recordings',
+    period: QuestPeriod.weekly,
     target: 1,
-    rewardGems: 10,
+    awaitingProducer: !recordingFlowAvailable,
   ),
   QuestDefinition(
-    id: 'correct',
-    title: 'Answer 10 notes',
-    subtitle: 'Get ten answers right today',
-    kind: 'correct',
-    target: 10,
-    rewardGems: 10,
-  ),
-  QuestDefinition(
-    id: 'combo',
-    title: 'Build a combo',
-    subtitle: 'Get five correct answers in a row',
-    kind: 'combo',
-    target: 5,
-    rewardGems: 15,
+    id: 'bars',
+    title: 'Learn 4 bars',
+    subtitle: 'Play four bars of a phrase correctly this week',
+    kind: 'bars',
+    period: QuestPeriod.weekly,
+    target: 4,
   ),
 ];
+
+/// The local day and week the quest counters belong to.
+///
+/// Daily counters reset at local midnight. Weekly counters and the
+/// learned-bars map reset on the local Monday. A reset starts at zero; no
+/// progress is carried across it.
+class QuestCounters {
+  QuestCounters({
+    this.day,
+    this.week,
+    this.phrasesPracticed = 0,
+    this.recordingsMade = 0,
+    Map<String, int>? learnedBarsByPhrase,
+  }) : learnedBarsByPhrase = learnedBarsByPhrase ?? <String, int>{};
+
+  String? day;
+  String? week;
+  int phrasesPracticed;
+  int recordingsMade;
+
+  /// Bars of each phrase with at least one determinate, correct take this
+  /// week, keyed by phrase id. A repeat take never adds the same bars twice,
+  /// and a prompt tap never adds anything.
+  final Map<String, int> learnedBarsByPhrase;
+
+  int get barsLearned =>
+      learnedBarsByPhrase.values.fold(0, (sum, bars) => sum + bars);
+
+  void resetDay(String dayKey) {
+    day = dayKey;
+    phrasesPracticed = 0;
+  }
+
+  void resetWeek(String weekKey) {
+    week = weekKey;
+    recordingsMade = 0;
+    learnedBarsByPhrase.clear();
+  }
+
+  QuestCounters copy() => QuestCounters(
+    day: day,
+    week: week,
+    phrasesPracticed: phrasesPracticed,
+    recordingsMade: recordingsMade,
+    learnedBarsByPhrase: {...learnedBarsByPhrase},
+  );
+
+  Map<String, dynamic> toJson() => {
+    'day': day,
+    'week': week,
+    'phrasesPracticed': phrasesPracticed,
+    'recordingsMade': recordingsMade,
+    'learnedBarsByPhrase': learnedBarsByPhrase,
+  };
+
+  factory QuestCounters.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return QuestCounters();
+    return QuestCounters(
+      day: json['day'] as String?,
+      week: json['week'] as String?,
+      phrasesPracticed: (json['phrasesPracticed'] as num?)?.toInt() ?? 0,
+      recordingsMade: (json['recordingsMade'] as num?)?.toInt() ?? 0,
+      learnedBarsByPhrase: {
+        for (final entry
+            in (json['learnedBarsByPhrase'] as Map<String, dynamic>? ??
+                    const {})
+                .entries)
+          entry.key: (entry.value as num?)?.toInt() ?? 0,
+      },
+    );
+  }
+}
+
+/// The local Monday that starts the week containing [time], as `yyyy-MM-dd`.
+String weekKey(DateTime time) {
+  final monday = DateTime(
+    time.year,
+    time.month,
+    time.day - (time.weekday - DateTime.monday),
+  );
+  return dayKey(monday);
+}
 
 /// Counters that reset at local midnight. Stored inside [ProgressState].
 class DailyCounters {
@@ -395,13 +489,9 @@ class ProgressState {
     this.lastPracticeDay,
     this.xpToday = 0,
     this.xpDay,
-    this.gems = startingGems,
-    this.xpBoostUntil,
     Map<String, int>? practiceSecondsByDay,
-    Set<String>? openedChests,
+    QuestCounters? quests,
     DailyCounters? daily,
-    Set<String>? claimedQuests,
-    this.questDay,
     this.settings = const AppSettings(),
     List<SessionSummary>? recentSessions,
     Map<String, dynamic>? extraFields,
@@ -413,9 +503,8 @@ class ProgressState {
        bestLessonAccuracy = bestLessonAccuracy ?? <String, double>{},
        completedCheckpoints = completedCheckpoints ?? <String>{},
        practiceSecondsByDay = practiceSecondsByDay ?? <String, int>{},
-       openedChests = openedChests ?? <String>{},
+       quests = quests ?? QuestCounters(),
        daily = daily ?? DailyCounters(),
-       claimedQuests = claimedQuests ?? <String>{},
        recentSessions = recentSessions ?? <SessionSummary>[],
        _extraFields = extraFields ?? <String, dynamic>{};
 
@@ -439,16 +528,12 @@ class ProgressState {
   String? lastPracticeDay;
   int xpToday;
   String? xpDay;
-  int gems;
-  DateTime? xpBoostUntil;
 
   /// Guitar time per local `yyyy-MM-dd` day, in seconds. Empty on a fresh
   /// profile; only real sessions add to it.
   final Map<String, int> practiceSecondsByDay;
-  final Set<String> openedChests;
+  final QuestCounters quests;
   final DailyCounters daily;
-  final Set<String> claimedQuests;
-  String? questDay;
   AppSettings settings;
   final List<SessionSummary> recentSessions;
 
@@ -566,12 +651,6 @@ class ProgressState {
     return xpToday;
   }
 
-  int xpMultiplierAt(DateTime now) =>
-      xpBoostUntil != null && xpBoostUntil!.isAfter(now) ? 2 : 1;
-
-  bool get xpBoostActive =>
-      xpBoostUntil != null && xpBoostUntil!.isAfter(DateTime.now());
-
   void addXp(int amount, DateTime now) {
     if (amount <= 0) return;
     final today = dayKey(now);
@@ -581,18 +660,6 @@ class ProgressState {
     }
     xp += amount;
     xpToday += amount;
-  }
-
-  void addGems(int amount) {
-    if (amount <= 0) return;
-    gems += amount;
-  }
-
-  bool spendGems(int amount) {
-    if (amount <= 0) return true;
-    if (gems < amount) return false;
-    gems -= amount;
-    return true;
   }
 
   /// Adds real guitar time to the local day map.
@@ -619,7 +686,8 @@ class ProgressState {
       recordPracticeSeconds(instrumentTime.inSeconds, now);
     }
     final today = dayKey(now);
-    final effective = recordedTake ||
+    final effective =
+        recordedTake ||
         (practiceSecondsByDay[today] ?? 0) >= effectivePracticeMinutes * 60;
     if (!effective || !settings.streakEnabled) return;
 
@@ -641,20 +709,23 @@ class ProgressState {
     practiceSecondsByDay.removeWhere((key, _) => key.compareTo(cutoff) < 0);
   }
 
-  bool buyXpBoost(DateTime now) {
-    if (gems < xpBoostCost) return false;
-    gems -= xpBoostCost;
-    xpBoostUntil = now.add(xpBoostDuration);
-    return true;
-  }
-
   void refreshDaily(DateTime now) {
     final today = dayKey(now);
     if (daily.day != today) {
       daily.reset(today);
-      claimedQuests.clear();
-      questDay = today;
     }
+  }
+
+  /// Resets the quest counters when the local day or week changes.
+  ///
+  /// A new day clears the daily phrase count. A new week clears the weekly
+  /// recording count and the learned-bars set. Nothing is invented on a
+  /// reset; a fresh profile and a new week both start at zero.
+  void refreshQuests(DateTime now) {
+    final today = dayKey(now);
+    final week = weekKey(now);
+    if (quests.week != week) quests.resetWeek(week);
+    if (quests.day != today) quests.resetDay(today);
   }
 
   void recordDailyCombo(int combo, DateTime now) {
@@ -664,10 +735,9 @@ class ProgressState {
 
   int questProgress(QuestDefinition quest) {
     return switch (quest.kind) {
-      'lessons' => daily.lessons,
-      'correct' => daily.correct,
-      'practice' => daily.practice,
-      'combo' => daily.bestCombo,
+      'phrases' => quests.phrasesPracticed,
+      'recordings' => quests.recordingsMade,
+      'bars' => quests.barsLearned,
       _ => 0,
     };
   }
@@ -675,22 +745,11 @@ class ProgressState {
   bool isQuestComplete(QuestDefinition quest) =>
       questProgress(quest) >= quest.target;
 
-  bool isQuestClaimed(QuestDefinition quest) =>
-      claimedQuests.contains(quest.id);
-
-  bool claimQuest(QuestDefinition quest, DateTime now) {
-    refreshDaily(now);
-    if (!isQuestComplete(quest) || isQuestClaimed(quest)) return false;
-    claimedQuests.add(quest.id);
-    addGems(quest.rewardGems);
-    return true;
-  }
-
-  bool openChest(String chestId, int rewardGems) {
-    if (openedChests.contains(chestId)) return false;
-    openedChests.add(chestId);
-    addGems(rewardGems);
-    return true;
+  /// Records one saved recording. T4.2 owns the recording flow; this API keeps
+  /// the counter real and lets the quest complete only when that flow calls it.
+  void recordRecordingMade(DateTime now) {
+    refreshQuests(now);
+    quests.recordingsMade++;
   }
 
   void recordSkillAnswer(SkillAnswer answer) {
@@ -725,10 +784,24 @@ class ProgressState {
   /// evidence, so one take cannot count twice. An indeterminate phrase is a
   /// no-op.
   ///
+  /// A determinate take also advances the daily phrase quest. When the caller
+  /// supplies [PhraseAttempt.bars], a correct take records those bars for the
+  /// weekly bars quest; a repeated take of the same phrase never adds them
+  /// twice.
+  ///
   /// This makes no mastery claim; the phrase-specific scheduler and mastery
   /// rules remain T2.5 work.
   void recordPhraseAttempt(PhraseAttempt attempt) {
     if (attempt.outcome == AttemptOutcome.indeterminate) return;
+
+    refreshQuests(attempt.now);
+    quests.phrasesPracticed++;
+    if (attempt.outcome == AttemptOutcome.correct && attempt.bars > 0) {
+      final previous = quests.learnedBarsByPhrase[attempt.phraseId] ?? 0;
+      if (attempt.bars > previous) {
+        quests.learnedBarsByPhrase[attempt.phraseId] = attempt.bars;
+      }
+    }
 
     final phrase = phraseProgress.putIfAbsent(
       attempt.phraseId,
@@ -941,13 +1014,9 @@ class ProgressState {
     lastPracticeDay: lastPracticeDay,
     xpToday: xpToday,
     xpDay: xpDay,
-    gems: gems,
-    xpBoostUntil: xpBoostUntil,
     practiceSecondsByDay: {...practiceSecondsByDay},
-    openedChests: {...openedChests},
+    quests: quests.copy(),
     daily: daily.copy(),
-    claimedQuests: {...claimedQuests},
-    questDay: questDay,
     settings: settings,
     recentSessions: [...recentSessions],
     extraFields: {..._extraFields},
@@ -979,13 +1048,9 @@ class ProgressState {
     'lastPracticeDay': lastPracticeDay,
     'xpToday': xpToday,
     'xpDay': xpDay,
-    'gems': gems,
-    'xpBoostUntil': xpBoostUntil?.toIso8601String(),
     'practiceSecondsByDay': practiceSecondsByDay,
-    'openedChests': openedChests.toList(),
+    'quests': quests.toJson(),
     'daily': daily.toJson(),
-    'claimedQuests': claimedQuests.toList(),
-    'questDay': questDay,
     'settings': settings.toJson(),
     'recentSessions': [for (final session in recentSessions) session.toJson()],
   };
@@ -1053,8 +1118,6 @@ class ProgressState {
       lastPracticeDay: json['lastPracticeDay'] as String?,
       xpToday: (json['xpToday'] as num?)?.toInt() ?? 0,
       xpDay: json['xpDay'] as String?,
-      gems: (json['gems'] as num?)?.toInt() ?? startingGems,
-      xpBoostUntil: _parseDate(json['xpBoostUntil']),
       practiceSecondsByDay: {
         for (final entry
             in (json['practiceSecondsByDay'] as Map<String, dynamic>? ??
@@ -1062,16 +1125,8 @@ class ProgressState {
                 .entries)
           entry.key: (entry.value as num?)?.toInt() ?? 0,
       },
-      openedChests: {
-        for (final id in (json['openedChests'] as List<dynamic>? ?? const []))
-          if (id is String) id,
-      },
+      quests: QuestCounters.fromJson(json['quests'] as Map<String, dynamic>?),
       daily: DailyCounters.fromJson(json['daily'] as Map<String, dynamic>?),
-      claimedQuests: {
-        for (final id in (json['claimedQuests'] as List<dynamic>? ?? const []))
-          if (id is String) id,
-      },
-      questDay: json['questDay'] as String?,
       settings: AppSettings.fromJson(json['settings'] as Map<String, dynamic>?),
       recentSessions: [
         for (final session
@@ -1164,13 +1219,9 @@ const Set<String> _progressTopLevelKeys = {
   'lastPracticeDay',
   'xpToday',
   'xpDay',
-  'gems',
-  'xpBoostUntil',
   'practiceSecondsByDay',
-  'openedChests',
+  'quests',
   'daily',
-  'claimedQuests',
-  'questDay',
   'settings',
   'recentSessions',
 };

@@ -35,13 +35,10 @@ class LearnRail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-            PathCounters(
-              streak: progress.settings.streakEnabled
-                  ? progress.effectiveStreak
-                  : null,
-              gems: progress.gems,
-            ),
-            const SizedBox(height: DuoSpacing.lg),
+            if (progress.settings.streakEnabled) ...[
+              PathCounters(streak: progress.effectiveStreak),
+              const SizedBox(height: DuoSpacing.lg),
+            ],
             _RailCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -50,7 +47,7 @@ class LearnRail extends StatelessWidget {
                     children: [
                       const Expanded(
                         child: Text(
-                          'Daily Quests',
+                          'Musical quests',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -76,16 +73,14 @@ class LearnRail extends StatelessWidget {
                   const SizedBox(height: DuoSpacing.md),
                   for (
                     var index = 0;
-                    index < dailyQuestDefinitions.length;
+                    index < questDefinitions.length;
                     index++
                   ) ...[
                     _QuestRow(
-                      quest: dailyQuestDefinitions[index],
-                      value: progress.questProgress(
-                        dailyQuestDefinitions[index],
-                      ),
+                      quest: questDefinitions[index],
+                      value: progress.questProgress(questDefinitions[index]),
                     ),
-                    if (index < dailyQuestDefinitions.length - 1)
+                    if (index < questDefinitions.length - 1)
                       const SizedBox(height: DuoSpacing.md),
                   ],
                 ],
@@ -172,8 +167,9 @@ class _QuestRow extends StatelessWidget {
         ? 0.0
         : (value / quest.target).clamp(0.0, 1.0);
     final (icon, color) = switch (quest.kind) {
-      'lessons' => (Icons.school_rounded, AppColors.green),
-      'combo' => (Icons.local_fire_department_rounded, AppColors.orange),
+      'phrases' => (Icons.music_note_rounded, AppColors.green),
+      'recordings' => (Icons.mic_rounded, AppColors.purple),
+      'bars' => (Icons.straighten_rounded, AppColors.blue),
       _ => (Icons.music_note_rounded, AppColors.blue),
     };
 
@@ -193,21 +189,9 @@ class _QuestRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: DuoSpacing.xs),
-              Row(
-                children: [
-                  Expanded(
-                    child: _QuestProgress(
-                      value: ratio,
-                      label: '$value / ${quest.target}',
-                    ),
-                  ),
-                  const SizedBox(width: DuoSpacing.xs),
-                  const Icon(
-                    Icons.inventory_2_rounded,
-                    size: 22,
-                    color: AppColors.yellowDark,
-                  ),
-                ],
+              _QuestProgress(
+                value: ratio,
+                label: '$value / ${quest.target}',
               ),
             ],
           ),

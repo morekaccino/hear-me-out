@@ -61,9 +61,9 @@ hit the note, missed it, or played the right note in the wrong octave.
   answers across at least three days, with production and transfer evidence.
   Wrong answers trigger a repair chain, not a single end-of-lesson retry.
 - **Duolingo-style path** — section and unit banners, a winding lesson map,
-  guidebooks, gem counters, an optional streak, chests, jump-ahead tests, and
-  daily quests. There is no heart pool and no loss-based gate. No fake
-  leaderboards or leagues.
+  guidebooks, an optional streak, jump-ahead tests, and musical quests. There is
+  no heart pool, currency, chest, shop, or loss-based gate. No fake leaderboards
+  or leagues.
 - **A voice of its own** — original marimba/bell/woodblock cues for correct,
   wrong, combo, lesson, practice, streak, goal, and level-up moments, with a
   persisted sound-effects setting.
@@ -76,21 +76,20 @@ hit the note, missed it, or played the right note in the wrong octave.
 ## Screens
 
 - **Learn** — a Today card, an eight-section course map, winding unit paths,
-  guidebooks, checkpoints, jump-ahead tests, a weekly minutes goal, and gem / XP
+  guidebooks, checkpoints, jump-ahead tests, a weekly minutes goal, and XP
   progress with an optional streak.
 - **Lesson** — staff, fretboard, chord, rhythm, and ear-training questions with
   real feedback and a mastery gate.
 - **Practice** — a standard-tuning guitar tuner plus Smart review across every
   skill family, due review, weak skills, and free practice. Practice is always
   available and never spends or restores a life.
-- **Quests** — three local daily quests that pay gems.
-- **Shop** — double XP, bought with earned gems only. T5.5 owns the full
-  economy/quest/shop migration.
+- **Quests** — play 3 phrases, record a take, and learn 4 bars, tracked from
+  real actions with no currency reward.
 - **Profile** — real stats, per-note box progress, settings including a
   System/Light/Dark appearance, backup/restore, and reset.
 
 The app is phone-first. At 900 px and wider it uses a left side rail and a
-wider centered content column; below that it uses five bottom tabs. At roughly
+wider centered content column; below that it uses four bottom tabs. At roughly
 1200 px and wider the learn page adds a quest rail that scrolls with the path.
 
 ## Run it
@@ -142,10 +141,10 @@ The suite covers:
   boundaries
 - note matching, cents tolerance, octave errors, and re-arming
 - JSON persistence, corrupt-storage fallbacks, and a simulated app restart
-- onboarding, path, lesson, quests, shop, practice, profile, and responsive-shell
+- onboarding, path, lesson, quests, practice, profile, and responsive-shell
   widget flows
-- gems, chests, daily quests, double XP, jump-ahead tests, the weekly minutes
-  goal, and the optional quiet streak
+- musical quest counters, jump-ahead tests, the weekly minutes goal, and the
+  optional quiet streak
 
 ### Device checklist
 
@@ -232,8 +231,8 @@ session rules.
   third-party trackers, no account, no cloud sync, and no network persistence
   layer. The only usage log is local, opt-in, bounded, and eraseable; see
   [`docs/RETENTION_INSTRUMENTATION.md`](docs/RETENTION_INSTRUMENTATION.md).
-- The shop is a closed gem economy. It takes no money and has no subscriptions
-  or ads.
+- There is no shop, gem currency, chest, XP boost, paid streak freeze, or
+  real-money purchase. Quests describe musical actions and award nothing.
 - The only way progress leaves the app is if you copy a backup JSON to your
   clipboard.
 

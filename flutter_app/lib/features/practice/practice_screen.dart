@@ -221,11 +221,12 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                       ),
                     ),
                   ),
-                  StatPill(
-                    icon: Icons.diamond_rounded,
-                    value: '${progress.gems}',
-                    iconColor: AppColors.blue,
-                  ),
+                  if (progress.settings.streakEnabled)
+                    StatPill(
+                      icon: Icons.local_fire_department_rounded,
+                      value: '${progress.effectiveStreak}',
+                      iconColor: AppColors.orange,
+                    ),
                 ],
               ),
               const SizedBox(height: 4),
