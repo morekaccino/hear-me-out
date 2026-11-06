@@ -7,7 +7,7 @@
 library;
 
 /// The schema version this build reads and writes.
-const int latestProgressSchemaVersion = 6;
+const int latestProgressSchemaVersion = 7;
 
 /// The oldest schema version the pipeline can migrate.
 const int oldestProgressSchemaVersion = 1;
@@ -73,6 +73,7 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
     if (version <= 3) migrated = _v3ToV4(migrated);
     if (version <= 4) migrated = _v4ToV5(migrated);
     if (version <= 5) migrated = _v5ToV6(migrated);
+    if (version <= 6) migrated = _v6ToV7(migrated);
     _validateCurrent(migrated);
   } on FormatException catch (error) {
     return MigrationFailure(error.message);
@@ -83,8 +84,9 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
 /// v1 → v2: add the default economy.
 ///
 /// These are historical defaults, deliberately frozen here. A future change to
-/// `startingGems` or `maxHearts` must not rewrite what an old v1 document
-/// receives.
+/// `startingGems` must not rewrite what an old v1 document receives. The heart
+/// fields added here are removed again by v7; legacy documents still pass
+/// through this exact shape first.
 Map<String, dynamic> _v1ToV2(Map<String, dynamic> json) {
   final out = _copyMap(json);
   out['gems'] = _readInt(out, 'gems', 500, path: 'progress.gems');
@@ -184,6 +186,44 @@ Map<String, dynamic> _v5ToV6(Map<String, dynamic> json) {
   return out;
 }
 
+/// v6 → v7: remove the heart pool and loss-based streak economy, add the
+/// opt-in streak and weekly minutes goal.
+///
+/// Hearts, their regeneration timestamp, streak freezes, and the XP daily goal
+/// no longer exist. The old `lastCompletedDay` becomes `lastPracticeDay`, so a
+/// learner who opts into the streak later starts from the same effective-practice
+/// day they already earned. The weekly minutes map starts empty: old saves have
+/// no measured guitar time, and inventing minutes here would fake the habit
+/// signal. Every unrelated field is copied through unchanged.
+Map<String, dynamic> _v6ToV7(Map<String, dynamic> json) {
+  final out = _copyMap(json);
+  out.remove('hearts');
+  out.remove('nextHeartAt');
+  out.remove('streakFreezes');
+
+  final lastCompletedDay = out.remove('lastCompletedDay');
+  out['lastPracticeDay'] = out['lastPracticeDay'] ?? lastCompletedDay;
+
+  final settings = _readStringMap(out['settings'], 'progress.settings');
+  settings.remove('dailyGoalXp');
+  _defaultValue(settings, 'weeklyGoalMinutes', 30);
+  _defaultValue(settings, 'streakEnabled', false);
+  out['settings'] = settings;
+
+  final practiceSeconds = out['practiceSecondsByDay'];
+  if (practiceSeconds == null) {
+    out['practiceSecondsByDay'] = <String, dynamic>{};
+  } else {
+    out['practiceSecondsByDay'] = _readStringMap(
+      practiceSeconds,
+      'progress.practiceSecondsByDay',
+    );
+  }
+
+  out['schemaVersion'] = 7;
+  return out;
+}
+
 void _applySettingsDefaults(Map<String, dynamic> json) {
   final settings = _readStringMap(json['settings'], 'progress.settings');
   _defaultValue(settings, 'answerMode', 'mixed');
@@ -271,7 +311,26 @@ void _validateCurrent(Map<String, dynamic> json) {
   }
 
   if (json['settings'] != null) {
-    _readStringMap(json['settings'], 'progress.settings');
+    final settings = _readStringMap(json['settings'], 'progress.settings');
+    // Kept literal: this file must stay independent of the progress model it
+    // migrates into.
+    final weeklyGoalMinutes = _readInt(
+      settings,
+      'weeklyGoalMinutes',
+      30,
+      path: 'progress.settings.weeklyGoalMinutes',
+    );
+    if (weeklyGoalMinutes < 1 || weeklyGoalMinutes > 24 * 60) {
+      throw const FormatException(
+        'progress.settings.weeklyGoalMinutes must be between 1 and 1440',
+      );
+    }
+    final streakEnabled = settings['streakEnabled'];
+    if (streakEnabled != null && streakEnabled is! bool) {
+      throw const FormatException(
+        'progress.settings.streakEnabled must be a boolean',
+      );
+    }
   }
 
   if (json['notes'] != null) {
@@ -320,6 +379,31 @@ void _validateCurrent(Map<String, dynamic> json) {
     }
     for (final key in <String>['lessons', 'correct', 'practice', 'bestCombo']) {
       _readInt(daily, key, 0, path: 'progress.daily.$key');
+    }
+  }
+
+  if (json['practiceSecondsByDay'] != null) {
+    final days = _readStringMap(
+      json['practiceSecondsByDay'],
+      'progress.practiceSecondsByDay',
+    );
+    for (final entry in days.entries) {
+      if (!_isDayString(entry.key)) {
+        throw FormatException(
+          'progress.practiceSecondsByDay keys must be yyyy-MM-dd days',
+        );
+      }
+      final seconds = _readInt(
+        days,
+        entry.key,
+        0,
+        path: 'progress.practiceSecondsByDay.${entry.key}',
+      );
+      if (seconds < 0) {
+        throw FormatException(
+          'progress.practiceSecondsByDay.${entry.key} must not be negative',
+        );
+      }
     }
   }
 
@@ -373,7 +457,7 @@ void _validateCurrent(Map<String, dynamic> json) {
 
   for (final key in <String>[
     'placementUnitId',
-    'lastCompletedDay',
+    'lastPracticeDay',
     'xpDay',
     'questDay',
   ]) {
@@ -383,19 +467,11 @@ void _validateCurrent(Map<String, dynamic> json) {
     }
   }
 
-  for (final key in <String>[
-    'xp',
-    'streak',
-    'bestStreak',
-    'xpToday',
-    'gems',
-    'hearts',
-    'streakFreezes',
-  ]) {
+  for (final key in <String>['xp', 'streak', 'bestStreak', 'xpToday', 'gems']) {
     _readInt(json, key, 0, path: 'progress.$key');
   }
 
-  for (final key in <String>['nextHeartAt', 'xpBoostUntil']) {
+  for (final key in <String>['xpBoostUntil']) {
     final value = json[key];
     if (value != null &&
         (value is! String || DateTime.tryParse(value) == null)) {

@@ -54,7 +54,7 @@ class NoteResult {
 /// Whole-phrase evidence.
 ///
 /// [outcome] is the tri-state verdict. `indeterminate` means "incomplete -
-/// retry" and must never update mastery or spend a heart.
+/// retry" and must never update mastery or count as a failed take.
 class PhraseResult {
   const PhraseResult({
     required this.outcome,

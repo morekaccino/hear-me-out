@@ -22,7 +22,6 @@ class ShopScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final progress = data.progress;
-    progress.refreshHearts(DateTime.now());
 
     return Scaffold(
       body: SafeArea(
@@ -60,69 +59,6 @@ class ShopScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              _ShopCard(
-                icon: Icons.favorite_rounded,
-                color: AppColors.red,
-                title: 'Refill hearts',
-                subtitle: progress.hearts >= maxHearts
-                    ? 'Your hearts are full.'
-                    : '${progress.hearts} of $maxHearts hearts left.',
-                price: heartRefillCost,
-                actionLabel: progress.hearts >= maxHearts ? 'FULL' : 'REFILL',
-                enabled:
-                    progress.hearts < maxHearts &&
-                    progress.gems >= heartRefillCost,
-                onBuy: () async {
-                  final bought = await ref
-                      .read(appControllerProvider.notifier)
-                      .buyHeartRefill();
-                  if (!context.mounted) return;
-                  unawaited(
-                    ref
-                        .read(soundServiceProvider)
-                        .play(bought ? Sfx.copySuccess : Sfx.uiLocked),
-                  );
-                  _snack(
-                    context,
-                    bought
-                        ? 'Hearts refilled.'
-                        : 'Not enough gems for a refill.',
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-              _ShopCard(
-                icon: Icons.ac_unit_rounded,
-                color: AppColors.blue,
-                title: 'Streak freeze',
-                subtitle:
-                    '${progress.streakFreezes} of $maxStreakFreezes equipped. Protects one missed day.',
-                price: streakFreezeCost,
-                actionLabel: progress.streakFreezes >= maxStreakFreezes
-                    ? 'MAX'
-                    : 'BUY',
-                enabled:
-                    progress.streakFreezes < maxStreakFreezes &&
-                    progress.gems >= streakFreezeCost,
-                onBuy: () async {
-                  final bought = await ref
-                      .read(appControllerProvider.notifier)
-                      .buyStreakFreeze();
-                  if (!context.mounted) return;
-                  unawaited(
-                    ref
-                        .read(soundServiceProvider)
-                        .play(bought ? Sfx.copySuccess : Sfx.uiLocked),
-                  );
-                  _snack(
-                    context,
-                    bought
-                        ? 'Streak freeze equipped.'
-                        : 'You cannot buy another freeze right now.',
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
               _ShopCard(
                 icon: Icons.bolt_rounded,
                 color: AppColors.yellowDark,
@@ -197,9 +133,8 @@ class ShopScreen extends ConsumerWidget {
   }
 
   void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

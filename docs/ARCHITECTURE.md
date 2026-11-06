@@ -293,8 +293,8 @@ change from the old "no analytics" rule.
   timing, transfer, and checkpoint evidence.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
-- XP, streak, daily XP
-- gems, hearts, next heart time, streak freezes, XP boost
+- XP, daily XP, optional streak, and `lastPracticeDay`
+- gems, XP boost, and `practiceSecondsByDay` (real measured guitar time)
 - opened chests, daily quest counters, claimed quests
 - settings
 - `curriculumVersion` plus a migration path from the old 40-lesson IDs
@@ -309,8 +309,8 @@ days, one production success, one transfer success, and a passed checkpoint.
 `AttemptOutcome` is declared once in `core/learning/attempt_outcome.dart`.
 `SkillProgress.recordAnswer`, `ProgressState.recordSkillAnswer`, and
 `ProgressState.recordAnswer` return without changing anything for
-`indeterminate`: no FSRS state, XP, streak, heart, daily counter, combo, quest,
-or mistake queue. A phrase take with any indeterminate note is incomplete and
+`indeterminate`: no FSRS state, XP, streak, daily counter, combo, quest, or
+mistake queue. A phrase take with any indeterminate note is incomplete and
 records nothing, even if another note was confidently wrong. A determinate
 phrase attempt records `PhraseProgress` and the phrase's own `repertoire` skill
 through `ProgressState.recordPhraseAttempt`; per-note skills record only from
@@ -332,10 +332,16 @@ A wrong answer is not just a box change: it queues a same-session repair, a
 next-day repair card, and a 3-day recheck. Two lapses marks the skill fragile;
 four marks it a leech.
 
-Streak and daily XP are calendar-day based; `dayKey` uses local time. Hearts
-regenerate lazily in `refreshHearts`, one every four hours, and daily quest
-counters reset in `refreshDaily`. Streak freezes are consumed only when the
-next completed lesson finds a gap. All values are local and validated on load.
+Daily XP and the optional streak are calendar-day based; `dayKey` uses local
+time. Daily quest counters reset in `refreshDaily`. There is no heart pool,
+regeneration timer, refill, or streak freeze. The weekly goal sums
+`practiceSecondsByDay` over a rolling seven-day window; only measured session
+time is recorded, so a fresh profile reads zero. The optional streak advances
+when a day has 3+ minutes of guitar time or one determinate recorded take. A
+missed day renders as zero with neutral copy; the stored counters are not
+punished and no resource is spent. All values are local and validated on load.
+`sessionCompletionRate` and `returnRate` derive from `recentSessions` and real
+practice days for local before/after comparison; nothing is sent anywhere.
 
 ## Session planning
 
@@ -389,12 +395,12 @@ than substituting older notes. Note ids and static catalog ids take the
 unchanged path. The phrase performance UI remains unreachable until T1.7
 passes; this is practice-pool infrastructure.
 
-`LessonRun` holds the mutable session state: index, hearts snapshot, correct/
-wrong, combo, result feedback, and `isPractice`. A wrong answer spends a shared
-heart and queues the objective for a short end-of-lesson retry; distinct
-objectives are capped at four. Practice sessions never spend hearts and never
-end on `outOfLives`; only lessons do. `isJumpTest` runs a 15-slot section test
-and unlocks earlier sections on a pass.
+`LessonRun` holds the mutable session state: index, correct/wrong, combo,
+result feedback, and `isPractice`. It has no lives or failure resource. A wrong
+answer queues the objective for a short end-of-lesson retry; distinct objectives
+are capped at four. A lesson always reaches its result, where accuracy decides
+the existing pass/fail feedback. `isJumpTest` runs a 15-slot section test and
+unlocks earlier sections on a pass.
 
 `PracticeSession` in `core/learning/practice_session.dart` is the separate
 Today-loop aggregate. It owns one `ObjectiveRef` target, a computed 5/10/20
@@ -446,7 +452,8 @@ lesson. The question scrolls at the top; the answers (or the teach card's
 `GOT IT`) sit in a bottom dock with a top border. Only the dock is wrapped in
 `SafeArea`, so the iPhone home indicator never covers a control and the page is
 not inset twice. The top bar uses the same 640 px column: close on the left
-edge, hearts on the right edge, progress bar edge to edge, caption centred.
+edge, the mode label on the right edge, progress bar edge to edge, caption
+centred.
 `shared/widgets/hover_region.dart` adds a pointer cursor and hover state to any
 surface. `shared/theme/motion.dart` is the single source of durations and
 curves, and `shared/navigation/duo_route.dart` opens a lesson with a fade plus a
@@ -601,14 +608,16 @@ and exposes lesson/practice lifecycle methods. Screens read it through Riverpod.
 
 Screens:
 
-- `OnboardingScreen` — welcome, explanation, optional mic check, daily goal.
-- `PathScreen` — lesson map, counters, chests, jump-ahead tests, lesson launch.
-- `LessonScreen` — staff, name/play answers, hearts, feedback, result.
-- `PracticeScreen` — tuner, due/weak/free practice, heart recovery, stats.
+- `OnboardingScreen` — welcome, explanation, optional mic check.
+- `PathScreen` — lesson map, weekly goal, optional streak counter, chests,
+  jump-ahead tests, lesson launch.
+- `LessonScreen` — staff, name/play answers, feedback, result.
+- `PracticeScreen` — tuner, due/weak/free practice, weekly goal, stats.
 - `TechniqueScreen` — per-stage self-check, 60-second drill, demo script.
 - `QuestsScreen` — three daily quests and gem claims.
-- `ShopScreen` — heart refill, streak freezes, double XP.
-- `ProfileScreen` — stats, per-note boxes, settings, backup/restore, reset.
+- `ShopScreen` — double XP. T5.5 owns the full economy/quest/shop migration.
+- `ProfileScreen` — stats, weekly goal, optional streak, per-note boxes,
+  settings, backup/restore, reset.
 
 `TechniqueScreen` reads `lib/content/technique/technique_content.dart`. The
 checklists are pure data: they do not touch the scheduler, storage, or mic, and
@@ -626,9 +635,9 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which runs the pure migration
-pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 6.
+pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 7.
 
-### Schema v6 migration pipeline
+### Schema v7 migration pipeline
 
 `migrateProgress` takes a decoded map and returns a `MigrationSuccess` with a
 new map or a `MigrationFailure` with a reason. It has no IO, clock, or random
@@ -641,8 +650,11 @@ input, and it never mutates its argument. The steps are explicit:
 | v3 → v4 | skill cards rebuilt from legacy note boxes when no skills exist |
 | v4 → v5 | `contentVersion` (default 1), an empty `phraseProgress` map, re-applied `AppSettings` defaults, and a defensive skill rebuild when `skills` is empty |
 | v5 → v6 | per-phrase `contentVersion` (default 1) for existing evidence; every phrase id and counter is preserved |
+| v6 → v7 | remove `hearts`, `nextHeartAt`, `streakFreezes`, and the XP `dailyGoalXp`; map `lastCompletedDay` to `lastPracticeDay`; add `weeklyGoalMinutes` (default 30), `streakEnabled` (default false), and an empty `practiceSecondsByDay` |
 
-A v6 document is returned as an equivalent new map, not migrated again.
+A v7 document is returned as an equivalent new map, not migrated again. The
+migration never invents practice minutes: old saves have no measured guitar
+time, so the weekly goal starts at 0 until the learner practices.
 Unknown top-level fields are copied through and re-emitted by
 `ProgressState.toJson`, so a newer build can add fields without an older build
 deleting them. A known field always wins over an unknown field with the same
@@ -689,12 +701,13 @@ fresh profile; an unreadable document is quarantined first.
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
-| `test/progress_migration_test.dart` | v1–v6 fixtures, version rejection, phrase evidence and content versions, quarantine/rollback |
+| `test/progress_migration_test.dart` | v1–v7 fixtures, version rejection, phrase evidence and content versions, heart removal, quarantine/rollback |
 | `test/phrase_objective_test.dart` | Runtime phrase resolver, due phrase practice, unknown ids, edited content and re-test |
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
-| `test/economy_test.dart` | Hearts, gems, chests, quests, boosts, jump tests |
+| `test/economy_test.dart` | Gems, chests, quests, boosts, jump tests, no heart pool |
+| `test/habit_test.dart` | Weekly minutes goal, optional streak, no-heart UI, measured session time, local completion/return |
 | `test/retention_test.dart` | Event names, bound, funnel, D1/D7/D30, export fields, pure-domain imports |
 | `test/retention_store_test.dart` | Opt-out default, round trip, corrupt/future data, bound, erase |
 | `test/retention_controller_test.dart` | Opt-in gating, first-event dedupe, AppController session hooks |

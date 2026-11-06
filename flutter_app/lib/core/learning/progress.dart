@@ -29,7 +29,8 @@ class AppSettings {
     this.a4Hz = 440,
     this.haptics = true,
     this.soundEffects = true,
-    this.dailyGoalXp = 20,
+    this.weeklyGoalMinutes = defaultWeeklyGoalMinutes,
+    this.streakEnabled = false,
     this.onboardingComplete = false,
     this.themeMode = AppThemeMode.system,
   });
@@ -39,7 +40,12 @@ class AppSettings {
   final double a4Hz;
   final bool haptics;
   final bool soundEffects;
-  final int dailyGoalXp;
+
+  /// The rolling seven-day guitar-time goal. XP is not a habit goal.
+  final int weeklyGoalMinutes;
+
+  /// The streak is opt-in. When false it is neither shown nor advanced.
+  final bool streakEnabled;
   final bool onboardingComplete;
   final AppThemeMode themeMode;
 
@@ -49,7 +55,8 @@ class AppSettings {
     double? a4Hz,
     bool? haptics,
     bool? soundEffects,
-    int? dailyGoalXp,
+    int? weeklyGoalMinutes,
+    bool? streakEnabled,
     bool? onboardingComplete,
     AppThemeMode? themeMode,
   }) {
@@ -59,7 +66,8 @@ class AppSettings {
       a4Hz: a4Hz ?? this.a4Hz,
       haptics: haptics ?? this.haptics,
       soundEffects: soundEffects ?? this.soundEffects,
-      dailyGoalXp: dailyGoalXp ?? this.dailyGoalXp,
+      weeklyGoalMinutes: weeklyGoalMinutes ?? this.weeklyGoalMinutes,
+      streakEnabled: streakEnabled ?? this.streakEnabled,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       themeMode: themeMode ?? this.themeMode,
     );
@@ -71,7 +79,8 @@ class AppSettings {
     'a4Hz': a4Hz,
     'haptics': haptics,
     'soundEffects': soundEffects,
-    'dailyGoalXp': dailyGoalXp,
+    'weeklyGoalMinutes': weeklyGoalMinutes,
+    'streakEnabled': streakEnabled,
     'onboardingComplete': onboardingComplete,
     'themeMode': themeMode.name,
   };
@@ -84,7 +93,11 @@ class AppSettings {
       a4Hz: (json['a4Hz'] as num?)?.toDouble() ?? 440,
       haptics: json['haptics'] as bool? ?? true,
       soundEffects: json['soundEffects'] as bool? ?? true,
-      dailyGoalXp: (json['dailyGoalXp'] as num?)?.toInt() ?? 20,
+      weeklyGoalMinutes:
+          ((json['weeklyGoalMinutes'] as num?)?.toInt() ??
+                  defaultWeeklyGoalMinutes)
+              .clamp(1, 24 * 60),
+      streakEnabled: json['streakEnabled'] as bool? ?? false,
       onboardingComplete: json['onboardingComplete'] as bool? ?? false,
       themeMode: appThemeModeFromName(json['themeMode'] as String?),
     );
@@ -101,11 +114,19 @@ const List<Duration> reviewIntervals = [
   Duration(days: 21),
 ];
 
-const int maxHearts = 5;
-const Duration heartRegenInterval = Duration(hours: 4);
-const int heartRefillCost = 350;
-const int streakFreezeCost = 200;
-const int maxStreakFreezes = 2;
+/// The weekly goal is the primary habit signal. It measures real guitar time,
+/// not XP.
+const int defaultWeeklyGoalMinutes = 30;
+const List<int> weeklyGoalMinuteOptions = [15, 30, 45, 60, 90];
+
+/// Guitar time in one session that counts as effective practice for the
+/// optional streak. A determinate recorded phrase take also counts.
+const int effectivePracticeMinutes = 3;
+
+/// Minutes are displayed, but sessions are stored in seconds so short
+/// sessions are not rounded away.
+const int practiceHistoryDays = 35;
+
 const int xpBoostCost = 100;
 const Duration xpBoostDuration = Duration(minutes: 15);
 const int startingGems = 500;
@@ -371,14 +392,12 @@ class ProgressState {
     this.xp = 0,
     this.streak = 0,
     this.bestStreak = 0,
-    this.lastCompletedDay,
+    this.lastPracticeDay,
     this.xpToday = 0,
     this.xpDay,
     this.gems = startingGems,
-    this.hearts = maxHearts,
-    this.nextHeartAt,
-    this.streakFreezes = 0,
     this.xpBoostUntil,
+    Map<String, int>? practiceSecondsByDay,
     Set<String>? openedChests,
     DailyCounters? daily,
     Set<String>? claimedQuests,
@@ -393,6 +412,7 @@ class ProgressState {
        legacyCompletedLessons = legacyCompletedLessons ?? <String>{},
        bestLessonAccuracy = bestLessonAccuracy ?? <String, double>{},
        completedCheckpoints = completedCheckpoints ?? <String>{},
+       practiceSecondsByDay = practiceSecondsByDay ?? <String, int>{},
        openedChests = openedChests ?? <String>{},
        daily = daily ?? DailyCounters(),
        claimedQuests = claimedQuests ?? <String>{},
@@ -416,14 +436,15 @@ class ProgressState {
   int xp;
   int streak;
   int bestStreak;
-  String? lastCompletedDay;
+  String? lastPracticeDay;
   int xpToday;
   String? xpDay;
   int gems;
-  int hearts;
-  DateTime? nextHeartAt;
-  int streakFreezes;
   DateTime? xpBoostUntil;
+
+  /// Guitar time per local `yyyy-MM-dd` day, in seconds. Empty on a fresh
+  /// profile; only real sessions add to it.
+  final Map<String, int> practiceSecondsByDay;
   final Set<String> openedChests;
   final DailyCounters daily;
   final Set<String> claimedQuests;
@@ -475,17 +496,66 @@ class ProgressState {
 
   int get effectiveStreak => effectiveStreakAt(DateTime.now());
 
+  /// The streak is opt-in and non-lossy.
+  ///
+  /// When [AppSettings.streakEnabled] is false it is neither shown nor
+  /// advanced. When it is true, any day with effective practice extends it.
+  /// A gap simply reads as zero until the next effective practice; nothing is
+  /// spent, no warning fires, and there is no freeze to manage.
   int effectiveStreakAt(DateTime now) {
-    final last = lastCompletedDay;
+    if (!settings.streakEnabled) return 0;
+    final last = lastPracticeDay;
     if (last == null) return 0;
     final today = dayKey(now);
-    final yesterday = dayKey(now.subtract(const Duration(days: 1)));
+    final yesterday = dayKey(DateTime(now.year, now.month, now.day - 1));
     if (last == today || last == yesterday) return streak;
-    // An equipped freeze keeps the streak visible until the next completed
-    // lesson consumes it.
-    if (streakFreezes > 0) return streak;
     return 0;
   }
+
+  /// Guitar seconds in the rolling seven-day window ending today.
+  int weeklyPracticeSeconds(DateTime now) {
+    var total = 0;
+    for (var offset = 0; offset < 7; offset++) {
+      final key = dayKey(DateTime(now.year, now.month, now.day - offset));
+      total += practiceSecondsByDay[key] ?? 0;
+    }
+    return total;
+  }
+
+  int weeklyPracticeMinutes(DateTime now) => weeklyPracticeSeconds(now) ~/ 60;
+
+  int weeklyPracticeGoalRemaining(DateTime now) =>
+      max(0, settings.weeklyGoalMinutes - weeklyPracticeMinutes(now));
+
+  double weeklyGoalProgress(DateTime now) {
+    final goal = settings.weeklyGoalMinutes;
+    if (goal <= 0) return 0;
+    return (weeklyPracticeMinutes(now) / goal).clamp(0.0, 1.0);
+  }
+
+  /// Distinct days with real guitar time in the trailing [days] window.
+  int activePracticeDays(DateTime now, {int days = 14}) {
+    var active = 0;
+    for (var offset = 0; offset < days; offset++) {
+      final key = dayKey(DateTime(now.year, now.month, now.day - offset));
+      if ((practiceSecondsByDay[key] ?? 0) > 0) active++;
+    }
+    return active;
+  }
+
+  /// Local completion and return signal for before/after comparison.
+  ///
+  /// This is computed from the real recent session list and practice days; it
+  /// is not an analytic sent anywhere. A session counts as complete when it
+  /// passed. Return is the share of the trailing 14 days with guitar time.
+  double get sessionCompletionRate {
+    if (recentSessions.isEmpty) return 0;
+    final passed = recentSessions.where((session) => session.passed).length;
+    return passed / recentSessions.length;
+  }
+
+  double returnRate(DateTime now, {int days = 14}) =>
+      days <= 0 ? 0 : activePracticeDays(now, days: days) / days;
 
   int get level => (xp ~/ 100) + 1;
 
@@ -501,12 +571,6 @@ class ProgressState {
 
   bool get xpBoostActive =>
       xpBoostUntil != null && xpBoostUntil!.isAfter(DateTime.now());
-
-  Duration? timeToNextHeart(DateTime now) {
-    if (hearts >= maxHearts || nextHeartAt == null) return null;
-    final remaining = nextHeartAt!.difference(now);
-    return remaining.isNegative ? Duration.zero : remaining;
-  }
 
   void addXp(int amount, DateTime now) {
     if (amount <= 0) return;
@@ -531,56 +595,50 @@ class ProgressState {
     return true;
   }
 
-  void refreshHearts(DateTime now) {
-    if (hearts >= maxHearts) {
-      hearts = maxHearts;
-      nextHeartAt = null;
-      return;
-    }
-    final initial = nextHeartAt;
-    if (initial == null) {
-      nextHeartAt = now.add(heartRegenInterval);
-      return;
-    }
-    var next = initial;
-    while (hearts < maxHearts && !now.isBefore(next)) {
-      hearts++;
-      next = next.add(heartRegenInterval);
-    }
-    nextHeartAt = hearts >= maxHearts ? null : next;
+  /// Adds real guitar time to the local day map.
+  ///
+  /// Seconds, not XP or question count, are the unit. A fresh profile has no
+  /// entries, so the weekly goal reads zero until the learner actually plays.
+  void recordPracticeSeconds(int seconds, DateTime now) {
+    if (seconds <= 0) return;
+    final key = dayKey(now);
+    practiceSecondsByDay[key] = (practiceSecondsByDay[key] ?? 0) + seconds;
+    _prunePracticeHistory(now);
   }
 
-  bool loseHeart(DateTime now) {
-    refreshHearts(now);
-    if (hearts <= 0) return false;
-    hearts--;
-    nextHeartAt ??= now.add(heartRegenInterval);
-    return true;
-  }
-
-  void gainHeart(DateTime now) {
-    refreshHearts(now);
-    if (hearts >= maxHearts) return;
-    hearts++;
-    if (hearts >= maxHearts) nextHeartAt = null;
-  }
-
-  bool refillHearts(DateTime now) {
-    refreshHearts(now);
-    if (hearts >= maxHearts || gems < heartRefillCost) return false;
-    gems -= heartRefillCost;
-    hearts = maxHearts;
-    nextHeartAt = null;
-    return true;
-  }
-
-  bool buyStreakFreeze() {
-    if (gems < streakFreezeCost || streakFreezes >= maxStreakFreezes) {
-      return false;
+  /// Records one real session and advances the optional streak when the day
+  /// was effective: at least [effectivePracticeMinutes] of guitar time in
+  /// total, or one recorded phrase take. Splitting practice into short sessions
+  /// therefore still counts.
+  void recordPracticeEffort({
+    required DateTime now,
+    Duration instrumentTime = Duration.zero,
+    bool recordedTake = false,
+  }) {
+    if (instrumentTime > Duration.zero) {
+      recordPracticeSeconds(instrumentTime.inSeconds, now);
     }
-    gems -= streakFreezeCost;
-    streakFreezes++;
-    return true;
+    final today = dayKey(now);
+    final effective = recordedTake ||
+        (practiceSecondsByDay[today] ?? 0) >= effectivePracticeMinutes * 60;
+    if (!effective || !settings.streakEnabled) return;
+
+    if (lastPracticeDay == today) return;
+    final yesterday = dayKey(DateTime(now.year, now.month, now.day - 1));
+    if (lastPracticeDay == yesterday) {
+      streak++;
+    } else {
+      streak = 1;
+    }
+    bestStreak = max(bestStreak, streak);
+    lastPracticeDay = today;
+  }
+
+  void _prunePracticeHistory(DateTime now) {
+    final cutoff = dayKey(
+      DateTime(now.year, now.month, now.day - practiceHistoryDays),
+    );
+    practiceSecondsByDay.removeWhere((key, _) => key.compareTo(cutoff) < 0);
   }
 
   bool buyXpBoost(DateTime now) {
@@ -752,21 +810,9 @@ class ProgressState {
     daily.lessons++;
     addXp(earnedXp, now);
 
-    final today = dayKey(now);
-    if (lastCompletedDay != today) {
-      final yesterday = dayKey(now.subtract(const Duration(days: 1)));
-      if (lastCompletedDay == yesterday) {
-        streak++;
-      } else if (lastCompletedDay != null && streakFreezes > 0) {
-        streakFreezes--;
-        streak++;
-      } else {
-        streak = 1;
-      }
-      bestStreak = max(bestStreak, streak);
-      lastCompletedDay = today;
-    }
-
+    // A completed lesson is not automatically an effective-practice day.
+    // The controller records measured session time through
+    // [recordPracticeEffort], which owns the optional streak.
     recentSessions.add(
       SessionSummary(
         lessonId: lessonId,
@@ -892,14 +938,12 @@ class ProgressState {
     xp: xp,
     streak: streak,
     bestStreak: bestStreak,
-    lastCompletedDay: lastCompletedDay,
+    lastPracticeDay: lastPracticeDay,
     xpToday: xpToday,
     xpDay: xpDay,
     gems: gems,
-    hearts: hearts,
-    nextHeartAt: nextHeartAt,
-    streakFreezes: streakFreezes,
     xpBoostUntil: xpBoostUntil,
+    practiceSecondsByDay: {...practiceSecondsByDay},
     openedChests: {...openedChests},
     daily: daily.copy(),
     claimedQuests: {...claimedQuests},
@@ -932,14 +976,12 @@ class ProgressState {
     'xp': xp,
     'streak': streak,
     'bestStreak': bestStreak,
-    'lastCompletedDay': lastCompletedDay,
+    'lastPracticeDay': lastPracticeDay,
     'xpToday': xpToday,
     'xpDay': xpDay,
     'gems': gems,
-    'hearts': hearts,
-    'nextHeartAt': nextHeartAt?.toIso8601String(),
-    'streakFreezes': streakFreezes,
     'xpBoostUntil': xpBoostUntil?.toIso8601String(),
+    'practiceSecondsByDay': practiceSecondsByDay,
     'openedChests': openedChests.toList(),
     'daily': daily.toJson(),
     'claimedQuests': claimedQuests.toList(),
@@ -1008,14 +1050,18 @@ class ProgressState {
       xp: (json['xp'] as num?)?.toInt() ?? 0,
       streak: (json['streak'] as num?)?.toInt() ?? 0,
       bestStreak: (json['bestStreak'] as num?)?.toInt() ?? 0,
-      lastCompletedDay: json['lastCompletedDay'] as String?,
+      lastPracticeDay: json['lastPracticeDay'] as String?,
       xpToday: (json['xpToday'] as num?)?.toInt() ?? 0,
       xpDay: json['xpDay'] as String?,
       gems: (json['gems'] as num?)?.toInt() ?? startingGems,
-      hearts: (json['hearts'] as num?)?.toInt() ?? maxHearts,
-      nextHeartAt: _parseDate(json['nextHeartAt']),
-      streakFreezes: (json['streakFreezes'] as num?)?.toInt() ?? 0,
       xpBoostUntil: _parseDate(json['xpBoostUntil']),
+      practiceSecondsByDay: {
+        for (final entry
+            in (json['practiceSecondsByDay'] as Map<String, dynamic>? ??
+                    const {})
+                .entries)
+          entry.key: (entry.value as num?)?.toInt() ?? 0,
+      },
       openedChests: {
         for (final id in (json['openedChests'] as List<dynamic>? ?? const []))
           if (id is String) id,
@@ -1115,14 +1161,12 @@ const Set<String> _progressTopLevelKeys = {
   'xp',
   'streak',
   'bestStreak',
-  'lastCompletedDay',
+  'lastPracticeDay',
   'xpToday',
   'xpDay',
   'gems',
-  'hearts',
-  'nextHeartAt',
-  'streakFreezes',
   'xpBoostUntil',
+  'practiceSecondsByDay',
   'openedChests',
   'daily',
   'claimedQuests',

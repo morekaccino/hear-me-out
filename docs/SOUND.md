@@ -50,14 +50,13 @@ PCM WAV. The family is intentionally small.
 | `answer_correct_combo.wav` | Correct answer with combo >= 3 |
 | `answer_wrong.wav` | Wrong answer |
 | `answer_octave.wav` | Right note, wrong octave |
-| `life_lost.wav` | Wrong answer that takes the last heart |
 | `lesson_complete.wav` | Passed lesson |
 | `lesson_perfect.wav` | Passed lesson with 100% accuracy |
-| `lesson_failed.wav` | Out of hearts |
+| `lesson_failed.wav` | Lesson finished below the pass accuracy |
 | `practice_complete.wav` | Passed practice session |
 | `reward_streak.wav` | Streak advanced |
 | `reward_streak_milestone.wav` | Streak hits 7/14/30/50/100/180/365 |
-| `reward_daily_goal.wav` | Daily XP goal reached |
+| `reward_weekly_goal.wav` | Weekly minutes goal reached |
 | `reward_level_up.wav` | Level increased |
 | `reward_unlock.wav` | Finish onboarding; unlock moments |
 | `xp_tick.wav` | One small XP tally after a result |
@@ -75,9 +74,9 @@ PCM WAV. The family is intentionally small.
   `uiLocked`; opening a unit guidebook → `uiSelect`; opening a chest or claiming
   a quest → `copySuccess`.
 - **Lesson:** correct → `answerCorrect`; combo 3+ → `answerCorrectCombo`;
-  wrong → `answerWrong`; octave → `answerOctave`; last-heart wrong →
-  `lifeLost`; result screen → completion/failure cue, then one reward cue
-  (level > daily goal > streak milestone > streak) and `xpTick`.
+  wrong → `answerWrong`; octave → `answerOctave`; result screen →
+  completion/failure cue, then one reward cue (level > weekly goal > streak
+  milestone > streak) and `xpTick`. There is no life-lost cue.
 - **Shop:** successful purchase → `copySuccess`; refused purchase → `uiLocked`;
   double XP → `rewardLevelUp`.
 - **Practice:** tuner button uses `tunerOn`/`tunerOff`; string select uses

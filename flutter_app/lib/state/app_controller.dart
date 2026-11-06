@@ -28,8 +28,11 @@ class LessonResult {
     required this.answered,
     required this.bestCombo,
     required this.isPractice,
+    required this.streakEnabled,
+    required this.weeklyMinutes,
+    required this.weeklyGoalMinutes,
     this.leveledUp = false,
-    this.dailyGoalReached = false,
+    this.weeklyGoalReached = false,
     this.lessonUnlocked = false,
     this.streakAdvanced = false,
     this.streakMilestone = false,
@@ -44,8 +47,11 @@ class LessonResult {
   final int answered;
   final int bestCombo;
   final bool isPractice;
+  final bool streakEnabled;
+  final int weeklyMinutes;
+  final int weeklyGoalMinutes;
   final bool leveledUp;
-  final bool dailyGoalReached;
+  final bool weeklyGoalReached;
   final bool lessonUnlocked;
   final bool streakAdvanced;
   final bool streakMilestone;
@@ -75,24 +81,41 @@ class AppData {
 
 class AppController extends AsyncNotifier<AppData> {
   late ProgressStore _store;
+  late DateTime Function() _clock;
+  DateTime? _runStartedAt;
   bool _lastMicAvailable = false;
 
   @override
   Future<AppData> build() async {
     _store = ref.watch(progressStoreProvider);
+    _clock = ref.watch(clockProvider);
     ProgressState progress;
     try {
       progress = await _store.load() ?? ProgressState.fresh();
     } catch (_) {
       progress = ProgressState.fresh();
     }
-    progress.refreshHearts(DateTime.now());
-    progress.refreshDaily(DateTime.now());
+    progress.refreshDaily(_clock());
     _applySoundSettings(progress.settings);
     // Instrumentation is fire-and-forget: local storage must never delay the
     // first frame or a lesson.
     unawaited(ref.read(retentionControllerProvider.notifier).recordAppOpen());
     return AppData(progress: progress);
+  }
+
+  /// Records the measured wall time of the running session and clears the
+  /// start stamp so a finish and an exit cannot count it twice. The cap keeps
+  /// an app left in the background from inflating the weekly goal.
+  void _recordRunEffort(ProgressState progress, DateTime now) {
+    final startedAt = _runStartedAt;
+    _runStartedAt = null;
+    if (startedAt == null) return;
+    final elapsed = now.difference(startedAt);
+    if (elapsed <= Duration.zero) return;
+    final capped = elapsed > const Duration(hours: 1)
+        ? const Duration(hours: 1)
+        : elapsed;
+    progress.recordPracticeEffort(now: now, instrumentTime: capped);
   }
 
   AppData get _data => state.requireValue;
@@ -141,10 +164,11 @@ class AppController extends AsyncNotifier<AppData> {
     if (lesson == null) return;
     _lastMicAvailable = micAvailable;
     final data = _data;
+    final now = _clock();
     final exercises = buildLessonSession(
       lesson: lesson,
       progress: data.progress,
-      now: DateTime.now(),
+      now: now,
       micAvailable: micAvailable,
       mode: data.progress.settings.answerMode,
     );
@@ -153,7 +177,7 @@ class AppController extends AsyncNotifier<AppData> {
       exercises: exercises,
       isPractice: false,
     );
-    run.lives = data.progress.hearts;
+    _runStartedAt = now;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
     unawaited(_recordRetention(RetentionEventName.sessionStart));
   }
@@ -161,10 +185,11 @@ class AppController extends AsyncNotifier<AppData> {
   void startPractice({required String kind, required bool micAvailable}) {
     _lastMicAvailable = micAvailable;
     final data = _data;
+    final now = _clock();
     final exercises = buildSkillPracticeExercises(
       kind: kind,
       progress: data.progress,
-      now: DateTime.now(),
+      now: now,
       micAvailable: micAvailable,
       mode: data.progress.settings.answerMode,
     );
@@ -188,7 +213,7 @@ class AppController extends AsyncNotifier<AppData> {
       isPractice: true,
       practiceTitle: title,
     );
-    run.lives = data.progress.hearts;
+    _runStartedAt = now;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
     unawaited(_recordRetention(RetentionEventName.sessionStart));
   }
@@ -227,10 +252,11 @@ class AppController extends AsyncNotifier<AppData> {
       reviewNotes: notes,
       isReview: true,
     );
+    final now = _clock();
     final exercises = buildLessonSession(
       lesson: lesson,
       progress: data.progress,
-      now: DateTime.now(),
+      now: now,
       micAvailable: micAvailable,
       mode: data.progress.settings.answerMode,
     );
@@ -241,7 +267,7 @@ class AppController extends AsyncNotifier<AppData> {
       isJumpTest: true,
       jumpTargetSectionId: sectionId,
     );
-    run.lives = data.progress.hearts;
+    _runStartedAt = now;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
     unawaited(_recordRetention(RetentionEventName.sessionStart));
   }
@@ -268,8 +294,8 @@ class AppController extends AsyncNotifier<AppData> {
   ///
   /// An indeterminate attempt is a retry signal: it presents feedback and
   /// waits for the learner, but it does not schedule the skill, change XP,
-  /// streak, hearts, daily counters, or combo, and it does not queue a
-  /// mistake. Only determinate outcomes reach progress storage.
+  /// streak, daily counters, or combo, and it does not queue a mistake. Only
+  /// determinate outcomes reach progress storage.
   Future<void> submitOutcome(
     AttemptOutcome outcome, {
     double? cents,
@@ -285,7 +311,7 @@ class AppController extends AsyncNotifier<AppData> {
     if (!prompt.isScored) return;
 
     final target = prompt is NotePrompt ? prompt.note : null;
-    final now = DateTime.now();
+    final now = _clock();
 
     run.lastTarget = target;
     run.lastOutcome = outcome;
@@ -327,13 +353,9 @@ class AppController extends AsyncNotifier<AppData> {
     } else {
       run.wrong++;
       run.combo = 0;
+      // Missed objectives return for a short repair. There is no resource to
+      // spend and no early failure: the lesson continues to its result.
       run.queueMistake(prompt);
-      // Checkpoints are assessments: a wrong answer lowers the score, not the
-      // shared heart pool. Practice is also heart-free.
-      if (!run.isPractice && !run.lesson.isReview) {
-        data.progress.loseHeart(now);
-        run.lives = data.progress.hearts;
-      }
     }
 
     state = AsyncData(data.copyWith(run: run));
@@ -383,17 +405,21 @@ class AppController extends AsyncNotifier<AppData> {
       return false;
     }
     final data = _data;
+    final completedAt = now ?? _clock();
     data.progress.recordPhraseAttempt(
       PhraseAttempt(
         phraseId: phraseId,
         outcome: result.outcome,
-        now: now ?? DateTime.now(),
+        now: completedAt,
         accuracy: result.noteAccuracy,
         tempoBpm: tempoBpm,
         pieceId: pieceId,
         contentVersion: contentVersion,
       ),
     );
+    // One determinate phrase take is effective practice even when no session
+    // clock ran. It marks the day without inventing guitar minutes.
+    data.progress.recordPracticeEffort(now: completedAt, recordedTake: true);
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();
     return true;
@@ -406,10 +432,6 @@ class AppController extends AsyncNotifier<AppData> {
     // Teach cards are informational, so they advance without an answer.
     if (!run.awaitingNext && run.current.isScored) return;
 
-    if (!run.isPractice && run.outOfLives) {
-      await _finish(passed: false);
-      return;
-    }
     if (run.index >= run.exercises.length - 1 && !run.appendNextMistake()) {
       final threshold = run.lesson.isReview ? 0.85 : 0.8;
       final passed = run.isPractice || run.accuracy >= threshold;
@@ -434,23 +456,27 @@ class AppController extends AsyncNotifier<AppData> {
 
     final accuracy = run.accuracy;
     final answered = run.answered;
-    final now = DateTime.now();
-    final goal = data.progress.settings.dailyGoalXp;
-    final goalBefore = data.progress.xpTodayForDisplay >= goal;
+    final now = _clock();
+    final weeklyGoalMinutes = data.progress.settings.weeklyGoalMinutes;
+    final weeklyMinutesBefore = data.progress.weeklyPracticeMinutes(now);
+    final weeklyGoalReachedBefore = weeklyMinutesBefore >= weeklyGoalMinutes;
     final levelBefore = data.progress.level;
-    final streakBefore = data.progress.effectiveStreak;
-    final alreadyCompleted = !run.isPractice &&
+    final streakBefore = data.progress.effectiveStreakAt(now);
+    final alreadyCompleted =
+        !run.isPractice &&
         data.progress.completedLessons.contains(run.lesson.id);
     final multiplier = data.progress.xpMultiplierAt(now);
     var earnedXp = 0;
+
+    // Every finished or abandoned session records the real time spent. The
+    // optional streak advances from the same measured effort.
+    _recordRunEffort(data.progress, now);
 
     if (run.isPractice) {
       if (passed) {
         earnedXp = run.earnedXp * multiplier;
         data.progress.addXp(earnedXp, now);
         data.progress.recordPractice(now);
-        // Practice is the free way back into a lesson when hearts run low.
-        data.progress.gainHeart(now);
       }
     } else if (passed) {
       earnedXp = alreadyCompleted ? 5 : run.earnedXp;
@@ -478,7 +504,8 @@ class AppController extends AsyncNotifier<AppData> {
       );
     }
 
-    final streakAfter = data.progress.effectiveStreak;
+    final streakAfter = data.progress.effectiveStreakAt(now);
+    final weeklyMinutesAfter = data.progress.weeklyPracticeMinutes(now);
     final result = LessonResult(
       lessonId: run.lesson.id,
       title: run.isPractice
@@ -491,18 +518,17 @@ class AppController extends AsyncNotifier<AppData> {
       answered: answered,
       bestCombo: run.bestCombo,
       isPractice: run.isPractice,
+      streakEnabled: data.progress.settings.streakEnabled,
+      weeklyMinutes: weeklyMinutesAfter,
+      weeklyGoalMinutes: weeklyGoalMinutes,
       leveledUp: earnedXp > 0 && data.progress.level > levelBefore,
-      dailyGoalReached:
-          earnedXp > 0 && !goalBefore && data.progress.xpTodayForDisplay >= goal,
-      lessonUnlocked: passed &&
-          !run.isPractice &&
-          (run.isJumpTest || !alreadyCompleted),
-      streakAdvanced: passed && !run.isPractice && streakAfter > streakBefore,
+      weeklyGoalReached:
+          !weeklyGoalReachedBefore && weeklyMinutesAfter >= weeklyGoalMinutes,
+      lessonUnlocked:
+          passed && !run.isPractice && (run.isJumpTest || !alreadyCompleted),
+      streakAdvanced: streakAfter > streakBefore,
       streakMilestone:
-          passed &&
-          !run.isPractice &&
-          streakAfter > streakBefore &&
-          _streakMilestones.contains(streakAfter),
+          streakAfter > streakBefore && _streakMilestones.contains(streakAfter),
     );
 
     state = AsyncData(
@@ -517,7 +543,11 @@ class AppController extends AsyncNotifier<AppData> {
 
   void exitLesson() {
     final data = _data;
+    if (data.run != null) {
+      _recordRunEffort(data.progress, _clock());
+    }
     state = AsyncData(data.copyWith(clearRun: true));
+    unawaited(_save());
   }
 
   void dismissResult() {
@@ -581,26 +611,8 @@ class AppController extends AsyncNotifier<AppData> {
     }
     if (quest == null) return false;
     final data = _data;
-    final claimed = data.progress.claimQuest(quest, DateTime.now());
+    final claimed = data.progress.claimQuest(quest, _clock());
     if (!claimed) return false;
-    state = AsyncData(data.copyWith(progress: data.progress));
-    await _save();
-    return true;
-  }
-
-  Future<bool> buyHeartRefill() async {
-    final data = _data;
-    final bought = data.progress.refillHearts(DateTime.now());
-    if (!bought) return false;
-    state = AsyncData(data.copyWith(progress: data.progress));
-    await _save();
-    return true;
-  }
-
-  Future<bool> buyStreakFreeze() async {
-    final data = _data;
-    final bought = data.progress.buyStreakFreeze();
-    if (!bought) return false;
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();
     return true;
@@ -608,7 +620,7 @@ class AppController extends AsyncNotifier<AppData> {
 
   Future<bool> buyXpBoost() async {
     final data = _data;
-    final bought = data.progress.buyXpBoost(DateTime.now());
+    final bought = data.progress.buyXpBoost(_clock());
     if (!bought) return false;
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();

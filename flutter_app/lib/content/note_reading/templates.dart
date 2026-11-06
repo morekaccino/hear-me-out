@@ -13,7 +13,7 @@ const String notePlaceTemplateId = 'note.place';
 const String noteFretboardTemplateId = 'note.fretboard';
 
 /// Shows a new note on the staff with its name and fretboard position.
-/// Never scored, so meeting a note cannot cost a heart.
+/// Never scored, so meeting a note cannot count against the learner.
 class NoteTeachTemplate implements ExerciseTemplate {
   const NoteTeachTemplate();
 

@@ -10,10 +10,9 @@ const int reviewExercisesPerLesson = 15;
 /// rob a new note of a teaching exposure.
 const int newNoteExposures = 4;
 const int maxMistakeRetries = 4;
-const int livesPerLesson = 5;
 
-/// One lesson in progress. Owns ordering, lives, and mistake retries; knows
-/// nothing about how prompts were generated.
+/// One lesson in progress. Owns ordering and mistake retries; knows nothing
+/// about how prompts were generated, and has no lives or failure resource.
 class LessonRun {
   LessonRun({
     required this.lesson,
@@ -33,7 +32,6 @@ class LessonRun {
   final String? jumpTargetSectionId;
 
   int index = 0;
-  int lives = livesPerLesson;
   int correct = 0;
   int wrong = 0;
   int combo = 0;
@@ -71,8 +69,6 @@ class LessonRun {
   }
 
   bool get isFinished => index >= exercises.length;
-
-  bool get outOfLives => lives <= 0;
 
   bool get isReviewingMistakes => index >= baseExercises;
 

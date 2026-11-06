@@ -85,7 +85,6 @@ void main() {
           answered: 10,
           now: now.subtract(const Duration(days: 1)),
         );
-        state.loseHeart(now);
         state.daily.correct = 3;
         state.recordDailyCombo(4, now);
         state.claimedQuests.add('lesson');
@@ -237,7 +236,6 @@ void main() {
       final beforeData = container.read(appControllerProvider).requireValue;
       final beforeProgress = jsonEncode(beforeData.progress.toJson());
       final beforeStore = jsonEncode(store.value!.toJson());
-      final heartsBefore = beforeData.progress.hearts;
       final indexBefore = beforeData.run!.index;
 
       await notifier.submitOutcome(AttemptOutcome.indeterminate);
@@ -250,9 +248,7 @@ void main() {
       expect(after.run!.correct, 0);
       expect(after.run!.wrong, 0);
       expect(after.run!.combo, 0);
-      expect(after.run!.lives, heartsBefore);
       expect(after.run!.pendingMistakes, 0);
-      expect(after.progress.hearts, heartsBefore);
       expect(after.progress.xp, 0);
       expect(after.progress.daily.correct, 0);
       expect(jsonEncode(after.progress.toJson()), beforeProgress);
@@ -278,11 +274,6 @@ void main() {
         );
         final container = await startNameLesson(store);
         final notifier = container.read(appControllerProvider.notifier);
-        final heartsBefore = container
-            .read(appControllerProvider)
-            .requireValue
-            .progress
-            .hearts;
         final firstObjective = container
             .read(appControllerProvider)
             .requireValue
@@ -301,7 +292,6 @@ void main() {
         expect(data.run!.combo, 1);
         expect(data.progress.daily.correct, 1);
         expect(data.progress.skills[firstObjective]!.reps, 1);
-        expect(data.progress.hearts, heartsBefore);
 
         // Retry is only for indeterminate feedback; it must not hide a
         // determinate answer that has already been scored.
@@ -325,7 +315,7 @@ void main() {
         expect(data.run!.correct, 1);
         expect(data.progress.daily.correct, 1);
         expect(data.progress.skills[secondObjective]!.incorrect, 1);
-        expect(data.progress.hearts, heartsBefore - 1);
+        expect(data.run!.wrong, 1);
       },
     );
   });
@@ -558,7 +548,7 @@ void main() {
       expect(progress.xp, 0);
       expect(progress.streak, 0);
       expect(progress.daily.correct, 0);
-      expect(progress.hearts, maxHearts);
+      expect(progress.practiceSecondsByDay, isEmpty);
 
       progress.recordAnswer(
         note: Note.parse('E4'),
@@ -608,12 +598,6 @@ void main() {
         await notifier.nextExercise();
         run = container.read(appControllerProvider).requireValue.run!;
       }
-      final heartsBefore = container
-          .read(appControllerProvider)
-          .requireValue
-          .progress
-          .hearts;
-
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -628,10 +612,6 @@ void main() {
       expect(find.text('Could not hear that clearly'), findsOneWidget);
       expect(find.text('Not quite'), findsNothing);
       expect(find.text('TRY AGAIN'), findsOneWidget);
-      expect(
-        container.read(appControllerProvider).requireValue.progress.hearts,
-        heartsBefore,
-      );
 
       await tester.ensureVisible(find.text('TRY AGAIN'));
       await tester.tap(find.text('TRY AGAIN'));

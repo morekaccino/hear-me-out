@@ -54,6 +54,7 @@ class ProfileScreen extends ConsumerWidget {
       if (skill.attempts == 0) continue;
       familyCounts[skill.family] = (familyCounts[skill.family] ?? 0) + 1;
     }
+    final weeklyMinutes = progress.weeklyPracticeMinutes(DateTime.now());
 
     return Scaffold(
       body: SafeArea(
@@ -89,11 +90,12 @@ class ProfileScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  StatPill(
-                    icon: Icons.local_fire_department_rounded,
-                    value: '${progress.effectiveStreak}',
-                    iconColor: const Color(0xFFFF9600),
-                  ),
+                  if (settings.streakEnabled)
+                    StatPill(
+                      icon: Icons.local_fire_department_rounded,
+                      value: '${progress.effectiveStreak}',
+                      iconColor: const Color(0xFFFF9600),
+                    ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -105,17 +107,25 @@ class ProfileScreen extends ConsumerWidget {
                 crossAxisSpacing: 12,
                 childAspectRatio: 2.15,
                 children: [
+                  if (settings.streakEnabled) ...[
+                    _StatCard(
+                      icon: Icons.local_fire_department_rounded,
+                      color: const Color(0xFFFF9600),
+                      value: '${progress.effectiveStreak}',
+                      label: 'Day streak',
+                    ),
+                    _StatCard(
+                      icon: Icons.emoji_events_rounded,
+                      color: AppColors.yellowDark,
+                      value: '${progress.bestStreak}',
+                      label: 'Best streak',
+                    ),
+                  ],
                   _StatCard(
-                    icon: Icons.local_fire_department_rounded,
-                    color: const Color(0xFFFF9600),
-                    value: '${progress.effectiveStreak}',
-                    label: 'Day streak',
-                  ),
-                  _StatCard(
-                    icon: Icons.emoji_events_rounded,
-                    color: AppColors.yellowDark,
-                    value: '${progress.bestStreak}',
-                    label: 'Best streak',
+                    icon: Icons.flag_rounded,
+                    color: AppColors.greenDark,
+                    value: '$weeklyMinutes/${settings.weeklyGoalMinutes} min',
+                    label: 'This week',
                   ),
                   _StatCard(
                     icon: Icons.music_note_rounded,
@@ -147,12 +157,6 @@ class ProfileScreen extends ConsumerWidget {
                     color: AppColors.blue,
                     value: '${progress.gems}',
                     label: 'Gems',
-                  ),
-                  _StatCard(
-                    icon: Icons.favorite_rounded,
-                    color: AppColors.red,
-                    value: '${progress.hearts}/$maxHearts',
-                    label: 'Hearts',
                   ),
                 ],
               ),
@@ -294,12 +298,41 @@ class ProfileScreen extends ConsumerWidget {
                     const Divider(),
                     _SettingRow(
                       icon: Icons.flag_rounded,
-                      label: 'Daily goal',
-                      value: '${settings.dailyGoalXp} XP',
+                      label: 'Weekly goal',
+                      value: '${settings.weeklyGoalMinutes} min',
                       onTap: () {
                         _play(ref, Sfx.uiSelect);
                         _cycleGoal(ref, settings);
                       },
+                    ),
+                    const Divider(),
+                    _SettingRow(
+                      icon: Icons.local_fire_department_rounded,
+                      label: 'Practice streak',
+                      trailing: Switch.adaptive(
+                        value: settings.streakEnabled,
+                        activeThumbColor: AppColors.green,
+                        onChanged: (value) {
+                          _play(ref, value ? Sfx.uiToggleOn : Sfx.uiToggleOff);
+                          ref
+                              .read(appControllerProvider.notifier)
+                              .updateSettings(
+                                settings.copyWith(streakEnabled: value),
+                              );
+                        },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(
+                        'Optional. It counts days with 3+ minutes of guitar or a recorded take. A missed day simply starts the count again.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
                     ),
                     const Divider(),
                     _SettingRow(
@@ -532,12 +565,15 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Future<void> _cycleGoal(WidgetRef ref, AppSettings settings) {
-    const values = [10, 20, 30];
-    final index = values.indexOf(settings.dailyGoalXp);
+    final index = weeklyGoalMinuteOptions.indexOf(settings.weeklyGoalMinutes);
     return ref
         .read(appControllerProvider.notifier)
         .updateSettings(
-          settings.copyWith(dailyGoalXp: values[(index + 1) % values.length]),
+          settings.copyWith(
+            weeklyGoalMinutes:
+                weeklyGoalMinuteOptions[(index + 1) %
+                    weeklyGoalMinuteOptions.length],
+          ),
         );
   }
 
@@ -664,7 +700,7 @@ class ProfileScreen extends ConsumerWidget {
       builder: (dialogContext) => AlertDialog(
         title: const Text('Reset all progress?'),
         content: const Text(
-          'Your notes, XP, streak, and lesson history will be cleared. Settings stay as they are.',
+          'Your notes, XP, practice history, streak, and lesson history will be cleared. Settings stay as they are.',
         ),
         actions: [
           TextButton(

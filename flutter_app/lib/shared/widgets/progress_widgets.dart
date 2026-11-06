@@ -60,55 +60,6 @@ class LessonProgressBar extends StatelessWidget {
   }
 }
 
-class HeartsRow extends StatelessWidget {
-  const HeartsRow({
-    super.key,
-    required this.lives,
-    this.maxLives = 5,
-    this.size = 26,
-  });
-
-  final int lives;
-  final int maxLives;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      label: '$lives of $maxLives hearts left',
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var index = 0; index < maxLives; index++)
-            Padding(
-              padding: const EdgeInsets.only(left: DuoSpacing.xxs),
-              child: AnimatedSwitcher(
-                duration: DuoMotion.base,
-                transitionBuilder: (child, animation) => ScaleTransition(
-                  scale: CurvedAnimation(
-                    parent: animation,
-                    curve: DuoMotion.overshoot,
-                  ),
-                  child: FadeTransition(opacity: animation, child: child),
-                ),
-                child: Icon(
-                  index < lives
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  key: ValueKey(index < lives),
-                  color: index < lives
-                      ? AppColors.red
-                      : AppColors.borderStrong,
-                  size: size,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
 class StatPill extends StatelessWidget {
   const StatPill({
     super.key,
@@ -144,43 +95,33 @@ class StatPill extends StatelessWidget {
   }
 }
 
-/// Streak, gem, and heart counters. No border; the number uses the icon color.
+/// Optional streak and gem counters. No border; the number uses the icon
+/// color. The streak counter disappears when the learner has not opted in.
 class PathCounters extends StatelessWidget {
-  const PathCounters({
-    super.key,
-    required this.streak,
-    required this.gems,
-    required this.hearts,
-  });
+  const PathCounters({super.key, required this.gems, this.streak});
 
-  final int streak;
   final int gems;
-  final int hearts;
+  final int? streak;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        _Counter(
-          icon: Icons.local_fire_department_rounded,
-          value: '$streak',
-          color: AppColors.orange,
-          label: 'Streak $streak',
-        ),
-        const SizedBox(width: DuoSpacing.lg),
+        if (streak != null) ...[
+          _Counter(
+            icon: Icons.local_fire_department_rounded,
+            value: '$streak',
+            color: AppColors.orange,
+            label: 'Streak $streak',
+          ),
+          const SizedBox(width: DuoSpacing.lg),
+        ],
         _Counter(
           icon: Icons.diamond_rounded,
           value: '$gems',
           color: AppColors.blue,
           label: 'Gems $gems',
-        ),
-        const SizedBox(width: DuoSpacing.lg),
-        _Counter(
-          icon: Icons.favorite_rounded,
-          value: '$hearts',
-          color: AppColors.red,
-          label: 'Hearts $hearts',
         ),
       ],
     );
@@ -246,10 +187,7 @@ class SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: color ?? AppColors.background,
         borderRadius: BorderRadius.circular(DuoSpacing.md),
-        border: Border.all(
-          color: borderColor ?? AppColors.border,
-          width: 2,
-        ),
+        border: Border.all(color: borderColor ?? AppColors.border, width: 2),
       ),
       child: child,
     );

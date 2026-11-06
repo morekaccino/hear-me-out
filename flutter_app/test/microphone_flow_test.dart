@@ -191,8 +191,8 @@ void main() {
     await tester.pumpAndSettle();
 
     var guard = 0;
-    while (container.read(appControllerProvider).requireValue.run != null &&
-        guard < 20) {
+    while (container.read(appControllerProvider).requireValue.result == null &&
+        guard < 30) {
       guard++;
       final notifier = container.read(appControllerProvider.notifier);
       final run = container.read(appControllerProvider).requireValue.run!;
@@ -214,20 +214,20 @@ void main() {
       );
       await tester.tap(find.text(wrong.display));
       await tester.pumpAndSettle();
-      final seeResults = find.text('SEE RESULTS');
+      final finish = find.text('FINISH');
       await tester.tap(
-        seeResults.evaluate().isNotEmpty
-            ? seeResults
-            : find.text('CONTINUE'),
+        finish.evaluate().isNotEmpty ? finish : find.text('CONTINUE'),
       );
       await tester.pumpAndSettle();
     }
 
-    expect(find.text('Out of hearts'), findsOneWidget);
-    final retry = find.text('TRY AGAIN').evaluate().isNotEmpty
-        ? find.text('TRY AGAIN')
-        : find.text('REFILL & RETRY');
-    await tester.tap(retry);
+    // Many wrong answers no longer end the lesson early or spend a resource.
+    expect(find.text('Out of hearts'), findsNothing);
+    expect(find.text('Not passed yet'), findsOneWidget);
+    expect(find.text('TRY AGAIN'), findsOneWidget);
+    expect(find.text('REFILL & RETRY'), findsNothing);
+
+    await tester.tap(find.text('TRY AGAIN'));
     await tester.pumpAndSettle();
 
     await answerUntilPlay();

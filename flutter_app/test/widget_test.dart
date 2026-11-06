@@ -170,9 +170,10 @@ void main() {
 
     await tester.tap(find.text('Shop'));
     await tester.pumpAndSettle();
-    expect(find.text('Refill hearts'), findsOneWidget);
-    expect(find.text('Streak freeze'), findsOneWidget);
     expect(find.text('Double XP'), findsOneWidget);
+    expect(find.text('Refill hearts'), findsNothing);
+    expect(find.text('Streak freeze'), findsNothing);
+    expect(find.byIcon(Icons.favorite_rounded), findsNothing);
   });
 
   testWidgets('wide layouts use the side rail instead of bottom tabs', (
@@ -199,7 +200,7 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.text('Open Strings'), findsOneWidget);
     expect(find.text('Daily Quests'), findsOneWidget);
-    expect(find.text('Daily goal'), findsOneWidget);
+    expect(find.text('Weekly goal'), findsOneWidget);
 
     // The path and the quest rail share one scrollable, like Duo.
     expect(find.byType(CustomScrollView), findsOneWidget);
