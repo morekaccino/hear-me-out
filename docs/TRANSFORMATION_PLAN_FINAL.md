@@ -587,7 +587,7 @@ Founder salary is not included. If a market salary of $60–100k/year is require
 - **Short-form:** “Can you sight-read this in 30 seconds?”, “Fix this bar,” before/after clips, teacher tips; 2/week.
 - **Communities:** r/classicalguitar, Delcamp, classical guitar societies, exam forums, teacher newsletters; participate, don't spam.
 - **Teacher referrals (Phase 2):** 3 LOIs; manual export; referral code. Not in the base case.
-- **ASO:** subtitle “Guitar Sight-Reading & Practice”; screenshots show notation, before/after, 5-minute session.
+- **ASO:** subtitle “Guitar Sight-Reading & Practice”; target screenshots show notation, before/after, and a 5-minute session. See [`ASO_PLAN.md`](ASO_PLAN.md) for the current-build listing, the keyword plan, which frames are shippable, and the no-paid rule.
 - **20 free lessons/tools** in the first 12 months (sight-reading basics, rhythm, practice method).
 - **No paid UA initially.** The math is unfavorable at $5+ CPI and 3% conversion.
 
@@ -673,6 +673,11 @@ Do these in parallel before Phase 1. **Total validation budget: $5–8k**, inclu
 Gate evidence and checklist: [`PHASE_GATES.md`](PHASE_GATES.md). Do not start a
 phase until its gate decision is recorded in `T9.2`; a conditional unlocks only
 the work named in the condition.
+
+Store listing, keyword, screenshot, and paid-acquisition sequencing:
+[`ASO_PLAN.md`](ASO_PLAN.md). The listing uses the current build's claims; the
+before/after, phrase, and 5-minute frames stay unpublished until their gates
+ship.
 
 **90-day sprint:**
 
