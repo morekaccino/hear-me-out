@@ -1475,7 +1475,7 @@ class _TodayCard extends StatelessWidget {
           Row(
             children: [
               const Text(
-                'TODAY',
+                'READING LAB',
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -1483,13 +1483,18 @@ class _TodayCard extends StatelessWidget {
                   color: AppColors.greenDark,
                 ),
               ),
-              const Spacer(),
-              Text(
-                'Lesson $lessonNumber of ${allLessons.length}',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textMuted,
+              const SizedBox(width: DuoSpacing.xs),
+              Expanded(
+                child: Text(
+                  'Optional · Lesson $lessonNumber of ${allLessons.length}',
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
             ],

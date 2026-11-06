@@ -27,7 +27,7 @@ flutter_app/lib/
 │   ├── retention/   Pure-Dart retention events, bounded log, funnel helpers
 │   └── storage/     shared_preferences JSON store, export/import
 ├── content/         lesson material: objectives, templates, session factories
-├── features/        onboarding, path, today, lesson, practice, quests, profile
+├── features/        onboarding, path, today, reading_lab, lesson, practice, quests, profile
 ├── shared/          theme, reusable widgets, sound service
 └── state/           Riverpod AppController, pitch-source, sound providers
 ```
@@ -253,6 +253,36 @@ Session state is in memory; the durable facts are the measured seconds in
 `ProgressState.practiceSecondsByDay` (through `recordPracticeEffort`) and phrase
 evidence. There is no second goal system and no new storage shape. Tests live in
 `test/today_session_test.dart` and `test/today_screen_test.dart`.
+
+## Reading Lab (T2.12)
+
+The original 240-lesson course stays in place as the optional Reading Lab. It is
+a bridge for current learners, not the core Today loop.
+
+- `features/reading_lab/reading_lab_entry.dart` holds `ReadingLabCard` (the
+  Profile entry) and `ReadingLabEntry` (the compact Today entry). Both show the
+  real `completedLessons.length` out of 240. The copy says "Structured reading
+  practice, optional" and that the course complements the 5-minute Today loop.
+- `features/reading_lab/reading_lab_screen.dart` pushes `readingLabRoute()` and
+  hosts the existing `PathScreen` under a Reading Lab header. No lesson,
+  curriculum, or progress object is copied. The path launches the same
+  `LessonRun` and writes the same `ProgressState`.
+- `HomeShell` keeps four tabs. When the gate is off, the first tab is `Learn`
+  and is the path; its top card is labelled `READING LAB` so the course is not
+  mistaken for the Today loop or for removed content. When the gate is on, the
+  first tab is `Today`, and the Today body carries the compact Reading Lab entry
+  below the session plan. Profile always shows the full card.
+- There is no hearts, gems, XP, streak, or purchase gate on the Reading Lab.
+  The curriculum's own content progression is unchanged: completed lessons
+  reopen, only the current lesson is playable, and the section jump test
+  unlocks earlier sections. That lock is content order, not an economy.
+- `curriculum.dart`, lesson ids, storage, and migrations are untouched.
+
+Tests live in `test/reading_lab_test.dart`. They pin the 240 lesson ids and the
+40 unit ids, open the lab from Profile and from a gated Today surface, assert
+that progress survives, browse a later unit without completing earlier
+lessons, assert the absence of heart/gem/XP/streak gating, and render at
+390x844 and 1200x900 without overflow.
 
 ## Media storage
 

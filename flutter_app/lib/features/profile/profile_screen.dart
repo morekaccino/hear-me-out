@@ -17,6 +17,8 @@ import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../reading_lab/reading_lab_entry.dart';
+import '../reading_lab/reading_lab_screen.dart';
 import 'privacy_note.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -165,6 +167,13 @@ class ProfileScreen extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 24),
+              ReadingLabCard(
+                completedLessons: progress.completedLessons.length,
+                onOpen: () {
+                  unawaited(_openReadingLab(context));
+                },
+              ),
+              const SizedBox(height: 24),
               const Text(
                 'Skills',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
@@ -182,7 +191,7 @@ class ProfileScreen extends ConsumerWidget {
               SectionCard(
                 child: familyCounts.isEmpty
                     ? Text(
-                        'No skills practised yet. Start a lesson on the Learn tab.',
+                        'No skills practised yet. Start a lesson in the Reading Lab.',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -220,7 +229,7 @@ class ProfileScreen extends ConsumerWidget {
               SectionCard(
                 child: notes.isEmpty
                     ? Text(
-                        'No notes learned yet. Start Unit 1 on the Learn tab.',
+                        'No notes learned yet. Start Unit 1 in the Reading Lab.',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -529,6 +538,9 @@ class ProfileScreen extends ConsumerWidget {
   void _play(WidgetRef ref, Sfx sound) {
     unawaited(ref.read(soundServiceProvider).play(sound));
   }
+
+  Future<void> _openReadingLab(BuildContext context) =>
+      Navigator.of(context).push(readingLabRoute());
 
   Future<void> _cycleTheme(WidgetRef ref, AppSettings settings) {
     final next = AppThemeMode

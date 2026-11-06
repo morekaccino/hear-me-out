@@ -413,6 +413,33 @@ line.
 
 The path should feel like a route, not a game board or a spreadsheet.
 
+### Reading Lab
+
+The optional 240-lesson notation and theory course. It is a bridge for current
+learners, not the home. The entry lives in Profile and, when Today is the home,
+on the Today surface; it never becomes a fifth tab.
+
+- **Profile card:** a `blueSoft` `SectionCard` with a book icon, the title
+  `Reading Lab`, the line `Structured reading practice, optional`, a real
+  `n of 240 lessons` count, and an outline `OPEN READING LAB` button.
+- **Today entry:** a compact `blueSoft` strip with the same title and line, the
+  real count, and a chevron. It sits below the Today session plan and stays
+  secondary to it.
+- **Reading Lab screen:** a 44 px back control, the `READING LAB` eyebrow, the
+  title `Structured reading practice, optional`, the copy “The original
+  240-lesson notation and theory course. It complements the 5-minute Today
+  loop.”, and the real completed count. The existing path renders below it with
+  the same unit banners, course map, guidebooks, jump test, and lesson nodes.
+- **With the Today gate closed:** the first tab stays `Learn` and is the path;
+  the path's top card is labelled `READING LAB` and `Optional · Lesson n of
+  240`. The course never looks removed.
+- **No new economy:** no hearts, gems, shop, XP cost, streak, or purchase
+  gates. The existing one-lesson-at-a-time order and the jump-ahead test are
+  content progression and stay.
+- **Responsive:** the entry and screen fit 390x844 and 1200 px. Wide screens
+  keep the shell side rail; the lab's path keeps its own 320–372 px quest rail
+  when the route is at least 960 px wide.
+
 ### Lesson
 
 The focus screen. One staff card, one prompt, then either a teach panel, a set of
@@ -516,7 +543,9 @@ available.
 
 A transparent record of real work: notes with box progress, accuracy, completed
 lessons, weekly minutes, the optional streak, XP, settings, backup/restore,
-reset. No vanity metrics. Privacy
+reset. No vanity metrics. It also carries the optional **Reading Lab** card,
+which states that the original 240-lesson course is structured reading
+practice, optional, and complementary to the 5-minute Today loop. Privacy
 copy is part of the design, not a footer afterthought. It must say that
 recordings stay on the device, are never uploaded, and that the microphone is
 active only during a lesson, practice, tuner, or recording session. It may claim

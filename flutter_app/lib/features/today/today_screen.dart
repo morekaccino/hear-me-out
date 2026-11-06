@@ -17,6 +17,8 @@ import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../phrase/phrase_player_screen.dart';
+import '../reading_lab/reading_lab_entry.dart';
+import '../reading_lab/reading_lab_screen.dart';
 import '../technique/technique_screen.dart';
 import 'today_content.dart';
 import 'today_controller.dart';
@@ -147,6 +149,15 @@ class _TodayBody extends ConsumerWidget {
     final registry = ref.watch(todayPhraseRegistryProvider);
     final session = state.session;
     final target = resolveTodayTarget(session.target, registry);
+    final completedLessons =
+        ref
+            .watch(appControllerProvider)
+            .asData
+            ?.value
+            .progress
+            .completedLessons
+            .length ??
+        0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -180,6 +191,16 @@ class _TodayBody extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: DuoSpacing.xs),
+        ReadingLabEntry(
+          completedLessons: completedLessons,
+          onOpen: () {
+            // Leaving Today for the lab must not charge the gap as guitar
+            // time; the learner can resume the session on return.
+            if (state.session.isRunning) controller.pause();
+            unawaited(Navigator.of(context).push(readingLabRoute()));
+          },
+        ),
+        const SizedBox(height: DuoSpacing.sm),
         _PreviewFooter(),
       ],
     );
