@@ -1,7 +1,8 @@
 # Launch pieces (T3.1)
 
 **Status:** Metadata locked; not arranged, recorded, or legally cleared.
-**Owner:** T3.1. **Legal review:** T6.3. **Notes and recordings:** T3.3/T3.4.
+**Owner:** T3.1. **Legal review:** T6.3. **Notes:** T3.3/T3.4.
+**Reference recordings:** T3.5.
 **Source of truth:** [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md)
 section 6.2, with stage outcomes from section 6.1.
 
@@ -131,8 +132,9 @@ Open legal questions that apply to the whole list:
 - Exam-board names, syllabi, or grade lists. The V1 stages are internal and are
   not exam grades.
 - Chords, bass lines, double stops, and any second voice.
-- Actual note arrangements, recordings, and audio assets. T3.3/T3.4 and T6.4
-  own those.
+- Actual note arrangements and audio assets. T3.3/T3.4 arrange the pieces.
+  T3.5 records the 20 human reference takes (target and slow tempo). T6.4 is
+  the paywall and day-7 recap, not the recording owner.
 - Legal clearance. T6.3 owns it.
 - More than 10 pieces. The monthly content calendar is separate from this
   launch decision.
@@ -140,8 +142,9 @@ Open legal questions that apply to the whole list:
 ## Not yet validated
 
 - No phrase notes or score JSON exist for any launch piece. T3.3/T3.4 add them.
-- No reference recordings exist at target or slow tempo. T6.4 requires both for
-  every piece.
+- No reference recordings exist at target or slow tempo. T3.5 owns the 20
+  human reference takes (target and slow tempo) and must not use copyrighted
+  recordings.
 - No legal clearance exists. T6.3 must answer the questions above.
 - The tempos, ranges, and shift counts are planning targets, not
   human-validated arrangements.
