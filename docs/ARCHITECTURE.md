@@ -1,9 +1,10 @@
 # Architecture
 
-> **Status:** This document describes the current 240-lesson implementation. The
-> approved transformation plan lives in Plane (`D0.1 — START HERE`) and
-> [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md); it is not
-> implemented yet. Do not assume planned behavior is shipped.
+> **Status:** This document describes the current build: the 240-lesson
+> notation course plus gated Phase 1 engineering (score model, phrase player,
+> and Today session). The approved transformation plan lives in Plane (`D0.1 —
+> START HERE`) and [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md);
+> it is not shipped yet. Do not assume planned behavior is live.
 
 Hear Me Out is a Flutter app with pure-Dart domain layers and thin UI
 adapters. The main rule is that the hard parts — pitch detection, scheduling,
@@ -26,7 +27,7 @@ flutter_app/lib/
 │   ├── retention/   Pure-Dart retention events, bounded log, funnel helpers
 │   └── storage/     shared_preferences JSON store, export/import
 ├── content/         lesson material: objectives, templates, session factories
-├── features/        onboarding, path, lesson, practice, quests, profile
+├── features/        onboarding, path, today, lesson, practice, quests, profile
 ├── shared/          theme, reusable widgets, sound service
 └── state/           Riverpod AppController, pitch-source, sound providers
 ```
@@ -187,6 +188,61 @@ Tests live in `test/phrase_prompt_test.dart`, `test/phrase_verifier_test.dart`,
 The prompt and verifier tests load real arrangements through `parseScore`:
 `ode-to-joy.json` for the fixed grid, `londonderry-air.json` for rests and a
 two-beat pickup, and `amazing-grace.json` for a tie.
+
+## Today session (T2.6)
+
+Today is built but gated. `features/today/today_gate.dart` re-exports decision
+0001's compile-time `phraseLoopEnabled` value as `todayEnabled`, so `HomeShell`
+can choose the home surface without importing the phrase module. While the gate
+is false, main navigation keeps `PathScreen` and has no Today destination; the
+switch has no production "on" path. Tests construct `TodayScreen` directly or
+pass `HomeShell(enableToday: true)`.
+
+- `features/today/today_controller.dart` owns one T2.4 `PracticeSession`. It
+  builds the target through `content/practice_session_factory.dart`, exposes
+  5/10/20-minute selection, the maintenance-day extension, and clock methods
+  (`start`, `tick`, `pause`, `resume`, `advance`, `finishEarly`,
+  `resyncClock`, `restart`). Every timestamp comes from `todayClockProvider`;
+  the controller never reads the wall clock itself. Returning to the tab
+  re-bases the clock, so time spent elsewhere is not charged as guitar time. A
+  completed session calls
+  `AppController.recordTodayPractice`, which increments the existing daily
+  practice counter and records measured guitar time through T2.10's
+  `recordPracticeEffort`. That owns the weekly minutes goal and the optional
+  habit streak; Today shows no XP, streak, gems, quest, or punishment.
+  `instrumentElapsed` is the real guitar-in-hand time and is what the screen
+  displays; the 5-minute plan has 3:30 of it.
+- `todayPerformanceDayProvider` defaults to false, so an Apply take is practice
+  only unless a caller explicitly marks a performance day.
+  `todayScoredTakeGateProvider` wraps the T2.5 `ScoredTakeGate`. A phrase result
+  is handed to `AppController.recordPhraseResult` only on a performance day,
+  when it is complete and determinate, and when the gate is open; indeterminate,
+  incomplete, non-performance-day, or gate-closed takes record nothing. The
+  surface never promotes a take as a validated accuracy claim.
+- `features/today/today_screen.dart` renders a responsive `PageFrame` column
+  (720 px max) that fits 390x844 and 1200 px. The plan is a visible sequence:
+  setup, technique, model, acquire, apply, maintenance when present, and
+  reflect. Each block states what to do, why, and its budget. The current block
+  carries the start/continue control. The header shows guitar time and the stop
+  point, and pause/stop/early-end controls make the end calm and explicit.
+  There are no hearts, XP, streak, gems, quests, or fake metrics.
+- `features/today/today_content.dart` resolves the one target for display. A
+  note target gets a staff read-along card; a phrase target resolves through
+  T2.11's `PhraseObjectiveRegistry`, never a second registry. The model block
+  plays the phrase's synthesized `SoundSpec` or a synthesized note and labels it
+  `SYNTH PREVIEW`; it says human reference recordings are not available yet.
+  The technique block links to the existing T2.7 `TechniqueScreen` and shows
+  only the existing 60-second drill data.
+- The Apply block records only on a performance day and only through the T2.5
+  gate. When the gate is closed or the phrase player is still gated, the block
+  says the take is unscored practice. The reflect block asks for the 1-3
+  self-rating first, then shows one real metric (the last take's note accuracy
+  or measured guitar time), one correction, and one next step.
+
+Session state is in memory; the durable facts are the measured seconds in
+`ProgressState.practiceSecondsByDay` (through `recordPracticeEffort`) and phrase
+evidence. There is no second goal system and no new storage shape. Tests live in
+`test/today_session_test.dart` and `test/today_screen_test.dart`.
 
 ## Media storage
 
@@ -622,6 +678,9 @@ Screens:
 - `OnboardingScreen` — welcome, explanation, optional mic check.
 - `PathScreen` — lesson map, weekly goal, optional streak counter,
   jump-ahead tests, lesson launch.
+- `TodayScreen` — gated 5/10/20-minute plan, one target, instrument timer,
+  block sequence, reflection. Not reachable from main navigation while
+  `phraseLoopEnabled` is false.
 - `LessonScreen` — staff, name/play answers, feedback, result.
 - `PracticeScreen` — tuner, due/weak/free practice, weekly goal, stats.
 - `TechniqueScreen` — per-stage self-check, 60-second drill, demo script.
@@ -733,6 +792,8 @@ fresh profile; an unreadable document is quarantined first.
 | `test/scored_take_gate_test.dart` | Headphones, verified clock, calibration gate, practice-only default |
 | `test/phrase_loop_flag_test.dart` | Flag is off, gated entry returns null, no main-navigation entry |
 | `test/phrase_player_screen_test.dart` | 390x844 and 1200 px, play/count-in/record/stop/correction/retry, gate, calm copy |
+| `test/today_session_test.dart` | 5/10/20 plans, 3:30 guitar time, maintenance, supplied clock, no drift, early end, synth preview, phrase gate |
+| `test/today_screen_test.dart` | Gated Today surface, block sequence and copy, instrument timer, reflection, 390x844/1200 px, HomeShell switch |
 
 `test/support/fakes.dart` contains an in-memory store, controllable
 `FakePitchSource` / `FakePitchSourceFactory`, and `FakeSoundService`. Use

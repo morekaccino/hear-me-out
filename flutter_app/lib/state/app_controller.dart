@@ -425,6 +425,29 @@ class AppController extends AsyncNotifier<AppData> {
     return true;
   }
 
+  /// Records a completed Today practice session.
+  ///
+  /// Today is a no-hearts, no-XP surface. Completion increments the existing
+  /// daily practice counter and records the real measured guitar time through
+  /// T2.10's `recordPracticeEffort`, which owns the weekly goal and the optional
+  /// habit streak. It never awards XP, gems, quest rewards, or any other
+  /// loss-based gate.
+  Future<void> recordTodayPractice({
+    required Duration instrumentTime,
+    DateTime? completedAt,
+  }) async {
+    if (instrumentTime <= Duration.zero) return;
+    final now = completedAt ?? DateTime.now();
+    final data = _data;
+    data.progress.recordPractice(now);
+    data.progress.recordPracticeEffort(
+      now: now,
+      instrumentTime: instrumentTime,
+    );
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+  }
+
   Future<void> nextExercise() async {
     final data = _data;
     final run = data.run;

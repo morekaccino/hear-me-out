@@ -190,6 +190,20 @@ void main() {
       expect(session.instrumentElapsed, const Duration(seconds: 10));
     });
 
+    test('resyncClock drops an unattended gap without counting it', () {
+      final session = PracticeSession(target: target);
+      session.start(start);
+      session.tick(start.add(const Duration(seconds: 10)));
+      expect(session.elapsed, const Duration(seconds: 10));
+
+      // A tab switch or detached surface must not charge the gap.
+      session.resyncClock(start.add(const Duration(minutes: 2)));
+      session.tick(start.add(const Duration(minutes: 2, seconds: 5)));
+
+      expect(session.elapsed, const Duration(seconds: 15));
+      expect(session.instrumentElapsed, Duration.zero);
+    });
+
     test('many small ticks do not drift', () {
       final session = PracticeSession(target: target);
       session.start(start);
