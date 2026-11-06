@@ -10,10 +10,12 @@ import 'package:hear_me_out/core/music/score.dart';
 
 import '../tool/content/validate_piece.dart';
 
-/// The recorded T3.1 envelope for one Foundation piece. The string set and
-/// maximum fret are the actual first-position envelope the arrangement uses;
-/// T3.1's `rangeAndPosition` is kept in sync with them. Decision 0005 records
-/// that stage labels describe the primary focus, not a hard string restriction.
+/// The recorded T3.1 envelope for one Foundation piece.
+///
+/// The string set is the actual set of strings the arrangement uses. It must
+/// sit inside the string span named by T3.1's `rangeAndPosition`, and the maximum
+/// fret must equal the recorded fret ceiling. Stage 1-2 pieces must not use
+/// string 4 at all.
 typedef FoundationCase = ({
   String id,
   int stage,
@@ -24,12 +26,27 @@ typedef FoundationCase = ({
 const String contentDirectory = 'assets/content/pieces/foundation';
 
 const List<FoundationCase> foundationCases = <FoundationCase>[
-  (id: 'greensleeves', stage: 1, strings: {1, 2, 3, 4}, maxFret: 3),
-  (id: 'ode-to-joy', stage: 2, strings: {3, 4}, maxFret: 4),
-  (id: 'amazing-grace', stage: 2, strings: {2, 3, 4}, maxFret: 2),
-  (id: 'down-by-the-riverside', stage: 3, strings: {2, 3, 4}, maxFret: 3),
+  (id: 'greensleeves', stage: 1, strings: {1, 2, 3}, maxFret: 3),
+  (id: 'ode-to-joy', stage: 2, strings: {1, 2}, maxFret: 5),
+  (id: 'amazing-grace', stage: 2, strings: {1, 2, 3}, maxFret: 3),
+  (id: 'down-by-the-riverside', stage: 3, strings: {3, 4}, maxFret: 5),
   (id: 'original-study-1', stage: 3, strings: {4, 5, 6}, maxFret: 3),
 ];
+
+/// Reads the `strings X-Y; frets A-B` phrase from T3.1's `rangeAndPosition`.
+/// A formatting change fails the test instead of silently skipping the check.
+({int minString, int maxString, int maxFret}) parseRangeAndPosition(
+  String text,
+) {
+  final match = RegExp(r'strings\s+(\d+)-(\d+);\s*frets\s+(\d+)-(\d+)')
+      .firstMatch(text);
+  expect(match, isNotNull, reason: 'Unparseable rangeAndPosition: $text');
+  return (
+    minString: int.parse(match!.group(1)!),
+    maxString: int.parse(match.group(2)!),
+    maxFret: int.parse(match.group(4)!),
+  );
+}
 
 Map<String, dynamic> loadPiece(String id) {
   final file = File('$contentDirectory/$id.json');
@@ -95,7 +112,7 @@ void main() {
           expect(document.meta!.notes, isNotEmpty);
         });
 
-        test('matches the T3.1 piece metadata exactly', () {
+        test('matches the T3.1 metadata and recorded envelope', () {
           final piece = score.piece;
           expect(piece.id, entry.id);
           expect(piece.id, launch.piece.id);
@@ -112,18 +129,20 @@ void main() {
           expect(launch.tier, LaunchTier.foundation);
           expect(launch.v1Stage, entry.stage);
           expect(launch.phraseCount, 4);
+          expect(launch.techniqueFocus, isNotEmpty);
+          expect(launch.rangeAndPosition, isNotEmpty);
 
-          final firstString = entry.strings.reduce((a, b) => a < b ? a : b);
-          final lastString = entry.strings.reduce((a, b) => a > b ? a : b);
+          final t31 = parseRangeAndPosition(launch.rangeAndPosition);
+          final actualMin = entry.strings.reduce((a, b) => a < b ? a : b);
+          final actualMax = entry.strings.reduce((a, b) => a > b ? a : b);
+          expect(actualMin, greaterThanOrEqualTo(t31.minString));
+          expect(actualMax, lessThanOrEqualTo(t31.maxString));
           expect(
-            launch.rangeAndPosition,
-            contains('strings $firstString-$lastString'),
-            reason: 'T3.1 rangeAndPosition must match the arrangement envelope',
-          );
-          expect(
-            launch.rangeAndPosition,
-            contains('frets 0-${entry.maxFret}'),
-            reason: 'T3.1 rangeAndPosition must match the arrangement frets',
+            entry.maxFret,
+            t31.maxFret,
+            reason:
+                'T3.1 rangeAndPosition must match the arrangement fret '
+                'ceiling.',
           );
         });
 
@@ -211,8 +230,30 @@ void main() {
           }
         });
 
-        test('every note is first-position playable and pitch-consistent', () {
+        test('stage 1-2 stays on strings 1-3', () {
+          if (entry.stage > 2) return;
+
+          final t31 = parseRangeAndPosition(launch.rangeAndPosition);
+          expect(t31.minString, 1);
+          expect(t31.maxString, lessThanOrEqualTo(3));
+
+          for (final phrase in score.phrases) {
+            for (final event in phrase.events) {
+              if (!event.isNote) continue;
+              expect(
+                event.string,
+                inInclusiveRange(1, 3),
+                reason:
+                    '${phrase.id}: stage-${entry.stage} may not use string 4',
+              );
+            }
+          }
+        });
+
+        test('every note is playable and pitch-consistent', () {
           expect(score.piece.tuning.isStandard, isTrue);
+          final t31 = parseRangeAndPosition(launch.rangeAndPosition);
+          var actualMaxFret = 0;
 
           for (final phrase in score.phrases) {
             for (var index = 0; index < phrase.events.length; index++) {
@@ -259,18 +300,19 @@ void main() {
                 inInclusiveRange(52, 88),
                 reason: '$eventPath: written note is outside E3-E6',
               );
-              expect(string, inInclusiveRange(1, 6), reason: eventPath);
+              expect(
+                string,
+                inInclusiveRange(t31.minString, t31.maxString),
+                reason:
+                    '$eventPath: string $string is outside '
+                    'T3.1 range ${launch.rangeAndPosition}',
+              );
               expect(
                 fret,
                 inInclusiveRange(0, entry.maxFret),
                 reason: eventPath,
               );
-              expect(
-                entry.strings,
-                contains(string),
-                reason:
-                    '$eventPath: string $string is outside the documented set',
-              );
+              if (fret > actualMaxFret) actualMaxFret = fret;
 
               if (event.tieToNext) {
                 expect(index + 1, lessThan(phrase.events.length));
@@ -288,6 +330,12 @@ void main() {
               }
             }
           }
+
+          expect(
+            actualMaxFret,
+            entry.maxFret,
+            reason: 'The recorded envelope must be tight and up to date.',
+          );
         });
 
         test('passes the content validator CLI in strict mode', () {
