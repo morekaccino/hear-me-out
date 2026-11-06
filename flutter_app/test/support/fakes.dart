@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:hear_me_out/core/audio/pitch_source.dart';
+import 'package:hear_me_out/core/learning/onboarding_choices.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
+import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/shared/audio/audio_engine.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
@@ -34,12 +36,37 @@ class MemoryProgressStore implements ProgressStore {
   Future<void> clear() async => _value = null;
 }
 
+class FakeOnboardingStore implements OnboardingStore {
+  FakeOnboardingStore([this.value]);
+
+  OnboardingChoices? value;
+  int saveCount = 0;
+
+  @override
+  Future<OnboardingChoices?> load() async => value;
+
+  @override
+  Future<void> save(OnboardingChoices choices) async {
+    value = choices;
+    saveCount++;
+  }
+
+  @override
+  Future<void> clear() async => value = null;
+}
+
 class FakePitchSource implements PitchSource {
-  FakePitchSource({this.permission = true, this.startResult, this.startGate});
+  FakePitchSource({
+    this.permission = true,
+    this.startResult,
+    this.startGate,
+    this.onStart,
+  });
 
   final bool permission;
   final bool? startResult;
   final Completer<bool>? startGate;
+  final void Function()? onStart;
   final _controller = StreamController<PitchFrame>.broadcast();
   bool started = false;
   bool disposed = false;
@@ -57,6 +84,7 @@ class FakePitchSource implements PitchSource {
   @override
   Future<bool> start() async {
     started = true;
+    onStart?.call();
     final gate = startGate;
     if (gate != null) return gate.future;
     return startResult ?? permission;
@@ -83,11 +111,13 @@ class FakePitchSourceFactory {
     this.permission = true,
     this.startResult,
     this.startGate,
+    this.onStart,
   });
 
   final bool permission;
   final bool? startResult;
   final Completer<bool>? startGate;
+  final void Function()? onStart;
   final created = <FakePitchSource>[];
 
   PitchSource call() {
@@ -95,6 +125,7 @@ class FakePitchSourceFactory {
       permission: permission,
       startResult: startResult,
       startGate: startGate,
+      onStart: onStart,
     );
     created.add(source);
     return source;
@@ -128,16 +159,31 @@ class FakeSoundService implements SoundService {
 
 class FakeAudioEngine implements AudioEngine {
   final played = <SoundSpec>[];
+  final events = <String>[];
   int stopCount = 0;
+
+  /// When set, [play] stays pending until the gate completes. This models the
+  /// real player: the future resolves when playback starts, not when it ends.
+  Completer<void>? playGate;
+
+  /// When set, [stop] stays pending until the gate completes. This models a
+  /// slow platform stop so mic-start races are testable.
+  Completer<void>? stopGate;
 
   @override
   Future<void> play(SoundSpec spec) async {
     played.add(spec);
+    events.add('audio-play');
+    final gate = playGate;
+    if (gate != null) await gate.future;
   }
 
   @override
   Future<void> stop() async {
     stopCount++;
+    events.add('audio-stop');
+    final gate = stopGate;
+    if (gate != null) await gate.future;
   }
 
   @override

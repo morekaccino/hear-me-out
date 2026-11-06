@@ -7,6 +7,7 @@ import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/learning/prompt.dart';
 import 'package:hear_me_out/core/music/curriculum.dart';
+import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
@@ -22,6 +23,8 @@ void main() {
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(MemoryProgressStore(progress)),
+        onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
+        audioEngineProvider.overrideWithValue(FakeAudioEngine()),
         pitchSourceFactoryProvider.overrideWithValue(sources.call),
         soundServiceProvider.overrideWithValue(sounds ?? FakeSoundService()),
       ],
@@ -42,17 +45,13 @@ void main() {
       buildApp(ProgressState.fresh(), sources),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('CONTINUE'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('CONTINUE'));
-    await tester.pumpAndSettle();
 
-    await tester.tap(find.text('TEST MICROPHONE'));
+    await tester.tap(find.text('CHECK YOUR MIC'));
     await tester.pumpAndSettle();
 
     expect(sources.created, hasLength(1));
     expect(find.text('LISTENING…'), findsOneWidget);
-    expect(find.text('TEST MICROPHONE'), findsNothing);
+    expect(find.text('CHECK YOUR MIC'), findsNothing);
 
     await tester.tap(find.text('LISTENING…'));
     await tester.pumpAndSettle();
@@ -73,21 +72,17 @@ void main() {
       buildApp(ProgressState.fresh(), sources),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('CONTINUE'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('CONTINUE'));
-    await tester.pumpAndSettle();
 
-    await tester.tap(find.text('TEST MICROPHONE'));
+    await tester.tap(find.text('CHECK YOUR MIC'));
     await tester.pump();
     expect(find.text('STARTING…'), findsOneWidget);
-    await tester.tap(find.text('Skip, I will type note names'));
+    await tester.tap(find.text('NOT NOW'));
     await tester.pumpAndSettle();
 
     gate.complete(true);
     await tester.pumpAndSettle();
 
-    expect(find.text('Pick a daily goal'), findsOneWidget);
+    expect(find.text('How well do you read?'), findsOneWidget);
     expect(sources.created.single.disposed, isTrue);
   });
 

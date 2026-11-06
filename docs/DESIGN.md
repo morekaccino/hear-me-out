@@ -444,9 +444,14 @@ copy is part of the design, not a footer afterthought.
 
 ### Onboarding
 
-Four short pages: welcome, name/play explanation, optional mic check, daily
-goal. The mic check must be skippable and must explain the fallback. The user
-should reach the path in under a minute.
+Three screens, one decision each: “Do you have your guitar?” (Yes / Not
+now), “How well do you read?” (note names / slow reader / comfortable), and
+“Pick a first piece” (three cards with a short synth preview and a “Choose
+later” default). A progress indicator and back control stay visible. The
+microphone check is an optional secondary action on the first screen, never a
+fourth screen and never a permission gate. No hearts, XP, gems, streak, or
+quests appear during onboarding. The user should reach the path in under a
+minute.
 
 ## Gamification rules
 
