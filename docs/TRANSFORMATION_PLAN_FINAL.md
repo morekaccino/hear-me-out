@@ -669,6 +669,10 @@ Do these in parallel before Phase 1. **Total validation budget: $5–8k**, inclu
 | 3 | 26–52 | Technique video; ear-to-hand; cloud/AI evaluation; post-12-month piano research only | Guitar retention proven; separate assessment gate for any expansion |
 | 4 | 12+ months | Social/recital; UGC; marketplace; optional piano | 10k MAU; moderation/privacy plan; piano assessment spike passes |
 
+Gate evidence and checklist: [`PHASE_GATES.md`](PHASE_GATES.md). Do not start a
+phase until its gate decision is recorded in `T9.2`; a conditional unlocks only
+the work named in the condition.
+
 **90-day sprint:**
 
 | Week | Deliverable |
