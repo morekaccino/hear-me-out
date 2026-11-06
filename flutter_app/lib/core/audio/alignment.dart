@@ -300,7 +300,7 @@ class _MatchedNote {
 }
 
 double _matchCost(TargetNote target, DetectedNote detected) {
-  if (detected.confidence < 0.6) return 0.5;
+  if (detected.confidence < DetectedNote.determinateConfidence) return 0.5;
   final interval = (detected.midi - target.midi).abs();
   if (interval == 0) return 0;
   if (interval % 12 == 0) return 1.25;

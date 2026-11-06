@@ -27,12 +27,15 @@ class DetectedNote {
   /// Deviation from [midi] in cents, in the range -50..50.
   final double cents;
 
-  /// 0..1. Values below 0.6 are indeterminate for scoring.
+  /// 0..1. Values below [determinateConfidence] are indeterminate for scoring.
   final double confidence;
 
   final int sampleIndex;
 
-  bool get isConfident => confidence >= 0.6;
+  /// The contract threshold between determinate and indeterminate evidence.
+  static const double determinateConfidence = 0.6;
+
+  bool get isConfident => confidence >= determinateConfidence;
 
   @override
   String toString() =>

@@ -99,7 +99,8 @@ class PhraseResult {
   /// "rushed", "dragged", or null when timing is acceptable.
   final String? timingIssue;
 
-  /// At least 85% of determinate notes correct, timing acceptable, no extras.
+  /// At least 85% of determinate notes correct, timing acceptable, no extras,
+  /// and no more than 20% indeterminate.
   final bool practicePass;
 
   /// 100% determinate correct, timing acceptable, complete, no extras.
@@ -166,6 +167,9 @@ class PhraseScorer {
   /// reported as a false start and is removed from note scoring. Do not pass a
   /// click track that is present in the recording; clicks would be scored as
   /// attacks.
+  ///
+  /// [beatsPerBar] is passed to [scoreDetections], where it is used to derive
+  /// bars only when the caller left every [TargetNote.bar] at zero.
   PhraseResult score({
     required List<double> samples,
     required List<TargetNote> target,
@@ -216,6 +220,10 @@ class PhraseScorer {
   /// Scores already-segmented notes. This is the deterministic core used by
   /// [score]; exposing it lets callers and the null-model tests skip audio
   /// analysis without changing any scoring rule.
+  ///
+  /// [beatsPerBar] is only used when every [TargetNote.bar] is zero, in which
+  /// case bars are derived from the fixed onset grid. Otherwise the caller's
+  /// bar values win.
   PhraseResult scoreDetections({
     required List<TargetNote> target,
     required List<DetectedNote> detected,
@@ -302,7 +310,7 @@ class PhraseScorer {
       final interval = (detectedNote.midi - targetNote.midi).abs();
       final octaveError = interval > 0 && interval % 12 == 0;
 
-      if (detectedNote.confidence < 0.6) {
+      if (detectedNote.confidence < DetectedNote.determinateConfidence) {
         notes.add(
           NoteResult(
             targetIndex: targetNote.index,
@@ -350,7 +358,7 @@ class PhraseScorer {
     final extraNotes = [
       for (var index = 0; index < detected.length; index++)
         if (!matchedDetected.contains(index) &&
-            detected[index].confidence >= 0.6)
+            detected[index].confidence >= DetectedNote.determinateConfidence)
           index,
     ].length;
 
