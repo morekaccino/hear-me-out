@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "fixture-overlap-piece",
+    "title": "Overlap Test",
+    "composer": "Test Fixture",
+    "license": "public-domain",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [40, 45, 50, 55, 59, 64]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "key": "C major",
+    "sections": []
+  },
+  "phrases": [
+    {
+      "id": "fixture-overlap",
+      "bars": 1,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 70,
+      "skills": ["note-reading.open-strings"],
+      "difficulty": 2,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 2.0,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0,
+          "tieToNext": false,
+          "velocity": 1.0
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1.0,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2,
+          "tieToNext": false,
+          "velocity": 1.0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1.0,
+          "kind": "rest",
+          "velocity": 1.0
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1.0,
+          "kind": "rest",
+          "velocity": 1.0
+        }
+      ]
+    }
+  ]
+}

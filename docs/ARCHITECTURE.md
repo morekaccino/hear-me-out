@@ -18,7 +18,8 @@ gamification, see [`DESIGN.md`](DESIGN.md).
 ```
 flutter_app/lib/
 ├── core/
-│   ├── music/       Note, Accidental, guitar transposition, curriculum
+│   ├── music/       Note, guitar transposition, score models, curriculum
+│   ├── media/       MediaStore interface and in-memory test store
 │   ├── learning/    Objectives, prompts, templates, composer, LessonRun
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
@@ -76,6 +77,48 @@ lesson-ID map used by progress migration. The course is authored as 40
 `UnitSpec`s in `core/learning/course/` and expanded by `LessonFactory` into six
 lessons per unit. Lessons name non-note objectives by id (`teaches` / `reviews`),
 which resolve through `lib/content/objectives.dart`.
+
+## Score and media models (Phase 1)
+
+The score model is present but not yet wired into the lesson UI, progress
+storage, or phrase scoring. It is the domain contract for T2.2–T2.5, T3.2, and
+T4.1. The phrase UI remains unreachable from main navigation until T1.7 passes
+(decision 0001).
+
+- `core/music/note_event.dart` — `NoteEvent` stores one timed note or rest.
+  Notes carry both `writtenNote` and `soundingMidi`; the validator re-derives
+  the sounding value with `Guitar.soundingMidiForWritten`. A note may carry an
+  optional string/fret; rests may not carry pitch, position, or a tie.
+- `core/music/phrase.dart` — `Phrase` holds bars, time signature, events,
+  target tempo, skills, difficulty, start bar, and an explicit `pickupBeats`
+  value. V1 caps a phrase at 64 bars. `totalBeats` comes from the events;
+  `expectedTotalBeats` comes from the bars and pickup. The validator compares
+  them instead of rounding.
+- `core/music/piece.dart` — `Piece`, `Tuning`, `TimeSignature`, and
+  `LicenseStatus`. V1 is standard tuning (E2 A2 D3 G3 B3 E4), capo 0, and
+  public-domain or original material. Nonzero capo is rejected with
+  `piece.unsupportedCapo` until capo-aware pitch semantics exist; a
+  non-standard tuning is a warning for future content.
+- `core/music/score.dart` — `Score` is a piece plus phrases in performance
+  order. `Score.validate()` returns every `ScoreIssue` from
+  `MonophonicValidator`. V1 rules: one sounding note at a time, no chords or
+  double stops, valid written/sounding pairs, position-consistent fingerings,
+  bars that match the time signature (including an explicit pickup), adjacent
+  ties with the same written/sounding pitch and position, unique phrase ids,
+  bounded ranges, and no NaN/Inf.
+- `core/music/score_parser.dart` — canonical JSON with `schemaVersion: 1`.
+  `parseScore` is structural: it throws `FormatException` with a field path
+  such as `phrases[0].events[2].soundingMidi`, ignores unknown fields for
+  forward compatibility, and rejects future versions. `scoreToJson` emits the
+  canonical document. Callers must call `Score.validate()` for musical rules.
+- `core/media/media_store.dart` — `MediaStore`, `MediaRef`, and
+  `MemoryMediaStore`. Recordings live in media storage, never in
+  `ProgressState`. The interface is pure Dart; persistent mobile/web stores are
+  T4.1.
+
+Tests live in `test/note_event_test.dart`, `test/phrase_test.dart`,
+`test/score_test.dart`, `test/score_parser_test.dart`, and
+`test/media_store_test.dart`; fixtures are in `test/fixtures/score/`.
 
 ## Progress and scheduling
 
@@ -353,6 +396,11 @@ fresh profile.
 |---|---|
 | `test/note_test.dart` | Parsing, MIDI, spelling, transposition |
 | `test/guitar_test.dart` | Written/sounding transposition, fingerings |
+| `test/note_event_test.dart` | NoteEvent timing, pitch pairs, JSON, field paths |
+| `test/phrase_test.dart` | Phrase pickup math, notes/rests, JSON |
+| `test/score_test.dart` | Score validator rules, error codes, capo/bar bounds, ties |
+| `test/score_parser_test.dart` | Canonical score JSON, schema version, field paths, roundtrip |
+| `test/media_store_test.dart` | MediaStore put/get/delete/list/usage/clear, purity |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
 | `test/session_factory_test.dart` | All lessons, teach cards, choices, modes, ordering, pacing |
