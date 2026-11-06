@@ -74,6 +74,9 @@ int runCli(List<String> args, {StringSink? out, StringSink? err}) {
   } on FileSystemException catch (error) {
     errorSink.writeln('Cannot read $path: ${error.message}');
     return 2;
+  } on FormatException catch (error) {
+    errorSink.writeln('Cannot read $path: ${error.message}');
+    return 2;
   }
 
   AuthoringDocument? document;

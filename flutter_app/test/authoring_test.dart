@@ -631,6 +631,17 @@ void main() {
       expect(missingErr.toString(), contains('Cannot read'));
     });
 
+    test('exits 2 for a file that is not valid UTF-8', () {
+      final file = File('${tempDir.path}/binary.json')
+        ..writeAsBytesSync(<int>[0xff, 0xfe, 0x00]);
+      final err = StringBuffer();
+
+      final code = runCli([file.path], out: StringBuffer(), err: err);
+
+      expect(code, 2);
+      expect(err.toString(), contains('Cannot read'));
+    });
+
     test('--help exits 0 and prints usage', () {
       final out = StringBuffer();
 
