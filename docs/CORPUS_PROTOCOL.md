@@ -262,7 +262,7 @@ if needed. Record `monitor=wired-headphones` in `notes`; otherwise record
 - Do not resample before archiving. If a resampled copy is needed, keep the
   original and write `resampled-from=<rate>` in `notes`.
 - Budget about 6 MB per 60-second mono WAV. 240 takes of 10 seconds are roughly
-  25 MB; longer piece takes dominate. Keep at least 5 GB free on the recorder
+  230 MB; longer piece takes dominate. Keep at least 5 GB free on the recorder
   and the corpus drive.
 
 ### 4.5 Tuning
