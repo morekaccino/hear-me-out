@@ -448,6 +448,27 @@ void main() {
       );
     });
 
+    test('64 bars is the accepted V1 maximum', () {
+      expect(Phrase.maxV1Bars, 64);
+      final score = scoreWith(
+        const Phrase(
+          id: 'max-bars',
+          bars: 64,
+          timeSignature: TimeSignature(4, 4),
+          targetTempoBpm: 80,
+          events: [
+            NoteEvent(
+              startBeat: 0,
+              durationBeats: 256,
+              kind: NoteEventKind.rest,
+            ),
+          ],
+        ),
+      );
+
+      expect(score.validate(), isEmpty);
+    });
+
     test('unsupported and out-of-range capos are rejected', () {
       final capoFive = scoreWith(
         base.phrases.single,
