@@ -38,8 +38,9 @@
       },
       "targetTempoBpm": 76,
       "skills": [
-        "note-reading.second-position",
-        "technique.position-shift",
+        "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 4,
@@ -222,6 +223,8 @@
       "skills": [
         "note-reading.second-position",
         "technique.position-shift",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 4,
@@ -402,8 +405,9 @@
       },
       "targetTempoBpm": 76,
       "skills": [
-        "note-reading.second-position",
-        "technique.position-shift",
+        "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 4,
@@ -579,7 +583,7 @@
     "author": "Hear Me Out content team",
     "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
     "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
-    "notes": "Level 4 etude in G major: twelve bars at 76 BPM with a first-position theme, a second-position answer, and a first-position cadence. The two guide-finger shifts are written into the string and fret fields.",
+    "notes": "Level 4 etude in G major: twelve bars at 76 BPM with a first-position theme, a second-position answer, and a first-position cadence. The two phrase-level position changes are written into the string and fret fields; guide-finger fingering is T3.8 review. T3.8 musical-review flag: deliberately repetitive motif; confirm that it reads as music.",
     "kind": "etude",
     "tier": "returner",
     "stage": 5

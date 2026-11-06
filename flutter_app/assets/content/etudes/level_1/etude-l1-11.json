@@ -39,7 +39,9 @@
       "targetTempoBpm": 60,
       "skills": [
         "note-reading.open-strings",
+        "note-reading.first-position",
         "rhythm.quarter-notes",
+        "rhythm.half-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 1,

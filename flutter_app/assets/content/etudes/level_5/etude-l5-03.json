@@ -31,16 +31,19 @@
     {
       "id": "etude-l5-03-p1",
       "title": "First-position statement",
-      "bars": 4,
+      "bars": 2,
       "timeSignature": {
         "numerator": 4,
         "denominator": 4
       },
-      "targetTempoBpm": 80,
+      "targetTempoBpm": 70,
       "skills": [
+        "note-reading.first-position",
         "sightreading.fluency",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.rests",
-        "technique.position-shift"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 5,
       "startBar": 1,
@@ -49,16 +52,16 @@
         {
           "startBeat": 0.0,
           "durationBeats": 1,
-          "kind": "rest"
-        },
-        {
-          "startBeat": 1.0,
-          "durationBeats": 1,
           "kind": "note",
           "writtenNote": "G4",
           "soundingMidi": 55,
           "string": 3,
           "fret": 0
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "rest"
         },
         {
           "startBeat": 2.0,
@@ -80,7 +83,7 @@
         },
         {
           "startBeat": 4.0,
-          "durationBeats": 0.5,
+          "durationBeats": 1,
           "kind": "note",
           "writtenNote": "A4",
           "soundingMidi": 57,
@@ -88,7 +91,7 @@
           "fret": 2
         },
         {
-          "startBeat": 4.5,
+          "startBeat": 5.0,
           "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "B4",
@@ -97,8 +100,8 @@
           "fret": 0
         },
         {
-          "startBeat": 5.0,
-          "durationBeats": 1,
+          "startBeat": 5.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "C#5",
           "soundingMidi": 61,
@@ -108,88 +111,15 @@
         {
           "startBeat": 6.0,
           "durationBeats": 1,
-          "kind": "rest"
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
         },
         {
           "startBeat": 7.0,
           "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "D5",
-          "soundingMidi": 62,
-          "string": 2,
-          "fret": 3
-        },
-        {
-          "startBeat": 8.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "C#5",
-          "soundingMidi": 61,
-          "string": 2,
-          "fret": 2
-        },
-        {
-          "startBeat": 9.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "C#5",
-          "soundingMidi": 61,
-          "string": 2,
-          "fret": 2
-        },
-        {
-          "startBeat": 10.0,
-          "durationBeats": 1,
-          "kind": "rest"
-        },
-        {
-          "startBeat": 11.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "B4",
-          "soundingMidi": 59,
-          "string": 2,
-          "fret": 0
-        },
-        {
-          "startBeat": 12.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "A4",
-          "soundingMidi": 57,
-          "string": 3,
-          "fret": 2
-        },
-        {
-          "startBeat": 13.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "A4",
-          "soundingMidi": 57,
-          "string": 3,
-          "fret": 2
-        },
-        {
-          "startBeat": 14.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "C#5",
-          "soundingMidi": 61,
-          "string": 2,
-          "fret": 2
-        },
-        {
-          "startBeat": 15.0,
-          "durationBeats": 0.5,
-          "kind": "note",
-          "writtenNote": "B4",
-          "soundingMidi": 59,
-          "string": 2,
-          "fret": 0
-        },
-        {
-          "startBeat": 15.5,
-          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "A4",
           "soundingMidi": 57,
@@ -201,34 +131,38 @@
     {
       "id": "etude-l5-03-p2",
       "title": "Second-position answer and cadence",
-      "bars": 4,
+      "bars": 2,
       "timeSignature": {
         "numerator": 4,
         "denominator": 4
       },
-      "targetTempoBpm": 80,
+      "targetTempoBpm": 70,
       "skills": [
+        "note-reading.second-position",
+        "technique.position-shift",
         "sightreading.fluency",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.rests",
-        "technique.position-shift"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 5,
-      "startBar": 5,
+      "startBar": 3,
       "pickupBeats": 0.0,
       "events": [
         {
           "startBeat": 0.0,
-          "durationBeats": 1,
-          "kind": "rest"
-        },
-        {
-          "startBeat": 1.0,
           "durationBeats": 1,
           "kind": "note",
           "writtenNote": "B4",
           "soundingMidi": 59,
           "string": 3,
           "fret": 4
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "rest"
         },
         {
           "startBeat": 2.0,
@@ -250,7 +184,7 @@
         },
         {
           "startBeat": 4.0,
-          "durationBeats": 0.5,
+          "durationBeats": 1,
           "kind": "note",
           "writtenNote": "E5",
           "soundingMidi": 64,
@@ -258,7 +192,7 @@
           "fret": 5
         },
         {
-          "startBeat": 4.5,
+          "startBeat": 5.0,
           "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "D5",
@@ -267,22 +201,8 @@
           "fret": 3
         },
         {
-          "startBeat": 5.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "C#5",
-          "soundingMidi": 61,
-          "string": 2,
-          "fret": 2
-        },
-        {
-          "startBeat": 6.0,
-          "durationBeats": 1,
-          "kind": "rest"
-        },
-        {
-          "startBeat": 7.0,
-          "durationBeats": 1,
+          "startBeat": 5.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "B4",
           "soundingMidi": 59,
@@ -290,7 +210,7 @@
           "fret": 4
         },
         {
-          "startBeat": 8.0,
+          "startBeat": 6.0,
           "durationBeats": 1,
           "kind": "note",
           "writtenNote": "C#5",
@@ -299,67 +219,8 @@
           "fret": 2
         },
         {
-          "startBeat": 9.0,
+          "startBeat": 7.0,
           "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "C#5",
-          "soundingMidi": 61,
-          "string": 2,
-          "fret": 2
-        },
-        {
-          "startBeat": 10.0,
-          "durationBeats": 1,
-          "kind": "rest"
-        },
-        {
-          "startBeat": 11.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "D5",
-          "soundingMidi": 62,
-          "string": 2,
-          "fret": 3
-        },
-        {
-          "startBeat": 12.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "E5",
-          "soundingMidi": 64,
-          "string": 2,
-          "fret": 5
-        },
-        {
-          "startBeat": 13.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "F#5",
-          "soundingMidi": 66,
-          "string": 1,
-          "fret": 2
-        },
-        {
-          "startBeat": 14.0,
-          "durationBeats": 1,
-          "kind": "note",
-          "writtenNote": "F#5",
-          "soundingMidi": 66,
-          "string": 1,
-          "fret": 2
-        },
-        {
-          "startBeat": 15.0,
-          "durationBeats": 0.5,
-          "kind": "note",
-          "writtenNote": "E5",
-          "soundingMidi": 64,
-          "string": 2,
-          "fret": 5
-        },
-        {
-          "startBeat": 15.5,
-          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "D5",
           "soundingMidi": 62,
@@ -373,7 +234,7 @@
     "author": "Hear Me Out content team",
     "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
     "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
-    "notes": "Level 5 etude in D major: 8 bars at 80 BPM with mixed quarter, eighth, and rest cells, a compact second-position passage, and a musical cadence. This is a first-read test, not a technique study.",
+    "notes": "Level 5 etude in D major: four bars at 70 BPM, matching the stage-9 outcome (read a 4-bar etude at sight at 70 BPM). It uses mixed quarter, eighth, and rest cells, one compact second-position passage, and a musical cadence. This is a first-read test, not a technique study.",
     "kind": "etude",
     "tier": "returner",
     "stage": 9

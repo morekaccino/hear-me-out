@@ -28,22 +28,44 @@ T6.3; the license string is provenance, not a legal conclusion.
 ## 2. Level rubric
 
 The rubric is the contract for the set. The tests in
-`flutter_app/test/sight_reading_etudes_test.dart` enforce it.
+`flutter_app/test/sight_reading_etudes_test.dart` assert the machine-checkable
+columns below. Guide-finger fingering and musical payoff are T3.8 review, not
+machine claims.
 
 | Level | Stage | Tier | Strings and frets | Rhythm | Bars | Tempo | Meter | Accidentals | Position work | Cadence |
 |---|---|---|---|---|---|---|---|---|---|---|
 | L1 | 1 | foundation | strings 1-3, frets 0-3 | quarter and half notes | 4 | 60 BPM | 4/4 | none | open strings and first position | one clear tonic cadence |
 | L2 | 2 | foundation | strings 1-3, frets 0-5 | quarter and eighth notes | 8 | 66 BPM | 4/4 or 3/4 | at most one | first position | clear phrase ending |
 | L3 | 3 | foundation | strings 1-6, frets 0-5 | quarter, eighth, and dotted rhythms | 12 | 72 BPM | 4/4 or 3/4 | one or two | first position across the strings | repeated rhythmic motif and a tonic cadence |
-| L4 | 5 | returner | strings 1-4, frets 0-5 | quarter and eighth notes | 12 | 76 BPM | 4/4 or 3/4 | free, but tonal | first position, a second-position answer, then first position; two guide-finger shifts | tonic cadence |
-| L5 | 9 | returner | strings 1-6, frets 0-5 in this set | mixed quarter, eighth, and rest cells | 4-8 | 80 BPM | 4/4 or 3/4 | free, but tonal | one compact second-position passage | musical tonic cadence |
+| L4 | 5 | returner | strings 1-4, frets 0-5 | quarter and eighth notes | 12 | 76 BPM | 4/4 or 3/4 | tonal; none in this set | first position, a second-position answer, then first position; two phrase-level position changes (guide-finger detail T3.8) | tonic cadence |
+| L5 | 9 | returner | strings 1-6, frets 0-5 in this set | mixed quarter, eighth, and rest cells | 4 | 70 BPM | 4/4 or 3/4 | tonal; none in this set | one compact second-position passage | musical tonic cadence |
 
 Every note names an explicit string and fret. Written pitch stays inside
 E3-E6, sounding pitch inside E2-E5, and `soundingMidi = written MIDI - 12`.
 Every phrase is at most four bars and every bar is fully covered by notes and
-rests.
+rests. The L2/L3 first-position columns are asserted through the string/fret
+envelope (frets 0-5) and an open-string note; the app has no formal
+hand-position model.
 
-### 2.1 How shifts are counted
+### 2.1 Scope note: phrase length and stage outcomes
+
+The ticket's shorthand "2-4 bars each" is enforced at the phrase level: every
+phrase is 1-4 bars. Etude totals follow the published stage outcomes instead
+of forcing every file into four bars:
+
+- L1: 4 bars (stage 1: a 4-bar study at 60 BPM).
+- L2: 8 bars (stage 2: an 8-bar folk melody).
+- L3: 12 bars (stage 3: a 12-bar piece).
+- L4: 12 bars (stage 5: a 12-bar study with two position changes).
+- L5: 4 bars at 70 BPM (stage 9: read a 4-bar etude at sight at 70 BPM).
+
+This deviation is intentional and was requested in review. T9.2 remains the
+manager's decision log; this section is the content-side record. L5's compact
+second-position passage is also intentional per the ticket's L5 rubric. It is
+not a change to the stage map, and T3.8 must judge whether it reads cleanly at
+sight.
+
+### 2.2 How shifts are counted
 
 A phrase is classified as first position when it uses at least one fret 0-1
 and no fret 4-5, and as second position when it uses at least one fret 4-5
@@ -54,11 +76,13 @@ transitions between those two classes. Every L4 etude follows the same plan:
 2. second-position answer;
 3. first-position return and cadence.
 
-The shift is therefore explicit in the string and fret fields. The T3.2
-validator's separate warning counts a five-fret leap between consecutive
-fretted notes; all 60 files have zero such warnings.
+The position change is therefore explicit in the string and fret fields. The
+files cannot encode which finger guides the shift; that is a T3.8 fingering
+review question, not a machine claim. The T3.2 validator's separate warning
+counts a five-fret leap between consecutive fretted notes; all 60 files have
+zero such warnings.
 
-### 2.2 Accidentals
+### 2.3 Accidentals
 
 Accidentals are counted as distinct written pitch classes outside the key
 signature:
@@ -68,7 +92,7 @@ signature:
 - L3: one or two. Major-key etudes use a chromatic lower neighbour to the
   dominant; minor-key etudes add the raised leading tone at the final
   cadence. The exact interval is visible in the `writtenNote` fields.
-- L4 and L5: tonal, with no accidental-count requirement.
+- L4 and L5: tonal; this set uses no accidentals in either level.
 
 ## 3. Musical design
 
@@ -87,9 +111,10 @@ varies it:
 - **Cadences:** every etude ends on the tonic. The final two notes are always
   a step or half-step, and the approach to the cadence is kept inside a
   perfect fourth or smaller so the ending is not a random leap.
-- **Difficulty:** the tempo rises 60, 66, 72, 76, 80 BPM and the bar count
-  rises 4, 8, 12, 12, 4-8. L5 is shorter than L4 on purpose: it is a fluency
-  check at a faster tempo, not a longer technique study.
+- **Difficulty:** the tempo rises 60, 66, 72, 76 BPM and then L5 returns to
+  70 BPM for the stage-9 at-sight outcome. Bar counts are 4, 8, 12, 12, 4.
+  L5 is shorter than L4 on purpose: it is a fresh 4-bar reading check at the
+  stage-9 tempo, not a longer technique study.
 
 ## 4. Index
 
@@ -146,18 +171,18 @@ phrase target tempo.
 | `etude-l4-10` | L4 | 5 | E minor | 12 | 4/4 | 76 |
 | `etude-l4-11` | L4 | 5 | C major | 12 | 4/4 | 76 |
 | `etude-l4-12` | L4 | 5 | G major | 12 | 4/4 | 76 |
-| `etude-l5-01` | L5 | 9 | C major | 8 | 4/4 | 80 |
-| `etude-l5-02` | L5 | 9 | G major | 8 | 4/4 | 80 |
-| `etude-l5-03` | L5 | 9 | D major | 8 | 4/4 | 80 |
-| `etude-l5-04` | L5 | 9 | A minor | 4 | 4/4 | 80 |
-| `etude-l5-05` | L5 | 9 | E minor | 4 | 4/4 | 80 |
-| `etude-l5-06` | L5 | 9 | C major | 4 | 3/4 | 80 |
-| `etude-l5-07` | L5 | 9 | G major | 8 | 3/4 | 80 |
-| `etude-l5-08` | L5 | 9 | D major | 8 | 3/4 | 80 |
-| `etude-l5-09` | L5 | 9 | A minor | 4 | 3/4 | 80 |
-| `etude-l5-10` | L5 | 9 | E minor | 8 | 4/4 | 80 |
-| `etude-l5-11` | L5 | 9 | C major | 8 | 4/4 | 80 |
-| `etude-l5-12` | L5 | 9 | G major | 4 | 4/4 | 80 |
+| `etude-l5-01` | L5 | 9 | C major | 4 | 4/4 | 70 |
+| `etude-l5-02` | L5 | 9 | G major | 4 | 4/4 | 70 |
+| `etude-l5-03` | L5 | 9 | D major | 4 | 4/4 | 70 |
+| `etude-l5-04` | L5 | 9 | A minor | 4 | 4/4 | 70 |
+| `etude-l5-05` | L5 | 9 | E minor | 4 | 4/4 | 70 |
+| `etude-l5-06` | L5 | 9 | C major | 4 | 3/4 | 70 |
+| `etude-l5-07` | L5 | 9 | G major | 4 | 3/4 | 70 |
+| `etude-l5-08` | L5 | 9 | D major | 4 | 3/4 | 70 |
+| `etude-l5-09` | L5 | 9 | A minor | 4 | 3/4 | 70 |
+| `etude-l5-10` | L5 | 9 | E minor | 4 | 4/4 | 70 |
+| `etude-l5-11` | L5 | 9 | C major | 4 | 4/4 | 70 |
+| `etude-l5-12` | L5 | 9 | G major | 4 | 4/4 | 70 |
 
 ## 5. Review status
 
@@ -170,15 +195,26 @@ What has actually happened:
 - Every file passes the validator CLI in `--strict` mode.
 - The 60-file rubric checks in
   `flutter_app/test/sight_reading_etudes_test.dart` pass: counts, ids, stage,
-  tier, tempo, bars, ranges, accidentals, repeated rhythm, shifts, rests,
-  cadence, and honest `reviewedBy`.
+  tier, tempo, bars, ranges, accidentals, repeated rhythm, first/second
+  position classification, phrase skills against the notes, rests, cadence,
+  and honest `reviewedBy`.
+- Phrase-level `skills` are checked against the notes: a first-position phrase
+  cannot claim second position or a shift; a second-position phrase must use
+  frets 2-5 and include a fret 4-5 note; rhythm tags require the matching
+  duration or rest; an accidental tag requires an out-of-key note; a
+  phrase-ending tag requires a step or half-step.
+- L3's phrases 1 and 3 are asserted to share the same rhythmic signature.
+- L5 is 4 bars at 70 BPM, and its second phrase is an exclusively
+  second-position passage.
 - A machine review of the melodic intervals keeps every approach to a cadence
   inside a perfect fourth and every etude ends on its tonic.
 
 What has **not** happened:
 
 - No human musical review of the melodies.
-- No human notation or fingering review.
+- No human notation or fingering review. The files encode phrase-level
+  position changes, not which finger guides a shift; that is T3.8's fingering
+  review.
 - No human playtest, no beginner playtest, and no microphone/device test of
   these files.
 - No reference recordings. T3.4/T3.5 and the content calendar own them.
@@ -194,6 +230,23 @@ Machine validation and rubric review; human playtest pending T3.8
 
 No file names a human reviewer. Do not upgrade this string until T3.8 records
 a real reviewer, date, and playtest evidence.
+
+### 5.1 T3.8 musical-review flags
+
+The following files are tonal, stepwise, and cadential, but they are
+deliberately repetitive two- or three-note exercises. T3.8 should reject or
+revise them if they do not read as music:
+
+- `etude-l1-06`
+- `etude-l1-12`
+- `etude-l2-02`
+- `etude-l2-06`
+- `etude-l3-06`
+- `etude-l4-02`
+- `etude-l4-06`
+
+Their `authoring.notes` also carry a T3.8 flag. This is not a
+machine-validation failure; it is musical-payoff evidence that T3.8 owns.
 
 ## 6. Validation commands
 
@@ -212,7 +265,9 @@ flutter build web --release
 
 The 60 files pass the strict validator with `0 error(s), 0 warning(s)` each.
 The dedicated test covers the same files through the parser, both validators,
-the rubric, and the CLI.
+the rubric, phrase-skill/note agreement, the L5 4-bar/70 BPM contract, and the
+CLI. Current result: 60/60 strict PASS, 12 focused tests, 801 full tests,
+`flutter analyze` clean, and the release web build contains all 60 JSON files.
 
 ## 7. Related documents
 

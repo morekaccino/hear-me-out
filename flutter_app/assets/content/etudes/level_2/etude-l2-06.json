@@ -40,6 +40,7 @@
       "skills": [
         "note-reading.first-position",
         "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 2,
@@ -186,6 +187,7 @@
       "skills": [
         "note-reading.first-position",
         "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 2,
@@ -325,7 +327,7 @@
     "author": "Hear Me Out content team",
     "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
     "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
-    "notes": "Level 2 etude in C major: eight bars at 66 BPM on strings 1-3, built on the pedal motif with quarter and eighth notes and a phrase-ending cadence.",
+    "notes": "Level 2 etude in C major: eight bars at 66 BPM on strings 1-3, built on the pedal motif with quarter and eighth notes and a phrase-ending cadence. T3.8 musical-review flag: deliberately repetitive motif; confirm that it reads as music.",
     "kind": "etude",
     "tier": "foundation",
     "stage": 2

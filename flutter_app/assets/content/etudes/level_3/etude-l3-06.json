@@ -39,9 +39,12 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "sightreading.rhythmic-motif",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
         "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 1,
@@ -195,9 +198,11 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
         "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 5,
@@ -351,9 +356,11 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "sightreading.rhythmic-motif",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
-        "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 9,
@@ -501,7 +508,7 @@
     "author": "Hear Me Out content team",
     "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
     "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
-    "notes": "Level 3 etude in C major: twelve bars at 72 BPM using strings 1-6, the pedal motif, dotted rhythms, and chromatic lower neighbours at the cadences.",
+    "notes": "Level 3 etude in C major: twelve bars at 72 BPM using strings 1-6, the pedal motif, dotted rhythms, and chromatic lower neighbours at the cadences. T3.8 musical-review flag: deliberately repetitive motif; confirm that it reads as music.",
     "kind": "etude",
     "tier": "foundation",
     "stage": 3

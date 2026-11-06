@@ -39,9 +39,12 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "sightreading.rhythmic-motif",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
         "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 1,
@@ -150,9 +153,11 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
         "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 4,
@@ -261,9 +266,12 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "sightreading.rhythmic-motif",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
         "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 7,
@@ -372,9 +380,10 @@
       "targetTempoBpm": 72,
       "skills": [
         "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "rhythm.dotted-rhythms",
-        "technique.accidentals",
-        "sightreading.rhythmic-motif"
+        "sightreading.phrase-endings"
       ],
       "difficulty": 3,
       "startBar": 10,

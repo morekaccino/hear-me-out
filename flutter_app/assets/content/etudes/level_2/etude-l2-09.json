@@ -40,6 +40,8 @@
       "skills": [
         "note-reading.first-position",
         "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "technique.accidentals",
         "sightreading.phrase-endings"
       ],
       "difficulty": 2,
@@ -186,6 +188,7 @@
       "skills": [
         "note-reading.first-position",
         "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
         "sightreading.phrase-endings"
       ],
       "difficulty": 2,
