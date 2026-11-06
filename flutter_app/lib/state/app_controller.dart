@@ -96,6 +96,7 @@ class AppController extends AsyncNotifier<AppData> {
       progress = ProgressState.fresh();
     }
     progress.refreshDaily(_clock());
+    progress.refreshQuests(_clock());
     _applySoundSettings(progress.settings);
     // Instrumentation is fire-and-forget: local storage must never delay the
     // first frame or a lesson.
@@ -220,10 +221,7 @@ class AppController extends AsyncNotifier<AppData> {
 
   /// Starts a 15-exercise test of the material before [sectionId]. Passing it
   /// marks every earlier lesson complete, mirroring Duolingo's jump-ahead.
-  void startJumpTest({
-    required String sectionId,
-    required bool micAvailable,
-  }) {
+  void startJumpTest({required String sectionId, required bool micAvailable}) {
     final sectionIndex = sections.indexWhere(
       (section) => section.id == sectionId,
     );
@@ -400,6 +398,7 @@ class AppController extends AsyncNotifier<AppData> {
     DateTime? now,
     String? pieceId,
     int? contentVersion,
+    int bars = 0,
   }) async {
     if (!result.complete || result.outcome == AttemptOutcome.indeterminate) {
       return false;
@@ -415,6 +414,7 @@ class AppController extends AsyncNotifier<AppData> {
         tempoBpm: tempoBpm,
         pieceId: pieceId,
         contentVersion: contentVersion,
+        bars: bars,
       ),
     );
     // One determinate phrase take is effective practice even when no session
@@ -465,7 +465,6 @@ class AppController extends AsyncNotifier<AppData> {
     final alreadyCompleted =
         !run.isPractice &&
         data.progress.completedLessons.contains(run.lesson.id);
-    final multiplier = data.progress.xpMultiplierAt(now);
     var earnedXp = 0;
 
     // Every finished or abandoned session records the real time spent. The
@@ -474,14 +473,13 @@ class AppController extends AsyncNotifier<AppData> {
 
     if (run.isPractice) {
       if (passed) {
-        earnedXp = run.earnedXp * multiplier;
+        earnedXp = run.earnedXp;
         data.progress.addXp(earnedXp, now);
         data.progress.recordPractice(now);
       }
     } else if (passed) {
       earnedXp = alreadyCompleted ? 5 : run.earnedXp;
       if (alreadyCompleted && run.wrong == 0) earnedXp += 3;
-      earnedXp *= multiplier;
       if (run.isJumpTest && run.jumpTargetSectionId != null) {
         _unlockSectionsBefore(run.jumpTargetSectionId!, data.progress);
       }
@@ -590,41 +588,16 @@ class AppController extends AsyncNotifier<AppData> {
     }
   }
 
-  Future<bool> openChest(String chestId) async {
-    final chest = chestById[chestId];
-    if (chest == null) return false;
+  /// Records one saved recording for the weekly quest.
+  ///
+  /// T4.2 owns the recording flow. Nothing in this build calls this method, so
+  /// the recordings quest stays at zero instead of faking completion. When the
+  /// flow lands it calls this exactly once per saved take.
+  Future<void> recordRecordingMade({DateTime? now}) async {
     final data = _data;
-    final opened = data.progress.openChest(chest.id, chest.gems);
-    if (!opened) return false;
+    data.progress.recordRecordingMade(now ?? _clock());
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();
-    return true;
-  }
-
-  Future<bool> claimQuest(String questId) async {
-    QuestDefinition? quest;
-    for (final candidate in dailyQuestDefinitions) {
-      if (candidate.id == questId) {
-        quest = candidate;
-        break;
-      }
-    }
-    if (quest == null) return false;
-    final data = _data;
-    final claimed = data.progress.claimQuest(quest, _clock());
-    if (!claimed) return false;
-    state = AsyncData(data.copyWith(progress: data.progress));
-    await _save();
-    return true;
-  }
-
-  Future<bool> buyXpBoost() async {
-    final data = _data;
-    final bought = data.progress.buyXpBoost(_clock());
-    if (!bought) return false;
-    state = AsyncData(data.copyWith(progress: data.progress));
-    await _save();
-    return true;
   }
 
   Future<void> resetProgress() async {

@@ -35,7 +35,7 @@ flutter build web --release
 - `lib/core/audio/` — YIN pitch detection, PCM capture, note matcher
 - `lib/core/notation/` — staff geometry and painter
 - `lib/core/storage/` — local progress store
-- `lib/features/` — onboarding, path, lesson, practice, quests, shop, profile
+- `lib/features/` — onboarding, path, lesson, practice, quests, profile
 - `lib/shared/` — theme, reusable widgets
 - `lib/state/` — Riverpod controller, economy actions, pitch source factory
 

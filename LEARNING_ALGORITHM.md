@@ -204,13 +204,13 @@ If the learner has no skills yet, practice falls back to the first note lesson.
 
 ## 9. Persistence
 
-`ProgressState` schema 7 stores:
+`ProgressState` schema 8 stores:
 
 - `skills` — the full skill map;
 - `notes` — legacy note boxes kept for the note chips;
 - completed lessons and checkpoints;
 - legacy completed lesson IDs;
-- XP, streak, gems, chests, quests, settings, recent sessions;
+- XP, streak, musical quest counters, settings, recent sessions;
 - `practiceSecondsByDay` — real guitar time per local day;
 - `lastPracticeDay` — the last day with effective practice.
 
@@ -219,10 +219,11 @@ day, 2 → 3 days, 3 → 7 days, 4 → 21 days, 5 → 45 days. Version 7 removes
 heart pool, heart refill timer, streak freezes, and the XP daily goal. It maps
 `lastCompletedDay` to `lastPracticeDay`, adds `weeklyGoalMinutes` (default 30)
 and `streakEnabled` (default false), and starts `practiceSecondsByDay` empty
-because old saves contain no measured guitar time. XP, streak, gems, chests,
-quests, notes, skills, phrase evidence, and lesson history are preserved. Old
-lesson IDs map through `legacyLessonIdMap`. Future schema versions are rejected,
-not guessed.
+because old saves contain no measured guitar time. Version 8 removes gems,
+chests, the XP boost, claimed quests, and the old quest day, and adds honest
+musical quest counters at zero. XP, streak, notes, skills, phrase evidence, and
+lesson history are preserved. Old lesson IDs map through `legacyLessonIdMap`.
+Future schema versions are rejected, not guessed.
 
 The optional streak advances on any local day with 3+ minutes of guitar time or
 one determinate recorded take. A missed day reads as zero with neutral copy; no

@@ -7,7 +7,7 @@
 library;
 
 /// The schema version this build reads and writes.
-const int latestProgressSchemaVersion = 7;
+const int latestProgressSchemaVersion = 8;
 
 /// The oldest schema version the pipeline can migrate.
 const int oldestProgressSchemaVersion = 1;
@@ -74,6 +74,7 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
     if (version <= 4) migrated = _v4ToV5(migrated);
     if (version <= 5) migrated = _v5ToV6(migrated);
     if (version <= 6) migrated = _v6ToV7(migrated);
+    if (version <= 7) migrated = _v7ToV8(migrated);
     _validateCurrent(migrated);
   } on FormatException catch (error) {
     return MigrationFailure(error.message);
@@ -84,7 +85,7 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
 /// v1 → v2: add the default economy.
 ///
 /// These are historical defaults, deliberately frozen here. A future change to
-/// `startingGems` must not rewrite what an old v1 document receives. The heart
+/// the gem default must not rewrite what an old v1 document receives. The heart
 /// fields added here are removed again by v7; legacy documents still pass
 /// through this exact shape first.
 Map<String, dynamic> _v1ToV2(Map<String, dynamic> json) {
@@ -224,6 +225,32 @@ Map<String, dynamic> _v6ToV7(Map<String, dynamic> json) {
   return out;
 }
 
+/// v7 → v8: remove the gem/chest/double-XP economy and replace the old daily
+/// quest claims with musical quest counters.
+///
+/// Gems, the XP-boost timestamp, opened chests, claimed quests, and the old
+/// quest day no longer exist. The new counters start honestly at zero: a v7
+/// save has no phrase-practice, recording, or learned-bars record, so inventing
+/// progress here would fake the quest. Every unrelated field is copied through
+/// unchanged.
+Map<String, dynamic> _v7ToV8(Map<String, dynamic> json) {
+  final out = _copyMap(json);
+  out.remove('gems');
+  out.remove('xpBoostUntil');
+  out.remove('openedChests');
+  out.remove('claimedQuests');
+  out.remove('questDay');
+  out['quests'] = <String, dynamic>{
+    'day': null,
+    'week': null,
+    'phrasesPracticed': 0,
+    'recordingsMade': 0,
+    'learnedBarsByPhrase': <String, dynamic>{},
+  };
+  out['schemaVersion'] = 8;
+  return out;
+}
+
 void _applySettingsDefaults(Map<String, dynamic> json) {
   final settings = _readStringMap(json['settings'], 'progress.settings');
   _defaultValue(settings, 'answerMode', 'mixed');
@@ -352,8 +379,6 @@ void _validateCurrent(Map<String, dynamic> json) {
     'completedLessons',
     'legacyCompletedLessons',
     'completedCheckpoints',
-    'openedChests',
-    'claimedQuests',
   ]) {
     _readStringList(json[key], 'progress.$key');
   }
@@ -455,30 +480,49 @@ void _validateCurrent(Map<String, dynamic> json) {
     _validatePhraseProgress(json['phraseProgress']);
   }
 
-  for (final key in <String>[
-    'placementUnitId',
-    'lastPracticeDay',
-    'xpDay',
-    'questDay',
-  ]) {
+  if (json['quests'] != null) {
+    final quests = _readStringMap(json['quests'], 'progress.quests');
+    for (final key in <String>['phrasesPracticed', 'recordingsMade']) {
+      final value = _readInt(quests, key, 0, path: 'progress.quests.$key');
+      if (value < 0) {
+        throw FormatException('progress.quests.$key must not be negative');
+      }
+    }
+    for (final key in <String>['day', 'week']) {
+      final value = quests[key];
+      if (value != null && (value is! String || !_isDayString(value))) {
+        throw FormatException('progress.quests.$key must be a yyyy-MM-dd day');
+      }
+    }
+    final learned = _readStringMap(
+      quests['learnedBarsByPhrase'],
+      'progress.quests.learnedBarsByPhrase',
+    );
+    for (final entry in learned.entries) {
+      final bars = _readInt(
+        learned,
+        entry.key,
+        0,
+        path: 'progress.quests.learnedBarsByPhrase.${entry.key}',
+      );
+      if (bars < 0) {
+        throw FormatException(
+          'progress.quests.learnedBarsByPhrase.${entry.key} must not be '
+          'negative',
+        );
+      }
+    }
+  }
+
+  for (final key in <String>['placementUnitId', 'lastPracticeDay', 'xpDay']) {
     final value = json[key];
     if (value != null && value is! String) {
       throw FormatException('progress.$key must be a string');
     }
   }
 
-  for (final key in <String>['xp', 'streak', 'bestStreak', 'xpToday', 'gems']) {
+  for (final key in <String>['xp', 'streak', 'bestStreak', 'xpToday']) {
     _readInt(json, key, 0, path: 'progress.$key');
-  }
-
-  for (final key in <String>['xpBoostUntil']) {
-    final value = json[key];
-    if (value != null &&
-        (value is! String || DateTime.tryParse(value) == null)) {
-      throw FormatException(
-        'progress.$key must be an ISO-8601 date-time string',
-      );
-    }
   }
 }
 

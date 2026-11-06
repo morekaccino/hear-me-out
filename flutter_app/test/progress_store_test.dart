@@ -51,7 +51,7 @@ void main() {
       expect(restored.completedLessons, contains('c3u2l1'));
       expect(restored.bestLessonAccuracy['c3u2l1'], 0.9);
       expect(restored.recentSessions.single.lessonId, 'c3u2l1');
-      expect(restored.gems, progress.gems);
+      expect(restored.toJson().containsKey('gems'), isFalse);
       expect(restored.practiceSecondsByDay, isEmpty);
       expect(restored.daily.correct, 1);
       expect(restored.daily.lessons, 1);
@@ -94,7 +94,8 @@ void main() {
       expect(importProgress('{"schemaVersion": 5}'), isNotNull);
       expect(importProgress('{"schemaVersion": 6}'), isNotNull);
       expect(importProgress('{"schemaVersion": 7}'), isNotNull);
-      expect(importProgress('{"schemaVersion": 8}'), isNull);
+      expect(importProgress('{"schemaVersion": 8}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 9}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });

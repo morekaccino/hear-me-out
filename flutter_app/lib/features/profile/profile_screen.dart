@@ -55,6 +55,10 @@ class ProfileScreen extends ConsumerWidget {
       familyCounts[skill.family] = (familyCounts[skill.family] ?? 0) + 1;
     }
     final weeklyMinutes = progress.weeklyPracticeMinutes(DateTime.now());
+    final phraseReps = progress.phraseProgress.values.fold(
+      0,
+      (sum, phrase) => sum + phrase.reps,
+    );
 
     return Scaffold(
       body: SafeArea(
@@ -153,10 +157,10 @@ class ProfileScreen extends ConsumerWidget {
                     label: 'Total XP',
                   ),
                   _StatCard(
-                    icon: Icons.diamond_rounded,
-                    color: AppColors.blue,
-                    value: '${progress.gems}',
-                    label: 'Gems',
+                    icon: Icons.music_note_rounded,
+                    color: AppColors.green,
+                    value: '$phraseReps',
+                    label: 'Phrases',
                   ),
                 ],
               ),

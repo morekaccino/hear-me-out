@@ -280,6 +280,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
               pieceId: widget.pieceId,
               contentVersion:
                   widget.contentVersion ?? widget.phrase.contentVersion,
+              bars: widget.phrase.bars,
             );
       } catch (_) {
         saved = false;

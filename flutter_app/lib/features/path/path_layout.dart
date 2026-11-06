@@ -21,20 +21,15 @@ class PathNodeLayout {
 ///
 /// Mirrors Duolingo's path: a tight, repeating zigzag that restarts at the
 /// center for every unit, with no continuous line between units. The path is
-/// laid out from the top of the unit (below its banner) and each chest takes
-/// its own vertical slot.
+/// laid out from the top of the unit (below its banner).
 class PathLayout {
   PathLayout({
     required this.unit,
     required this.width,
     this.startOffset = 0,
-    this.chestAfterLessonId,
     this.currentLessonId,
   }) {
     final count = unit.lessons.length;
-    final chestIndex = chestAfterLessonId == null
-        ? -1
-        : unit.lessons.indexWhere((lesson) => lesson.id == chestAfterLessonId);
     final currentIndex = currentLessonId == null
         ? -1
         : unit.lessons.indexWhere((lesson) => lesson.id == currentLessonId);
@@ -57,7 +52,6 @@ class PathLayout {
             topPadding +
                 nodeHeight / 2 +
                 index * spacing +
-                (chestIndex >= 0 && index > chestIndex ? chestSlot : 0) +
                 (currentIndex >= 0 && index >= currentIndex ? startSlot : 0),
           ),
         ),
@@ -74,8 +68,6 @@ class PathLayout {
   static const double spacing = 104;
   static const double topPadding = 72;
   static const double bottomPadding = 32;
-  static const double chestSlot = 96;
-  static const double chestSize = 72;
 
   /// Extra room above the active lesson for the START bubble.
   static const double startSlot = 48;
@@ -88,22 +80,8 @@ class PathLayout {
   /// Lessons that come before this unit in the course. The zigzag phase
   /// continues across unit banners instead of resetting.
   final int startOffset;
-  final String? chestAfterLessonId;
   final String? currentLessonId;
   late final List<PathNodeLayout> nodes;
-
-  /// Center position of the chest that follows [chestAfterLessonId], or null
-  /// when this unit has no chest slot or the slot borders no next node.
-  Offset? get chestPosition {
-    if (chestAfterLessonId == null) return null;
-    final index = nodes.indexWhere(
-      (node) => node.lesson.id == chestAfterLessonId,
-    );
-    if (index < 0 || index + 1 >= nodes.length) return null;
-    final a = nodes[index].position;
-    final b = nodes[index + 1].position;
-    return Offset((a.dx + b.dx) / 2, (a.dy + b.dy) / 2);
-  }
 
   double get height {
     if (nodes.isEmpty) return topPadding + bottomPadding;

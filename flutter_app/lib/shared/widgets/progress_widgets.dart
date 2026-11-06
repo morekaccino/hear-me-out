@@ -95,12 +95,11 @@ class StatPill extends StatelessWidget {
   }
 }
 
-/// Optional streak and gem counters. No border; the number uses the icon
-/// color. The streak counter disappears when the learner has not opted in.
+/// Optional streak counter. No border; the number uses the icon color. The
+/// counter disappears when the learner has not opted in. There is no currency.
 class PathCounters extends StatelessWidget {
-  const PathCounters({super.key, required this.gems, this.streak});
+  const PathCounters({super.key, this.streak});
 
-  final int gems;
   final int? streak;
 
   @override
@@ -108,21 +107,13 @@ class PathCounters extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        if (streak != null) ...[
+        if (streak != null)
           _Counter(
             icon: Icons.local_fire_department_rounded,
             value: '$streak',
             color: AppColors.orange,
             label: 'Streak $streak',
           ),
-          const SizedBox(width: DuoSpacing.lg),
-        ],
-        _Counter(
-          icon: Icons.diamond_rounded,
-          value: '$gems',
-          color: AppColors.blue,
-          label: 'Gems $gems',
-        ),
       ],
     );
   }

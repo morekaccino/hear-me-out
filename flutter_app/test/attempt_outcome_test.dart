@@ -87,8 +87,8 @@ void main() {
         );
         state.daily.correct = 3;
         state.recordDailyCombo(4, now);
-        state.claimedQuests.add('lesson');
-        state.questDay = '2026-11-06';
+        state.quests.phrasesPracticed = 2;
+        state.quests.day = '2026-11-06';
         state.skills['note:E4'] = populatedSkill();
         final before = jsonEncode(state.toJson());
 

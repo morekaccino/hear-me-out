@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 8,
+  "curriculumVersion": 3,
+  "contentVersion": 3,
+  "completedLessons": [
+    "c3u4l1",
+    "c3u3l1",
+    "c3u10l1",
+    "c3u7l1",
+    "c3u16l1"
+  ],
+  "legacyCompletedLessons": [],
+  "bestLessonAccuracy": {
+    "c3u4l1": 0.8,
+    "c3u3l1": 0.9
+  },
+  "completedCheckpoints": [
+    "c3u4cp"
+  ],
+  "notes": {
+    "G4": {
+      "box": 3,
+      "dueAt": "2026-10-20T10:00:00.000",
+      "correct": 6,
+      "incorrect": 1,
+      "streak": 3,
+      "bestStreak": 4,
+      "lastSeenAt": "2026-10-13T10:00:00.000",
+      "correctDays": [
+        "2026-10-10",
+        "2026-10-13"
+      ],
+      "centsSamples": 7,
+      "centsTotal": 42.0
+    },
+    "A4": {
+      "box": 1,
+      "dueAt": "2026-10-16T09:00:00.000",
+      "correct": 2,
+      "incorrect": 2,
+      "streak": 1,
+      "bestStreak": 2,
+      "lastSeenAt": "2026-10-14T09:00:00.000",
+      "correctDays": [
+        "2026-10-14"
+      ],
+      "centsSamples": 4,
+      "centsTotal": 55.0
+    }
+  },
+  "skills": {
+    "note:G4": {
+      "objectiveId": "note:G4",
+      "family": "noteReading",
+      "stabilityDays": 21.0,
+      "difficulty": 3.5,
+      "dueAt": "2026-10-20T10:00:00.000",
+      "lastSeenAt": "2026-10-13T10:00:00.000",
+      "reps": 7,
+      "lapses": 1,
+      "correct": 6,
+      "incorrect": 1,
+      "correctDays": [
+        "2026-10-10",
+        "2026-10-13"
+      ],
+      "productionCorrect": 2,
+      "transferCorrect": 1,
+      "averageResponseMs": 3200.0,
+      "level": 1,
+      "fragile": false,
+      "masteredAt": null,
+      "recentTemplateIds": [
+        "staff-tap"
+      ],
+      "centsSamples": 7,
+      "centsTotal": 42.0,
+      "box": 3,
+      "streak": 3,
+      "bestStreak": 4
+    },
+    "note:A4": {
+      "objectiveId": "note:A4",
+      "family": "noteReading",
+      "stabilityDays": 1.0,
+      "difficulty": 8.0,
+      "dueAt": "2026-10-16T09:00:00.000",
+      "lastSeenAt": "2026-10-14T09:00:00.000",
+      "reps": 4,
+      "lapses": 2,
+      "correct": 2,
+      "incorrect": 2,
+      "correctDays": [
+        "2026-10-14"
+      ],
+      "productionCorrect": 0,
+      "transferCorrect": 0,
+      "averageResponseMs": 4100.0,
+      "level": 0,
+      "fragile": true,
+      "masteredAt": null,
+      "recentTemplateIds": [
+        "name-choice"
+      ],
+      "centsSamples": 4,
+      "centsTotal": 55.0,
+      "box": 1,
+      "streak": 1,
+      "bestStreak": 2
+    }
+  },
+  "phraseProgress": {
+    "twinkle.a": {
+      "phraseId": "twinkle.a",
+      "stabilityDays": 14.0,
+      "difficulty": 3.0,
+      "dueAt": "2026-11-10T09:00:00.000",
+      "reps": 5,
+      "lapses": 1,
+      "correct": 6,
+      "incorrect": 1,
+      "correctDays": [
+        "2026-10-20",
+        "2026-10-27",
+        "2026-11-03"
+      ],
+      "performanceDays": [
+        "2026-10-20",
+        "2026-10-27",
+        "2026-11-03"
+      ],
+      "firstPerformanceDay": "2026-10-20",
+      "lastPerformanceAt": "2026-11-03T09:00:00.000",
+      "bestTempoBpm": 84,
+      "bestAccuracy": 0.92,
+      "contentVersion": 2
+    },
+    "twinkle.b": {
+      "phraseId": "twinkle.b",
+      "stabilityDays": 2.0,
+      "difficulty": 6.0,
+      "dueAt": "2026-11-06T09:00:00.000",
+      "reps": 2,
+      "lapses": 1,
+      "correct": 2,
+      "incorrect": 1,
+      "correctDays": [
+        "2026-11-03"
+      ],
+      "performanceDays": [
+        "2026-11-03"
+      ],
+      "firstPerformanceDay": "2026-11-03",
+      "lastPerformanceAt": "2026-11-03T09:05:00.000",
+      "bestTempoBpm": 60,
+      "bestAccuracy": 0.75,
+      "contentVersion": 1
+    }
+  },
+  "placementUnitId": null,
+  "xp": 140,
+  "streak": 4,
+  "bestStreak": 7,
+  "xpToday": 10,
+  "xpDay": "2026-10-13",
+  "daily": {
+    "day": "2026-10-13",
+    "lessons": 2,
+    "correct": 14,
+    "practice": 1,
+    "bestCombo": 6
+  },
+  "quests": {
+    "day": "2026-10-13",
+    "week": "2026-10-12",
+    "phrasesPracticed": 2,
+    "recordingsMade": 0,
+    "learnedBarsByPhrase": {
+      "twinkle.a": 4
+    }
+  },
+  "settings": {
+    "answerMode": "play",
+    "toleranceCents": 35,
+    "a4Hz": 442.0,
+    "haptics": false,
+    "soundEffects": true,
+    "onboardingComplete": true,
+    "themeMode": "dark",
+    "weeklyGoalMinutes": 45,
+    "streakEnabled": true
+  },
+  "recentSessions": [
+    {
+      "lessonId": "c3u4l1",
+      "accuracy": 0.9,
+      "xp": 15,
+      "answered": 12,
+      "completedAt": "2026-10-13T10:00:00.000",
+      "passed": true
+    }
+  ],
+  "lastPracticeDay": "2026-10-13",
+  "practiceSecondsByDay": {
+    "2026-10-12": 300,
+    "2026-10-13": 600
+  }
+}

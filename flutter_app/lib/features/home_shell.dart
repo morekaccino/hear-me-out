@@ -7,7 +7,7 @@ import '../features/path/path_screen.dart';
 import '../features/practice/practice_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/quests/quests_screen.dart';
-import '../features/shop/shop_screen.dart';
+import 'phrase/phrase_loop_flag.dart';
 import '../shared/audio/sound_service.dart';
 import '../shared/theme/app_theme.dart';
 import '../state/providers.dart';
@@ -17,7 +17,13 @@ Color _accentFor(Color color) =>
     color == AppColors.yellow ? AppColors.yellowDark : color;
 
 class HomeShell extends ConsumerStatefulWidget {
-  const HomeShell({super.key});
+  const HomeShell({super.key, this.todayEnabled = phraseLoopEnabled});
+
+  /// True when the phrase loop gate is open. The first destination reads
+  /// "Today" instead of "Learn"; T2.6 owns the Today body and swaps the screen
+  /// here when its surface lands. With the gate closed, Learn is the current
+  /// path and nothing else changes.
+  final bool todayEnabled;
 
   @override
   ConsumerState<HomeShell> createState() => _HomeShellState();
@@ -26,60 +32,49 @@ class HomeShell extends ConsumerStatefulWidget {
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
 
-  static const _destinations = [
-    _TabDestination(
-      label: 'Learn',
-      icon: Icons.home_outlined,
-      selectedIcon: Icons.home_rounded,
-      color: AppColors.yellow,
-    ),
-    _TabDestination(
-      label: 'Practice',
-      icon: Icons.fitness_center_outlined,
-      selectedIcon: Icons.fitness_center_rounded,
-      color: AppColors.blue,
-    ),
-    _TabDestination(
-      label: 'Quests',
-      icon: Icons.inventory_2_outlined,
-      selectedIcon: Icons.inventory_2_rounded,
-      color: AppColors.orange,
-    ),
-    _TabDestination(
-      label: 'Shop',
-      icon: Icons.storefront_outlined,
-      selectedIcon: Icons.storefront_rounded,
-      color: AppColors.red,
-    ),
-    _TabDestination(
-      label: 'Profile',
-      icon: Icons.account_circle_outlined,
-      selectedIcon: Icons.account_circle_rounded,
-      color: AppColors.purple,
-    ),
-  ];
-
-  void _select(int index) {
-    if (index == _index) return;
-    unawaited(ref.read(soundServiceProvider).play(Sfx.uiNavigate));
-    setState(() => _index = index);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final destinations = [
+      _TabDestination(
+        label: widget.todayEnabled ? 'Today' : 'Learn',
+        icon: widget.todayEnabled ? Icons.today_outlined : Icons.home_outlined,
+        selectedIcon: widget.todayEnabled
+            ? Icons.today_rounded
+            : Icons.home_rounded,
+        color: AppColors.yellow,
+      ),
+      const _TabDestination(
+        label: 'Practice',
+        icon: Icons.fitness_center_outlined,
+        selectedIcon: Icons.fitness_center_rounded,
+        color: AppColors.blue,
+      ),
+      const _TabDestination(
+        label: 'Quests',
+        icon: Icons.flag_outlined,
+        selectedIcon: Icons.flag_rounded,
+        color: AppColors.orange,
+      ),
+      const _TabDestination(
+        label: 'Profile',
+        icon: Icons.account_circle_outlined,
+        selectedIcon: Icons.account_circle_rounded,
+        color: AppColors.purple,
+      ),
+    ];
+    final screens = [
+      PathScreen(
+        onOpenQuests: () => _select(2),
+        onOpenPractice: () => _select(1),
+      ),
+      const PracticeScreen(),
+      const QuestsScreen(),
+      const ProfileScreen(),
+    ];
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 900;
-        final screens = [
-          PathScreen(
-            onOpenQuests: () => _select(2),
-            onOpenPractice: () => _select(1),
-          ),
-          const PracticeScreen(),
-          const QuestsScreen(),
-          const ShopScreen(),
-          const ProfileScreen(),
-        ];
         if (wide) {
           return Scaffold(
             body: SafeArea(
@@ -87,7 +82,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 children: [
                   _SideRail(
                     index: _index,
-                    destinations: _destinations,
+                    destinations: destinations,
                     onSelected: _select,
                     width: constraints.maxWidth >= 1280 ? 256 : 232,
                   ),
@@ -113,7 +108,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 constraints: const BoxConstraints(maxWidth: 640),
                 child: _BottomBar(
                   index: _index,
-                  destinations: _destinations,
+                  destinations: destinations,
                   onSelected: _select,
                 ),
               ),
@@ -122,6 +117,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         );
       },
     );
+  }
+
+  void _select(int index) {
+    if (index == _index) return;
+    unawaited(ref.read(soundServiceProvider).play(Sfx.uiNavigate));
+    setState(() => _index = index);
   }
 }
 
@@ -278,9 +279,7 @@ class _SideRail extends StatelessWidget {
       width: width,
       decoration: BoxDecoration(
         color: AppColors.background,
-        border: Border(
-          right: BorderSide(color: AppColors.border, width: 2),
-        ),
+        border: Border(right: BorderSide(color: AppColors.border, width: 2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

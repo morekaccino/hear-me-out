@@ -14,6 +14,7 @@ class PhraseAttempt {
     this.tempoBpm,
     this.pieceId,
     this.contentVersion,
+    this.bars = 0,
   });
 
   final String phraseId;
@@ -33,6 +34,11 @@ class PhraseAttempt {
 
   /// Content version the learner practiced against, when known.
   final int? contentVersion;
+
+  /// Bars covered by the phrase, when the caller knows the arrangement. The
+  /// weekly "learn 4 bars" quest counts them only for a determinate, correct
+  /// take. Zero means the caller makes no bar claim.
+  final int bars;
 }
 
 /// Persisted performance progress for one phrase.

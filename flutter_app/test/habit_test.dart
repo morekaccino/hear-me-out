@@ -293,8 +293,8 @@ void main() {
     });
   });
 
-  group('No heart UI', () {
-    testWidgets('path, practice, profile, and shop contain no hearts', (
+  group('No heart or shop UI', () {
+    testWidgets('path, practice, profile, and quests contain no hearts or shop chrome', (
       tester,
     ) async {
       tester.view.physicalSize = const Size(390, 844);
@@ -326,41 +326,58 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      void expectNoHearts() {
+      void expectNoEconomyStrings() {
         expect(find.byIcon(Icons.favorite_rounded), findsNothing);
         expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
-        expect(
-          find.textContaining(
-            RegExp('heart', caseSensitive: false),
-            findRichText: true,
-          ),
-          findsNothing,
-        );
-        expect(find.text('Out of hearts'), findsNothing);
+        expect(find.byIcon(Icons.diamond_rounded), findsNothing);
+        expect(find.byIcon(Icons.inventory_2_rounded), findsNothing);
+        expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+        for (final word in <String>[
+          'heart',
+          'gem',
+          'chest',
+          'shop',
+          'double xp',
+        ]) {
+          expect(
+            find.textContaining(RegExp(word, caseSensitive: false)),
+            findsNothing,
+            reason: word,
+          );
+        }
       }
 
-      expectNoHearts();
+      expectNoEconomyStrings();
+      expect(find.text('Shop'), findsNothing);
       expect(find.text('0 / 30 min this week'), findsOneWidget);
 
       await tester.tap(find.text('Practice'));
       await tester.pumpAndSettle();
-      expectNoHearts();
+      expectNoEconomyStrings();
       expect(find.text('This week'), findsOneWidget);
+
+      await tester.tap(find.text('Quests'));
+      await tester.pumpAndSettle();
+      expectNoEconomyStrings();
+      expect(find.text('Play 3 phrases'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Learn 4 bars'), 200);
+      expect(find.text('Record a take'), findsOneWidget);
+      expect(find.text('Learn 4 bars'), findsOneWidget);
+      expect(
+        find.text(
+          'Coming with recordings. Progress stays at zero until a '
+          'real take is saved.',
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
-      expectNoHearts();
+      expectNoEconomyStrings();
       await tester.drag(find.byType(ListView).first, const Offset(0, -700));
       await tester.pumpAndSettle();
       expect(find.text('Weekly goal'), findsOneWidget);
       expect(find.text('Practice streak'), findsOneWidget);
-      expect(find.text('Hearts'), findsNothing);
-
-      await tester.tap(find.text('Shop'));
-      await tester.pumpAndSettle();
-      expectNoHearts();
-      expect(find.text('Double XP'), findsOneWidget);
-      expect(find.text('Refill hearts'), findsNothing);
     });
 
     testWidgets('settings persist the weekly goal and opt-in streak', (

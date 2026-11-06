@@ -35,17 +35,6 @@ List<SectionDefinition> buildCourseSections() {
   ];
 }
 
-List<ChestDefinition> buildCourseChests() => [
-  for (final section in courseSections)
-    for (final unit in section.units)
-      ChestDefinition(
-        id: '${unit.id}c1',
-        unitId: unit.id,
-        afterLessonId: '${unit.id}l3',
-        gems: 20 + unit.number * 3,
-      ),
-];
-
 List<LessonDefinition> _lessonsFor(
   CourseUnit unit,
   Map<int, CourseUnit> unitsByNumber,
@@ -150,9 +139,7 @@ LessonDefinition _lesson({
 }) {
   final uniqueNew = _unique(newConcepts);
   final uniqueReview = _unique(reviewConcepts)
-      .where(
-        (ref) => !uniqueNew.any((candidate) => candidate.id == ref.id),
-      )
+      .where((ref) => !uniqueNew.any((candidate) => candidate.id == ref.id))
       .toList();
   // A checkpoint should not ask one objective five times. Cap it at two
   // exposures per distinct objective, with the usual 8-item floor.
@@ -200,6 +187,10 @@ List<ObjectiveRef> _unique(List<ObjectiveRef> refs) {
 }
 
 List<int> _previousUnits(int number) => [
-  for (var candidate = number - 1; candidate >= 1 && candidate >= number - 3; candidate--)
+  for (
+    var candidate = number - 1;
+    candidate >= 1 && candidate >= number - 3;
+    candidate--
+  )
     candidate,
 ];

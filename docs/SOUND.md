@@ -71,14 +71,14 @@ PCM WAV. The family is intentionally small.
   `uiPage`; final “Let’s Play” uses `rewardUnlock`; mic test/skip uses button
   sounds; no sound is played while the mic is listening.
 - **Path:** current/completed lesson node → `lessonStart`; locked node →
-  `uiLocked`; opening a unit guidebook → `uiSelect`; opening a chest or claiming
-  a quest → `copySuccess`.
+  `uiLocked`; opening a unit guidebook → `uiSelect`; completing a musical quest
+  → `copySuccess`.
 - **Lesson:** correct → `answerCorrect`; combo 3+ → `answerCorrectCombo`;
   wrong → `answerWrong`; octave → `answerOctave`; result screen →
   completion/failure cue, then one reward cue (level > weekly goal > streak
   milestone > streak) and `xpTick`. There is no life-lost cue.
-- **Shop:** successful purchase → `copySuccess`; refused purchase → `uiLocked`;
-  double XP → `rewardLevelUp`.
+- **Quests:** completing a musical quest may play `copySuccess`. There is no
+  purchase, claim, or currency cue.
 - **Practice:** tuner button uses `tunerOn`/`tunerOff`; string select uses
   `uiSelect`; starting due/weak/free practice uses `lessonStart`; answer and
   result cues reuse the lesson family.

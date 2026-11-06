@@ -62,9 +62,8 @@ class UnitDefinition {
 
   final List<LessonDefinition> lessons;
 
-  List<Note> get newNotes => _uniqueNotes([
-    for (final lesson in lessons) ...lesson.newNotes,
-  ]);
+  List<Note> get newNotes =>
+      _uniqueNotes([for (final lesson in lessons) ...lesson.newNotes]);
 
   bool get hasNewNotes => newNotes.isNotEmpty;
 }
@@ -83,21 +82,6 @@ class SectionDefinition {
   final String title;
   final String subtitle;
   final List<UnitDefinition> units;
-}
-
-/// A chest sits on the path after [afterLessonId] and unlocks with it.
-class ChestDefinition {
-  const ChestDefinition({
-    required this.id,
-    required this.unitId,
-    required this.afterLessonId,
-    required this.gems,
-  });
-
-  final String id;
-  final String unitId;
-  final String afterLessonId;
-  final int gems;
 }
 
 List<Note> _uniqueNotes(List<Note> notes) {

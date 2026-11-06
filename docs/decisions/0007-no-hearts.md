@@ -2,6 +2,7 @@
 
 **Date:** 2026-11-06
 **Status:** Accepted
+**Superseded in part by:** [0008](0008-no-gems-shop.md) for the gem/chest/shop economy and quests
 **Owner:** T2.10
 **Related:** T2.10, T5.4, T5.5, T9.2
 

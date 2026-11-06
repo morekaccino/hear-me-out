@@ -94,7 +94,7 @@ features or monetization.
 The visual language **follows current Duolingo**: bright white surfaces in light
 mode, deep navy surfaces in dark mode, heavy
 Nunito type, thick outlines, hard offset shadows, per-unit path colors, 3D
-path nodes, gem / optional streak counters, chests, and a responsive side rail
+path nodes, an optional streak counter, and a responsive side rail
 on wide screens. Keep the mascot and all artwork original; do not copy the owl,
 proprietary
 illustrations, font files, or trademarked assets.
@@ -112,7 +112,7 @@ illustrations, font files, or trademarked assets.
   options are 64 px tall.
 - Content stays in a centered responsive column (600 px for path and lessons,
   720 px for hubs) and must fit a 390×844 viewport. Widths at or above 900 px
-  use a 232–256 px side rail; narrower widths use five bottom tabs that take
+  use a 232–256 px side rail; narrower widths use four bottom tabs that take
   their own color when selected. At roughly 1200 px and wider the learn page
   adds a 320–372 px quest rail that shares the path's scroll.
 - Feedback is immediate, specific, and encouraging. Prefer “Not quite” and a
@@ -123,7 +123,8 @@ illustrations, font files, or trademarked assets.
   glass-bell sparkle, dry UI blips, soft low errors. Never play while the tuner
   or lesson mic is listening; respect the persisted Sound effects setting.
 - No leaderboards, leagues, duels, ads, subscriptions, accounts, real-money
-  purchases, or fake stats. The shop spends earned gems only.
+  purchases, gems, chests, shops, XP boosts, or fake stats. Quests describe
+  musical actions and award nothing.
 
 Full palette, typography, component dimensions, motion, screen intent, copy
 tone, accessibility notes, and non-goals are in
@@ -148,10 +149,12 @@ tone, accessibility notes, and non-goals are in
    detection, and staff geometry must stay pure Dart and testable.
 3. **Written pitch is not sounding pitch.** Guitar notation is written one
    octave above sounding pitch. Use `Guitar.soundingMidiForWritten`.
-4. **There are no hearts.** Lessons and practice never spend or restore a life.
-   A wrong answer only lowers accuracy and queues the pedagogical repair. The
-   habit signal is a weekly minutes goal; the streak is optional and resets
-   quietly. Do not reintroduce a loss-based gate.
+4. **There are no hearts and no currency.** Lessons and practice never spend or
+   restore a life. A wrong answer only lowers accuracy and queues the
+   pedagogical repair. The habit signal is a weekly minutes goal; the streak is
+   optional and resets quietly. Do not reintroduce a loss-based gate. V1 has no
+   gems, chests, shop, XP boosts, or paid streak freezes; quests describe
+   musical actions and award nothing.
 5. **Mastery needs space.** A note is mastered only at box >= 4, with at least
    five correct answers across at least two calendar days.
 6. **Do not fake stats or progress.** Every number must come from
@@ -231,7 +234,7 @@ Then open <http://127.0.0.1:8080/>.
 | `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher, local WAV synth |
 | `flutter_app/lib/core/notation/` | Staff geometry and Bravura painter |
 | `flutter_app/lib/core/storage/` | JSON progress store and backup validation |
-| `flutter_app/lib/features/` | Onboarding, path, lesson, practice, quests, shop, profile |
+| `flutter_app/lib/features/` | Onboarding, path, lesson, practice, quests, profile |
 | `flutter_app/lib/shared/` | Theme and reusable Duolingo-style widgets |
 | `flutter_app/lib/state/` | Riverpod app controller and audio providers |
 | `flutter_app/test/` | Unit and widget tests; fakes live in `test/support/` |
@@ -283,14 +286,18 @@ Then open <http://127.0.0.1:8080/>.
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
   the habit goal. A fresh profile reads 0.
-- **Gems and shop:** fresh profiles start with 500 gems. Gems come from chests
-  and daily quests and buy double XP. No real-money purchases. T5.5 owns the
-  full economy/quest/shop migration.
-- **Chests:** one per unit, unlocked by the lesson before it, opened once for
-  gems. Opening persists in `openedChests`.
-- **Daily quests:** complete a lesson, answer ten notes, and build a five-answer
-  combo. Claiming awards gems once per local day.
-- **Double XP:** 15 minutes of doubled lesson/practice XP after purchase.
+- **Gems and shop:** none. V1 has no gems, chests, shop, XP boosts, or paid
+  streak freezes. Do not add a closed currency economy back; the V1 economy was
+  removed by T5.5.
+- **Musical quests:** play 3 determinate phrases (daily), record a take
+  (weekly), and learn 4 bars (weekly). No claim step and no reward. Quests reset
+  at local midnight or on the local Monday as appropriate.
+- **Quest counters:** `quests.phrasesPracticed` increments once per determinate
+  phrase attempt; `quests.recordingsMade` is incremented only by a real saved
+  recording through `recordRecordingMade`; `quests.barsLearned` counts the bars
+  of each phrase with at least one correct determinate take this week, once per
+  phrase. Prompt taps never count. T4.2 has not shipped, so the recording quest
+  stays at zero with a "coming with recordings" note.
 - **Jump ahead:** passing a 15-exercise test unlocks the sections before the
   target section without deleting note progress.
 - **Curriculum migration:** bump `curriculumVersion` and map old lesson IDs;
@@ -305,7 +312,8 @@ Then open <http://127.0.0.1:8080/>.
   per-note skills. `phrase:` skill ids resolve through the content registry,
   and unknown ids are skipped rather than crashing practice.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
-  practice 5; jump test 20. Double XP multiplies the award.
+  practice 5; jump test 20. XP is an internal progress number, not a currency
+  and not the habit goal; there is no multiplier or purchase.
 - **Streak:** opt-in (`settings.streakEnabled`, default false). Any local day
   with 3+ minutes of guitar time or one determinate recorded take advances it.
   A missed day reads as zero with neutral copy; there is no freeze, spending,
@@ -342,7 +350,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 835 tests passing
+- `flutter test` - 857 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -351,10 +359,10 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 - Notes, rhythm, chords, theory, ear training, fretboard, technique,
   sight-reading, repertoire, and improvisation all use the same FSRS-style
   skill scheduler.
-- Web app loads, onboarding completes, the path renders the Today card, chests,
-  and counters, and lessons, quests, shop, practice, and profile are reachable
-  on narrow and wide layouts; System, Light, and Dark appearance all render
-  with the Duo palette
+- Web app loads, onboarding completes, the path renders the Today card and the
+  optional streak counter, and lessons, quests, practice, and profile are
+  reachable on narrow and wide layouts; System, Light, and Dark appearance all
+  render with the Duo palette
 - 27 original Bright Pluck cues are bundled in `assets/audio/`; ear-training
   stimuli are synthesized locally as WAV bytes and the soundboard is available
   at `flutter_app/tool/soundboard.html`
