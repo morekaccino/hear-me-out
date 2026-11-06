@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "original-study-1",
+    "title": "Original Monophonic Study No. 1",
+    "composer": "Hear Me Out (original)",
+    "license": "original",
+    "tuning": {"name": "Standard", "openStrings": [40, 45, 50, 55, 59, 64]},
+    "capo": 0,
+    "timeSignature": {"numerator": 4, "denominator": 4},
+    "key": "A minor",
+    "sections": ["A", "B", "C", "D"]
+  },
+  "phrases": [
+    {
+      "id": "original-study-1-p1",
+      "title": "Rising line",
+      "bars": 3,
+      "timeSignature": {"numerator": 4, "denominator": 4},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.lower-strings", "rhythm.quarter-notes", "technique.string-crossing"],
+      "difficulty": 2,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 1.0, "durationBeats": 1, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 2.0, "durationBeats": 1, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
+        {"startBeat": 3.0, "durationBeats": 1, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 4.0, "durationBeats": 1.5, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 5.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2},
+        {"startBeat": 6.0, "durationBeats": 1, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 7.0, "durationBeats": 1, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2},
+        {"startBeat": 8.0, "durationBeats": 1, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 9.0, "durationBeats": 1, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 10.0, "durationBeats": 2, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2}
+      ]
+    },
+    {
+      "id": "original-study-1-p2",
+      "title": "Descending answer",
+      "bars": 3,
+      "timeSignature": {"numerator": 4, "denominator": 4},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.lower-strings", "rhythm.quarter-notes", "technique.string-crossing"],
+      "difficulty": 2,
+      "startBar": 4,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1, "kind": "note", "writtenNote": "F4", "soundingMidi": 53, "string": 4, "fret": 3},
+        {"startBeat": 1.0, "durationBeats": 1, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
+        {"startBeat": 2.0, "durationBeats": 1, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 3.0, "durationBeats": 1, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 4.0, "durationBeats": 1.5, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2},
+        {"startBeat": 5.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 6.0, "durationBeats": 1, "kind": "note", "writtenNote": "G3", "soundingMidi": 43, "string": 6, "fret": 3},
+        {"startBeat": 7.0, "durationBeats": 1, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 8.0, "durationBeats": 1, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2},
+        {"startBeat": 9.0, "durationBeats": 1, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 10.0, "durationBeats": 2, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2}
+      ]
+    },
+    {
+      "id": "original-study-1-p3",
+      "title": "Climax and turn",
+      "bars": 3,
+      "timeSignature": {"numerator": 4, "denominator": 4},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.lower-strings", "rhythm.quarter-notes", "technique.first-position"],
+      "difficulty": 3,
+      "startBar": 7,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 1.0, "durationBeats": 1, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2},
+        {"startBeat": 2.0, "durationBeats": 1, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 3.0, "durationBeats": 1, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 4.0, "durationBeats": 1, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
+        {"startBeat": 5.0, "durationBeats": 1, "kind": "note", "writtenNote": "F4", "soundingMidi": 53, "string": 4, "fret": 3},
+        {"startBeat": 6.0, "durationBeats": 1, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
+        {"startBeat": 7.0, "durationBeats": 1, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 8.0, "durationBeats": 1.5, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 9.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 10.0, "durationBeats": 2, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2}
+      ]
+    },
+    {
+      "id": "original-study-1-p4",
+      "title": "Chromatic cadence",
+      "bars": 3,
+      "timeSignature": {"numerator": 4, "denominator": 4},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.lower-strings", "technique.accidentals", "sightreading.phrase-endings"],
+      "difficulty": 3,
+      "startBar": 10,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1, "kind": "note", "writtenNote": "E3", "soundingMidi": 40, "string": 6, "fret": 0},
+        {"startBeat": 1.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "F#3", "soundingMidi": 42, "string": 6, "fret": 2},
+        {"startBeat": 1.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "G3", "soundingMidi": 43, "string": 6, "fret": 3},
+        {"startBeat": 2.0, "durationBeats": 1, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 3.0, "durationBeats": 1, "kind": "note", "writtenNote": "B3", "soundingMidi": 47, "string": 5, "fret": 2},
+        {"startBeat": 4.0, "durationBeats": 1, "kind": "note", "writtenNote": "C4", "soundingMidi": 48, "string": 5, "fret": 3},
+        {"startBeat": 5.0, "durationBeats": 1, "kind": "note", "writtenNote": "Bb3", "soundingMidi": 46, "string": 5, "fret": 1},
+        {"startBeat": 6.0, "durationBeats": 1, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0},
+        {"startBeat": 7.0, "durationBeats": 1, "kind": "note", "writtenNote": "G3", "soundingMidi": 43, "string": 6, "fret": 3},
+        {"startBeat": 8.0, "durationBeats": 4, "kind": "note", "writtenNote": "A3", "soundingMidi": 45, "string": 5, "fret": 0}
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original composition for this project; no quoted external melody.",
+    "reviewedBy": "Pending musical review",
+    "notes": "Original twelve-bar A-minor study in four three-bar phrases. Exercises strings 4-6, uses F-sharp and B-flat as chromatic neighbours, and ends on the tonic.",
+    "kind": "piece",
+    "tier": "foundation",
+    "stage": 3
+  }
+}
