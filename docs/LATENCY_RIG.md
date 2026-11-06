@@ -63,6 +63,10 @@ and must report `"timingUsable":false` with exit code 1.
 These fixtures validate the rig. They are **not** device evidence. Only a
 recorded device run populates the matrix below.
 
+The CLI contract and the committed fixtures are covered by
+`test/latency_rig_cli_test.dart`; run
+`flutter test test/latency_rig_cli_test.dart` after changing the CLI.
+
 ## Generating the reference click WAV
 
 The rig can generate its own reference click train. This is the exact command
@@ -89,11 +93,15 @@ dart run tool/latency_rig.dart generate `
   --sample-rate 48000
 ```
 
-Keep the interval at 1 s when testing Bluetooth or any device with more than
-100 ms of latency. A 0.5 s train plus a 300 ms Bluetooth offset can alias:
-the correlation window cannot tell a 300 ms delay from a 200 ms early arrival.
-The analyzer bounds its search to less than half the click interval for this
-reason.
+The analyzer anchors the offset to the first reference click, then scores
+candidate alignments across the take. A 0.5 s train can therefore report a
+490 ms delay correctly instead of aliasing it to -10 ms. The remaining
+ambiguity is a missing first click: if playback and recording do not share
+sample zero, or the first click is lost, a periodic train cannot tell which
+click is which. Use a 1 s interval for Bluetooth and confirm that the first
+click is present. The rig marks a take with an onset before the first
+reference click, or with no candidate in the 0..2 s alignment window, as
+`UNVERIFIED` instead of certifying it.
 
 The generated click is a short 2.5 kHz burst with a fast decay. A metronome or
 the Bright Pluck synth is also acceptable, provided the onsets are sharp and
@@ -134,6 +142,24 @@ spread as measurement uncertainty.
 Tap calibration cannot separate output latency from input latency. Cable
 loopback can. Use cable for the decision when available; use tap to confirm the
 real practice path.
+
+### Shared time origin
+
+The analyzer compares absolute times in the reference file with absolute times
+in the recording. Playback and recording must start from the same sample zero
+for the offset to mean output-to-input latency. A separate recorder that starts
+before or after playback reports the start skew as latency.
+
+- In a DAW or audio interface, arm the recording and start playback from the
+  same session. Do not start the recorder, wait, and then start playback.
+- If playback and recording are separate apps, use a sync marker that is
+  visible in both, then trim the recording so reference sample 0 and recording
+  sample 0 are the same instant. Record the trim in the take notes.
+- Confirm that the first reference click is present. A missed first click can
+  make a periodic train look like an earlier offset.
+- If the recording has an onset before the first reference click, the rig
+  reports `UNVERIFIED` and exits 1. Re-record with a shared start; do not
+  average the result into a device row.
 
 ## Speaker, wired headphone, and Bluetooth procedure
 
@@ -244,6 +270,24 @@ note recall           1.000           report only         -
 timingUsable: YES (offset + drift; bleed is a separate gate)
 ```
 
+When the takes do not share a time origin, or when only one click matched, the
+table does not print a fabricated number or a PASS. It prints `n/a` and
+`UNVERIFIED`:
+
+```text
+Metric                Measured        Gate                Result
+offset                n/a             <= 10.00 ms         UNVERIFIED
+drift                 n/a             <= 20.00 ms/60s     UNVERIFIED
+false onsets          n/a             report only         -
+note recall           n/a             report only         -
+
+timingUsable: NO (offset + drift; bleed is a separate gate)
+UNVERIFIED rows are not measurements. Check the failures and the shared time origin before recording a device result.
+```
+
+An `UNVERIFIED` row is not a device result and must not be copied into the
+device matrix. Re-record with a shared start and at least two captured clicks.
+
 The JSON form is one object on stdout and nothing else. Progress messages from
 the Dart toolchain go to stderr. Exit codes:
 
@@ -254,9 +298,11 @@ the Dart toolchain go to stderr. Exit codes:
 | 2 | Bad input: missing file, malformed WAV, malformed manifest |
 
 `--json` output for `loopback` includes `offsetMs`, `driftMsPer60s`,
-`falseOnsetsPerMinute`, `noteRecall`, `timingUsable`, `failures`,
-`expectedOnsets`, `matchedOnsets`, `detectedOnsets`, and the active `gates`.
-`recall` and `bleed` use the same shape with their own decision fields.
+`offsetVerified`, `driftVerified`, `falseOnsetsPerMinute`, `noteRecall`,
+`timingUsable`, `failures`, `expectedOnsets`, `matchedOnsets`, `detectedOnsets`,
+and the active `gates`. `offsetMs` and `driftMsPer60s` are `null` when the
+matching `*Verified` flag is false. `recall` and `bleed` use the same shape with
+their own decision fields.
 
 ## Device matrix
 
@@ -287,6 +333,8 @@ link the WAV files and the JSON output. A row is complete only when the
 - The app's real-time scheduler, frame drops, or battery behavior.
 - Bluetooth codec changes that happen after the calibration take.
 - Room acoustics beyond the speaker/headphone comparison.
+- Absolute alignment when playback and recording start from different sample
+  zeros. The rig reports such takes as unverified rather than guessing.
 - Whether the app recorder actually opened the sample rate you requested. That
   is a separate configuration check (T1.3).
 - The scorer's phrase-level false-pass/false-fail rates. Those belong to the
