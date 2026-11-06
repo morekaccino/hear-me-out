@@ -1,7 +1,6 @@
 # Launch pieces (T3.1)
 
-**Status:** Metadata locked; Foundation (T3.3) and Returner (T3.4) arrangements
-complete; not recorded, musically reviewed, or legally cleared.
+**Status:** Metadata locked; Foundation (T3.3) and Returner (T3.4) arrangements complete; not recorded, musically reviewed, or legally cleared.
 **Owner:** T3.1. **Legal review:** T6.3. **Notes:** T3.3/T3.4.
 **Reference recordings:** T3.5.
 **Source of truth:** [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md)
@@ -29,10 +28,10 @@ stops, or second voices. Tempos stay in the V1 50-90 BPM range.
 
 | ID | Piece | Composer / source | Tier | Stage | Tempo (BPM) | Phrases | Range and position | Technique focus | Intended license | Source |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `greensleeves` | Greensleeves | Traditional English (16th century) | Foundation | 1 | 60 | 4 | First position; strings 1-4; frets 0-3 | Open strings, steady pulse, 6/8 lilt | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Greensleeves>) |
-| `ode-to-joy` | Ode to Joy | Ludwig van Beethoven | Foundation | 2 | 72 | 4 | First position; strings 3-4; frets 0-4 | Stepwise melody, quarter-note pulse, phrase endings | public-domain | [IMSLP](<https://imslp.org/wiki/Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van)>) |
-| `amazing-grace` | Amazing Grace (New Britain) | Traditional American (words: John Newton, 1779; tune: New Britain, 1835) | Foundation | 2 | 66 | 4 | First position; strings 2-4; frets 0-2 | Triple meter, breath-length phrases, legato changes | public-domain | [IMSLP](<https://imslp.org/wiki/Amazing_Grace_(Anonymous)>) |
-| `down-by-the-riverside` | Down by the Riverside | Traditional African-American spiritual (19th century; author unknown) | Foundation | 3 | 76 | 4 | First position; strings 2-4; frets 0-3 | Middle strings, syncopated eighths, two accidentals | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Down_by_the_Riverside>) |
+| `greensleeves` | Greensleeves | Traditional English (16th century) | Foundation | 1 | 60 | 4 | First position; strings 1-3; frets 0-3 | Open strings, steady pulse, 6/8 lilt | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Greensleeves>) |
+| `ode-to-joy` | Ode to Joy | Ludwig van Beethoven | Foundation | 2 | 72 | 4 | First position; strings 1-2; frets 0-5 | Stepwise melody, quarter-note pulse, phrase endings | public-domain | [IMSLP](<https://imslp.org/wiki/Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van)>) |
+| `amazing-grace` | Amazing Grace (New Britain) | Traditional American (words: John Newton, 1779; tune: New Britain, 1835) | Foundation | 2 | 66 | 4 | First position; strings 1-3; frets 0-3 | Triple meter, breath-length phrases, legato changes | public-domain | [IMSLP](<https://imslp.org/wiki/Amazing_Grace_(Anonymous)>) |
+| `down-by-the-riverside` | Down by the Riverside | Traditional African-American spiritual (19th century; author unknown) | Foundation | 3 | 76 | 4 | First position; strings 3-4; frets 0-5 | Middle strings, syncopated eighths, two accidentals | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Down_by_the_Riverside>) |
 | `original-study-1` | Original Monophonic Study No. 1 | Hear Me Out (original) | Foundation | 3 | 60 | 4 | First position; strings 4-6; frets 0-3 | Lower-string reading, accidentals, 12-bar form | original | Original work |
 | `scarborough-fair` | Scarborough Fair | Traditional English ballad (Child Ballad 2) | Returner | 5 | 58 | 4 | First position with two shifts; strings 1-3; frets 0-5 | Two position shifts with guide fingers; 3/4 phrasing | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Scarborough_Fair_(ballad)>) |
 | `londonderry-air` | Londonderry Air | Traditional Irish (collected 1855; lyrics "Danny Boy" by Frederic Weatherly, 1913) | Returner | 5 | 54 | 4 | First position with two shifts; strings 1-3; frets 0-5 | Two position shifts, sustained tone, wide leaps | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Londonderry_Air>) |
@@ -142,8 +141,7 @@ Open legal questions that apply to the whole list:
 
 ## Not yet validated
 
-- The Foundation and Returner JSON arrangements exist and pass the T3.2
-  validator; the human musical review and 3-beginner playtest are T3.8.
+- The Foundation and Returner JSON arrangements exist and pass the T3.2 validator; the human musical review and 3-beginner playtest are T3.8.
 - No reference recordings exist at target or slow tempo. T3.5 owns the 20
   human reference takes (target and slow tempo) and must not use copyrighted
   recordings.
