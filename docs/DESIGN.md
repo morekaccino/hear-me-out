@@ -40,9 +40,10 @@ pitch feedback, and a review schedule that remembers what was hard.
 4. **Never punish a missing microphone.** Naming is a first-class answer mode.
    The app must remain usable when permission is denied.
 5. **Privacy is a feature.** No account, no cloud, no analytics, no ads. The
-   microphone is active only during a practice, tuner, or recording session.
-   Audio is analyzed on the device. When a learner records a take, it stays on
-   the device and is excluded from cloud backup by default.
+   microphone is active only during a lesson, practice, tuner, or recording
+   session. Audio is analyzed on the device. When a learner records a take, it
+   stays on the device; the app confirms platform backup exclusion when it can
+   and says so when it cannot.
 6. **Encouraging, not childish.** The tone is warm and direct. A mistake is
    information, not a moral failure.
 
@@ -443,10 +444,12 @@ completion.
 A transparent record of real work: notes with box progress, accuracy, completed
 lessons, streak, XP, settings, backup/restore, reset. No vanity metrics. Privacy
 copy is part of the design, not a footer afterthought. It must say that
-recordings stay on the device, are excluded from cloud backup by default, are
-never uploaded, and that the microphone is active only during a practice,
-tuner, or recording session. It must not claim that recording ships before the
-recording UI exists.
+recordings stay on the device, are never uploaded, and that the microphone is
+active only during a lesson, practice, tuner, or recording session. It may claim
+cloud-backup exclusion only when the app has platform confirmation; otherwise it
+must say the app could not confirm the exclusion and the take may be included in
+device backup. It must not claim that recording ships before the recording UI
+exists.
 
 ### Onboarding
 

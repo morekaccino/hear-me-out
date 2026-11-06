@@ -51,10 +51,12 @@ If the microphone is unavailable, lessons fall back to naming notes.
 
 Progress is saved with `shared_preferences` on the device. There is no Firebase,
 no Firestore, no auth, no analytics, and no cloud sync. The microphone is active
-only during a practice, tuner, or recording session, and audio is analyzed on
-the device. When you record a take, it is stored only on the device and is
-excluded from Android Auto Backup, Android device transfer, and iCloud backup by
-default. Nothing is uploaded.
+only during a lesson, practice, tuner, or recording session, and audio is
+analyzed on the device. When you record a take, it is stored only on the device.
+Android backup rules exclude the recording directory from Auto Backup and device
+transfer. On iOS the app asks iOS to exclude it from iCloud backup and reports
+when it could not confirm that exclusion; the take may then be included in
+device backup. Nothing is uploaded.
 
 ## Launcher icon
 

@@ -50,11 +50,37 @@ final mediaDirectoryProvider = FutureProvider<String>((ref) async {
   return mediaDirectoryFor(supportDirectory.path);
 });
 
+/// Result of the backup-exclusion attempt for the recording directory.
+///
+/// The profile privacy card watches this value so it never claims exclusion
+/// when the platform did not confirm it. T4.2's recording flow must read it
+/// before presenting a take as private. A failed result is reported, but it
+/// does not throw: the caller can still decide whether to record.
+final mediaBackupStatusProvider = FutureProvider<BackupExclusionResult>((
+  ref,
+) async {
+  if (kIsWeb) {
+    return const BackupExclusionResult.notRequired(
+      'The web build has no app-managed backup exclusion.',
+    );
+  }
+
+  try {
+    final directory = await ref.watch(mediaDirectoryProvider.future);
+    return await _excludeMediaDirectory(
+      ref.watch(mediaBackupExclusionProvider),
+      directory,
+    );
+  } catch (error) {
+    return BackupExclusionResult.failed(error);
+  }
+});
+
 /// Local recording store.
 ///
 /// On IO the store lives under the application support directory. Before the
-/// store is created, [mediaBackupExclusionProvider] asks the platform to keep
-/// the directory out of cloud backup. A failed exclusion is logged and does not
+/// store is created, [mediaBackupStatusProvider] asks the platform to keep the
+/// directory out of cloud backup. A failed exclusion is logged and does not
 /// block storage, but the app must not claim the directory is excluded. On web
 /// the store is IndexedDB. Tests override this provider with `MemoryMediaStore`;
 /// nothing here starts a recorder or touches the microphone.
@@ -64,10 +90,7 @@ final mediaStoreProvider = FutureProvider<MediaStore>((ref) async {
   }
 
   final directory = await ref.watch(mediaDirectoryProvider.future);
-  final exclusion = await _excludeMediaDirectory(
-    ref.watch(mediaBackupExclusionProvider),
-    directory,
-  );
+  final exclusion = await ref.watch(mediaBackupStatusProvider.future);
   if (exclusion.status == BackupExclusionStatus.failed) {
     debugPrint(
       'Hear Me Out: media backup exclusion failed; recordings may be backed '

@@ -30,7 +30,7 @@ void main() {
     );
 
     expect(result.status, BackupExclusionStatus.excluded);
-    expect(result.isExcluded, isTrue);
+    expect(result.isConfirmed, isTrue);
     expect(result.error, isNull);
     expect(calls, hasLength(1));
     expect(calls.single.method, PlatformMediaBackupExclusion.method);
@@ -49,7 +49,7 @@ void main() {
           .excludeFromBackup('/app/support/media');
 
       expect(result.status, BackupExclusionStatus.failed);
-      expect(result.isExcluded, isFalse);
+      expect(result.isConfirmed, isFalse);
       expect(
         result.error,
         isA<PlatformException>().having(
@@ -70,7 +70,7 @@ void main() {
     );
 
     expect(result.status, BackupExclusionStatus.failed);
-    expect(result.isExcluded, isFalse);
+    expect(result.isConfirmed, isFalse);
     expect(result.error, isA<PlatformException>());
   });
 
@@ -98,13 +98,30 @@ void main() {
     expect(createMediaBackupExclusion(), isA<PlatformMediaBackupExclusion>());
   });
 
-  test('createMediaBackupExclusion is a no-op on other platforms', () {
+  test('createMediaBackupExclusion uses Android manifest rules', () {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     addTearDown(() => debugDefaultTargetPlatformOverride = null);
 
     final exclusion = createMediaBackupExclusion();
 
+    expect(exclusion, isA<PlatformRulesMediaBackupExclusion>());
+  });
+
+  test('createMediaBackupExclusion is a no-op on desktop', () {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    final exclusion = createMediaBackupExclusion();
+
     expect(exclusion, isA<NoopMediaBackupExclusion>());
+  });
+
+  test('Android manifest rules count as a confirmed exclusion', () async {
+    final result = await const PlatformRulesMediaBackupExclusion()
+        .excludeFromBackup('/app/support/media');
+
+    expect(result.status, BackupExclusionStatus.excludedByRules);
+    expect(result.isConfirmed, isTrue);
   });
 
   test('the media path ends with the shared directory name', () {
@@ -127,6 +144,46 @@ void main() {
       expect(fake.directories, [r'C:\app\support/media']);
     },
   );
+
+  test('the status provider exposes a confirmed exclusion', () async {
+    final fake = _RecordingBackupExclusion(
+      const BackupExclusionResult.excluded(),
+    );
+    final container = _container(fake, r'C:\app\support');
+    addTearDown(container.dispose);
+
+    final status = await container.read(mediaBackupStatusProvider.future);
+
+    expect(status.isConfirmed, isTrue);
+    expect(fake.directories, [r'C:\app\support/media']);
+  });
+
+  test('the status provider exposes a failed exclusion to the UI', () async {
+    final fake = _RecordingBackupExclusion(
+      const BackupExclusionResult.failed('denied'),
+    );
+    final container = _container(fake, r'C:\app\support');
+    addTearDown(container.dispose);
+
+    final status = await container.read(mediaBackupStatusProvider.future);
+
+    expect(status.status, BackupExclusionStatus.failed);
+    expect(status.isConfirmed, isFalse);
+    expect(status.error, 'denied');
+  });
+
+  test('the store reuses the status result instead of asking twice', () async {
+    final fake = _RecordingBackupExclusion(
+      const BackupExclusionResult.excluded(),
+    );
+    final container = _container(fake, '/app/support');
+    addTearDown(container.dispose);
+
+    await container.read(mediaBackupStatusProvider.future);
+    await container.read(mediaStoreProvider.future);
+
+    expect(fake.directories, hasLength(1));
+  });
 
   test('a failed exclusion is logged and does not block the store', () async {
     final fake = _RecordingBackupExclusion(

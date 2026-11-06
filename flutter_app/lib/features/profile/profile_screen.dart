@@ -16,6 +16,7 @@ import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import 'privacy_note.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -376,34 +377,8 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.blueSoft,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.lock_outline_rounded,
-                      color: AppColors.blueDark,
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'No account. No cloud. Your progress, streak, and settings stay on this device. Audio is analyzed on this device. When you record a take, it stays here too and is excluded from cloud backup by default.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          height: 1.45,
-                          color: AppColors.blueDark,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              MediaPrivacyCard(
+                backup: ref.watch(mediaBackupStatusProvider),
               ),
               const SizedBox(height: 16),
               Center(

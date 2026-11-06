@@ -161,6 +161,11 @@ run the app on a physical phone with a guitar and check:
    pitch (not ~8.8% high). Synthetic tests cover the decode/resample path, but
    this checklist item is not yet verified on hardware.
 7. Killing and reopening the app restores XP, streak, skills, and note boxes.
+8. **Pending — needs physical-device evidence.** After T4.2 adds recording,
+   record a take, run an Android Auto Backup, an Android device-transfer target,
+   and an iCloud backup, and confirm the `media/` directory is absent from each.
+   Source tests prove the rules and resource-value call exist; only a device
+   backup proves the OS honored them.
 
 Build an APK or app bundle with `flutter build apk` or `flutter build appbundle`
 on a machine with the Android SDK, or use `flutter run` with a connected device.
@@ -195,19 +200,25 @@ session rules.
 - [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
 - [docs/SOUND.md](docs/SOUND.md) — Bright Pluck sound family and event map
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, invariants
+- [docs/decisions/0002-backup-exclusion-no-opt-in.md](docs/decisions/0002-backup-exclusion-no-opt-in.md) — no V1 backup opt-in and the T4.2 gate
 - [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) — setup, debug, manual checks
 - [CONTRIBUTING.md](CONTRIBUTING.md) — contribution workflow
 
 ## Privacy
 
-- The microphone is active only during a practice, tuner, or recording session.
-  Audio is analyzed on the device for feedback and is never uploaded.
+- The microphone is active only during a lesson, practice, tuner, or recording
+  session. Audio is analyzed on the device for feedback and is never uploaded.
 - Progress is stored in `shared_preferences` on the device.
 - Recording follows a local-only model (the recording UI arrives in T4.2). When
-  you record a take, the audio is stored only on the device. Recordings are
-  excluded from Android Auto Backup, Android device transfer, and iCloud backup
-  by default. A take leaves the device only through an explicit export you
-  start, and deleting a take removes it from the device.
+  you record a take, the audio is stored only on the device. Android Auto Backup
+  and device transfer exclude the recording directory through manifest rules.
+  On iOS the app asks iOS to exclude the directory from iCloud backup; the
+  profile card says when iOS could not confirm that, so a take may then be
+  included in device backup. The app never claims exclusion without that
+  confirmation.
+- T4.2 adds the recording, delete, and export controls. When it lands, a take
+  will leave the device only through an explicit export you start, and deleting
+  a take will remove it from the device.
 - There is no Firebase, no Firestore, no auth, no analytics, no account, no
   cloud sync, and no network persistence layer.
 - The shop is a closed gem economy. It takes no money and has no subscriptions

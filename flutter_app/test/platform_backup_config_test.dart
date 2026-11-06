@@ -3,64 +3,68 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/media/backup_exclusion.dart';
 import 'package:hear_me_out/core/media/media_store.dart';
+import 'package:xml/xml.dart';
 
 void main() {
-  final fileExclusion = '<exclude domain="file" path="$mediaDirectoryName/"';
-
   group('Android backup rules', () {
-    final manifest = File('android/app/src/main/AndroidManifest.xml');
-    final backupRules = File('android/app/src/main/res/xml/backup_rules.xml');
-    final extractionRules = File(
-      'android/app/src/main/res/xml/data_extraction_rules.xml',
-    );
+    test('the manifest wires both rule files on the application element', () {
+      final document = _parse('android/app/src/main/AndroidManifest.xml');
+      final application = _singleChild(document.rootElement, 'application');
 
-    test('the manifest points at both rule files', () {
-      expect(manifest.existsSync(), isTrue);
-      final source = manifest.readAsStringSync();
-
-      expect(source, contains('android:fullBackupContent="@xml/backup_rules"'));
       expect(
-        source,
-        contains('android:dataExtractionRules="@xml/data_extraction_rules"'),
+        application.getAttribute('android:fullBackupContent'),
+        '@xml/backup_rules',
       );
       expect(
-        source,
-        contains('android:name="android.permission.RECORD_AUDIO"'),
+        application.getAttribute('android:dataExtractionRules'),
+        '@xml/data_extraction_rules',
+      );
+      expect(
+        document
+            .findAllElements('uses-permission')
+            .any(
+              (element) =>
+                  element.getAttribute('android:name') ==
+                  'android.permission.RECORD_AUDIO',
+            ),
+        isTrue,
       );
     });
 
     test('legacy Auto Backup excludes filesDir/media', () {
-      expect(backupRules.existsSync(), isTrue);
-      final source = backupRules.readAsStringSync();
+      final document = _parse('android/app/src/main/res/xml/backup_rules.xml');
 
-      expect(source, contains('<full-backup-content>'));
-      expect(source, contains(fileExclusion));
+      expect(document.rootElement.name.local, 'full-backup-content');
+      _expectMediaExclude(document.rootElement);
     });
 
     test(
       'Android 12+ cloud backup and device transfer exclude filesDir/media',
       () {
-        expect(extractionRules.existsSync(), isTrue);
-        final source = extractionRules.readAsStringSync();
+        final document = _parse(
+          'android/app/src/main/res/xml/data_extraction_rules.xml',
+        );
+        expect(document.rootElement.name.local, 'data-extraction-rules');
 
-        expect(source, contains('<data-extraction-rules>'));
-        expect(_section(source, 'cloud-backup'), contains(fileExclusion));
-        expect(_section(source, 'device-transfer'), contains(fileExclusion));
+        _expectMediaExclude(_singleChild(document.rootElement, 'cloud-backup'));
+        _expectMediaExclude(
+          _singleChild(document.rootElement, 'device-transfer'),
+        );
       },
     );
   });
 
   group('iOS backup exclusion', () {
-    test('the microphone usage string says recordings stay on the device', () {
-      final plist = File('ios/Runner/Info.plist').readAsStringSync();
+    test('the mic usage string says the app asks iOS to exclude a take', () {
+      final plist = _parse('ios/Runner/Info.plist');
       final description = _plistString(plist, 'NSMicrophoneUsageDescription');
 
       expect(description, isNotNull);
       final lower = description!.toLowerCase();
       expect(lower, isNot(contains('never recorded')));
-      expect(lower, contains('analyzed on this device'));
-      expect(lower, contains('stored only on this device'));
-      expect(lower, contains('excluded from icloud backup'));
+      expect(lower, contains('asks ios to exclude'));
+      expect(lower, contains('if ios cannot confirm that'));
+      expect(lower, contains('may be included in device backup'));
       expect(lower, contains('nothing is uploaded'));
     });
 
@@ -78,62 +82,112 @@ void main() {
       expect(swift, contains('NSURLIsExcludedFromBackupKey'));
       expect(swift, contains('isExcludedFromBackup'));
       expect(swift, contains('setResourceValues'));
+      expect(swift, contains('guard confirmed else'));
     });
   });
 
   group('privacy copy', () {
-    test('docs describe local recordings and backup exclusion', () {
-      final readme = _flatten(
-        File('../README.md').readAsStringSync(),
-      ).toLowerCase();
-      final design = _flatten(
-        File('../docs/DESIGN.md').readAsStringSync(),
-      ).toLowerCase();
+    test('docs use the honest mic scope and conditional backup wording', () {
+      final readme = _flatten(File('../README.md').readAsStringSync())
+          .toLowerCase();
+      final design = _flatten(File('../docs/DESIGN.md').readAsStringSync())
+          .toLowerCase();
       final architecture = _flatten(
         File('../docs/ARCHITECTURE.md').readAsStringSync(),
       ).toLowerCase();
 
-      for (final source in [readme, design, architecture]) {
-        expect(source, contains('cloud backup'));
+      for (final source in [readme, design]) {
+        expect(
+          source,
+          contains('during a lesson, practice, tuner, or recording session'),
+        );
       }
-      expect(readme, contains('android auto backup'));
-      expect(readme, contains('android device transfer'));
-      expect(readme, contains('icloud backup'));
-      expect(readme, contains('when you record a take'));
+      expect(readme, contains('asks ios to exclude'));
+      expect(readme, contains('could not confirm'));
+      expect(
+        readme,
+        contains('t4.2 adds the recording, delete, and export controls'),
+      );
       expect(readme, isNot(contains('nothing is recorded or uploaded')));
+      expect(design, contains('could not confirm'));
       expect(design, isNot(contains('analyzed in memory and discarded')));
-      expect(architecture, contains('filesdir/media'));
+      expect(architecture, contains('mediabackupstatusprovider'));
       expect(architecture, contains('nsurlisexcludedfrombackupkey'));
-      expect(architecture, contains('t4.2'));
+      expect(architecture, contains('could not confirm'));
+      expect(
+        architecture,
+        contains('0002-backup-exclusion-no-opt-in.md'),
+      );
     });
 
-    test('in-app privacy copy does not claim audio is never recorded', () {
-      final profile = File('lib/features/profile/profile_screen.dart')
-          .readAsStringSync()
-          .toLowerCase();
+    test('decision 0002 records no V1 opt-in and the T4.2 gate', () {
+      final decision = _flatten(
+        File('../docs/decisions/0002-backup-exclusion-no-opt-in.md')
+            .readAsStringSync(),
+      ).toLowerCase();
 
+      expect(decision, contains('no opt-in'));
+      expect(decision, contains('t4.2'));
+      expect(decision, contains('mediabackupstatusprovider'));
+    });
+
+    test('the profile screen uses the backup status provider', () {
+      final profile = File('lib/features/profile/profile_screen.dart')
+          .readAsStringSync();
+
+      expect(profile, contains('ref.watch(mediaBackupStatusProvider)'));
+      expect(profile, contains('MediaPrivacyCard'));
       expect(profile, isNot(contains('never recorded')));
-      expect(profile, contains('excluded from cloud backup'));
-      expect(profile, contains('when you record a take'));
     });
   });
 }
 
-String _flatten(String source) => source.replaceAll(RegExp(r'\s+'), ' ');
+XmlDocument _parse(String path) {
+  final file = File(path);
+  expect(file.existsSync(), isTrue, reason: 'missing $path');
+  return XmlDocument.parse(file.readAsStringSync());
+}
 
-String _section(String source, String tag) {
-  final start = source.indexOf('<$tag>');
-  final end = source.indexOf('</$tag>', start + 1);
-  if (start == -1 || end == -1) {
-    throw StateError('missing <$tag> section');
+XmlElement _singleChild(XmlElement parent, String name) {
+  final matches = parent.childElements
+      .where((element) => element.name.local == name)
+      .toList();
+
+  expect(
+    matches,
+    hasLength(1),
+    reason: 'expected one <$name> under <${parent.name.local}>',
+  );
+  return matches.single;
+}
+
+void _expectMediaExclude(XmlElement parent) {
+  final excludes = parent.childElements
+      .where((element) => element.name.local == 'exclude')
+      .toList();
+
+  expect(
+    excludes,
+    hasLength(1),
+    reason: 'expected one <exclude> under <${parent.name.local}>',
+  );
+  expect(excludes.single.getAttribute('domain'), 'file');
+  expect(excludes.single.getAttribute('path'), '$mediaDirectoryName/');
+}
+
+String? _plistString(XmlDocument plist, String key) {
+  final dict = _singleChild(plist.rootElement, 'dict');
+  final children = dict.childElements.toList();
+
+  for (var index = 0; index < children.length - 1; index++) {
+    final current = children[index];
+    if (current.name.local != 'key' || current.innerText != key) continue;
+
+    final value = children[index + 1];
+    if (value.name.local != 'string') return null;
+    return value.innerText;
   }
-  return source.substring(start, end);
+  return null;
 }
 
-String? _plistString(String plist, String key) {
-  final match = RegExp(
-    '<key>${RegExp.escape(key)}</key>\\s*<string>(.*?)</string>',
-    dotAll: true,
-  ).firstMatch(plist);
-  return match?.group(1)?.trim();
-}
+String _flatten(String source) => source.replaceAll(RegExp(r'\s+'), ' ');

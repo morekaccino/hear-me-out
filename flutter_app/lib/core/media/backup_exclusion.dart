@@ -7,11 +7,14 @@ const String mediaBackupExclusionChannelName =
 
 /// Result of asking the platform to keep the media directory out of backup.
 enum BackupExclusionStatus {
-  /// The platform confirmed the directory is excluded from backup.
+  /// The platform confirmed the directory is excluded at runtime.
   excluded,
 
-  /// The platform handles exclusion without a runtime call (Android rules,
-  /// web storage).
+  /// The platform's build-time rules exclude the directory (Android backup
+  /// rules).
+  excludedByRules,
+
+  /// The platform has no app-managed backup exclusion (web and desktop).
   notRequired,
 
   /// The platform call failed or did not confirm exclusion.
@@ -27,6 +30,10 @@ class BackupExclusionResult {
   const BackupExclusionResult.excluded()
     : this._(BackupExclusionStatus.excluded);
 
+  /// The platform's backup rules cover the directory.
+  const BackupExclusionResult.excludedByRules([String? reason])
+    : this._(BackupExclusionStatus.excludedByRules, error: reason);
+
   /// The platform does not need an exclusion call.
   const BackupExclusionResult.notRequired([String? reason])
     : this._(BackupExclusionStatus.notRequired, error: reason);
@@ -40,8 +47,13 @@ class BackupExclusionResult {
   /// The failure, or the reason no call was needed.
   final Object? error;
 
-  /// True only when the platform confirmed the resource value.
-  bool get isExcluded => status == BackupExclusionStatus.excluded;
+  /// True only when the app has evidence that the directory is excluded.
+  ///
+  /// Android's manifest rules and an iOS resource value both count as
+  /// confirmation. A failed or unsupported platform does not.
+  bool get isConfirmed =>
+      status == BackupExclusionStatus.excluded ||
+      status == BackupExclusionStatus.excludedByRules;
 
   @override
   String toString() =>
@@ -103,14 +115,27 @@ class PlatformMediaBackupExclusion implements MediaBackupExclusion {
   }
 }
 
-/// No-op implementation for platforms that do not use the iOS resource value.
+/// Android implementation. The manifest backup rules exclude the directory
+/// before the app runs, so there is no runtime call.
+class PlatformRulesMediaBackupExclusion implements MediaBackupExclusion {
+  const PlatformRulesMediaBackupExclusion();
+
+  @override
+  Future<BackupExclusionResult> excludeFromBackup(String directory) async {
+    return const BackupExclusionResult.excludedByRules(
+      'Android manifest backup rules exclude the recording directory.',
+    );
+  }
+}
+
+/// No-op implementation for platforms with no app-managed backup exclusion.
 class NoopMediaBackupExclusion implements MediaBackupExclusion {
   const NoopMediaBackupExclusion();
 
   @override
   Future<BackupExclusionResult> excludeFromBackup(String directory) async {
     return const BackupExclusionResult.notRequired(
-      'This platform excludes recordings with its own backup rules.',
+      'This platform has no app-managed backup exclusion.',
     );
   }
 }
@@ -118,6 +143,9 @@ class NoopMediaBackupExclusion implements MediaBackupExclusion {
 /// Returns the backup exclusion implementation for the current platform.
 MediaBackupExclusion createMediaBackupExclusion() {
   if (kIsWeb) return const NoopMediaBackupExclusion();
+  if (defaultTargetPlatform == TargetPlatform.android) {
+    return const PlatformRulesMediaBackupExclusion();
+  }
   if (defaultTargetPlatform == TargetPlatform.iOS) {
     return const PlatformMediaBackupExclusion();
   }
