@@ -1,6 +1,6 @@
 # COPPA and guardian consent plan
 
-**Version:** 0.1 (draft for counsel review).
+**Version:** 0.1.1 (draft for counsel review; review fixes applied).
 **Status:** Not approved. No gate in [§7](#7-legal-review-gate) is cleared.
 **Ticket:** T7.3 / HEARM-86.
 **Applies to:** the Phase 2 teacher and exam channel only. The Phase 1 consumer
@@ -94,34 +94,36 @@ confirm.
 
 ### 1.2 Who is covered
 
-The plan uses two thresholds:
+The plan uses two thresholds. The **legal threshold** is the age at which a
+student can consent to an information-society service in a given territory.
+The **operational threshold is 18 everywhere**: every student under 18 is a
+minor for this plan and needs a guardian consent record, even where the legal
+threshold is 13 or 16. The statutory age is a floor, not the pilot's threshold.
 
-1. the legal threshold for parental consent in each territory; and
-2. the project's stricter operational threshold: **every student under 18 is a
-   minor for this plan's rules**, even where consent can be given at 13 or 16.
-
-| Territory | Legal age for consent to an information-society service | What this plan does | Marker |
+| Territory | Legal age for consent (statutory floor) | What this plan does | Marker |
 |---|---|---|---|
-| United States | Under 13 is a child under COPPA and the FTC COPPA Rule (16 C.F.R. Part 312) | Treat every under-18 student as a minor; require guardian consent for under-13 students and for any student the teacher cannot confirm is 18 or older | Counsel to confirm |
-| European Union | GDPR Article 8 sets 16, but a member state may lower the age to 13 (not below 13) | Require guardian consent below the age set by the pilot member state; default to under 16 until counsel confirms the state | Counsel to confirm |
-| United Kingdom | 13 under the UK GDPR and the Data Protection Act 2018; the ICO Age Appropriate Design Code applies to services likely to be accessed by children | Require guardian consent below 13; apply the code's design standards to the pilot | Counsel to confirm |
-| Canada | PIPEDA does not set one age; the Office of the Privacy Commissioner treats under-13 data as requiring parental consent in practice, and Quebec has separate rules for younger minors | Require guardian consent below 13 by default; check the province before a Canadian pilot | Counsel to confirm |
-| Other pilot markets | Varies | Do not pilot until counsel names the age and consent rule for that market | Counsel to confirm |
+| United States | Under 13 is a child under COPPA and the FTC COPPA Rule (16 C.F.R. Part 312) | Require guardian consent for every student under 18; 13 is the statutory floor for COPPA coverage | Counsel to confirm |
+| European Union | GDPR Article 8 sets 16, but a member state may lower the age to 13 (not below 13) | Require guardian consent for every student under 18; the member-state age is the statutory floor | Counsel to confirm |
+| United Kingdom | 13 under the UK GDPR and the Data Protection Act 2018; the ICO Age Appropriate Design Code applies to services likely to be accessed by children | Require guardian consent for every student under 18; 13 is the statutory floor; apply the code's design standards to the pilot | Counsel to confirm |
+| Canada | PIPEDA does not set one age; the Office of the Privacy Commissioner treats under-13 data as requiring parental consent in practice, and Quebec has separate rules for younger minors | Require guardian consent for every student under 18; 13 is the conservative floor; check the province before a Canadian pilot | Counsel to confirm |
+| Other pilot markets | Varies | Require guardian consent for every student under 18; do not pilot until counsel names the statutory floor and consent rule for that market | Counsel to confirm |
 
 The stricter internal rule (under 18) exists because the teacher channel has no
 age verification and because the plan promises no public recital, no
 messaging, and no AI feedback for minors. It is easier to apply one safe rule
-across the pilot than to prove a student's exact age.
+across the pilot than to prove a student's exact age. **The word "minor" in
+this plan, including §5 and §6, means a student under 18.**
 
 ### 1.3 Trigger checklist
 
 Run this checklist before a teacher, studio, or school receives a pilot build
 or an assignment sheet.
 
-- [ ] The pilot territory is named and counsel has confirmed its age rule.
+- [ ] The pilot territory is named and counsel has confirmed its statutory age
+      and consent rule.
 - [ ] Every participating student is listed with a year-of-birth or age band
       and a minor/adult flag. A full date of birth is not collected.
-- [ ] A parent/guardian consent record exists for every minor.
+- [ ] A parent/guardian consent record exists for every student under 18.
 - [ ] The parent or guardian has seen the current parent notice and the
       data list in §2.
 - [ ] The teacher has signed the attestation in §6.1.
@@ -173,11 +175,11 @@ description of shipped code.
 
 | Data | Why it is needed | Where it lives | Default retention | In an export? | Marker |
 |---|---|---|---|---|---|
-| Student label (a short code such as `stu_7f3a`, or a self-chosen nickname; no legal name) | The teacher needs to know whose work they are reviewing | Teacher's roster and, optionally, the export header | Until the student leaves the pilot plus 14 days | Only if the student chooses to include it | Counsel to confirm |
-| Assignment label or piece/phrase id | Match the take to the assigned work | App progress and export header | Local until reset; export 30 days | Yes | N/A (not personal data) |
+| Student label (a short code such as `stu_7f3a`, or a self-chosen nickname; no legal name) | The teacher needs to know whose work they are reviewing | Teacher's roster, redacted register (label only), and optionally the export header | Teacher's roster: leave plus 14 days. Redacted register: participation plus 12 months (§2.5). Export: 30 days | Only if the student chooses to include it | Counsel to confirm |
+| Assignment label or piece/phrase id | Match the take to the assigned work | App progress and export header | Local until reset; export 30 days | Yes | Not personal data alone; counsel to confirm |
 | Practice summary: skill ids, pass/fail, accuracy, minutes, dates | Show what was practiced and what needs work | Local progress; optional export summary | Local until reset; export 30 days | Yes | Counsel to confirm |
 | Take audio (WAV/AAC, 60 s cap, 20 takes) | Let the teacher hear the take | Local `MediaStore` only; the teacher receives a copy only through manual export | Local until the student deletes it; teacher copy 30 days, hard cap 90 days | Only with separate recording/export consent | Counsel to confirm |
-| Take metadata: piece id, phrase id, duration, score, analysis version | Reproduce the review without the audio | Local `MediaStore` manifest and export summary | Same as the take | Yes | N/A (not personal data) |
+| Take metadata: piece id, phrase id, duration, score, analysis version | Reproduce the review without the audio | Local `MediaStore` manifest and export summary | Same as the take | Yes | Not personal data alone; counsel to confirm |
 | Consent record: parent/guardian name, contact, signature, date, scopes, student label, age band | Prove consent and handle revocation | Teacher's locked file or the project's approved register; **not the app** | Participation plus 12 months, then destroy | No | Counsel to confirm |
 | Redacted consent register entry: record id, student label, age band, scopes, dates | Audit that a record exists without copying parent details | Project register held by the pilot lead | Participation plus 12 months | No | Counsel to confirm |
 | Deletion and incident log: record id, dates, scope, action | Show that a request was handled | Project register | 24 months | No | Counsel to confirm |
@@ -233,8 +235,9 @@ progress backup. Counsel to confirm whether the pilot can accept this gap.
 ### 2.4 Pseudonymous identifiers
 
 - The app's local retention log uses a random `installId` made from 16 bytes
-  from `Random.secure()`. It is not derived from hardware, an account, or an
-  advertising id. It never goes into a teacher export.
+  from `Random.secure()` where available, with the documented fallback to
+  `Random()` on restricted runtimes. It is not derived from hardware, an
+  account, or an advertising id. It never goes into a teacher export.
 - The pilot register uses a student label such as `stu_7f3a`. The mapping from
   the label to a legal name stays in the teacher's consent file, not in the
   app, not in the export, and not in the central register.
@@ -283,8 +286,8 @@ It needs a new decision record, a new data map, and a new legal review.
 
 ### 3.1 Standard
 
-Before a minor uses the teacher channel, the project must have a record that a
-parent or legal guardian:
+Before any student under 18 uses the teacher channel, the project must have a
+record that a parent or legal guardian:
 
 1. saw the current parent notice and the data list in §2;
 2. understood that the app is local-only and that the teacher receives only
@@ -293,9 +296,11 @@ parent or legal guardian:
 4. was told how to revoke and how to request deletion; and
 5. was not pressured by the teacher to consent.
 
-The child cannot consent. The teacher cannot consent for the child. A school
-may consent only in the limited circumstances counsel confirms in §3.2. Counsel
-to confirm.
+For this plan, every student under 18 is a minor, whatever the statutory age
+in §1.2. The statutory age is the legal floor; the under-18 rule is the pilot's
+threshold. The child cannot consent. The teacher cannot consent for the child.
+A school may consent only in the limited circumstances counsel confirms in
+§3.2. Counsel to confirm.
 
 ### 3.2 Consent methods
 
@@ -446,8 +451,10 @@ Effects:
   choose, but the teacher must not review new work.
 - The teacher deletes exported takes and summaries within 7 days, unless the
   parent asks for a copy first.
-- The student or guardian deletes local takes and progress. If they want help,
-  the teacher walks them through the app's delete and reset controls.
+- The student or guardian deletes local takes and progress. Until the
+  take-delete control from T4.2 exists, use the uninstall or clear-storage path
+  in §4.3 and §4.4; do not tell the student a per-take delete button is
+  available. The teacher can help.
 - The consent record is marked `Revoked`; the redacted register keeps the date
   and scope but not the reason.
 - The project confirms the actions in writing within 14 days.
@@ -610,7 +617,7 @@ say "delete on request works."
 ### 5.1 Prohibited surfaces for minors
 
 The following are not part of the teacher pilot and must not be enabled for a
-minor:
+minor. For this plan, "minor" means a student under 18 (see §1.2):
 
 | Surface | Rule | Why | Status |
 |---|---|---|---|
@@ -700,8 +707,8 @@ The teacher signs this before the first student is enrolled. The signed copy
 goes in the pilot file.
 
 - [ ] I have read this plan and the parent notice.
-- [ ] I will not enroll a minor until a parent/guardian consent record is
-      signed, checked, and in the redacted register.
+- [ ] I will not enroll any student under 18 until a parent/guardian consent
+      record is signed, checked, and in the redacted register.
 - [ ] I will give the parent the current notice and answer their questions. I
       will not make an optional scope a condition of the lesson.
 - [ ] I will keep the consent record and the roster in a locked file or an
@@ -839,10 +846,11 @@ authority to consent. Counsel to confirm.
 
 ### 7.1 What counsel must review
 
-Nothing in this table is cleared. The evidence column names what must exist
-before a row can move to `Cleared`.
+Nothing in this table is cleared. Rows 1–14 and 16 are counsel's review; row
+15 is an engineering and app-store policy check. The evidence column names what
+must exist before a row can move to `Cleared`.
 
-| # | Area | Questions counsel must answer | Evidence required | Owner | Status |
+| # | Area | Question to answer | Evidence required | Owner | Status |
 |---:|---|---|---|---|---|
 | 1 | COPPA and the FTC COPPA Rule (US) | Does the teacher channel collect personal information from a child under 13? Is the project an operator when the app is local-only and the teacher holds the export? Which verifiable parental consent method is sufficient? Does the school-consent path apply? | Dated memo with the coverage analysis and approved method | Counsel | `Open` |
 | 2 | State comprehensive privacy laws (US) | Which pilot states apply? Do minors' opt-in, sale/share, or sensitive-data rules apply? Does a state age-appropriate design code apply and what is its current status? | Memo per pilot state; updated notice | Counsel | `Open` |
@@ -861,10 +869,11 @@ before a row can move to `Cleared`.
 | 15 | App store children and family policies | Do Apple's and Google's policies add a requirement for a teacher-directed app? | Store policy checklist | Engineering | `Open` |
 | 16 | Exam-board IP and naming | Can the pilot use generic grade labels without a board license? | Opinion; approved label list | Counsel | `Open` |
 
-Every row is **counsel to confirm** until counsel supplies the named evidence.
-Row 16 gates exam packs only; a teacher pilot that uses no exam-board name or
-content does not need it. If the pilot later adds an exam pack, row 16 becomes
-a blocker.
+Every row except row 15 is **counsel to confirm** until counsel supplies the
+named evidence. Row 15 is an engineering and app-store policy check; it still
+needs evidence before it can be cleared. Row 16 gates exam packs only; a
+teacher pilot that uses no exam-board name or content does not need it. If the
+pilot later adds an exam pack, row 16 becomes a blocker.
 
 ### 7.2 Evidence package
 
@@ -912,11 +921,12 @@ A missing item is a no-go, not a note for later.
 > review.** The Phase 2 teacher and exam channel stays out of the base case and
 > does not ship until: (a) counsel clears
 > `docs/COPPA_GUARDIAN_CONSENT_PLAN.md` for each pilot territory; (b) a
-> verifiable parent/guardian consent record exists for every minor before the
-> first assignment; (c) the deletion and revocation workflow has been rehearsed
-> on every device class in scope; (d) the no-recital, no-messaging, no-UGC, and
-> no-AI rules are in the teacher agreement; and (e) T6.3 is extended to the
-> teacher channel or a separate written go/no-go is recorded. Evidence: the
+> verifiable parent/guardian consent record exists for every student under 18
+> before the first assignment; (c) the deletion and revocation workflow has
+> been rehearsed on every device class in scope; (d) the no-recital,
+> no-messaging, no-UGC, and no-AI rules are in the teacher agreement; and (e)
+> T6.3 is extended to the teacher channel or a separate written go/no-go is
+> recorded. Evidence: the
 > plan above, the counsel memo, the deletion rehearsal, and the T7.3 pull
 > request. Owner: human owner. Status: open.
 
@@ -938,7 +948,7 @@ The manager owns both registers. This PR does not edit Plane.
 |---|---|---|
 | Counsel memo for the pilot territory | `Open` | Dated written memo linked in the pilot file |
 | Approved parent notice and consent form | `Draft` | Counsel approval; version id |
-| Redacted consent register populated for every minor | `Open` | Pilot lead check against the roster |
+| Redacted consent register populated for every student under 18 | `Open` | Pilot lead check against the roster |
 | Teacher agreement and attestation signed | `Draft` | Signed copies in the pilot file |
 | Deletion rehearsal on iOS, Android, and web | `Not run` | Completed checklist in §4.8 with evidence |
 | Incident tabletop | `Not run` | Completed tabletop in §5.4 |
@@ -1156,6 +1166,7 @@ each territory. The project has not treated any of these as a legal opinion.
 | Version | Date | Change | Author |
 |---|---|---|---|
 | 0.1 | 2026-11-06 | First draft for counsel review; all gates open; teacher channel out of the base case | T7.3 implementation |
+| 0.1.1 | 2026-11-06 | Review fixes: under-18 guardian consent in every territory row; metadata marked counsel-to-confirm; roster/register retention reconciled; install-id fallback aligned with the code; take-delete cross-reference; row 15 narrowed to an engineering check | T7.3 implementation |
 
 ---
 
