@@ -104,7 +104,9 @@ Plane.
 
 [`AI_HANDOFF_PROTOCOL.md`](AI_HANDOFF_PROTOCOL.md) is the process contract for
 roles, branches, pull requests, reviews, evidence, and resuming interrupted work.
-Read it with this section; it links back here for Plane mechanics.
+Read it with this section; it links back here for Plane mechanics. If this list
+and the protocol's [read order](AI_HANDOFF_PROTOCOL.md#1-read-order) differ, the
+protocol's order governs.
 
 1. **`D0.1 — START HERE`** in Plane.
 2. **`D0.2` — Strategy & executive summary.**

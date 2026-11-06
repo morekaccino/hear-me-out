@@ -22,13 +22,14 @@ from the codebase alone.
 |---:|---|---|
 | 1 | [`D0.1 — START HERE`](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7) | Charter, context-document index, project conventions, and current status. |
 | 2 | `D0.2`–`D0.5` in Plane | Strategy and executive summary (`D0.2`), current-state audit and evidence (`D0.3`), target user and V1 scope (`D0.4`), and the assessment contract and spike (`D0.5`). These constrain what the ticket is allowed to build. |
-| 3 | The current cycle in Plane | What is scheduled now, the cycle focus, and what is explicitly out of scope for this cycle. Open the Cycles view; do not assume the cycle from an old doc. |
-| 4 | [`AGENTS.md`](../AGENTS.md) | Repository rules, commands, architecture map, protected behavior, and the last verified project state. |
-| 5 | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | Layers, dependency direction, data flow, and invariants of the code that exists. |
-| 6 | The ticket and its relations | Purpose, scope, acceptance criteria, comments, owner, module, cycle, labels, and `blocked_by` / `blocking`. |
-| 7 | The relevant local docs | The approved plan, design, sound, learning algorithm, content guides, corpus docs, retention rules, and decision records for the area you will touch. |
+| 3 | [`D0.13 — Glossary, Naming & AI Operating Manual`](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/de8d99d5-8da5-4acf-8926-e139c7527a2d) | Shared definitions, naming rules, and the Plane-side operating manual for future agents. |
+| 4 | The current cycle in Plane | What is scheduled now, the cycle focus, and what is explicitly out of scope for this cycle. Open the Cycles view; do not assume the cycle from an old doc. |
+| 5 | [`AGENTS.md`](../AGENTS.md) | Repository rules, commands, architecture map, protected behavior, and the last verified project state. |
+| 6 | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) | Layers, dependency direction, data flow, and invariants of the code that exists. |
+| 7 | The ticket and its relations | Purpose, scope, acceptance criteria, comments, owner, module, cycle, labels, and `blocked_by` / `blocking`. |
+| 8 | The relevant local docs | The approved plan, design, sound, learning algorithm, content guides, corpus docs, retention rules, and decision records for the area you will touch. |
 
-Useful starting points for step 7:
+Useful starting points for step 8:
 
 - [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 plan.
 - [`DESIGN.md`](DESIGN.md), [`SOUND.md`](SOUND.md), and
@@ -106,7 +107,7 @@ Rules:
 | Concern | Convention |
 |---|---|
 | Agent harness | OpenCode. |
-| Manager channel | `hc send t1z "DONE T#.# PR #n <summary>"` or `hc send t1z "BLOCKED T#.# <reason and what you tried>"`. |
+| Manager channel | `hc send <manager> "DONE T#.# PR #n <summary>"` or `hc send <manager> "BLOCKED T#.# <reason and what you tried>"`, where `<manager>` is the terminal address named in your handoff brief (currently `t1z`). |
 | Branch | `t#.#-slug`, cut from `origin/year-long-rewrite`. |
 | Implementation worktree | `../t#.#-slug`. |
 | Review worktree | `../review-t#.#`, detached at the PR head. |
@@ -119,6 +120,11 @@ Plane" or "the manager owns ticket state," the agent reports status and evidence
 through `.ticket-report.md` and `hc send`; the manager performs the state
 transitions. Otherwise the implementing agent updates its own ticket as
 described below.
+
+The manager owns the `T9.2` decision log and the `T9.1` risk register. The
+implementing agent supplies the exact entry text, links, and evidence. It edits
+those logs only when the handoff brief explicitly delegates Plane updates;
+otherwise the manager applies the entry.
 
 ---
 
@@ -165,8 +171,7 @@ described below.
 - **New scope discovered during work:** create a follow-up ticket through the
   manager; do not silently expand the current ticket or PR.
 - **A decision is genuinely needed:** write a decision record using the format
-  in section 5 and ask the manager to mirror it in `T9.2`. The manager owns the
-  Plane decision log.
+  in section 5 and send the proposed `T9.2` entry to the manager (section 2).
 
 ---
 
@@ -219,20 +224,21 @@ described below.
    when every acceptance criterion is met and the manager or human owner has
    accepted the merge. If the brief reserves Plane state, report the same
    evidence to the manager instead.
-9. **Update `T9.2` (decision log) or `T9.1` (risk register)** when the work
-   changes a decision or risk. Link the PR and the affected tickets. If Plane is
-   reserved, hand the exact text to the manager.
+9. **Send the `T9.2` (decision log) or `T9.1` (risk register) entry** when the
+   work changes a decision or risk. Include the exact text, PR, and affected
+   tickets; section 2 defines who edits Plane.
 10. **Link the PR to the ticket.** The PR body names the ticket; the ticket
     comment names the PR; the Plane link field or a comment carries the URL.
 11. **Write `.ticket-report.md`** in the worktree and report to the manager:
 
     ```powershell
-    hc send t1z "DONE T#.# PR #n <one-line summary>"
-    hc send t1z "BLOCKED T#.# <reason and what you tried>"
+    hc send <manager> "DONE T#.# PR #n <one-line summary>"
+    hc send <manager> "BLOCKED T#.# <reason and what you tried>"
     ```
 
-    Do not commit `.ticket-brief.md`, `.ticket-report.md`, `.review-findings.md`,
-    or `.opencode/`.
+    `<manager>` is the terminal address named in your handoff brief (currently
+    `t1z`). Do not commit `.ticket-brief.md`, `.ticket-report.md`,
+    `.review-findings.md`, or `.opencode/`.
 
 ---
 
@@ -261,7 +267,7 @@ and what was hoped for. These rules are not optional.
   information does not exist, the evidence does not exist.
 - **No reopening a settled decision without new evidence.** Add a new decision
   record that supersedes the old one and links the evidence. Never rewrite an
-  accepted record in place.
+  accepted record's content in place.
 - **No stale numbers presented as current.** Link the command or Plane view
   instead of copying a count. Counts in old tickets and docs are snapshots, not
   state.
@@ -327,8 +333,9 @@ The Plane ticket and owner for anything this record does not close.
 ```
 
 Accepted records are append-only history. To change one, create a new record
-with the next number, mark the old one `Superseded by NNNN`, and link both from
-`T9.2`.
+with the next number and set the old record's `Status:` line to
+`Superseded by NNNN`; that status line is the only permitted edit to the old
+record. Link both records from `T9.2`.
 
 ---
 
@@ -412,7 +419,7 @@ canonical summary.
 
 | Phase | Plan scope | Gate or outcome |
 |---|---|---|
-| **Phase 0** | Validation and assessment spike: corpus, latency/bleed rig, sample-clock and resampling fixes, tri-state matcher, pre-sale, concierge, legal, funding. | `T1.7` go/no-go on real corpus evidence. The phrase loop does not ship before it passes. |
+| **Phase 0** | Validation and assessment spike: corpus, latency/bleed rig, sample-clock and resampling fixes, tri-state matcher, pre-sale, concierge, legal, funding. | Spike pass (`T1.7`); 30+ pre-orders or 3% best-cell conversion; 60% concierge retention; legal go/no-go. [T9.8](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/6f46f16c-bc01-4541-bbfa-cb7847d8a102) owns the live gate checklist; the phrase loop does not ship before `T1.7` passes. |
 | **Phase 1** | Core product loop: `AttemptOutcome`, `PracticeSession`, piece/phrase models, phrase assessment, Today session, recording/A-B, technique, paywall. | 20 users, 3×/week for 4 weeks; false fail ≤10%; D7 ≥18%. |
 | **Phase 2** | Expansion: MusicXML import, generic grade packs, teacher pilot, generator v2, opt-in aggregate analytics research. | D30 ≥10%; free→Pro ≥2%; three teacher pilots. |
 | **Phase 3** | Months 6–12: technique video review, ear-to-hand, cloud/AI evaluation, piano research only. | Guitar retention proven; a separate assessment gate for any expansion. |
@@ -444,10 +451,11 @@ behavior as shipped.
   The recording UI must consume `mediaBackupStatusProvider` and must not claim
   exclusion when the status is unconfirmed.
 
-### Local documentation map
+### Documentation map
 
 | Area | Documents |
 |---|---|
+| Plane context | [D0.1 — START HERE](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7), [D0.13 — Glossary, Naming & AI Operating Manual](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/de8d99d5-8da5-4acf-8926-e139c7527a2d); D0.13 holds the definitions, naming rules, and Plane operating manual. |
 | Process and project | [`../AGENTS.md`](../AGENTS.md), [`PLANE.md`](PLANE.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md), this protocol |
 | Product and plan | [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md), [`DESIGN.md`](DESIGN.md) |
 | Code | [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`../LEARNING_ALGORITHM.md`](../LEARNING_ALGORITHM.md) |
@@ -483,8 +491,8 @@ mark the ticket Done or claim the human evidence.
 
 The current human-owned set includes:
 
-`T1.1`, `T1.6`, `T1.7`, `T1.8`, `T1.9`, `T1.10`, `T1.11`, `T3.5`, `T5.7`,
-`T6.1`, `T6.3`, `T6.8`, `T7.1`.
+`T1.1`, `T1.6`, `T1.7`, `T1.8`, `T1.9`, `T1.10`, `T1.11`, `T3.5`, `T3.8`,
+`T4.5`, `T5.7`, `T6.1`, `T6.3`, `T6.8`, `T7.1`.
 
 Treat this as a **principle, not a permanent exhaustive list**: a ticket is
 human-owned when it needs participant recruitment, corpus recording, a beginner
@@ -505,7 +513,7 @@ If a ticket is blocked:
 
 **Before**
 
-- Read `D0.1` → `D0.2`–`D0.5` → current cycle → `AGENTS.md` →
+- Read `D0.1` → `D0.2`–`D0.5` → `D0.13` → current cycle → `AGENTS.md` →
   `ARCHITECTURE.md` → ticket and relations → relevant local docs.
 - Acceptance criteria are present and testable; `blocked_by` is clear.
 - Ticket is In Progress; branch `t#.#-slug` is cut from the current base.
@@ -522,7 +530,7 @@ If a ticket is blocked:
 - Ticket comment has evidence; state is In Review, or Done only after every
   criterion is met and the merge is accepted.
 - PR is linked from the ticket; `.ticket-report.md` written; manager notified
-  with `hc send t1z`.
+  with `hc send <manager>` using the handoff address (currently `t1z`).
 
 **Never**
 
