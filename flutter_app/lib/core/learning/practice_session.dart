@@ -89,10 +89,13 @@ class PracticeSession {
   final ObjectiveRef target;
 
   final PracticeSessionLength length;
+
+  /// True when this session was chosen for a maintenance day. It extends the
+  /// five-minute plan only when [maintenanceTarget] is available.
   final bool isMaintenanceDay;
 
-  /// A previously learned objective for the maintenance block. Null falls back
-  /// to [target].
+  /// A previously learned objective for the maintenance block. Null means the
+  /// block is omitted and the plan keeps its selected length.
   final ObjectiveRef? maintenanceTarget;
 
   final List<PracticeBlock> blocks;
@@ -196,10 +199,20 @@ class PracticeSession {
     _accountUntil(now);
   }
 
-  /// Moves to the next block without inventing time. Advancing past the last
+  /// Moves to the next block without inventing time.
+  ///
+  /// When [now] is supplied and the session is running, the elapsed time up to
+  /// [now] is accounted first, so a learner who taps "next" mid-block still
+  /// earns the instrument time they just played. Callers that pass no [now]
+  /// must call [tick] first or that time is not counted. Advancing past the last
   /// block reaches the stop point.
-  void advance() {
+  void advance({DateTime? now}) {
     if (_status == PracticeSessionStatus.notStarted || isFinished) return;
+    final indexBefore = _index;
+    if (now != null && _status == PracticeSessionStatus.running) {
+      _accountUntil(now);
+    }
+    if (isFinished || _index != indexBefore) return;
     _moveToNextBlock();
   }
 
@@ -222,7 +235,7 @@ class PracticeSession {
     }
     if (delta > sessionLeft) delta = sessionLeft;
 
-    while (delta > Duration.zero && _index < blocks.length) {
+    while (delta > Duration.zero && !isFinished && _index < blocks.length) {
       final block = blocks[_index];
       final blockLeft = block.budget - _blockElapsed;
       if (blockLeft <= Duration.zero) {
@@ -243,6 +256,7 @@ class PracticeSession {
   }
 
   void _moveToNextBlock() {
+    if (isFinished) return;
     if (_index >= blocks.length - 1) {
       _finish();
       return;
@@ -265,35 +279,36 @@ class PracticeSession {
 /// is 3 minutes 30 seconds of guitar time.
 ///
 /// The ten- and twenty-minute plans keep the same block vocabulary and add
-/// deeper acquisition time plus one maintenance segment. A five-minute
-/// maintenance day extends the standard plan to six minutes and puts one
-/// previously learned phrase last.
+/// deeper acquisition and application time. They add a maintenance segment
+/// only when [maintenanceTarget] names a previously learned objective; when it
+/// is null the maintenance budget goes to the application block so the plan
+/// still totals ten or twenty minutes. A five-minute maintenance day extends the
+/// standard plan to six minutes only when a learned target is available.
 List<PracticeBlock> buildPracticePlan({
   required ObjectiveRef target,
   required PracticeSessionLength length,
   bool isMaintenanceDay = false,
   ObjectiveRef? maintenanceTarget,
 }) {
-  final maintenance = maintenanceTarget ?? target;
   final blocks = <PracticeBlock>[];
 
   switch (length) {
     case PracticeSessionLength.five:
       blocks.addAll(_fiveMinuteBlocks(target));
-      if (isMaintenanceDay) {
+      if (isMaintenanceDay && maintenanceTarget != null) {
         blocks.add(
           PracticeBlock(
             role: PracticeBlockRole.maintenance,
             title: 'Maintenance: earlier phrase',
             budget: const Duration(minutes: 1),
-            target: maintenance,
+            target: maintenanceTarget,
           ),
         );
       }
     case PracticeSessionLength.ten:
-      blocks.addAll(_tenMinuteBlocks(target, maintenance));
+      blocks.addAll(_tenMinuteBlocks(target, maintenanceTarget));
     case PracticeSessionLength.twenty:
-      blocks.addAll(_twentyMinuteBlocks(target, maintenance));
+      blocks.addAll(_twentyMinuteBlocks(target, maintenanceTarget));
   }
 
   return List.unmodifiable(blocks);
@@ -343,7 +358,7 @@ List<PracticeBlock> _fiveMinuteBlocks(ObjectiveRef target) => [
 
 List<PracticeBlock> _tenMinuteBlocks(
   ObjectiveRef target,
-  ObjectiveRef maintenance,
+  ObjectiveRef? maintenance,
 ) => [
   _block(
     PracticeBlockRole.setup,
@@ -380,7 +395,9 @@ List<PracticeBlock> _tenMinuteBlocks(
   _block(
     PracticeBlockRole.apply,
     'Apply both phrases',
-    const Duration(seconds: 90),
+    maintenance == null
+        ? const Duration(seconds: 150)
+        : const Duration(seconds: 90),
     target,
   ),
   _block(
@@ -390,17 +407,18 @@ List<PracticeBlock> _tenMinuteBlocks(
     target,
     countsInstrumentTime: false,
   ),
-  _block(
-    PracticeBlockRole.maintenance,
-    'Maintenance: earlier phrase',
-    const Duration(minutes: 1),
-    maintenance,
-  ),
+  if (maintenance != null)
+    _block(
+      PracticeBlockRole.maintenance,
+      'Maintenance: earlier phrase',
+      const Duration(minutes: 1),
+      maintenance,
+    ),
 ];
 
 List<PracticeBlock> _twentyMinuteBlocks(
   ObjectiveRef target,
-  ObjectiveRef maintenance,
+  ObjectiveRef? maintenance,
 ) => [
   _block(
     PracticeBlockRole.setup,
@@ -437,7 +455,9 @@ List<PracticeBlock> _twentyMinuteBlocks(
   _block(
     PracticeBlockRole.apply,
     'Apply both phrases',
-    const Duration(minutes: 3),
+    maintenance == null
+        ? const Duration(minutes: 5)
+        : const Duration(minutes: 3),
     target,
   ),
   _block(
@@ -447,12 +467,13 @@ List<PracticeBlock> _twentyMinuteBlocks(
     target,
     countsInstrumentTime: false,
   ),
-  _block(
-    PracticeBlockRole.maintenance,
-    'Maintenance: earlier phrase',
-    const Duration(minutes: 2),
-    maintenance,
-  ),
+  if (maintenance != null)
+    _block(
+      PracticeBlockRole.maintenance,
+      'Maintenance: earlier phrase',
+      const Duration(minutes: 2),
+      maintenance,
+    ),
 ];
 
 PracticeBlock _block(

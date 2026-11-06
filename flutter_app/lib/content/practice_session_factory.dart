@@ -7,15 +7,15 @@ import '../core/learning/progress.dart';
 import '../core/learning/skill.dart';
 import '../core/music/curriculum.dart';
 import '../core/music/note.dart';
-import 'objectives.dart';
+import 'skill_objectives.dart';
 
 /// Chooses the one target and builds the plan for a Today practice session.
 ///
 /// The selection is deterministic for a given [ProgressState], [now], and
-/// [random] seed. Due skills come first, then weak and fragile skills. If the
-/// learner has no attempts yet, the first note in the course becomes the
-/// target. A maintenance block prefers a previously learned skill that is not
-/// the session target.
+/// [random] seed. Due skills come first, then weak and fragile skills, then the
+/// most recently learned skill. A learner with no history gets the first note
+/// in the course. A maintenance block is added only when a previously learned
+/// skill exists and is not the session target.
 PracticeSession buildPracticeSession({
   required ProgressState progress,
   required DateTime now,
@@ -30,7 +30,7 @@ PracticeSession buildPracticeSession({
   return PracticeSession(
     target: target,
     length: length,
-    isMaintenanceDay: isMaintenanceDay,
+    isMaintenanceDay: isMaintenanceDay && maintenanceTarget != null,
     maintenanceTarget: maintenanceTarget,
   );
 }
@@ -46,26 +46,36 @@ ObjectiveRef _chooseTarget(ProgressState progress, DateTime now) {
   }
 
   for (final skill in ranked.values) {
-    final ref = _refForSkill(skill);
+    final ref = objectiveRefForSkill(skill);
     if (ref != null) return ref;
   }
 
+  final learned =
+      progress.skills.values.where((skill) => skill.attempts > 0).toList()
+        ..sort((a, b) {
+          final aTime = a.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bTime = b.lastSeenAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final byTime = bTime.compareTo(aTime);
+          return byTime != 0 ? byTime : a.objectiveId.compareTo(b.objectiveId);
+        });
+  for (final skill in learned) {
+    final ref = objectiveRefForSkill(skill);
+    if (ref != null) return ref;
+  }
+
+  for (final lesson in allLessons) {
+    if (!progress.completedLessons.contains(lesson.id) &&
+        lesson.newNotes.isNotEmpty) {
+      return noteObjective(lesson.newNotes.first);
+    }
+  }
   for (final lesson in allLessons) {
     if (lesson.newNotes.isNotEmpty) return noteObjective(lesson.newNotes.first);
   }
   return noteObjective(noteCatalog.first);
 }
 
-ObjectiveRef? _refForSkill(SkillProgress skill) {
-  if (skill.objectiveId.startsWith('note:')) {
-    final note = Note.tryParse(skill.objectiveId.substring(5));
-    if (note != null) return noteObjective(note, stage: skill.box);
-    return null;
-  }
-  return objectiveCatalog[skill.objectiveId];
-}
-
-ObjectiveRef _chooseMaintenanceTarget(
+ObjectiveRef? _chooseMaintenanceTarget(
   ProgressState progress,
   ObjectiveRef target,
   Random random,
@@ -73,7 +83,7 @@ ObjectiveRef _chooseMaintenanceTarget(
   final candidates = <ObjectiveRef>[];
   for (final skill in progress.skills.values) {
     if (skill.attempts == 0 || skill.objectiveId == target.id) continue;
-    final ref = _refForSkill(skill);
+    final ref = objectiveRefForSkill(skill);
     if (ref != null) candidates.add(ref);
   }
 
@@ -88,7 +98,7 @@ ObjectiveRef _chooseMaintenanceTarget(
     }
   }
 
-  if (candidates.isEmpty) return target;
+  if (candidates.isEmpty) return null;
   candidates.sort((a, b) => a.id.compareTo(b.id));
   return candidates[random.nextInt(candidates.length)];
 }

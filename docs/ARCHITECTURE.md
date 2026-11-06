@@ -279,10 +279,15 @@ instrument time. Callers supply every timestamp through `start`, `pause`,
 never scores. The block roles are setup, technique, model, acquire, apply,
 maintenance, and reflect. A five-minute session totals five minutes with three
 and a half minutes of guitar time; a maintenance day extends it to six minutes
-and adds a previously learned phrase last. `LessonRun` remains the Reading Lab
-and single-note lesson engine. `content/practice_session_factory.dart` chooses
-the target from due, weak, and fragile skills and picks a learned maintenance
-target; the core aggregate does not import content.
+and adds a previously learned phrase last only when the builder found a learned
+target. The ten- and twenty-minute plans always total their selected length: a
+maintenance block is added when a learned target exists, and otherwise its time
+goes to the application block. `advance()` deliberately does not invent time;
+callers must tick first, or pass `now` to `advance`, for the time since the last
+tick to count toward elapsed and instrument time. `LessonRun` remains the
+Reading Lab and single-note lesson engine. `content/practice_session_factory.dart`
+chooses the target from due, weak, and fragile skills and picks a learned
+maintenance target; the core aggregate does not import content.
 
 ### Prompt and template types
 

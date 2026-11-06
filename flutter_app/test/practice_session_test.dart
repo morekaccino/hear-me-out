@@ -60,9 +60,39 @@ void main() {
         PracticeSessionLength.ten,
         PracticeSessionLength.twenty,
       ]) {
-        final session = PracticeSession(target: target, length: length);
+        final standard = PracticeSession(target: target, length: length);
 
-        expect(session.blocks.map((block) => block.role).toList(), [
+        expect(standard.blocks.map((block) => block.role).toList(), [
+          PracticeBlockRole.setup,
+          PracticeBlockRole.technique,
+          PracticeBlockRole.model,
+          PracticeBlockRole.acquire,
+          PracticeBlockRole.acquire,
+          PracticeBlockRole.apply,
+          PracticeBlockRole.reflect,
+        ], reason: length.name);
+        expect(
+          standard.blocks.where(
+            (block) => block.role == PracticeBlockRole.acquire,
+          ),
+          hasLength(2),
+          reason: length.name,
+        );
+        expect(
+          standard.blocks.any(
+            (block) => block.role == PracticeBlockRole.maintenance,
+          ),
+          isFalse,
+          reason: length.name,
+        );
+        expect(standard.totalDuration, length.duration, reason: length.name);
+
+        final withMaintenance = PracticeSession(
+          target: target,
+          length: length,
+          maintenanceTarget: learnedTarget,
+        );
+        expect(withMaintenance.blocks.map((block) => block.role).toList(), [
           PracticeBlockRole.setup,
           PracticeBlockRole.technique,
           PracticeBlockRole.model,
@@ -72,13 +102,8 @@ void main() {
           PracticeBlockRole.reflect,
           PracticeBlockRole.maintenance,
         ], reason: length.name);
-        expect(
-          session.blocks.where(
-            (block) => block.role == PracticeBlockRole.acquire,
-          ),
-          hasLength(2),
-          reason: length.name,
-        );
+        expect(withMaintenance.blocks.last.target, learnedTarget);
+        expect(withMaintenance.totalDuration, length.duration);
       }
     });
 
@@ -109,6 +134,18 @@ void main() {
       expect(block.target, learnedTarget);
       expect(block.budget, const Duration(minutes: 1));
       expect(block.countsInstrumentTime, isTrue);
+    });
+
+    test('a maintenance day without a learned phrase stays 5 minutes', () {
+      final session = PracticeSession(target: target, isMaintenanceDay: true);
+
+      expect(session.totalDuration, const Duration(minutes: 5));
+      expect(
+        session.blocks.any(
+          (block) => block.role == PracticeBlockRole.maintenance,
+        ),
+        isFalse,
+      );
     });
 
     test('one target survives advancing every block', () {
@@ -197,6 +234,35 @@ void main() {
       expect(session.remaining, Duration.zero);
       expect(session.progress, 1);
     });
+
+    test('advance to the last block then tick past the end finishes', () {
+      final session = PracticeSession(target: target);
+      session.start(start);
+
+      while (session.currentIndex < session.blocks.length - 1) {
+        session.advance();
+      }
+      expect(session.currentIndex, session.blocks.length - 1);
+
+      session.tick(start.add(const Duration(minutes: 10)));
+
+      expect(session.isFinished, isTrue);
+      expect(session.stopPointReached, isTrue);
+      expect(session.currentBlock, isNull);
+      expect(session.elapsed, lessThanOrEqualTo(session.totalDuration));
+    });
+
+    test('advance with a time accounts instrument time before moving', () {
+      final session = PracticeSession(target: target);
+      session.start(start);
+      session.tick(start.add(const Duration(seconds: 30)));
+      session.tick(start.add(const Duration(seconds: 50)));
+
+      session.advance(now: start.add(const Duration(seconds: 60)));
+
+      expect(session.instrumentElapsed, const Duration(seconds: 30));
+      expect(session.currentIndex, 2);
+    });
   });
 
   group('content builder', () {
@@ -260,21 +326,57 @@ void main() {
       );
     });
 
-    test('a fresh profile still gets one non-empty target', () {
-      final session = buildPracticeSession(
-        progress: ProgressState.fresh(),
-        now: start,
-        random: Random(1),
+    test('a fresh profile gets one target and no maintenance block', () {
+      for (final length in PracticeSessionLength.values) {
+        final session = buildPracticeSession(
+          progress: ProgressState.fresh(),
+          now: start,
+          length: length,
+          isMaintenanceDay: true,
+          random: Random(1),
+        );
+
+        expect(session.target.id, isNotEmpty);
+        expect(session.target.family, SkillFamily.noteReading);
+        expect(session.isMaintenanceDay, isFalse);
+        expect(session.totalDuration, length.duration);
+        expect(
+          session.blocks.any(
+            (block) => block.role == PracticeBlockRole.maintenance,
+          ),
+          isFalse,
+          reason: length.name,
+        );
+        expect(
+          session.blocks.every((block) => block.target == session.target),
+          isTrue,
+          reason: length.name,
+        );
+      }
+    });
+
+    test('an up-to-date learner keeps a recently learned target', () {
+      final now = start;
+      final progress = ProgressState(
+        skills: {
+          'note:G4': SkillProgress(
+            objectiveId: 'note:G4',
+            family: SkillFamily.noteReading,
+            reps: 4,
+            correct: 4,
+            dueAt: now.add(const Duration(days: 7)),
+            lastSeenAt: now.subtract(const Duration(days: 1)),
+          ),
+        },
       );
 
-      expect(session.target.id, isNotEmpty);
-      expect(session.target.family, SkillFamily.noteReading);
-      expect(
-        session.blocks
-            .where((block) => block.role != PracticeBlockRole.maintenance)
-            .every((block) => block.target == session.target),
-        isTrue,
+      final session = buildPracticeSession(
+        progress: progress,
+        now: now,
+        random: Random(3),
       );
+
+      expect(session.target.id, 'note:G4');
     });
   });
 
