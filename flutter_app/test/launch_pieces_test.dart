@@ -100,14 +100,73 @@ void main() {
       }
     });
 
+    test('every piece has a V1 stage and a non-empty outcome', () {
+      for (final launch in launchPieces) {
+        final id = launch.piece.id;
+
+        expect(v1PlacementStages, contains(launch.v1Stage), reason: id);
+        expect(launch.stageOutcome.trim(), isNotEmpty, reason: id);
+        expect(
+          launch.stageOutcome,
+          v1StageOutcomes[launch.v1Stage],
+          reason: id,
+        );
+      }
+    });
+
+    test('every V1 placement stage has at least one launch piece', () {
+      for (final stage in v1PlacementStages) {
+        expect(piecesForStage(stage), isNotEmpty, reason: 'stage $stage');
+      }
+    });
+
+    test('the published stage map contains only V1 stages', () {
+      expect(launchPiecesByStage.keys.toSet(), v1PlacementStages.toSet());
+      for (final stage in phase2Stages) {
+        expect(launchPiecesByStage, isNot(contains(stage)), reason: '$stage');
+      }
+    });
+
+    test('phase2Stages is exactly the reviewed non-V1 set', () {
+      expect(v1PlacementStages, <int>[1, 2, 3, 5, 9, 10]);
+      expect(phase2Stages, <int>{4, 6, 7, 8});
+    });
+
+    test('placementStageForPiece returns the V1 stage or null', () {
+      expect(placementStageForPiece('greensleeves'), 1);
+      expect(placementStageForPiece('scarborough-fair'), 5);
+      expect(placementStageForPiece('original-study-2'), 10);
+      expect(placementStageForPiece('not-a-piece'), isNull);
+      expect(placementStageForPiece(''), isNull);
+    });
+
+    test('piecesForStage returns the map rows and empty for other stages', () {
+      for (final entry in launchPiecesByStage.entries) {
+        expect(piecesForStage(entry.key), entry.value);
+        for (final launch in entry.value) {
+          expect(launch.v1Stage, entry.key, reason: launch.piece.id);
+        }
+      }
+      for (final stage in phase2Stages) {
+        expect(piecesForStage(stage), isEmpty, reason: 'stage $stage');
+      }
+      expect(piecesForStage(12), isEmpty);
+      expect(piecesForStage(0), isEmpty);
+    });
+
     test('no piece claims a polyphonic texture', () {
       for (final launch in launchPieces) {
         final id = launch.piece.id;
-        final text = '${launch.texture} ${launch.licenseQuestion}'
-            .toLowerCase();
+        final text = <String>[
+          launch.texture,
+          launch.techniqueFocus,
+          launch.rangeAndPosition,
+          launch.licenseQuestion,
+        ].join(' ').toLowerCase();
 
         expect(launch.texture, 'monophonic', reason: id);
-        expect(text, isNot(contains('polyphonic')), reason: id);
+        expect(text, isNot(contains('polyphon')), reason: id);
+        expect(text, isNot(contains('chord')), reason: id);
         expect(text, isNot(contains('two-voice')), reason: id);
         expect(text, isNot(contains('two voice')), reason: id);
       }
