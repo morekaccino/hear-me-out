@@ -1,6 +1,7 @@
 # Launch pieces (T3.1)
 
-**Status:** Metadata locked; not arranged, recorded, or legally cleared.
+**Status:** Metadata locked. Returner arrangements complete (T3.4);
+foundation arrangements owned by T3.3. Not recorded or legally cleared.
 **Owner:** T3.1. **Legal review:** T6.3. **Notes:** T3.3/T3.4.
 **Reference recordings:** T3.5.
 **Source of truth:** [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md)
@@ -8,8 +9,9 @@ section 6.2, with stage outcomes from section 6.1.
 
 This is the content spec for the 10 V1 launch pieces. It records the approved
 list and maps each piece to the stage it supports. It is **not** evidence of
-legal clearance: no arrangement, reference recording, or territory-by-territory
-license review exists yet.
+legal clearance: the returner arrangements are pending musical review, no
+reference recording exists yet, and no territory-by-territory license review
+has been completed.
 
 ## Decision
 
@@ -132,21 +134,25 @@ Open legal questions that apply to the whole list:
 - Exam-board names, syllabi, or grade lists. The V1 stages are internal and are
   not exam grades.
 - Chords, bass lines, double stops, and any second voice.
-- Actual note arrangements and audio assets. T3.3/T3.4 arrange the pieces.
-  T3.5 records the 20 human reference takes (target and slow tempo). T6.4 is
-  the paywall and day-7 recap, not the recording owner.
+- Foundation note arrangements (T3.3) and audio assets. Returner notes are in
+  T3.4. T3.5 records the 20 human reference takes (target and slow tempo).
+  T6.4 is the paywall and day-7 recap, not the recording owner.
 - Legal clearance. T6.3 owns it.
 - More than 10 pieces. The monthly content calendar is separate from this
   launch decision.
 
 ## Not yet validated
 
-- No phrase notes or score JSON exist for any launch piece. T3.3/T3.4 add them.
+- Returner phrase notes and score JSON exist under
+  `flutter_app/assets/content/pieces/returner/` (T3.4). Foundation phrase notes
+  remain with T3.3.
 - No reference recordings exist at target or slow tempo. T3.5 owns the 20
   human reference takes (target and slow tempo) and must not use copyrighted
   recordings.
-- No legal clearance exists. T6.3 must answer the questions above.
-- The tempos, ranges, and shift counts are planning targets, not
+- No legal clearance exists. T6.3 must answer the questions above, including
+  the Creative Commons terms of the reference editions named in
+  [`RETURNER_ARRANGEMENTS.md`](RETURNER_ARRANGEMENTS.md).
+- The returner tempos, ranges, and shift counts are machine-validated but not
   human-validated arrangements.
 - The mic has not been tested on these pieces. The assessment spike remains the
   gate for the phrase loop.
