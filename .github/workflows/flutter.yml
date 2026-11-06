@@ -21,6 +21,13 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Validate content fixtures
+        run: |
+          dart run tool/content/validate_piece.dart test/fixtures/content/valid_piece.json
+          if dart run tool/content/validate_piece.dart test/fixtures/content/invalid_chord.json; then
+            echo "invalid_chord.json unexpectedly passed validation" >&2
+            exit 1
+          fi
       - run: flutter analyze
       - run: flutter test
       - run: flutter build web --release
