@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "takeId": "p01-pixel-6a-quiet-002",
+  "playerId": "p01",
+  "device": "pixel-6a",
+  "platform": "android",
+  "condition": "quiet",
+  "guitar": "steel",
+  "sampleRate": 48000,
+  "channels": 1,
+  "tempoBpm": 60,
+  "phraseNoteCount": 8,
+  "target": [
+    {
+      "index": 0,
+      "writtenNote": "E4",
+      "soundingMidi": 64,
+      "string": 1,
+      "fret": 0,
+      "onsetSample": 204000,
+      "onsetSeconds": 4.25,
+      "durationSeconds": 1.0,
+      "confidence": 1.0
+    },
+    {
+      "index": 1,
+      "writtenNote": "F4",
+      "soundingMidi": 53,
+      "string": 4,
+      "fret": 3,
+      "onsetSample": 216000,
+      "onsetSeconds": 4.5,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 2,
+      "writtenNote": "G4",
+      "soundingMidi": 55,
+      "string": 3,
+      "fret": 99,
+      "onsetSample": 244800,
+      "onsetSeconds": 5.1,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 3,
+      "writtenNote": "A4",
+      "soundingMidi": 57,
+      "string": 3,
+      "fret": 2,
+      "onsetSample": 288000,
+      "onsetSeconds": 1e999,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    }
+  ],
+  "expert": {
+    "outcome": "correct",
+    "noteAccuracy": 0.5,
+    "timingOk": false,
+    "completeness": "complete",
+    "labeler": "expert-a",
+    "reviewedBy": "expert-a"
+  },
+  "consent": {
+    "audioCapture": false,
+    "keepRawAudio": true,
+    "anonymizedMetrics": true
+  },
+  "notes": "Deliberately invalid fixture. Do not copy this shape."
+}
