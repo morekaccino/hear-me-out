@@ -131,6 +131,11 @@ tone, accessibility notes, and non-goals are in
    platform confirms it; the UI must say when that confirmation is missing. The
    microphone is active only during a lesson, practice, tuner, or recording
    session. Plane is development tooling only and is never imported by the app.
+   The Phase 2 teacher channel is gated by
+   [`docs/COPPA_GUARDIAN_CONSENT_PLAN.md`](docs/COPPA_GUARDIAN_CONSENT_PLAN.md).
+   Do not add teacher, student-roster, minor, account, upload, or public-recital
+   paths until its gates are cleared; the teacher channel is not in the base
+   case. Legal clearance for it is human-owned; an agent must not claim it.
 2. **Keep `lib/core/` free of widgets.** Music math, scheduling, pitch
    detection, and staff geometry must stay pure Dart and testable.
 3. **Written pitch is not sounding pitch.** Guitar notation is written one

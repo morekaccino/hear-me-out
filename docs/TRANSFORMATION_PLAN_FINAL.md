@@ -480,7 +480,7 @@ See §4.5. Do not build UI/content until the spike passes.
 
 - MusicXML import (user's own monophonic pieces).
 - Generic Grade 1–3 sight-reading packs (no board names until licensed).
-- Teacher pilot: manual export workflow at $19/mo; COPPA plan; no persistent cloud.
+- Teacher pilot: manual export workflow at $19/mo; [COPPA/guardian consent plan](COPPA_GUARDIAN_CONSENT_PLAN.md); no persistent cloud. The teacher channel stays out of the base case until that plan's gates clear.
 - Adaptive etude generator v2.
 - Opt-in aggregate analytics.
 - Two-voice/MIDI path research only.
@@ -594,7 +594,7 @@ Founder salary is not included. If a market salary of $60–100k/year is require
 
 1. **Pre-sale price test:** three landing-page cells at **$49 / $69 / $99** annual founding pre-order; 1,000 targeted visitors per cell (3,000 total); gate: **30+ pre-orders across cells or ≥3% conversion in the best cell**, email capture ≥10%. Drop the CAC <$50 gate for organic traffic; run a separate $500 paid test only if paid acquisition is being considered.
 2. **Concierge:** 12 adult returners, 4 weeks, 5 min/day, weekly Zoom; $25; gate: 60% do 3+ sessions/week, 50% would pay $8/mo.
-3. **Teacher LOIs only (pre-build):** 10 interviews; 3 non-binding LOIs at $19/month for 20–30 students. Manual export flow: the student selects a take → exports audio + a one-page JSON/PDF summary via the share sheet → the teacher opens it in the app/web viewer. No persistent cloud, no automatic sync. Do not claim “70% weekly assignment use” before the product exists. Paid teacher pilots are Phase 2 and require a COPPA/guardian-consent plan before any under-13 student participates.
+3. **Teacher LOIs only (pre-build):** 10 interviews; 3 non-binding LOIs at $19/month for 20–30 students. Manual export flow: the student selects a take → exports audio + a one-page JSON/PDF summary via the share sheet → the teacher opens it in the app/web viewer. No persistent cloud, no automatic sync. Do not claim “70% weekly assignment use” before the product exists. Paid teacher pilots are Phase 2 and require the [COPPA/guardian-consent plan](COPPA_GUARDIAN_CONSENT_PLAN.md) and its legal-review gate before any under-13 student participates.
 4. **Assessment spike:** see §4.5. Budget $1–2k for corpus/device testing.
 5. **Learning pilot:** 12–20 returners, 4 weeks, 5 min/day, before/after recordings, blind teacher ratings, delayed transfer (7–14 days), active control; pre-register, report effect size/CI; acknowledge pilot power. Budget $2–5k.
 
@@ -603,7 +603,7 @@ Do these in parallel before Phase 1. **Total validation budget: $5–8k**, inclu
 ### 11.6 Funding and legal gate
 
 - **Funding decision before Phase 1:** one page. Bootstrap: target $250k ARR, 24-month runway, ~$110–160k cash need. Venture: only with a credible piano/schools/exam path to $10M+ ARR; the current plan does not show that.
-- **Legal review ($5–10k):** public-domain status by territory; arrangement copyright; exam-board IP (no board names until licensed); pre-sale consumer terms; recording consent and privacy policy; app-store subscription terms. Go/no-go before Phase 1.
+- **Legal review ($5–10k):** public-domain status by territory; arrangement copyright; exam-board IP (no board names until licensed); pre-sale consumer terms; recording consent and privacy policy; app-store subscription terms. Go/no-go before Phase 1. The teacher channel needs its own written clearance under the [COPPA/guardian consent plan](COPPA_GUARDIAN_CONSENT_PLAN.md); T6.3 covers the consumer launch, so teacher coverage must be added to its scope or recorded separately in T9.2.
 
 ---
 
