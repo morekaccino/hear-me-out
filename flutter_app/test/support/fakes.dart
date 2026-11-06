@@ -6,6 +6,9 @@ import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/onboarding_choices.dart';
 import 'package:hear_me_out/core/learning/placement.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/media/media_store.dart';
+import 'package:hear_me_out/core/media/recording_exporter.dart';
+import 'package:hear_me_out/core/media/recording_service.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/retention/retention_log.dart';
@@ -15,6 +18,7 @@ import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/core/storage/retention_store.dart';
 import 'package:hear_me_out/shared/audio/audio_engine.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
+import 'package:hear_me_out/shared/audio/take_player.dart';
 
 class MemoryProgressStore implements ProgressStore {
   MemoryProgressStore([ProgressState? initial])
@@ -351,4 +355,114 @@ class FakeAudioEngine implements AudioEngine {
 
   @override
   Future<void> dispose() async {}
+}
+
+/// A one-shot timer the test fires by hand. Used for the 60-second take cap.
+class FakeRecordingTimer implements RecordingTimer {
+  FakeRecordingTimer(this.duration, this.callback);
+
+  final Duration duration;
+  final void Function() callback;
+  bool cancelled = false;
+
+  void fire() {
+    if (!cancelled) callback();
+  }
+
+  @override
+  void cancel() => cancelled = true;
+}
+
+class FakeRecordingTimerFactory {
+  final timers = <FakeRecordingTimer>[];
+
+  RecordingTimer call(Duration duration, void Function() callback) {
+    final timer = FakeRecordingTimer(duration, callback);
+    timers.add(timer);
+    return timer;
+  }
+}
+
+/// Records export requests and returns a predictable result.
+class FakeRecordingExporter implements RecordingExporter {
+  final requests = <RecordingExportRequest>[];
+  Object? failWith;
+
+  @override
+  Future<RecordingExportResult> export(RecordingExportRequest request) async {
+    requests.add(request);
+    final failure = failWith;
+    if (failure != null) throw failure;
+    return RecordingExportResult(
+      fileName: request.fileName,
+      path: '/exports/${request.fileName}',
+    );
+  }
+}
+
+/// Keeps every WAV handed to the player for assertions.
+class FakeTakePlayer implements TakePlayer {
+  final played = <Uint8List>[];
+  int stopCount = 0;
+
+  @override
+  Future<void> playWav(Uint8List bytes) async => played.add(bytes);
+
+  @override
+  Future<void> stop() async => stopCount++;
+
+  @override
+  Future<void> dispose() async {}
+}
+
+/// Wraps a [MemoryMediaStore] and can fail writes on demand.
+class ToggleMediaStore implements MediaStore {
+  ToggleMediaStore({MemoryMediaStore? inner})
+    : inner = inner ?? MemoryMediaStore();
+
+  final MemoryMediaStore inner;
+  bool failPuts = false;
+  bool failDeletes = false;
+
+  @override
+  Future<MediaRef> put(
+    Uint8List bytes, {
+    required String mimeType,
+    String? id,
+    String? pieceId,
+    String? phraseId,
+    int? durationMs,
+    double? score,
+    int? analysisVersion,
+  }) async {
+    if (failPuts) throw StateError('Disk full');
+    return inner.put(
+      bytes,
+      mimeType: mimeType,
+      id: id,
+      pieceId: pieceId,
+      phraseId: phraseId,
+      durationMs: durationMs,
+      score: score,
+      analysisVersion: analysisVersion,
+    );
+  }
+
+  @override
+  Future<Uint8List?> get(String id) => inner.get(id);
+
+  @override
+  Future<void> delete(String id) async {
+    if (failDeletes) throw StateError('Delete failed');
+    return inner.delete(id);
+  }
+
+  @override
+  Future<List<MediaRef>> list() => inner.list();
+
+  @override
+  Future<int> usageBytes() => inner.usageBytes();
+
+  @override
+  Future<void> clear() => inner.clear();
 }

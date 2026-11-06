@@ -127,10 +127,9 @@ const int effectivePracticeMinutes = 3;
 /// sessions are not rounded away.
 const int practiceHistoryDays = 35;
 
-/// The recording flow (T4.2) is not built yet. The counter and quest are
-/// visible so the musical action is honest at zero; nothing marks the quest
-/// complete until a real recording calls [ProgressState.recordRecordingMade].
-const bool recordingFlowAvailable = false;
+/// The recording flow (T4.2) ships in this build. The counter increments only
+/// when a real take is saved and [ProgressState.recordRecordingMade] is called.
+const bool recordingFlowAvailable = true;
 
 enum QuestPeriod { daily, weekly }
 

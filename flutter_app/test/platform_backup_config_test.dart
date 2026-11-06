@@ -106,8 +106,14 @@ void main() {
       expect(readme, contains('could not confirm'));
       expect(
         readme,
-        contains('t4.2 adds the recording, delete, and export controls'),
+        contains(
+          'the practice **recordings** screen owns record, play, delete, '
+          'clear-all, and export',
+        ),
       );
+      expect(readme, contains('v1 stores wav, not aac'));
+      expect(readme, contains('recording quality is not validated'));
+      expect(readme, isNot(contains('the recording ui arrives in t4.2')));
       expect(readme, isNot(contains('nothing is recorded or uploaded')));
       expect(design, contains('could not confirm'));
       expect(design, isNot(contains('analyzed in memory and discarded')));

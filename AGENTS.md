@@ -234,7 +234,7 @@ Then open <http://127.0.0.1:8080/>.
 | `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher, local WAV synth |
 | `flutter_app/lib/core/notation/` | Staff geometry and Bravura painter |
 | `flutter_app/lib/core/storage/` | JSON progress store and backup validation |
-| `flutter_app/lib/features/` | Onboarding, path, lesson, practice, quests, profile |
+| `flutter_app/lib/features/` | Onboarding, path, lesson, practice, recordings, quests, profile |
 | `flutter_app/lib/shared/` | Theme and reusable Duolingo-style widgets |
 | `flutter_app/lib/state/` | Riverpod app controller and audio providers |
 | `flutter_app/test/` | Unit and widget tests; fakes live in `test/support/` |
@@ -294,10 +294,10 @@ Then open <http://127.0.0.1:8080/>.
   at local midnight or on the local Monday as appropriate.
 - **Quest counters:** `quests.phrasesPracticed` increments once per determinate
   phrase attempt; `quests.recordingsMade` is incremented only by a real saved
-  recording through `recordRecordingMade`; `quests.barsLearned` counts the bars
-  of each phrase with at least one correct determinate take this week, once per
-  phrase. Prompt taps never count. T4.2 has not shipped, so the recording quest
-  stays at zero with a "coming with recordings" note.
+  recording through `recordRecordingMade`, which the recordings screen calls
+  once per saved take; `quests.barsLearned` counts the bars of each phrase with
+  at least one correct determinate take this week, once per phrase. Prompt taps
+  never count. Nothing else may mark the recording quest complete.
 - **Jump ahead:** passing a 15-exercise test unlocks the sections before the
   target section without deleting note progress.
 - **Curriculum migration:** bump `curriculumVersion` and map old lesson IDs;
@@ -330,6 +330,25 @@ Then open <http://127.0.0.1:8080/>.
   Duo palette in `DuoPalette.dark`. Do not hardcode light-only neutral colors.
 - **Mic lifecycle:** every screen that owns a source uses a generation token
   and disposes stale starts. Do not remove those guards.
+- **Recording pipeline:** one live take at a time, never a second
+  `AudioRecorder`. The recordings controller is auto-disposed with the route and
+  stops/discards a live take on exit; the microphone must never stay on behind
+  Practice. A save already in flight belongs to `stop()`: `cancel()` must return
+  early while `_finishing`, and a disposed controller must not read its Ref. A
+  take saved after the route closes keeps its piece/phrase ids and retention;
+  the retention/quest hooks are skipped on that narrow path. 60 s per take, 20
+  takes, 200 MB, first and last take per piece. The screen's optional
+  launch-piece selector is the production path that supplies a `pieceId` for
+  retention. WAV storage goes through `RecordingEncoder` (V1 is WAV, not AAC;
+  see decision 0009). The manifest is the versioned
+  `hear_me_out_recordings_v1` document, never `ProgressState`. Commit the new
+  manifest before deleting retention victims; a failed manifest write must leave
+  every older take intact. Permission, quota, and storage failures are typed and
+  shown, not thrown into the UI. Reconcile removes unreferenced blobs and
+  missing index entries but adopts media when the index is missing, unreadable,
+  or partially malformed. Export copies bytes without deleting or changing the
+  take. The screen shows the conditional backup copy; no A/B or before/after
+  claim ships in T4.2.
 
 ## Testing notes
 
@@ -350,7 +369,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 952 tests passing
+- `flutter test` - 983 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -373,6 +392,11 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
   card, and the Profile starting-point card. Its versioned store is separate
   from progress; stages 6-8 map to 5 or 9 with a Phase 2 label, and the
   three-piece starter set comes from the real launch list.
+- The T4.2 recordings screen is reachable from Practice. It records bounded
+  PCM16 WAV takes locally (60 s/take, 20 takes, 200 MB, first and last take per
+  piece), reconciles orphans against `hear_me_out_recordings_v1`, and supports
+  local play, delete, clear-all, and export. V1 is WAV, not AAC (decision
+  0009), and recording quality is not validated on every device.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.

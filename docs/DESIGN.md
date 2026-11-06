@@ -527,6 +527,27 @@ Due, weak, and free practice are separate intents. Never imply a practice
 session is a test. Practice is always available; it does not consume or restore
 a life.
 
+### Recordings
+
+A local take recorder reached from Practice; the tuner stops before the route
+opens because the platform recorder is shared. Record/stop stays in one card,
+with the 60-second limit visible and an optional launch-piece selector. Choosing
+a piece gives the take a stable `pieceId`, which is what makes the first/last
+per-piece retention rule reachable. Leaving the screen stops and discards a live
+take; the microphone never stays on behind Practice.
+
+The take list shows date, piece or phrase, duration, and size, and offers play,
+export, and delete. Usage is shown as “takes used / 20” and bytes used / 200 MB.
+A full quota or a storage failure shows a specific message and a delete action;
+it never silently overwrites a take. **Clear all** requires confirmation.
+
+The privacy card sits above the record control and uses the conditional
+`MediaPrivacyCard` copy. Never claim backup exclusion unless the platform
+confirmed it. The footer says takes are stored as WAV on this device and that
+recording quality has not been validated on every device. There is no A/B
+playback, before/after card, share sheet, cloud upload, heart, gem, XP, or
+streak here.
+
 ### Technique
 
 A self-check reached from Practice, never a scored lesson. It uses the teal
@@ -558,8 +579,8 @@ recordings stay on the device, are never uploaded, and that the microphone is
 active only during a lesson, practice, tuner, or recording session. It may claim
 cloud-backup exclusion only when the app has platform confirmation; otherwise it
 must say the app could not confirm the exclusion and the take may be included in
-device backup. It must not claim that recording ships before the recording UI
-exists.
+device backup. The recordings screen owns recording; Profile must not imply that
+audio is uploaded or that an unconfirmed backup exclusion is guaranteed.
 
 The Privacy section also holds the **Beta usage log** card. The switch is off by
 default, sits above plain-language copy, and offers **Copy usage log** and
