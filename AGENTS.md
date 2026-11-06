@@ -58,7 +58,10 @@ committed on purpose. Verify with `opencode mcp list`; it must show
 3. Move to **Done** only when every acceptance criterion is met.
 4. Update the decision log (`T9.2`) or risk register (`T9.1`) if the change
    changes a decision or risk.
-5. Before a phase-gate review, use the evidence checklist in
+5. In the weekly review, update risks, decisions, cycle status, and the START
+   HERE status using [`docs/WEEKLY_REVIEW.md`](docs/WEEKLY_REVIEW.md). The
+   review is not skipped during a busy build week.
+6. Before a phase-gate review, use the evidence checklist in
    [`docs/PHASE_GATES.md`](docs/PHASE_GATES.md). A merge, a green suite, or an
    agent summary is not gate evidence.
 
