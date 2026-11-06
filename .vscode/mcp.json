@@ -3,11 +3,17 @@
     "plane": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["plane-mcp-server", "stdio"],
+      "args": [
+        "--from",
+        "./tools/plane_mcp_ce",
+        "plane-mcp-server-ce-fixed",
+        "stdio"
+      ],
       "env": {
         "PLANE_API_KEY": "plane_api_f8a6c6312f374ce0ae94e811a61ce83b",
         "PLANE_WORKSPACE_SLUG": "hear-me-out",
-        "PLANE_BASE_URL": "https://plane.mrkazemi.com"
+        "PLANE_BASE_URL": "https://plane.mrkazemi.com",
+        "PLANE_MCP_EDITION": "community"
       }
     }
   }

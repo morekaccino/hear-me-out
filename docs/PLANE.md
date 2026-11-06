@@ -29,19 +29,43 @@ document, for the current state.
 ## 2. MCP access
 
 Plane is exposed as an MCP server named **`plane`** using the local stdio
-transport:
+transport. The client is the Community-Edition build
+(`plane-mcp-server-ce==0.4.0`), wrapped by `tools/plane_mcp_ce/`:
 
 ```json
 {
   "command": "uvx",
-  "args": ["plane-mcp-server", "stdio"],
+  "args": [
+    "--from",
+    "./tools/plane_mcp_ce",
+    "plane-mcp-server-ce-fixed",
+    "stdio"
+  ],
   "env": {
     "PLANE_API_KEY": "<workspace-scoped key>",
     "PLANE_WORKSPACE_SLUG": "hear-me-out",
-    "PLANE_BASE_URL": "https://plane.mrkazemi.com"
+    "PLANE_BASE_URL": "https://plane.mrkazemi.com",
+    "PLANE_MCP_EDITION": "community"
   }
 }
 ```
+
+Why this build:
+
+- The instance is self-hosted **Plane Community 1.4.2**. The upstream
+  `plane-mcp-server` 0.3.x calls Cloud-only routes (`/dependencies/`, `/api/v2`
+  pages, `/initiatives/`), which return 404 here.
+- `plane-mcp-server-ce` targets the Community API and, with
+  `PLANE_MCP_EDITION=community`, advertises only the 82 tools whose routes
+  exist. Unavailable tools are hidden instead of failing later.
+- Plane 1.4.2 returns relations as `{"project_id": ..., "issue_id": ...}`
+  objects while `plane-sdk` expects plain IDs. `tools/plane_mcp_ce/` normalizes
+  that one payload, then runs the stock server. Remove the wrapper only after
+  upstream fixes the model.
+
+Run clients from the repository root so the relative `--from` path resolves.
+The wrapper is pinned to `plane-mcp-server-ce==0.4.0` in
+`tools/plane_mcp_ce/pyproject.toml`; bump both together.
 
 Client configuration files in this repo:
 
@@ -282,12 +306,18 @@ P&L. Do not start `T2.1` before `T1.7` is Done.
 
 ## 9. Known Plane/API quirks on this self-hosted instance
 
-- **Pages**, **Milestones**, **Work Item Types**, and **Worklogs** endpoints
-  return 404. The plan is stored as rich context work items; types are labels.
+- **Pages**, **Milestones**, **Work Item Types**, **Worklogs**, **count**, and
+  **Initiatives** endpoints return 404. The plan is stored as rich context work
+  items; types are labels. The CE build hides the tools that cannot work here.
+- PQL filtering is unsupported on this edition. The server returns an explicit
+  error; filter results client-side instead.
 - Work item creation uses `/projects/{project_id}/issues/`.
 - Relations use `/projects/{project_id}/work-items/{work_item_id}/relations/`
   with a trailing slash. Body: `{"relation_type": "blocked_by", "issues": ["<id>"]}`.
-  The inverse `blocking` edge is created automatically.
+  The inverse `blocking` edge is created automatically. The CE build reads this
+  route; the wrapper normalizes the `{project_id, issue_id}` items that Plane
+  1.4.2 returns. Relations are read + create only — no delete route works here,
+  so a wrong edge must be removed in the Plane UI.
 - Cycle membership uses `/cycles/{cycle_id}/cycle-issues/` with a trailing
   slash. Body: `{"issues": ["<id>"]}`.
 - Module membership uses `/modules/{module_id}/module-issues/` with a trailing
@@ -308,6 +338,7 @@ P&L. Do not start `T2.1` before `T1.7` is Done.
 | `tools/plane_relations.py` | Create the `blocked_by` graph. Skips existing edges. |
 | `tools/plane_assign.py` | Assign tickets to modules/cycles. |
 | `tools/plane_assign_missing.py` | Add only missing module/cycle memberships. |
+| `tools/plane_mcp_ce/` | MCP wrapper: CE build plus the relation-payload fix. |
 
 They read:
 
@@ -330,7 +361,13 @@ already-present relations/memberships.
 opencode mcp list
 ```
 
-Must show `plane connected`.
+Must show `plane connected`. The server advertises 82 tools in Community mode.
+
+Then confirm live data:
+
+- `list_work_items` on the project returns 99 items.
+- `list_work_item_relations` on `T6.8` returns 3 `blocked_by` IDs.
+- `list_work_item_activities` on `D0.1` returns its history.
 
 In Plane:
 

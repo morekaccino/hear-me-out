@@ -35,7 +35,8 @@ A project-scoped MCP server named `plane` is configured for OpenCode
 (`opencode.json`), Claude Code / Codex / generic MCP (`.mcp.json`), VS Code
 (`.vscode/mcp.json`), Cursor (`.cursor/mcp.json`), and Gemini CLI
 (`.gemini/settings.json`). Each runs
-`uvx plane-mcp-server stdio` with the self-hosted host, workspace slug, and API
+`uvx --from ./tools/plane_mcp_ce plane-mcp-server-ce-fixed stdio` with the
+self-hosted host, workspace slug, and API
 key in its `env` block. This is a private single-user repository, so the key is
 committed on purpose. Verify with `opencode mcp list`; it must show
 `plane connected`.

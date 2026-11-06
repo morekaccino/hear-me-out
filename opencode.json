@@ -4,11 +4,18 @@
     "servers": {
       "plane": {
         "type": "local",
-        "command": ["uvx", "plane-mcp-server", "stdio"],
+        "command": [
+          "uvx",
+          "--from",
+          "./tools/plane_mcp_ce",
+          "plane-mcp-server-ce-fixed",
+          "stdio"
+        ],
         "environment": {
           "PLANE_API_KEY": "plane_api_f8a6c6312f374ce0ae94e811a61ce83b",
           "PLANE_WORKSPACE_SLUG": "hear-me-out",
-          "PLANE_BASE_URL": "https://plane.mrkazemi.com"
+          "PLANE_BASE_URL": "https://plane.mrkazemi.com",
+          "PLANE_MCP_EDITION": "community"
         }
       }
     }

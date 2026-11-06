@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "plane-mcp-ce-fixed"
+version = "0.1.0"
+description = "Plane MCP CE server with the Plane 1.4.x relation payload fix"
+requires-python = ">=3.10"
+dependencies = ["plane-mcp-server-ce==0.4.0"]
+
+[project.scripts]
+plane-mcp-server-ce-fixed = "plane_mcp_ce:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plane_mcp_ce"]
