@@ -117,6 +117,9 @@ protocol's order governs.
 7. [`PHASE_GATES.md`](PHASE_GATES.md) before a phase-gate review.
 8. [`WEEKLY_REVIEW.md`](WEEKLY_REVIEW.md) before the weekly review.
 9. The current cycle (`C0` on 2026-11-04).
+10. [`ASSUMPTION_TRACKER.md`](ASSUMPTION_TRACKER.md) — the beliefs the plan
+    depends on, the cheapest test for each, and the current evidence. Read it
+    before proposing scope, price, content, or a new promise.
 
 Do not start from the codebase alone. The current code is still the 240-lesson
 notation course; the approved transformation is planned but not implemented.

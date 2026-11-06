@@ -32,6 +32,8 @@ from the codebase alone.
 Useful starting points for step 8:
 
 - [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 plan.
+- [`ASSUMPTION_TRACKER.md`](ASSUMPTION_TRACKER.md) — the beliefs the plan
+  depends on, the weakest-first tests, and the experiment log.
 - [`DESIGN.md`](DESIGN.md), [`SOUND.md`](SOUND.md), and
   [`../LEARNING_ALGORITHM.md`](../LEARNING_ALGORITHM.md) — user-facing behavior.
 - [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md),
@@ -191,7 +193,9 @@ otherwise the manager applies the entry.
 3. **Update the docs** that the change invalidates: `AGENTS.md` for a rule,
    command, storage format, or verification step; `ARCHITECTURE.md` for a layer
    or invariant; `DESIGN.md` for user-facing behavior; a decision record for a
-   decision; the README docs index for a new doc.
+   decision; the README docs index for a new doc; and
+   [`ASSUMPTION_TRACKER.md`](ASSUMPTION_TRACKER.md) when an experiment changes
+   an assumption or its confidence.
 4. **Commit** with a Conventional Commit message ending in the ticket ID:
 
    ```text
@@ -458,6 +462,7 @@ behavior as shipped.
 | Plane context | [D0.1 — START HERE](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7), [D0.13 — Glossary, Naming & AI Operating Manual](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/de8d99d5-8da5-4acf-8926-e139c7527a2d); D0.13 holds the definitions, naming rules, and Plane operating manual. |
 | Process and project | [`../AGENTS.md`](../AGENTS.md), [`PLANE.md`](PLANE.md), [`PHASE_GATES.md`](PHASE_GATES.md), [`WEEKLY_REVIEW.md`](WEEKLY_REVIEW.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md), this protocol |
 | Product and plan | [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md), [`DESIGN.md`](DESIGN.md) |
+| Assumptions | [`ASSUMPTION_TRACKER.md`](ASSUMPTION_TRACKER.md) — beliefs, confidence, cheapest tests, and the experiment log (T9.5). |
 | Code | [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`../LEARNING_ALGORITHM.md`](../LEARNING_ALGORITHM.md) |
 | Sound | [`SOUND.md`](SOUND.md) |
 | Content | [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md), [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md), [`LAUNCH_PIECES.md`](LAUNCH_PIECES.md), [`FOUNDATION_ARRANGEMENTS.md`](FOUNDATION_ARRANGEMENTS.md), [`RETURNER_ARRANGEMENTS.md`](RETURNER_ARRANGEMENTS.md) |

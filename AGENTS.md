@@ -57,7 +57,9 @@ committed on purpose. Verify with `opencode mcp list`; it must show
 2. Comment on the ticket with files, commands, results, and device/mic evidence.
 3. Move to **Done** only when every acceptance criterion is met.
 4. Update the decision log (`T9.2`) or risk register (`T9.1`) if the change
-   changes a decision or risk.
+   changes a decision or risk. When an experiment changes an assumption, update
+   [`docs/ASSUMPTION_TRACKER.md`](docs/ASSUMPTION_TRACKER.md) with the evidence
+   link and the confidence change.
 5. In the weekly review, update risks, decisions, cycle status, and the START
    HERE status using [`docs/WEEKLY_REVIEW.md`](docs/WEEKLY_REVIEW.md). The
    review is not skipped during a busy build week.
@@ -379,6 +381,7 @@ analyze/test/build commands as the source of truth.
 
 - [`README.md`](README.md) — product overview, features, project link, device checklist
 - [`docs/PLANE.md`](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
+- [`docs/ASSUMPTION_TRACKER.md`](docs/ASSUMPTION_TRACKER.md) — beliefs the plan depends on, weakest-first tests, and the experiment log
 - [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 plan
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style language, copy, gamification
 - [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map, settings
