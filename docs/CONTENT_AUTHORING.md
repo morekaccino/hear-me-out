@@ -481,7 +481,8 @@ Run the validator first, then review the music by hand.
 - `license` is `public-domain` or `original`.
 - The source is recorded in `authoring.source`.
 - No copyrighted arrangement, edition, or transcription was copied.
-- A human reference recording exists or is scheduled (T6.4).
+- A human reference recording exists or is scheduled (T3.5 owns the 20 human
+  takes).
 - Legal review is tracked separately; this checklist is not legal advice.
 
 **Evidence**

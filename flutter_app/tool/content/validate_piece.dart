@@ -223,8 +223,8 @@ class _ScoreSummary {
     required this.bars,
     required this.minTempo,
     required this.maxTempo,
-    required this.minWritten,
-    required this.maxWritten,
+    required this.minWrittenNote,
+    required this.maxWrittenNote,
     required this.noteCount,
     required this.restCount,
   });
@@ -239,8 +239,8 @@ class _ScoreSummary {
   final int bars;
   final int? minTempo;
   final int? maxTempo;
-  final int? minWritten;
-  final int? maxWritten;
+  final Note? minWrittenNote;
+  final Note? maxWrittenNote;
   final int noteCount;
   final int restCount;
 
@@ -249,8 +249,8 @@ class _ScoreSummary {
     var bars = 0;
     int? minTempo;
     int? maxTempo;
-    int? minWritten;
-    int? maxWritten;
+    Note? minWrittenNote;
+    Note? maxWrittenNote;
     var noteCount = 0;
     var restCount = 0;
 
@@ -267,13 +267,12 @@ class _ScoreSummary {
         noteCount++;
         final written = event.writtenNote;
         if (written == null) continue;
-        final midi = written.midi;
-        minWritten = minWritten == null || midi < minWritten
-            ? midi
-            : minWritten;
-        maxWritten = maxWritten == null || midi > maxWritten
-            ? midi
-            : maxWritten;
+        if (minWrittenNote == null || written.midi < minWrittenNote.midi) {
+          minWrittenNote = written;
+        }
+        if (maxWrittenNote == null || written.midi > maxWrittenNote.midi) {
+          maxWrittenNote = written;
+        }
       }
     }
 
@@ -288,8 +287,8 @@ class _ScoreSummary {
       bars: bars,
       minTempo: minTempo,
       maxTempo: maxTempo,
-      minWritten: minWritten,
-      maxWritten: maxWritten,
+      minWrittenNote: minWrittenNote,
+      maxWrittenNote: maxWrittenNote,
       noteCount: noteCount,
       restCount: restCount,
     );
@@ -301,17 +300,22 @@ class _ScoreSummary {
     return '$minTempo-$maxTempo BPM';
   }
 
+  /// The sounding note keeps the authored letter and accidental so a B-flat
+  /// exercise never prints A-sharp.
+  Note _soundingNote(Note written) =>
+      Note.spelledFromMidi(written.midi - 12, written.letter);
+
   String get writtenRangeText {
-    if (minWritten == null || maxWritten == null) return '-';
-    final low = Note.fromMidi(minWritten!).id;
-    final high = Note.fromMidi(maxWritten!).id;
+    if (minWrittenNote == null || maxWrittenNote == null) return '-';
+    final low = minWrittenNote!.id;
+    final high = maxWrittenNote!.id;
     return low == high ? low : '$low-$high';
   }
 
   String get soundingRangeText {
-    if (minWritten == null || maxWritten == null) return '-';
-    final low = Note.fromMidi(minWritten! - 12).id;
-    final high = Note.fromMidi(maxWritten! - 12).id;
+    if (minWrittenNote == null || maxWrittenNote == null) return '-';
+    final low = _soundingNote(minWrittenNote!).id;
+    final high = _soundingNote(maxWrittenNote!).id;
     return low == high ? low : '$low-$high';
   }
 
@@ -328,12 +332,16 @@ class _ScoreSummary {
       'tempoBpm': <String, dynamic>{'min': minTempo, 'max': maxTempo},
       'range': <String, dynamic>{
         'written': <String, dynamic>{
-          'min': minWritten == null ? null : Note.fromMidi(minWritten!).id,
-          'max': maxWritten == null ? null : Note.fromMidi(maxWritten!).id,
+          'min': minWrittenNote?.id,
+          'max': maxWrittenNote?.id,
         },
         'sounding': <String, dynamic>{
-          'min': minWritten == null ? null : Note.fromMidi(minWritten! - 12).id,
-          'max': maxWritten == null ? null : Note.fromMidi(maxWritten! - 12).id,
+          'min': minWrittenNote == null
+              ? null
+              : _soundingNote(minWrittenNote!).id,
+          'max': maxWrittenNote == null
+              ? null
+              : _soundingNote(maxWrittenNote!).id,
         },
       },
       'notes': noteCount,

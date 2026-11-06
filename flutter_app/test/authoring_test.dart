@@ -564,6 +564,65 @@ void main() {
       expect(summary['rests'], 1);
     });
 
+    test('--summary preserves authored flat spellings', () {
+      final json = copyContentFixture('valid_piece');
+      final piece = json['piece'] as Map<String, dynamic>;
+      piece['id'] = 'flat-study';
+      piece['title'] = 'Flat Study';
+      json['phrases'] = <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 'flat-study-p1',
+          'bars': 1,
+          'timeSignature': <String, dynamic>{'numerator': 4, 'denominator': 4},
+          'targetTempoBpm': 72,
+          'difficulty': 1,
+          'startBar': 1,
+          'pickupBeats': 0.0,
+          'events': <Map<String, dynamic>>[
+            for (var beat = 0; beat < 4; beat++)
+              <String, dynamic>{
+                'startBeat': beat,
+                'durationBeats': 1,
+                'kind': 'note',
+                'writtenNote': 'Bb4',
+                'soundingMidi': 58,
+                'string': 3,
+                'fret': 3,
+              },
+          ],
+        },
+      ];
+      (json['authoring'] as Map<String, dynamic>)['kind'] = 'etude';
+      final path = writeJson('flat_study', json);
+
+      final textOut = StringBuffer();
+      final textCode = runCli(
+        [path, '--summary'],
+        out: textOut,
+        err: StringBuffer(),
+      );
+
+      expect(textCode, 0);
+      expect(textOut.toString(), contains('Range: written Bb4, sounding Bb3'));
+      expect(textOut.toString(), isNot(contains('A#4')));
+      expect(textOut.toString(), isNot(contains('A#3')));
+
+      final jsonOut = StringBuffer();
+      final jsonCode = runCli(
+        [path, '--summary', '--json'],
+        out: jsonOut,
+        err: StringBuffer(),
+      );
+      final payload = jsonDecode(jsonOut.toString()) as Map<String, dynamic>;
+      final range =
+          (payload['summary'] as Map<String, dynamic>)['range']
+              as Map<String, dynamic>;
+
+      expect(jsonCode, 0);
+      expect(range['written'], {'min': 'Bb4', 'max': 'Bb4'});
+      expect(range['sounding'], {'min': 'Bb3', 'max': 'Bb3'});
+    });
+
     test('rejects malformed JSON with a parse error', () {
       final file = File('${tempDir.path}/broken.json')
         ..writeAsStringSync('{not json');
