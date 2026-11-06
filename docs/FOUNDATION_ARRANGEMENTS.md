@@ -38,28 +38,32 @@ listed in `pubspec.yaml` yet.
 
 | Piece | Key | Meter | Tempo | Bars | Phrase bars | Written range | Strings / frets | Stage |
 |---|---|---|---:|---:|---|---|---|---:|
-| `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | E4-E5 | 1-4 / 0-3 | 1 |
-| `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D4-A4 | 3-4 / 0-4 | 2 |
-| `amazing-grace` | G major | 3/4 | 66 | 9 | 3 + 2 + 2 + 2 | D4-B4 | 2-4 / 0-3 | 2 |
-| `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | D4-C5 | 2-4 / 0-3 | 3 |
+| `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | A4-E5 | 1-3 / 0-3 | 1 |
+| `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D5-A5 | 1-2 / 0-5 | 2 |
+| `amazing-grace` | G major | 3/4 | 66 | 9 | 3 + 2 + 2 + 2 | G4-G5 | 1-3 / 0-3 | 2 |
+| `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | E4-G4 | 3-4 / 0-5 | 3 |
 | `original-study-1` | A minor | 4/4 | 60 | 12 | 3 + 3 + 3 + 3 | E3-F4 | 4-6 / 0-3 | 3 |
 
 "Written range" is staff pitch; the guitar sounds one octave lower. All notes
 are inside the V1 written range E3-E6 and the sounding range E2-E5.
 
-## Range deviations from T3.1
+## Recorded ranges and Decision 0005
 
-The T3.1 range targets were planning labels. Four melodies cannot be played
-literally inside their stated string/fret envelope without changing the tune or
-leaving first position. The deviation is recorded here and in
-`authoring.notes`; the T3.1 source files were **not** changed.
+The original T3.1 string targets were planning labels. Four melodies cannot be
+played literally inside their stated string/fret envelope without changing the
+tune or forcing an unnatural octave. Decision 0005 records the actual
+first-position envelope for each launch piece and keeps T3.1's
+`rangeAndPosition` metadata, `docs/LAUNCH_PIECES.md`, and this table in sync.
+Stage labels still describe the primary teaching focus; they are not a hard
+string restriction, and no arrangement adds a shift, chord, or untaught
+technique.
 
-| Piece | T3.1 target | Actual envelope | Reason |
+| Piece | Original T3.1 target | Recorded envelope | Reason |
 |---|---|---|---|
-| `greensleeves` | strings 1-3, frets 0-3 | strings 1-4, frets 0-3 | The phrase "to cast me off" dips to written E4, which exists only on string 4 fret 2. Every other note is on strings 1-3. |
-| `ode-to-joy` | strings 1-3, frets 0-3 | strings 3-4, frets 0-4 | The theme's natural first-position octave is written D4-A4. D4 and E4 need string 4 and F-sharp4 needs fret 4. The high octave (D5-A5) would keep strings 1-2 but needs fret 5 for A5 and puts the melody on ledger lines, which is harder to read at stage 2. |
-| `amazing-grace` | strings 1-3, frets 0-3 | strings 2-4, frets 0-3 | The G-major New Britain melody starts on D4 and E4, which need string 4. The high octave (D5-B5) would need frets 5-7. The fret ceiling 0-3 is met exactly. |
-| `down-by-the-riverside` | strings 3-6, frets 0-3 | strings 2-4, frets 0-3 | B4 and C5 are in the melody. String 3 would need frets 4-5; string 2 open and fret 1 keep the piece in first position. The lower strings still carry the verse. |
+| `greensleeves` | strings 1-3, frets 0-3 | strings 1-3, frets 0-3 | No deviation after the phrase is read an octave up; the melody is A4-E5. |
+| `ode-to-joy` | strings 1-3, frets 0-3 | strings 1-2, frets 0-5 | The theme is read an octave up (D5-A5) so it stays on strings 1-2; A5 needs fret 5 on string 1. |
+| `amazing-grace` | strings 1-3, frets 0-3 | strings 1-3, frets 0-3 | No deviation after the G-major melody is read an octave up (G4-G5). |
+| `down-by-the-riverside` | strings 3-6, frets 0-3 | strings 3-4, frets 0-5 | B4 and C5 are on string 3 frets 4-5, so the piece stays on strings 3-4 and does not need the lower strings. |
 | `original-study-1` | strings 4-6, frets 0-3 | strings 4-6, frets 0-3 | No deviation. |
 
 Two T3.1 labels are also narrower than the actual tune: `down-by-the-riverside`
@@ -106,7 +110,7 @@ the complete New Britain tune is 16 bars. `amazing-grace` uses a 9-bar excerpt
 - **Transposition:** the theme is written in the guitar's first-position octave
   (sounding D3-A3). It is not transposed to another key and no note is
   octave-displaced.
-- **Editorial changes:** the theme is complete and unaltered; the two A5 notes
+- **Editorial changes:** the theme is complete and unaltered; the two A4 notes
   use the only available fingering.
 - **Legal question for T6.3:** confirm the 1824 melody and the chosen edition
   are public domain in the US, UK/EU, and Canada, and that the engraving is
@@ -179,6 +183,8 @@ the complete New Britain tune is 16 bars. `amazing-grace` uses a 9-bar excerpt
 
 - No human musical review. Every file records
   `"reviewedBy": "Pending musical review"`.
+- No 3-beginner playtest. Decision 0004 carries that human content-QA step
+  into T3.8.
 - No reference recordings. T3.5 owns the human takes.
 - No legal clearance. T6.3 owns the territory-by-territory review, and this
   document is not legal advice.

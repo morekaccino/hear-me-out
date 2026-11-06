@@ -119,7 +119,7 @@ final launchPieces = List<LaunchPiece>.unmodifiable(<LaunchPiece>[
     phraseCount: 4,
     targetTempoBpm: 72,
     techniqueFocus: 'Stepwise melody, quarter-note pulse, phrase endings',
-    rangeAndPosition: 'First position; strings 1-3; frets 0-3',
+    rangeAndPosition: 'First position; strings 1-2; frets 0-5',
     imslpId: 'Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van)',
     licenseQuestion:
         'Confirm the 1824 melody and the chosen edition are public '
@@ -166,8 +166,8 @@ final launchPieces = List<LaunchPiece>.unmodifiable(<LaunchPiece>[
     v1Stage: 3,
     phraseCount: 4,
     targetTempoBpm: 76,
-    techniqueFocus: 'Notes on strings 4-6, syncopated eighths, one accidental',
-    rangeAndPosition: 'First position; strings 3-6; frets 0-3',
+    techniqueFocus: 'Middle strings, syncopated eighths, one accidental',
+    rangeAndPosition: 'First position; strings 3-4; frets 0-5',
     licenseQuestion:
         'Confirm the traditional spiritual is public domain in the US, '
         'UK/EU, and Canada; identify the earliest printed source and '
