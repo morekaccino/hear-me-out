@@ -897,7 +897,13 @@ class ProgressState {
     if (result is MigrationFailure) {
       throw FormatException('Cannot read progress: ${result.reason}');
     }
-    return ProgressState._fromMigratedJson((result as MigrationSuccess).json);
+    try {
+      return ProgressState._fromMigratedJson((result as MigrationSuccess).json);
+    } on FormatException {
+      rethrow;
+    } catch (error) {
+      throw FormatException('Cannot read progress: $error');
+    }
   }
 
   factory ProgressState._fromMigratedJson(Map<String, dynamic> json) {

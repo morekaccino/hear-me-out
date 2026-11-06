@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/storage/progress_migrations.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/state/app_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const List<String> _expectedLessons = [
@@ -45,6 +47,13 @@ void main() {
         );
         expect(restored.completedLessons.length, 5, reason: name);
         expect(restored.bestLessonAccuracy['c3u4l1'], 0.8, reason: name);
+        if (name != 'v1') {
+          expect(
+            restored.completedCheckpoints,
+            contains('c3u4cp'),
+            reason: name,
+          );
+        }
         expect(restored.settings.answerMode, AnswerMode.play, reason: name);
         expect(restored.settings.toleranceCents, 35, reason: name);
         expect(restored.settings.a4Hz, 442, reason: name);
@@ -154,11 +163,29 @@ void main() {
       final restored = importProgress(jsonEncode(fixture))!;
       expect(restored.contentVersion, 1);
       expect(restored.phraseProgress, isEmpty);
+      expect(restored.completedCheckpoints, contains('c3u4cp'));
       expect(restored.skills['note:G4']!.stabilityDays, 21.0);
       expect(restored.skills['note:G4']!.productionCorrect, 2);
     });
 
-    test('v5 is idempotent and keeps phrase progress', () {
+    test('v4 with empty skills rebuilds note skills from boxes', () {
+      final fixture = _loadFixture('v4')..['skills'] = <String, dynamic>{};
+      expect(fixture['skills'], isEmpty);
+
+      final restored = importProgress(jsonEncode(fixture))!;
+      expect(restored.skills.keys, contains('note:G4'));
+      expect(restored.skills['note:G4']!.box, 3);
+      expect(restored.skills['note:G4']!.reps, 7);
+    });
+
+    test('a contentVersion below 1 is rejected', () {
+      final fixture = _loadFixture('v5')..['contentVersion'] = 0;
+      final result = migrateProgress(fixture);
+      expect(result, isA<MigrationFailure>());
+      expect(importProgress(jsonEncode(fixture)), isNull);
+    });
+
+    test('v5 is idempotent and keeps raw phrase evidence', () {
       final fixture = _loadFixture('v5');
       final once = _migrate(fixture);
       expect(once, equals(fixture));
@@ -171,11 +198,16 @@ void main() {
       final restored = importProgress(jsonEncode(fixture))!;
       expect(restored.contentVersion, 3);
       final phrase = restored.phraseProgressFor('twinkle.a')!;
-      expect(phrase.mastered, isTrue);
+      expect(phrase.reps, 5);
+      expect(phrase.correct, 6);
+      expect(phrase.correctDays, hasLength(3));
+      expect(phrase.performanceDays, hasLength(3));
+      expect(phrase.performanceSpanDays, 14);
       expect(phrase.bestTempoBpm, 84);
       expect(phrase.bestAccuracy, 0.92);
-      expect(phrase.performanceSpanDays, 14);
-      expect(restored.phraseProgressFor('twinkle.b')!.mastered, isFalse);
+      final second = restored.phraseProgressFor('twinkle.b')!;
+      expect(second.reps, 2);
+      expect(second.performanceDays, hasLength(1));
       expect(restored.phraseProgressFor('missing'), isNull);
     });
 
@@ -250,6 +282,16 @@ void main() {
           ..['notes'] = <String, dynamic>{'G4': 'bad'},
         'phrase progress not an object': _loadFixture('v5')
           ..['phraseProgress'] = <dynamic>[],
+        'phrase performance day': _v5Phrase(<String, dynamic>{
+          'performanceDays': <String>['not-a-day'],
+        }),
+        'phrase best accuracy': _v5Phrase(<String, dynamic>{
+          'bestAccuracy': 'high',
+        }),
+        'phrase first performance day': _v5Phrase(<String, dynamic>{
+          'firstPerformanceDay': 'not-a-day',
+        }),
+        'phrase due date': _v5Phrase(<String, dynamic>{'dueAt': 'not-a-date'}),
       };
 
       for (final entry in cases.entries) {
@@ -267,6 +309,30 @@ void main() {
         );
       }
     });
+
+    test(
+      'malformed known fields fail with FormatException, not a type error',
+      () {
+        final cases = <Map<String, dynamic>>[
+          <String, dynamic>{'schemaVersion': 5, 'daily': <dynamic>[]},
+          <String, dynamic>{
+            'schemaVersion': 5,
+            'bestLessonAccuracy': <dynamic>[],
+          },
+          <String, dynamic>{'schemaVersion': 5, 'completedLessons': 'nope'},
+          <String, dynamic>{
+            'schemaVersion': 5,
+            'recentSessions': <dynamic>[1],
+          },
+          <String, dynamic>{'schemaVersion': 5, 'xp': 'many'},
+        ];
+        for (final json in cases) {
+          expect(migrateProgress(json), isA<MigrationFailure>());
+          expect(() => ProgressState.fromJson(json), throwsFormatException);
+          expect(importProgress(jsonEncode(json)), isNull);
+        }
+      },
+    );
   });
 
   group('PhraseProgress', () {
@@ -304,66 +370,46 @@ void main() {
       expect(restored.bestTempoBpm, 84);
       expect(restored.bestAccuracy, 0.92);
       expect(restored.performanceSpanDays, 14);
-      expect(restored.mastered, isTrue);
+      expect(restored.accuracy, closeTo(5 / 6, 1e-9));
     });
 
-    test('mastery boundaries need reps, days, and a seven-day window', () {
-      PhraseProgress phrase({
-        int reps = 4,
-        int correct = 5,
-        int correctDayCount = 2,
-        Set<String>? performanceDays,
-      }) {
-        return PhraseProgress(
+    test(
+      'exposes raw counters and calendar-day spans without a mastery claim',
+      () {
+        final phrase = PhraseProgress(
           phraseId: 'p',
-          reps: reps,
-          correct: correct,
+          reps: 7,
+          correct: 6,
           incorrect: 1,
-          correctDays: <String>{
-            for (var index = 0; index < correctDayCount; index++)
-              '2026-01-0${index + 1}',
-          },
-          performanceDays:
-              performanceDays ??
-              <String>{'2026-01-01', '2026-01-04', '2026-01-08'},
+          correctDays: <String>{'2026-01-01', '2026-01-04'},
+          performanceDays: <String>{'2026-01-01', '2026-01-04', '2026-01-08'},
           firstPerformanceDay: '2026-01-01',
         );
-      }
+        expect(phrase.reps, 7);
+        expect(phrase.correct, 6);
+        expect(phrase.incorrect, 1);
+        expect(phrase.correctDays, hasLength(2));
+        expect(phrase.performanceDays, hasLength(3));
+        expect(phrase.performanceSpanDays, 7);
+        expect(phrase.lastPerformanceDay, '2026-01-08');
+        expect(phrase.accuracy, closeTo(6 / 7, 1e-9));
 
-      expect(phrase().mastered, isTrue);
-      expect(phrase(reps: 3).mastered, isFalse);
-      expect(phrase(correct: 4).mastered, isFalse);
-      expect(phrase(correctDayCount: 1).mastered, isFalse);
-      expect(
-        phrase(performanceDays: <String>{'2026-01-01', '2026-01-04'}).mastered,
-        isFalse,
-      );
-      expect(
-        phrase(
-          performanceDays: <String>{'2026-01-01', '2026-01-04', '2026-01-07'},
-        ).mastered,
-        isFalse,
-      );
-      expect(
-        phrase(
-          performanceDays: <String>{'2026-01-01', '2026-01-04', '2026-01-08'},
-        ).mastered,
-        isTrue,
-      );
+        final oneDay = PhraseProgress(
+          phraseId: 'p',
+          performanceDays: <String>{'2026-01-01'},
+        );
+        expect(oneDay.performanceSpanDays, 0);
 
-      // A seven-day calendar week that contains a daylight-saving change must
-      // not collapse to six elapsed days.
-      final dstWeek = PhraseProgress(
-        phraseId: 'dst',
-        reps: 4,
-        correct: 5,
-        correctDays: <String>{'2026-03-07', '2026-03-08'},
-        performanceDays: <String>{'2026-03-07', '2026-03-10', '2026-03-14'},
-        firstPerformanceDay: '2026-03-07',
-      );
-      expect(dstWeek.performanceSpanDays, 7);
-      expect(dstWeek.mastered, isTrue);
-    });
+        // A seven-day calendar week that contains a daylight-saving change must
+        // not collapse to six elapsed days.
+        final dstWeek = PhraseProgress(
+          phraseId: 'dst',
+          performanceDays: <String>{'2026-03-07', '2026-03-10', '2026-03-14'},
+          firstPerformanceDay: '2026-03-07',
+        );
+        expect(dstWeek.performanceSpanDays, 7);
+      },
+    );
   });
 
   group('Progress store', () {
@@ -371,7 +417,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    test('a failed migration does not overwrite the stored document', () async {
+    test('a failed migration is quarantined and does not overwrite the stored document', () async {
       final malformed = jsonEncode(_loadFixture('v3')..['notes'] = <dynamic>[]);
       SharedPreferences.setMockInitialValues({
         SharedPreferencesProgressStore.storageKey: malformed,
@@ -385,7 +431,70 @@ void main() {
         prefs.getString(SharedPreferencesProgressStore.storageKey),
         malformed,
       );
+      expect(
+        prefs.getString(SharedPreferencesProgressStore.unreadableKey),
+        malformed,
+      );
     });
+
+    test(
+      'a future document is quarantined and survives a fresh save',
+      () async {
+        final future = jsonEncode(<String, dynamic>{
+          'schemaVersion': 6,
+          'xp': 999,
+        });
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesProgressStore.storageKey: future,
+        });
+
+        final store = SharedPreferencesProgressStore();
+        expect(await store.load(), isNull);
+        await store.save(ProgressState.fresh());
+
+        final prefs = await SharedPreferences.getInstance();
+        expect(
+          prefs.getString(SharedPreferencesProgressStore.storageKey),
+          contains('"schemaVersion":5'),
+        );
+        expect(
+          prefs.getString(SharedPreferencesProgressStore.unreadableKey),
+          future,
+        );
+      },
+    );
+
+    test(
+      'the controller fallback preserves a future document across a save',
+      () async {
+        final future = jsonEncode(<String, dynamic>{
+          'schemaVersion': 6,
+          'xp': 999,
+        });
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesProgressStore.storageKey: future,
+        });
+
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final data = await container.read(appControllerProvider.future);
+        expect(data.progress.xp, 0);
+
+        await container
+            .read(appControllerProvider.notifier)
+            .completeOnboarding(const AppSettings());
+
+        final prefs = await SharedPreferences.getInstance();
+        expect(
+          prefs.getString(SharedPreferencesProgressStore.unreadableKey),
+          future,
+        );
+        expect(
+          prefs.getString(SharedPreferencesProgressStore.storageKey),
+          contains('"schemaVersion":5'),
+        );
+      },
+    );
 
     test('v5 progress saves and reloads phrase progress', () async {
       final store = SharedPreferencesProgressStore();
@@ -404,8 +513,10 @@ void main() {
       final reloaded = await SharedPreferencesProgressStore().load();
       expect(reloaded, isNotNull);
       expect(reloaded!.contentVersion, 2);
-      expect(reloaded.phraseProgress['twinkle.a']!.reps, 4);
-      expect(reloaded.phraseProgress['twinkle.a']!.mastered, isTrue);
+      final phrase = reloaded.phraseProgress['twinkle.a']!;
+      expect(phrase.reps, 4);
+      expect(phrase.correctDays, hasLength(2));
+      expect(phrase.performanceSpanDays, 14);
     });
   });
 }
@@ -424,3 +535,9 @@ Map<String, dynamic> _migrate(Map<String, dynamic> json) {
   expect(result, isA<MigrationSuccess>());
   return (result as MigrationSuccess).json;
 }
+
+Map<String, dynamic> _v5Phrase(Map<String, dynamic> phrase) =>
+    <String, dynamic>{
+      'schemaVersion': 5,
+      'phraseProgress': <String, dynamic>{'p': phrase},
+    };

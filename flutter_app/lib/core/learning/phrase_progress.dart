@@ -1,7 +1,8 @@
 /// Persisted performance progress for one phrase.
 ///
-/// This is a storage shape only. The scheduler that updates it lives with the
-/// phrase-session work (T2.3/T2.5). A phrase is identified by [Phrase.id].
+/// This is a storage shape only. The scheduler and the mastery decision live
+/// with the phrase-session work (T2.3/T2.5). A phrase is identified by
+/// [Phrase.id].
 class PhraseProgress {
   PhraseProgress({
     required this.phraseId,
@@ -36,8 +37,8 @@ class PhraseProgress {
   /// Local `yyyy-MM-dd` keys with a counted performance.
   final Set<String> performanceDays;
 
-  /// The first counted performance day. Stored explicitly so the seven-day
-  /// mastery window survives even if the day set is pruned later.
+  /// The first counted performance day. Stored explicitly so the performance
+  /// window can still be computed if the day set is pruned later.
   String? firstPerformanceDay;
 
   DateTime? lastPerformanceAt;
@@ -58,6 +59,10 @@ class PhraseProgress {
   }
 
   /// Days between the first and last counted performance day.
+  ///
+  /// This is raw evidence for the future mastery decision. It is not a
+  /// mastery claim and does not consider determinacy, timing, transfer, or a
+  /// checkpoint.
   int get performanceSpanDays {
     if (performanceDays.length < 2) return 0;
     final days = performanceDays.toList()..sort();
@@ -66,15 +71,6 @@ class PhraseProgress {
     if (first == null || last == null) return 0;
     return last.difference(first).inDays;
   }
-
-  /// Performance mastery: four spaced reps, five correct answers on two days,
-  /// at least three performance days, and a seven-day performance window.
-  bool get mastered =>
-      reps >= 4 &&
-      correct >= 5 &&
-      correctDays.length >= 2 &&
-      performanceDays.length >= 3 &&
-      performanceSpanDays >= 7;
 
   PhraseProgress copy() => PhraseProgress(
     phraseId: phraseId,
@@ -127,7 +123,7 @@ class PhraseProgress {
       phraseId: id,
       stabilityDays: _readDouble(json, 'stabilityDays', 0),
       difficulty: _readDouble(json, 'difficulty', 0),
-      dueAt: _readDate(json['dueAt']),
+      dueAt: _readDate(json['dueAt'], 'dueAt'),
       reps: _readInt(json, 'reps', 0),
       lapses: _readInt(json, 'lapses', 0),
       correct: _readInt(json, 'correct', 0),
@@ -135,7 +131,10 @@ class PhraseProgress {
       correctDays: _readDays(json['correctDays'], 'correctDays'),
       performanceDays: _readDays(json['performanceDays'], 'performanceDays'),
       firstPerformanceDay: _readDay(json['firstPerformanceDay']),
-      lastPerformanceAt: _readDate(json['lastPerformanceAt']),
+      lastPerformanceAt: _readDate(
+        json['lastPerformanceAt'],
+        'lastPerformanceAt',
+      ),
       bestTempoBpm: _readOptionalInt(json['bestTempoBpm'], 'bestTempoBpm'),
       bestAccuracy: _readOptionalDouble(json['bestAccuracy'], 'bestAccuracy'),
     );
@@ -149,8 +148,13 @@ String? _firstDay(Set<String> days) {
 }
 
 String? _readDay(Object? value) {
-  if (value is! String) return null;
-  return _tryParseDay(value) == null ? null : value;
+  if (value == null) return null;
+  if (value is! String || _tryParseDay(value) == null) {
+    throw const FormatException(
+      'phraseProgress.firstPerformanceDay must be a yyyy-MM-dd day',
+    );
+  }
+  return value;
 }
 
 Set<String> _readDays(Object? value, String key) {
@@ -200,9 +204,14 @@ double? _readOptionalDouble(Object? value, String key) {
   throw FormatException('phraseProgress.$key must be a number');
 }
 
-DateTime? _readDate(Object? value) {
-  if (value is! String) return null;
-  return DateTime.tryParse(value)?.toLocal();
+DateTime? _readDate(Object? value, String key) {
+  if (value == null) return null;
+  if (value is! String || DateTime.tryParse(value) == null) {
+    throw FormatException(
+      'phraseProgress.$key must be an ISO-8601 date-time string',
+    );
+  }
+  return DateTime.parse(value).toLocal();
 }
 
 DateTime? _tryParseDay(String value) {

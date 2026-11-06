@@ -17,6 +17,11 @@ abstract class ProgressStore {
 class SharedPreferencesProgressStore implements ProgressStore {
   static const storageKey = 'hear_me_out_progress_v1';
 
+  /// Recovery copy for a document this build cannot decode. It is deliberately
+  /// separate from [storageKey] so a later fresh save cannot destroy a newer
+  /// build's data.
+  static const unreadableKey = 'hear_me_out_progress_unreadable';
+
   SharedPreferences? _prefs;
 
   Future<SharedPreferences> get _instance async =>
@@ -27,7 +32,21 @@ class SharedPreferencesProgressStore implements ProgressStore {
     final prefs = await _instance;
     final raw = prefs.getString(storageKey);
     if (raw == null || raw.isEmpty) return null;
-    return _decodeProgress(raw);
+    final progress = _decodeProgress(raw);
+    if (progress != null) return progress;
+    await _quarantine(prefs, raw);
+    return null;
+  }
+
+  Future<void> _quarantine(SharedPreferences prefs, String raw) async {
+    try {
+      if (prefs.getString(unreadableKey) != raw) {
+        await prefs.setString(unreadableKey, raw);
+      }
+    } catch (_) {
+      // A best-effort recovery copy must not turn a failed load into a crash.
+      // The original value stays at [storageKey] until an explicit save.
+    }
   }
 
   @override
@@ -40,6 +59,8 @@ class SharedPreferencesProgressStore implements ProgressStore {
   Future<void> clear() async {
     final prefs = await _instance;
     await prefs.remove(storageKey);
+    // Keep [unreadableKey]. An explicit reset should not discard the only copy
+    // of a document written by a newer build.
   }
 }
 

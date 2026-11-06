@@ -258,6 +258,72 @@ void _validateCurrent(Map<String, dynamic> json) {
     }
   }
 
+  for (final key in <String>[
+    'completedLessons',
+    'legacyCompletedLessons',
+    'completedCheckpoints',
+    'openedChests',
+    'claimedQuests',
+  ]) {
+    _readStringList(json[key], 'progress.$key');
+  }
+
+  if (json['bestLessonAccuracy'] != null) {
+    final accuracy = _readStringMap(
+      json['bestLessonAccuracy'],
+      'progress.bestLessonAccuracy',
+    );
+    for (final entry in accuracy.entries) {
+      final value = entry.value;
+      if (value != null) {
+        _readNumber(value, 'progress.bestLessonAccuracy.${entry.key}');
+      }
+    }
+  }
+
+  if (json['daily'] != null) {
+    final daily = _readStringMap(json['daily'], 'progress.daily');
+    final day = daily['day'];
+    if (day != null && day is! String) {
+      throw const FormatException('progress.daily.day must be a string');
+    }
+    for (final key in <String>['lessons', 'correct', 'practice', 'bestCombo']) {
+      _readInt(daily, key, 0, path: 'progress.daily.$key');
+    }
+  }
+
+  if (json['recentSessions'] != null) {
+    final sessions = json['recentSessions'];
+    if (sessions is! List) {
+      throw const FormatException('progress.recentSessions must be a list');
+    }
+    for (var index = 0; index < sessions.length; index++) {
+      final path = 'progress.recentSessions[$index]';
+      final session = _readStringMap(sessions[index], path);
+      final lessonId = session['lessonId'];
+      if (lessonId != null && lessonId is! String) {
+        throw FormatException('$path.lessonId must be a string');
+      }
+      final accuracy = session['accuracy'];
+      if (accuracy != null) {
+        _readNumber(accuracy, '$path.accuracy');
+      }
+      _readInt(session, 'xp', 0, path: '$path.xp');
+      _readInt(session, 'answered', 0, path: '$path.answered');
+      final completedAt = session['completedAt'];
+      if (completedAt != null &&
+          (completedAt is! String || DateTime.tryParse(completedAt) == null)) {
+        throw FormatException(
+          '$path.completedAt must be an ISO-8601 date-time string',
+        );
+      }
+      final passed = session['passed'];
+      if (passed != null && passed is! bool) {
+        throw FormatException('$path.passed must be a boolean');
+      }
+    }
+  }
+
   if (json['contentVersion'] != null) {
     final contentVersion = _readInt(
       json,
@@ -272,6 +338,40 @@ void _validateCurrent(Map<String, dynamic> json) {
 
   if (json['phraseProgress'] != null) {
     _validatePhraseProgress(json['phraseProgress']);
+  }
+
+  for (final key in <String>[
+    'placementUnitId',
+    'lastCompletedDay',
+    'xpDay',
+    'questDay',
+  ]) {
+    final value = json[key];
+    if (value != null && value is! String) {
+      throw FormatException('progress.$key must be a string');
+    }
+  }
+
+  for (final key in <String>[
+    'xp',
+    'streak',
+    'bestStreak',
+    'xpToday',
+    'gems',
+    'hearts',
+    'streakFreezes',
+  ]) {
+    _readInt(json, key, 0, path: 'progress.$key');
+  }
+
+  for (final key in <String>['nextHeartAt', 'xpBoostUntil']) {
+    final value = json[key];
+    if (value != null &&
+        (value is! String || DateTime.tryParse(value) == null)) {
+      throw FormatException(
+        'progress.$key must be an ISO-8601 date-time string',
+      );
+    }
   }
 }
 
@@ -290,22 +390,27 @@ void _validatePhraseProgress(Object? value) {
     _readInt(phrase, 'incorrect', 0, path: '$path.incorrect');
     _readDouble(phrase, 'stabilityDays', 0, path: '$path.stabilityDays');
     _readDouble(phrase, 'difficulty', 0, path: '$path.difficulty');
-    _readStringList(phrase['correctDays'], '$path.correctDays');
-    _readStringList(phrase['performanceDays'], '$path.performanceDays');
+    _readDayList(phrase['correctDays'], '$path.correctDays');
+    _readDayList(phrase['performanceDays'], '$path.performanceDays');
     if (phrase['bestTempoBpm'] != null) {
       _readInt(phrase, 'bestTempoBpm', 0, path: '$path.bestTempoBpm');
     }
     if (phrase['bestAccuracy'] != null) {
       _readDouble(phrase, 'bestAccuracy', 0, path: '$path.bestAccuracy');
     }
-    for (final key in <String>[
-      'dueAt',
-      'firstPerformanceDay',
-      'lastPerformanceAt',
-    ]) {
+    final firstPerformanceDay = phrase['firstPerformanceDay'];
+    if (firstPerformanceDay != null && !_isDayString(firstPerformanceDay)) {
+      throw FormatException(
+        '$path.firstPerformanceDay must be a yyyy-MM-dd day',
+      );
+    }
+    for (final key in <String>['dueAt', 'lastPerformanceAt']) {
       final field = phrase[key];
-      if (field != null && field is! String) {
-        throw FormatException('$path.$key must be a string');
+      if (field != null &&
+          (field is! String || DateTime.tryParse(field) == null)) {
+        throw FormatException(
+          '$path.$key must be an ISO-8601 date-time string',
+        );
       }
     }
   }
@@ -366,6 +471,10 @@ double _readDouble(
 }) {
   final value = json[key];
   if (value == null) return fallback;
+  return _readNumber(value, path);
+}
+
+double _readNumber(Object value, String path) {
   if (value is num && value.isFinite) return value.toDouble();
   throw FormatException('$path must be a number');
 }
@@ -383,6 +492,27 @@ List<String> _readStringList(Object? value, String path) {
     out.add(item);
   }
   return out;
+}
+
+List<String> _readDayList(Object? value, String path) {
+  final days = _readStringList(value, path);
+  for (final day in days) {
+    if (!_isDayString(day)) {
+      throw FormatException('$path must contain yyyy-MM-dd days');
+    }
+  }
+  return days;
+}
+
+bool _isDayString(Object? value) {
+  if (value is! String) return false;
+  final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(value);
+  if (match == null) return false;
+  final year = int.parse(match.group(1)!);
+  final month = int.parse(match.group(2)!);
+  final day = int.parse(match.group(3)!);
+  final date = DateTime.utc(year, month, day);
+  return date.year == year && date.month == month && date.day == day;
 }
 
 void _ensureList(Map<String, dynamic> json, String key) {
