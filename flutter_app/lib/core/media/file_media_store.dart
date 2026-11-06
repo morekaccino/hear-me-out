@@ -103,6 +103,13 @@ class FileMediaStore implements MediaStore {
         throw ArgumentError.value(mimeType, 'mimeType', 'must not be empty');
       }
       if (id != null) _validateId(id);
+      validateMediaManifest(
+        pieceId: pieceId,
+        phraseId: phraseId,
+        durationMs: durationMs,
+        score: score,
+        analysisVersion: analysisVersion,
+      );
       await _ensureLoaded();
       await _objects.create(recursive: true);
 

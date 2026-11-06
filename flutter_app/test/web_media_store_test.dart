@@ -6,6 +6,7 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 import 'dart:typed_data';
 
+import 'package:hear_me_out/core/media/media_store.dart';
 import 'package:hear_me_out/core/media/web_media_store.dart';
 import 'package:test/test.dart';
 import 'package:web/web.dart' as web;
@@ -17,11 +18,10 @@ void main() {
       'hmo_media_test_${DateTime.now().microsecondsSinceEpoch}_'
       '${databaseCounter++}';
 
-  Future<WebMediaStore> open(String name, {DateTime Function()? now}) {
-    final store = WebMediaStore.open(databaseName: name, now: now);
+  Future<WebMediaStore> open(String name, {DateTime Function()? now}) async {
+    final store = await WebMediaStore.open(databaseName: name, now: now);
     addTearDown(() async {
-      final resolved = await store;
-      resolved.close();
+      store.close();
       await _deleteDatabase(name);
     });
     return store;
@@ -122,6 +122,32 @@ void main() {
     expect(await store.list(), [replacement]);
   });
 
+  test('invalid manifest values are rejected before writing', () async {
+    final store = await open(nextDatabaseName());
+    final bytes = Uint8List.fromList([1]);
+    final cases = <String, Future<MediaRef> Function()>{
+      'pieceId': () => store.put(bytes, mimeType: 'audio/wav', pieceId: ''),
+      'phraseId': () => store.put(bytes, mimeType: 'audio/wav', phraseId: ' '),
+      'durationMs': () =>
+          store.put(bytes, mimeType: 'audio/wav', durationMs: -1),
+      'analysisVersion': () =>
+          store.put(bytes, mimeType: 'audio/wav', analysisVersion: -1),
+      'score': () => store.put(bytes, mimeType: 'audio/wav', score: double.nan),
+    };
+
+    for (final entry in cases.entries) {
+      await expectLater(
+        entry.value(),
+        throwsA(
+          isA<ArgumentError>().having((error) => error.name, 'name', entry.key),
+        ),
+        reason: entry.key,
+      );
+    }
+
+    expect(await store.list(), isEmpty);
+  });
+
   test('malformed records are skipped by list and usage', () async {
     final name = nextDatabaseName();
     final store = await open(name);
@@ -142,7 +168,19 @@ void main() {
     final request = transaction
         .objectStore(WebMediaStore.objectStoreName)
         .put(record, 'bad'.toJS);
+    final infinite = JSObject();
+    infinite.setProperty('id'.toJS, 'infinite'.toJS);
+    infinite.setProperty('mimeType'.toJS, 'audio/wav'.toJS);
+    infinite.setProperty('byteLength'.toJS, double.infinity.toJS);
+    infinite.setProperty(
+      'createdAt'.toJS,
+      DateTime.utc(2026, 1, 1).toIso8601String().toJS,
+    );
+    final infiniteRequest = transaction
+        .objectStore(WebMediaStore.objectStoreName)
+        .put(infinite, 'infinite'.toJS);
     await _requestDone(request);
+    await _requestDone(infiniteRequest);
     await _transactionDone(transaction);
     database.close();
 

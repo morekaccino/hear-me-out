@@ -50,6 +50,56 @@ void main() {
       expect(ref.analysisVersion, isNull);
     });
 
+    test('invalid manifest values are rejected with the field name', () async {
+      final store = MemoryMediaStore();
+      final bytes = Uint8List.fromList([1]);
+      final cases = <String, Future<MediaRef> Function()>{
+        'pieceId': () => store.put(bytes, mimeType: 'audio/wav', pieceId: ''),
+        'phraseId': () =>
+            store.put(bytes, mimeType: 'audio/wav', phraseId: '  '),
+        'durationMs': () =>
+            store.put(bytes, mimeType: 'audio/wav', durationMs: -1),
+        'analysisVersion': () =>
+            store.put(bytes, mimeType: 'audio/wav', analysisVersion: -1),
+        'score': () =>
+            store.put(bytes, mimeType: 'audio/wav', score: double.nan),
+      };
+
+      for (final entry in cases.entries) {
+        await expectLater(
+          entry.value(),
+          throwsA(
+            isA<ArgumentError>().having(
+              (error) => error.name,
+              'name',
+              entry.key,
+            ),
+          ),
+          reason: entry.key,
+        );
+      }
+
+      expect(await store.list(), isEmpty);
+      expect(await store.usageBytes(), 0);
+    });
+
+    test('non-finite scores are rejected', () async {
+      final store = MemoryMediaStore();
+
+      for (final score in <double>[double.infinity, double.negativeInfinity]) {
+        await expectLater(
+          store.put(
+            Uint8List.fromList([1]),
+            mimeType: 'audio/wav',
+            score: score,
+          ),
+          throwsA(
+            isA<ArgumentError>().having((error) => error.name, 'name', 'score'),
+          ),
+        );
+      }
+    });
+
     test('put replaces an existing id atomically', () async {
       var now = DateTime.utc(2026, 1, 1, 12);
       final store = MemoryMediaStore(clock: () => now);

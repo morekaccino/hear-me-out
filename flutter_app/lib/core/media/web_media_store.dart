@@ -121,6 +121,13 @@ class WebMediaStore implements MediaStore {
         throw ArgumentError.value(mimeType, 'mimeType', 'must not be empty');
       }
       if (id != null) _validateId(id);
+      validateMediaManifest(
+        pieceId: pieceId,
+        phraseId: phraseId,
+        durationMs: durationMs,
+        score: score,
+        analysisVersion: analysisVersion,
+      );
 
       final createdAt = _now().toUtc();
       final resolvedId = id ?? _generateId(createdAt);
@@ -280,8 +287,8 @@ class WebMediaStore implements MediaStore {
       return null;
     }
 
-    final byteLength = (byteLengthValue as JSNumber).toDartInt;
-    if (byteLength < 0) return null;
+    final byteLength = (byteLengthValue as JSNumber).toDartDouble;
+    if (!byteLength.isFinite || byteLength < 0) return null;
 
     final DateTime createdAt;
     try {
@@ -293,7 +300,7 @@ class WebMediaStore implements MediaStore {
     return MediaRef(
       id: id,
       mimeType: mimeType,
-      byteLength: byteLength,
+      byteLength: byteLength.toInt(),
       createdAt: createdAt,
       pieceId: _optionalStringField(record, 'pieceId'),
       phraseId: _optionalStringField(record, 'phraseId'),
@@ -320,8 +327,9 @@ class WebMediaStore implements MediaStore {
   int? _optionalIntField(JSObject record, String name) {
     final value = record.getProperty(name.toJS);
     if (!value.isA<JSNumber>()) return null;
-    final number = (value as JSNumber).toDartInt;
-    return number < 0 ? null : number;
+    final number = (value as JSNumber).toDartDouble;
+    if (!number.isFinite || number < 0) return null;
+    return number.toInt();
   }
 
   double? _optionalDoubleField(JSObject record, String name) {

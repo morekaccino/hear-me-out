@@ -74,6 +74,43 @@ class MediaRef {
   String toString() => 'MediaRef($id, $mimeType, $byteLength bytes)';
 }
 
+/// Validates optional manifest fields before a store writes them.
+///
+/// Every [MediaStore] calls this in [MediaStore.put] so a value accepted by
+/// [put] can always be read back. Throws [ArgumentError] named after the
+/// offending field:
+///
+/// - [pieceId] and [phraseId] must not be blank when provided;
+/// - [durationMs] and [analysisVersion] must be non-negative;
+/// - [score] must be finite.
+void validateMediaManifest({
+  String? pieceId,
+  String? phraseId,
+  int? durationMs,
+  double? score,
+  int? analysisVersion,
+}) {
+  if (pieceId != null && pieceId.trim().isEmpty) {
+    throw ArgumentError.value(pieceId, 'pieceId', 'must not be blank');
+  }
+  if (phraseId != null && phraseId.trim().isEmpty) {
+    throw ArgumentError.value(phraseId, 'phraseId', 'must not be blank');
+  }
+  if (durationMs != null && durationMs < 0) {
+    throw ArgumentError.value(durationMs, 'durationMs', 'must be non-negative');
+  }
+  if (score != null && !score.isFinite) {
+    throw ArgumentError.value(score, 'score', 'must be finite');
+  }
+  if (analysisVersion != null && analysisVersion < 0) {
+    throw ArgumentError.value(
+      analysisVersion,
+      'analysisVersion',
+      'must be non-negative',
+    );
+  }
+}
+
 /// Local storage for recordings and other media.
 ///
 /// Recordings are never stored in `ProgressState`. Progress and media have
@@ -145,6 +182,13 @@ class MemoryMediaStore implements MediaStore {
     if (id != null && id.trim().isEmpty) {
       throw ArgumentError.value(id, 'id', 'must not be empty');
     }
+    validateMediaManifest(
+      pieceId: pieceId,
+      phraseId: phraseId,
+      durationMs: durationMs,
+      score: score,
+      analysisVersion: analysisVersion,
+    );
 
     final resolvedId = id ?? _generateId();
     final copy = Uint8List.fromList(bytes);

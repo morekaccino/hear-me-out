@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/media/file_media_store.dart';
+import 'package:hear_me_out/core/media/media_store.dart';
 
 void main() {
   late Directory tempDir;
@@ -219,6 +220,59 @@ void main() {
       throwsArgumentError,
     );
     expect(await store.list(), isEmpty);
+  });
+
+  test('invalid manifest values are rejected before writing', () async {
+    final bytes = Uint8List.fromList([1]);
+    final cases = <String, Future<MediaRef> Function()>{
+      'pieceId': () => store.put(bytes, mimeType: 'audio/wav', pieceId: ''),
+      'phraseId': () => store.put(bytes, mimeType: 'audio/wav', phraseId: '  '),
+      'durationMs': () =>
+          store.put(bytes, mimeType: 'audio/wav', durationMs: -1),
+      'analysisVersion': () =>
+          store.put(bytes, mimeType: 'audio/wav', analysisVersion: -1),
+      'score': () => store.put(bytes, mimeType: 'audio/wav', score: double.nan),
+    };
+
+    for (final entry in cases.entries) {
+      await expectLater(
+        entry.value(),
+        throwsA(
+          isA<ArgumentError>().having((error) => error.name, 'name', entry.key),
+        ),
+        reason: entry.key,
+      );
+    }
+
+    expect(await store.list(), isEmpty);
+    expect(await store.usageBytes(), 0);
+  });
+
+  test('an invalid manifest replacement leaves the old item intact', () async {
+    await store.put(
+      Uint8List.fromList([1, 2]),
+      mimeType: 'audio/wav',
+      id: 'take-1',
+      durationMs: 1000,
+      score: 0.5,
+      analysisVersion: 1,
+    );
+
+    await expectLater(
+      store.put(
+        Uint8List.fromList([9]),
+        mimeType: 'audio/wav',
+        id: 'take-1',
+        durationMs: -1,
+      ),
+      throwsArgumentError,
+    );
+
+    expect(await store.get('take-1'), [1, 2]);
+    final ref = (await store.list()).single;
+    expect(ref.durationMs, 1000);
+    expect(ref.score, 0.5);
+    expect(ref.analysisVersion, 1);
   });
 
   test('delete is idempotent and removes only the requested item', () async {

@@ -130,7 +130,10 @@ uses: `put`, `get`, `delete`, `list`, `usageBytes`, and `clear`.
 `MediaRef` carries the manifest for a take: id, mime type, byte length, creation
 time, and optional piece id, phrase id, duration, analysis score, and analysis
 version. The file index and IndexedDB records persist those optional fields when
-present; older records without them load as nulls.
+present; older records without them load as nulls. `put` validates the manifest
+on every store (non-blank piece/phrase ids, non-negative duration and analysis
+version, finite score) and throws `ArgumentError` naming the field, so a value
+accepted by `put` is always readable back.
 
 Platform selection lives behind a conditional export in
 `core/media/media_store_factory.dart`:
