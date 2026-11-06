@@ -172,9 +172,10 @@ itself arrive in T4.2 and later; this ticket provides storage only.
 - per-skill `SkillProgress`: stability, difficulty, due time, reps, lapses,
   correct/incorrect, correct-day set, production/transfer evidence, response
   time, level, fragile flag, cent samples
-- per-phrase `PhraseProgress`: memory state, performance days, best tempo, and
-  best accuracy. This is the persisted shape only; phrase scheduling is T2.3
-  and T2.5 work, not part of the current engine.
+- per-phrase `PhraseProgress`: raw phrase-attempt evidence — memory state,
+  correct and performance days, best tempo, and best accuracy. It has no
+  storage-level mastery flag; T2.3/T2.5 decide performance mastery from
+  determinacy, clean takes, timing, transfer, and checkpoint evidence.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
 - XP, streak, daily XP
@@ -455,27 +456,29 @@ input, and it never mutates its argument. The steps are explicit:
 | v1 → v2 | default economy: 500 gems, five hearts, no chests or quests |
 | v2 → v3 | System appearance and the remaining `AppSettings` defaults |
 | v3 → v4 | skill cards rebuilt from legacy note boxes when no skills exist |
-| v4 → v5 | `contentVersion` (default 1) and an empty `phraseProgress` map |
+| v4 → v5 | `contentVersion` (default 1), an empty `phraseProgress` map, re-applied `AppSettings` defaults, and a defensive skill rebuild when `skills` is empty |
 
 A v5 document is returned as an equivalent new map, not migrated again.
 Unknown top-level fields are copied through and re-emitted by
 `ProgressState.toJson`, so a newer build can add fields without an older build
 deleting them. A known field always wins over an unknown field with the same
-name.
+name. Unknown fields nested inside typed objects (`settings`, `notes`, `skills`,
+one `phraseProgress` entry) are not preserved; only top-level keys are.
 
 Future versions are rejected, not guessed. Missing or non-integer versions,
 versions below 1, and malformed fields that a step or the current-shape
 validator cannot interpret also fail. There is no partial save: `load` returns
-null and leaves the stored JSON unchanged, `importProgress` returns null, and
-`ProgressState.fromJson` throws a `FormatException` that the storage boundary
-catches. The document stays on disk until an explicit successful save replaces
-it. `PhraseProgress.mastered` requires four reps, five correct answers on two
-days, three performance days, and at least seven days between the first and
-last performance day.
+null, `importProgress` returns null, and `ProgressState.fromJson` throws a
+`FormatException` that the storage boundary catches. Before returning null for
+an unreadable document, `SharedPreferencesProgressStore` copies the raw JSON to
+`hear_me_out_progress_unreadable`. A later fresh-profile save therefore cannot
+destroy a document written by a newer build; the recovery copy survives `save`
+and `clear`. `PhraseProgress` stores raw attempt evidence only and does not
+award mastery.
 
 Backups are copied as pretty JSON via the clipboard. Restore validates first,
 then replaces the state and saves it. Corrupt/missing storage falls back to a
-fresh profile.
+fresh profile; an unreadable document is quarantined first.
 
 ## Test map
 
@@ -501,7 +504,7 @@ fresh profile.
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
-| `test/progress_migration_test.dart` | v1–v5 fixtures, version rejection, phrase progress, rollback |
+| `test/progress_migration_test.dart` | v1–v5 fixtures, version rejection, phrase evidence, quarantine/rollback |
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
