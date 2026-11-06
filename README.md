@@ -197,6 +197,7 @@ session rules.
 
 - [AGENTS.md](AGENTS.md) — operating guide for coding agents
 - [docs/PLANE.md](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
+- [docs/AI_HANDOFF_PROTOCOL.md](docs/AI_HANDOFF_PROTOCOL.md) — read order, roles, branch/PR/review flow, evidence rules, and resume procedure
 - [docs/TRANSFORMATION_PLAN_FINAL.md](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 transformation plan
 - [docs/CONTENT_CALENDAR.md](docs/CONTENT_CALENDAR.md) — 24-month content supply, cost model, break-even, and the subscription-to-piece-pack gate (T3.9)
 - [docs/FINANCIAL_MODEL.md](docs/FINANCIAL_MODEL.md) — costed P&L, base and downside cash model, break-even, and sensitivity (T6.2)
