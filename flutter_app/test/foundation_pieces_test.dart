@@ -42,9 +42,8 @@ const List<FoundationCase> foundationCases = <FoundationCase>[
 ({int minString, int maxString, int maxFret}) parseRangeAndPosition(
   String text,
 ) {
-  final match = RegExp(
-    r'strings\s+(\d+)-(\d+);\s*frets\s+(\d+)-(\d+)',
-  ).firstMatch(text);
+  final match = RegExp(r'strings\s+(\d+)-(\d+);\s*frets\s+(\d+)-(\d+)')
+      .firstMatch(text);
   expect(match, isNotNull, reason: 'Unparseable rangeAndPosition: $text');
   return (
     minString: int.parse(match!.group(1)!),
