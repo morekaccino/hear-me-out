@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "original-study-in-g",
+    "title": "Original Study in G",
+    "composer": "Hear Me Out",
+    "license": "original",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "key": "G major",
+    "sections": [
+      "A"
+    ]
+  },
+  "phrases": [
+    {
+      "id": "original-study-in-g-p1",
+      "title": "Rising line",
+      "bars": 1,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes"
+      ],
+      "difficulty": 1,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G3",
+          "soundingMidi": 43,
+          "string": 6,
+          "fret": 3
+        },
+        {
+          "startBeat": 1,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A3",
+          "soundingMidi": 45,
+          "string": 5,
+          "fret": 0
+        },
+        {
+          "startBeat": 2,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B3",
+          "soundingMidi": 47,
+          "string": 5,
+          "fret": 2
+        },
+        {
+          "startBeat": 3,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C4",
+          "soundingMidi": 48,
+          "string": 5,
+          "fret": 3
+        }
+      ]
+    },
+    {
+      "id": "original-study-in-g-p2",
+      "title": "Answering line",
+      "bars": 1,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes"
+      ],
+      "difficulty": 1,
+      "startBar": 2,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "D4",
+          "soundingMidi": 50,
+          "string": 4,
+          "fret": 0
+        },
+        {
+          "startBeat": 1,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 2,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 3,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        }
+      ]
+    },
+    {
+      "id": "original-study-in-g-p3",
+      "title": "Upper register",
+      "bars": 1,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes"
+      ],
+      "difficulty": 2,
+      "startBar": 3,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 1,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 2,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 3,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        }
+      ]
+    },
+    {
+      "id": "original-study-in-g-p4",
+      "title": "Shift and tie",
+      "bars": 1,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes"
+      ],
+      "difficulty": 2,
+      "startBar": 4,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 2,
+          "fret": 8,
+          "tieToNext": true
+        },
+        {
+          "startBeat": 1,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 2,
+          "fret": 8
+        },
+        {
+          "startBeat": 2,
+          "durationBeats": 1,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 3,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original study written for the T3.2 fixture",
+    "reviewedBy": "Pending musical review",
+    "notes": "Four-bar monophonic study with one shift, one tie, and one rest.",
+    "kind": "piece",
+    "tier": "foundation",
+    "stage": 3
+  }
+}
