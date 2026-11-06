@@ -282,6 +282,11 @@ and latency-rig JSON.
 | A-003 | Demand | Organic acquisition (SEO/content, the free web sight-reading test, communities, ASO) can produce the install volume the base case needs without paid user acquisition. | Low | None yet | Free web sight-reading test ([T8.1]) plus 2–3 SEO pages; measure four weeks of visits, email capture, and sharing. The plan's ≥10% email-capture gate belongs to the pre-sale (plan §11.5); use it here only as an adapted leading indicator, and do not infer the Year 1 install rate from four weeks. | 4–6 weeks; landing page + 2–3 articles; share of the plan's $5–8k validation budget. | Human owner | untested | 2026-11-06 | [§11.3](TRANSFORMATION_PLAN_FINAL.md#11-business-model), [§11.4](TRANSFORMATION_PLAN_FINAL.md#114-acquisition), [T6.2], [T8.1] |
 | A-004 | Demand | The beachhead (consumer classical/folk returners) is large enough to support the base-case install and subscriber counts. | Low | None yet | Use the pre-sale and web-test funnel as the first proxy: 3,000 targeted visitors, 1,000 per price cell; gate 30+ pre-orders or ≥3% in the best cell. Compare the observed channel mix with the plan's 625 / 1,667 / 3,333 installs per month; one test cannot prove market size. | 2–3 weeks; 3,000 targeted visitors; share of the validation budget. | Human owner | untested | 2026-11-06 | [§11.3](TRANSFORMATION_PLAN_FINAL.md#11-business-model), [§14](TRANSFORMATION_PLAN_FINAL.md#14-risks-and-mitigations), [T6.2] |
 
+The store listing, keyword, screenshot, and launch sequencing are specified in
+[`ASO_PLAN.md`](ASO_PLAN.md). The screenshot test is `Not run`; it does not move
+A-003 until real install, conversion, and retention data exist. No paid installs
+are allowed before organic or teacher traction (see the ASO plan, section 5).
+
 ---
 
 ## 4. Mic accuracy / phrase assessment (A-005–A-006) — test first

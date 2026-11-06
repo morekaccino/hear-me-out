@@ -198,6 +198,7 @@ session rules.
 - [AGENTS.md](AGENTS.md) — operating guide for coding agents
 - [docs/PLANE.md](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
 - [docs/AI_HANDOFF_PROTOCOL.md](docs/AI_HANDOFF_PROTOCOL.md) — read order, roles, branch/PR/review flow, evidence rules, and resume procedure
+- [docs/ASO_PLAN.md](docs/ASO_PLAN.md) — store listing, keyword plan, screenshot storyboard, and launch sequencing (T8.2)
 - [docs/ASSUMPTION_TRACKER.md](docs/ASSUMPTION_TRACKER.md) — the beliefs the plan depends on, the weakest-first tests, and the experiment log (T9.5)
 - [docs/COPPA_GUARDIAN_CONSENT_PLAN.md](docs/COPPA_GUARDIAN_CONSENT_PLAN.md) — teacher-channel consent, data minimization, deletion, moderation, and legal-review gate (T7.3)
 - [docs/TRANSFORMATION_PLAN_FINAL.md](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 transformation plan
