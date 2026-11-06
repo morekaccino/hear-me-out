@@ -55,6 +55,37 @@ Notes:
   The other public-domain pieces link to reference pages; their engraving
   source is still to be selected.
 
+## Published piece-to-stage map
+
+This is the canonical V1 map for placement and Today. The Dart helpers in
+`flutter_app/lib/content/pieces/launch_pieces.dart` are the machine-readable
+source; this table mirrors `launchPiecesByStage` and `v1StageOutcomes`.
+
+| Piece | Tier | Stage | Skills / focus | Target BPM | Performance outcome |
+|---|---|---|---|---|---|
+| `greensleeves` — Greensleeves | Foundation | 1 | Open strings, steady pulse, 6/8 lilt | 60 | Play a 4-bar monophonic study at 60 BPM |
+| `ode-to-joy` — Ode to Joy | Foundation | 2 | Stepwise melody, quarter-note pulse, phrase endings | 72 | Play an 8-bar folk melody |
+| `amazing-grace` — Amazing Grace (New Britain) | Foundation | 2 | Triple meter, breath-length phrases, legato changes | 66 | Play an 8-bar folk melody |
+| `down-by-the-riverside` — Down by the Riverside | Foundation | 3 | Middle strings, syncopated eighths, two accidentals | 76 | Play a 12-bar monophonic piece |
+| `original-study-1` — Original Monophonic Study No. 1 | Foundation | 3 | Lower-string reading, accidentals, 12-bar form | 60 | Play a 12-bar monophonic piece |
+| `scarborough-fair` — Scarborough Fair | Returner | 5 | Two position shifts with guide fingers; 3/4 phrasing | 58 | Play a 12-bar study with two shifts |
+| `londonderry-air` — Londonderry Air | Returner | 5 | Two position shifts, sustained tone, wide leaps | 54 | Play a 12-bar study with two shifts |
+| `bach-minuet-in-g` — Minuet in G major, BWV Anh. 114 | Returner | 9 | Sight-reading fluency; 3/4 phrasing; single-line reading | 72 | Read a 4-bar etude at sight at 70 BPM |
+| `spanish-romance` — Spanish Romance (Romance Anónimo) | Returner | 9 | Sight-reading fluency; melody across strings 1-2; steady pulse | 72 | Read a 4-bar etude at sight at 70 BPM |
+| `original-study-2` — Original Monophonic Study No. 2 | Returner | 10 | Full-piece consolidation, dynamic shaping, 1-minute performance | 66 | Perform a 1-minute monophonic piece |
+
+Stages 4, 6, 7, and 8 are **Phase 2** or self/teacher-reviewed. They are not V1
+placement targets and have no launch-piece rows. Stage 12 is a performance
+checkpoint that uses any passed piece; it is not a piece row.
+
+### Placement and Today
+
+Placement and Today must call the canonical Dart helpers —
+`v1PlacementStages`, `phase2Stages`, `piecesForStage`, `launchPiecesByStage`,
+`placementStageForPiece`, and `v1StageOutcomes` — rather than keeping a second
+hand-maintained stage table. T2.6/T2.8 own those surfaces; this ticket publishes
+the shared map only.
+
 ## Stage outcomes
 
 The outcomes come from plan section 6.1. They describe what the stage trains,
@@ -158,7 +189,11 @@ Open legal questions that apply to the whole list:
 - Code: `flutter_app/lib/content/pieces/launch_pieces.dart`
 - Tests: `flutter_app/test/launch_pieces_test.dart`
 - The list exposes `launchPieces`, `launchPieceById(String id)`,
-  `launchPiecesForTier(LaunchTier tier)`, and the `v1StageOutcomes` map.
+  `launchPiecesForTier(LaunchTier tier)`, `piecesForStage(int stage)`,
+  `launchPiecesByStage`, `placementStageForPiece(String pieceId)`,
+  `v1PlacementStages`, `phase2Stages`, and the `v1StageOutcomes` map.
+  `placementStageForPiece` returns null for an unknown id; `piecesForStage`
+  returns an empty list for Phase 2 or unknown stages.
 - Each entry uses the T2.1 `Piece` model with standard tuning, capo 0, and a
   `public-domain` or `original` license. The note arrangements live under
   `flutter_app/assets/content/pieces/foundation/` and

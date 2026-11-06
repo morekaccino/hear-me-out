@@ -24,6 +24,15 @@ const Map<int, String> v1StageOutcomes = <int, String>{
   10: 'Perform a 1-minute monophonic piece',
 };
 
+/// The stages V1 placement may target, in plan order.
+///
+/// Stage 12 is a performance checkpoint that uses any passed piece, so it is
+/// not a placement stage and has no launch-piece row.
+List<int> get v1PlacementStages => const <int>[1, 2, 3, 5, 9, 10];
+
+/// Stages that are Phase 2 or self/teacher-reviewed, not V1 placement targets.
+Set<int> get phase2Stages => const <int>{4, 6, 7, 8};
+
 /// Metadata for one locked V1 launch piece.
 ///
 /// This is a content spec, not an arrangement. T3.3/T3.4 add the notes and
@@ -40,7 +49,10 @@ class LaunchPiece {
     required this.rangeAndPosition,
     this.texture = 'monophonic',
     this.imslpId,
-  });
+  }) : assert(
+         texture == 'monophonic',
+         'V1 launch pieces are strictly monophonic.',
+       );
 
   final Piece piece;
   final LaunchTier tier;
@@ -320,6 +332,29 @@ List<LaunchPiece> launchPiecesForTier(LaunchTier tier) =>
     List<LaunchPiece>.unmodifiable(
       launchPieces.where((launch) => launch.tier == tier),
     );
+
+/// The launch pieces grouped by V1 placement stage, in plan order.
+///
+/// Only [v1PlacementStages] appear as keys. Phase 2 stages never appear here
+/// because they have no launch-piece rows.
+final Map<int, List<LaunchPiece>> launchPiecesByStage =
+    Map<int, List<LaunchPiece>>.unmodifiable(<int, List<LaunchPiece>>{
+      for (final stage in v1PlacementStages)
+        stage: List<LaunchPiece>.unmodifiable(
+          launchPieces.where((launch) => launch.v1Stage == stage),
+        ),
+    });
+
+/// Returns the launch pieces for V1 [stage], in plan order.
+///
+/// Returns an empty list for Phase 2 stages and unknown stages.
+List<LaunchPiece> piecesForStage(int stage) =>
+    launchPiecesByStage[stage] ?? const <LaunchPiece>[];
+
+/// Returns the V1 placement stage for [pieceId], or null when no launch piece
+/// has that id.
+int? placementStageForPiece(String pieceId) =>
+    launchPieceById(pieceId)?.v1Stage;
 
 Piece _piece({
   required String id,
