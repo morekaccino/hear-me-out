@@ -25,6 +25,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   test: ^1.31.1
+  xml: ^6.6.1
 
 flutter_launcher_icons:
   android: "launcher_icon"

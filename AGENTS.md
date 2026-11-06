@@ -122,8 +122,11 @@ tone, accessibility notes, and non-goals are in
 ## Hard rules
 
 1. **No network, cloud, accounts, analytics, or remote persistence in the app.**
-   Progress lives in `shared_preferences`; audio is analyzed in memory and
-   discarded. Plane is development tooling only and is never imported by the app.
+   Progress lives in `shared_preferences`. Recordings live in the local media
+   store, are never uploaded, and are excluded from cloud backup only when the
+   platform confirms it; the UI must say when that confirmation is missing. The
+   microphone is active only during a lesson, practice, tuner, or recording
+   session. Plane is development tooling only and is never imported by the app.
 2. **Keep `lib/core/` free of widgets.** Music math, scheduling, pitch
    detection, and staff geometry must stay pure Dart and testable.
 3. **Written pitch is not sounding pitch.** Guitar notation is written one

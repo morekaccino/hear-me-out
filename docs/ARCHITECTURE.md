@@ -160,10 +160,43 @@ is overridable in tests with `MemoryMediaStore`. It does not start a recorder.
 The VM test runner cannot exercise IndexedDB, so
 `test/web_media_store_test.dart` is browser-only and runs with
 `dart test -p chrome test/web_media_store_test.dart` (also part of CI).
-The IO directory is **not yet excluded from Android Auto Backup or iCloud**;
-T4.5 owns that work and T4.2 is blocked by T4.5, so recordings must not ship
-before it lands. Quota enforcement, delete/export UI, retention, and recording
-itself arrive in T4.2 and later; this ticket provides storage only.
+
+Backup exclusion is platform-enforced and surfaced to the UI:
+
+- **Android:** `android/app/src/main/res/xml/backup_rules.xml` (Auto Backup on
+  Android 11 and lower) and `data_extraction_rules.xml` (cloud backup and
+  device transfer on Android 12 and higher) exclude `domain="file"` with
+  `path="media/"`. `AndroidManifest.xml` wires them with
+  `android:fullBackupContent` and `android:dataExtractionRules`.
+  `path_provider` resolves `getApplicationSupportDirectory()` to `filesDir` on
+  Android, and `mediaStoreProvider` appends `mediaDirectoryName` (`media`), so
+  the rules cover `filesDir/media`. The shared constant and both rule files are
+  checked structurally by `test/platform_backup_config_test.dart`; the
+  provider and channel wiring are checked by `test/backup_exclusion_test.dart`.
+- **iOS:** `mediaStoreProvider` calls `MediaBackupExclusion` before creating the
+  store. `PlatformMediaBackupExclusion` invokes the
+  `hear_me_out/media_backup_exclusion` channel; `ios/Runner/AppDelegate.swift`
+  creates the directory if needed, sets `NSURLIsExcludedFromBackupKey`, reads
+  the resource value back, and returns true only when it is set. A failure is
+  logged and the store is still created, but nothing may claim the directory is
+  excluded. A real iOS device check of the resource value remains human-owned;
+  the automated test only reads the source files.
+- **Web:** IndexedDB has no app-managed OS backup exclusion; storage is
+  controlled by the browser.
+
+`mediaBackupStatusProvider` exposes the `BackupExclusionResult` to the UI. The
+profile privacy card uses `mediaPrivacyNote` in
+`features/profile/privacy_note.dart`: it claims exclusion only when the result
+is confirmed (an iOS resource value or Android manifest rules). A failed,
+unsupported, or still-loading result says the app could not confirm the
+exclusion and the take may be included in device backup. T4.2's recording flow
+must read the same provider before presenting a take as private; decision
+[`0002`](decisions/0002-backup-exclusion-no-opt-in.md) records the no-opt-in V1
+choice and that gate.
+
+Quota enforcement, delete/export UI, retention, and recording itself arrive in
+T4.2 and later; this ticket provides storage, backup exclusion, and the status
+surface only.
 
 ## Progress and scheduling
 

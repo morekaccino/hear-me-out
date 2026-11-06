@@ -17,7 +17,7 @@
 	<key>CFBundleName</key>
 	<string>hear_me_out</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Hear Me Out listens to your guitar to check the note you played. Audio is analyzed live and never recorded or uploaded.</string>
+	<string>Hear Me Out listens to your guitar to give you feedback. Audio is analyzed on this device. When you record a take, the app asks iOS to exclude it from iCloud backup. If iOS cannot confirm that, the app says so and the take may be included in device backup. Nothing is uploaded.</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

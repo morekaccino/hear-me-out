@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and lower Auto Backup rules.
+
+  path_provider resolves getApplicationSupportDirectory() to filesDir on
+  Android, and mediaStoreProvider appends mediaDirectoryName ("media").
+  Excluding domain="file" path="media/" therefore covers filesDir/media and
+  keeps every recording out of Auto Backup.
+-->
+<full-backup-content>
+    <exclude domain="file" path="media/" />
+</full-backup-content>
