@@ -196,6 +196,70 @@ void main() {
       expect(result.performanceReady, isFalse);
     });
 
+    test('one missed note in an 8-note phrase is indeterminate', () {
+      final target = makeTargets([60, 62, 64, 65, 67, 69, 71, 72]);
+      final notes = simpleNotes([60, 62, 64, 65, 67, 69, 71, 72]);
+      final result = scorer.score(
+        samples: renderTake([
+          notes[0],
+          notes[1],
+          notes[2],
+          notes[3],
+          notes[5],
+          notes[6],
+          notes[7],
+        ]),
+        target: target,
+        bpm: 60,
+      );
+
+      expect(result.notes[4].outcome, AttemptOutcome.indeterminate);
+      expect(result.outcome, AttemptOutcome.indeterminate);
+      expect(result.complete, isFalse);
+      expect(result.performanceReady, isFalse);
+    });
+
+    test('one missed note in a 16-note phrase is indeterminate', () {
+      final pitches = [for (var index = 0; index < 16; index++) 60 + index];
+      final target = makeTargets(pitches);
+      final detectedNotes = <DetectedNote>[
+        for (var index = 0; index < 16; index++)
+          if (index != 7)
+            detected(target[index].midi, onset: target[index].onsetSeconds),
+      ];
+      final result = scorer.scoreDetections(
+        target: target,
+        detected: detectedNotes,
+        bpm: 60,
+      );
+
+      expect(result.notes[7].outcome, AttemptOutcome.indeterminate);
+      expect(result.outcome, AttemptOutcome.indeterminate);
+      expect(result.complete, isFalse);
+      expect(result.performanceReady, isFalse);
+    });
+
+    test('one low-confidence note in an 8-note phrase is indeterminate', () {
+      final target = makeTargets([60, 62, 64, 65, 67, 69, 71, 72]);
+      final result = scorer.scoreDetections(
+        target: target,
+        detected: [
+          for (var index = 0; index < 8; index++)
+            detected(
+              target[index].midi,
+              onset: target[index].onsetSeconds,
+              confidence: index == 3 ? 0.4 : 0.95,
+            ),
+        ],
+        bpm: 60,
+      );
+
+      expect(result.notes[3].outcome, AttemptOutcome.indeterminate);
+      expect(result.outcome, AttemptOutcome.indeterminate);
+      expect(result.complete, isFalse);
+      expect(result.performanceReady, isFalse);
+    });
+
     test('one extra note is an error', () {
       final target = makeTargets([64, 66, 67, 69]);
       final notes = simpleNotes([64, 66, 67, 69]);
@@ -451,6 +515,7 @@ void main() {
       expect(inTune.notes.every((note) => note.inTune), isTrue);
       expect(inTune.medianCents!.abs(), closeTo(20, 3));
       expect(inTune.intonationInTune, isTrue);
+      expect(inTune.performanceReady, isTrue);
 
       final outOfTune = scorer.score(
         samples: renderTake(simpleNotes([64, 66, 67, 69])
@@ -464,6 +529,26 @@ void main() {
       expect(outOfTune.notes.every((note) => note.inTune), isFalse);
       expect(outOfTune.medianCents!.abs(), closeTo(40, 3));
       expect(outOfTune.intonationInTune, isFalse);
+      expect(outOfTune.performanceReady, isFalse);
+    });
+
+    test('a 45-cent take is correct but not performance ready', () {
+      final target = makeTargets([64, 66, 67, 69]);
+      final result = scorer.score(
+        samples: renderTake(simpleNotes([64, 66, 67, 69])
+            .map((note) => TestNote(note.midi, note.onset,
+                duration: note.duration, cents: 45))
+            .toList()),
+        target: target,
+        bpm: 60,
+      );
+
+      expect(result.outcome, AttemptOutcome.correct);
+      expect(result.complete, isTrue);
+      expect(result.timingWithinTolerance, isTrue);
+      expect(result.medianCents!.abs(), closeTo(45, 3));
+      expect(result.intonationInTune, isFalse);
+      expect(result.performanceReady, isFalse);
     });
 
     test('a low-confidence detection is indeterminate', () {

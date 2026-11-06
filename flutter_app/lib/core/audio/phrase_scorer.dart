@@ -103,7 +103,8 @@ class PhraseResult {
   /// and no more than 20% indeterminate.
   final bool practicePass;
 
-  /// 100% determinate correct, timing acceptable, complete, no extras.
+  /// 100% determinate correct, timing acceptable, complete, no extras, and
+  /// median intonation within [PhraseScorer.intonationToleranceCents].
   final bool performanceReady;
 
   /// Confident detected notes that could not be aligned to a target.
@@ -423,10 +424,10 @@ class PhraseScorer {
     AttemptOutcome outcome;
     if (wrong > 0 || extraNotes > 0) {
       outcome = AttemptOutcome.incorrect;
-    } else if (determinate == 0 ||
-        indeterminateFraction > 0.20 ||
-        falseStart ||
-        earlyStop) {
+    } else if (!complete) {
+      // Any indeterminate note, false start, or early stop makes the take
+      // incomplete, and an incomplete take is never "correct". The 20%
+      // indeterminate limit below remains only as a practice-pass signal.
       outcome = AttemptOutcome.indeterminate;
     } else if (!timingWithinTolerance) {
       outcome = AttemptOutcome.incorrect;
@@ -445,6 +446,8 @@ class PhraseScorer {
         extraNotes == 0 &&
         determinate == target.length &&
         correct == target.length &&
+        medianCents != null &&
+        medianCents.abs() <= intonationToleranceCents &&
         timingWithinTolerance;
 
     return PhraseResult(
