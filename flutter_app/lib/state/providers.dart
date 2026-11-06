@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../core/audio/phrase_recorder.dart';
 import '../core/audio/pitch_source.dart';
 import '../core/media/backup_exclusion.dart';
 import '../core/media/media_store.dart';
@@ -15,6 +16,18 @@ typedef PitchSourceFactory = PitchSource Function();
 
 final pitchSourceFactoryProvider = Provider<PitchSourceFactory>(
   (ref) => RecordPitchSource.new,
+);
+
+/// Builds a phrase recorder. Tests inject a fake capture or fake recorder.
+///
+/// The phrase player owns at most one recorder at a time. Do not start one
+/// while a tuner or lesson [PitchSource] is live; the platform recorder is a
+/// single shared resource.
+typedef PhraseRecorderFactory = PhraseRecorder Function();
+
+final phraseRecorderFactoryProvider = Provider<PhraseRecorderFactory>(
+  (ref) =>
+      () => PhraseRecorder(capture: createPlatformPcmCapture()),
 );
 
 /// Time to ignore at the start of a mic exercise so the previous note's tail

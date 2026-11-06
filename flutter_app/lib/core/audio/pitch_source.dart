@@ -79,6 +79,14 @@ abstract class PcmCapture {
   Future<void> dispose();
 }
 
+/// Creates the platform PCM capture used by the pitch source and the phrase
+/// recorder.
+///
+/// Keeping one factory means both recording paths use the same request shape
+/// (48 kHz PCM16 mono with a 44.1 kHz fallback) and the same effective-format
+/// callback.
+PcmCapture createPlatformPcmCapture() => _RecordPcmCapture(AudioRecorder());
+
 class RecordPitchSource implements PitchSource {
   RecordPitchSource({PcmCapture Function()? captureFactory})
     : _captureFactory = captureFactory ?? _createRecordCapture;
@@ -118,8 +126,7 @@ class RecordPitchSource implements PitchSource {
 
   DateTime? _streamEpoch;
 
-  static PcmCapture _createRecordCapture() =>
-      _RecordPcmCapture(AudioRecorder());
+  static PcmCapture _createRecordCapture() => createPlatformPcmCapture();
 
   @override
   Stream<PitchFrame> get frames => _controller.stream;

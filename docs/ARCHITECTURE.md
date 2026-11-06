@@ -127,6 +127,63 @@ Tests live in `test/note_event_test.dart`, `test/phrase_test.dart`,
 `test/launch_pieces_test.dart`, and `test/media_store_test.dart`; fixtures are
 in `test/fixtures/score/`.
 
+## Phrase player (T2.5)
+
+The phrase player is built but gated. `features/phrase/phrase_loop_flag.dart`
+holds the single compile-time switch, `phraseLoopEnabled = false`.
+`phrasePlayerFor` returns null while it is false, and `HomeShell`, `PathScreen`,
+and `PracticeScreen` have no phrase entry. Decision 0001 is binding: the screen
+does not ship in navigation, and neither the screen nor this document claims
+that microphone phrase scoring is validated. The screen shows a preview/no-claim
+footer so a test build cannot be mistaken for released behavior.
+
+- `core/audio/phrase_prompt.dart` converts a `Phrase` into the fixed click grid
+  for `PhraseScorer`: sounding MIDI through `Guitar.soundingMidiForWritten`,
+  onset seconds from the target BPM and count-in, duration seconds, and
+  zero-based piece bars from `startBar`. Ties fold into one attack with a summed
+  duration because a tied continuation has no new pluck. Rests and pickup beats
+  keep the grid but do not become targets. `PhraseBackingSpec` is a small value
+  object; `core` stores no audio bytes. `previewSpec` is a synthesized
+  `SoundSpec` for the play button. The prompt never reads a clock.
+- `core/audio/phrase_verifier.dart` calls `PhraseScorer.score` with the
+  prompt's target notes, BPM, bar length, intonation tolerance, and count-in.
+  It returns the tri-state outcome plus note accuracy, timing, completeness,
+  worst bar, confidence, practice/performance flags, and exactly one correction.
+  Bar detail is withheld when the mean note confidence is below 0.70. A missing
+  or low-confidence note is an indeterminate retry, never "wrong". Incomplete
+  takes report `updatesProgress == false`.
+- `core/audio/phrase_recorder.dart` wraps the existing `PcmCapture` seam. It
+  requests 48 kHz mono PCM16, follows the effective format callback, resamples
+  to 22.05 kHz with `Pcm16StreamDecoder`, flushes on stop, ignores late bytes,
+  and disposes the capture once. It never starts a second capture while running.
+  `phraseRecorderFactoryProvider` in `state/providers.dart` is the injection
+  point; widgets never import `record`.
+- `core/audio/scored_take_gate.dart` is the scored-take gate. A take may update
+  phrase progress only when wired headphones are confirmed or a loopback
+  `CalibrationReport` has both `timingUsable` and `offsetVerified`. Otherwise
+  the screen records practice feedback, labels the take "Practice only", and
+  never calls `recordPhraseResult`.
+- `features/phrase/phrase_player_screen.dart` is a responsive `PageFrame`
+  surface at 390x844 and 1200 px. It shows the phrase title, level, tempo, bars,
+  a note strip with bar/beat labels, a synth preview, a visual count-in,
+  record/stop, status, the gate card, and one `FeedbackPanel` correction. It has
+  no hearts, XP, streak, gems, quests, or other game chrome. Retry clears the
+  result and re-arms the take.
+
+The prompt is intentionally not part of the sealed `Prompt` hierarchy. The
+lesson composer and lesson screen keep their existing behavior.
+`phrasePlayerForPhraseId` resolves a stable phrase id through T2.11's
+`PhraseObjectiveRegistry` in `content/pieces/phrase_objectives.dart`; there is
+no second registry. The player passes `pieceId` and `Phrase.contentVersion`
+into `recordPhraseResult`, so T2.11's versioned repertoire evidence is preserved.
+
+Tests live in `test/phrase_prompt_test.dart`, `test/phrase_verifier_test.dart`,
+`test/phrase_recorder_test.dart`, `test/scored_take_gate_test.dart`,
+`test/phrase_loop_flag_test.dart`, and `test/phrase_player_screen_test.dart`.
+The prompt and verifier tests load real arrangements through `parseScore`:
+`ode-to-joy.json` for the fixed grid, `londonderry-air.json` for rests and a
+two-beat pickup, and `amazing-grace.json` for a tie.
+
 ## Media storage
 
 Media is a separate storage domain from progress. `ProgressState` holds no
@@ -640,6 +697,12 @@ fresh profile; an unreadable document is quarantined first.
 | `test/retention_profile_test.dart` | Default-off switch, toggle, copy, erase, 390 px and 1200 px layouts |
 | `test/technique_test.dart` | Eight-stage coverage, 3/3 item counts, 60-second drills, demo scripts, pain warning |
 | `test/technique_screen_test.dart` | Practice entry, tuner teardown, session-only state, drill timer, 390 px/wide layout |
+| `test/phrase_prompt_test.dart` | Real corpus prompt conversion, onsets, bars, rests, pickup, ties, preview |
+| `test/phrase_verifier_test.dart` | Clean/wrong/missing/extra/timing takes, one correction, confidence gate, no progress on indeterminate |
+| `test/phrase_recorder_test.dart` | PCM collection, resampling, effective format, flush/stop, double start, dispose |
+| `test/scored_take_gate_test.dart` | Headphones, verified clock, calibration gate, practice-only default |
+| `test/phrase_loop_flag_test.dart` | Flag is off, gated entry returns null, no main-navigation entry |
+| `test/phrase_player_screen_test.dart` | 390x844 and 1200 px, play/count-in/record/stop/correction/retry, gate, calm copy |
 
 `test/support/fakes.dart` contains an in-memory store, controllable
 `FakePitchSource` / `FakePitchSourceFactory`, and `FakeSoundService`. Use

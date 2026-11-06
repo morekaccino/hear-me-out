@@ -321,7 +321,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 755 tests passing
+- `flutter test` - 820 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -337,6 +337,9 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 - 28 original Bright Pluck cues are bundled in `assets/audio/`; ear-training
   stimuli are synthesized locally as WAV bytes and the soundboard is available
   at `flutter_app/tool/soundboard.html`
+- The T2.5 phrase prompt, verifier, recorder, scored-take gate, and player
+  screen exist, but `phraseLoopEnabled` is false and the screen has no
+  main-navigation entry. No microphone-accuracy claim is validated.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.

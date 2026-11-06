@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/onboarding_choices.dart';
@@ -163,6 +164,100 @@ class FakePitchSourceFactory {
     created.add(source);
     return source;
   }
+}
+
+/// Feeds pre-recorded PCM16 chunks through the [PcmCapture] seam.
+///
+/// The chunks are emitted on a zero-duration timer after [startStream], so the
+/// phrase recorder has subscribed before any bytes arrive.
+class FakePcmCapture implements PcmCapture {
+  FakePcmCapture({
+    this.permission = true,
+    this.config,
+    List<Uint8List> chunks = const <Uint8List>[],
+  }) : chunks = List<Uint8List>.from(chunks);
+
+  bool permission;
+  PcmCaptureConfig? config;
+  List<Uint8List> chunks;
+
+  int permissionChecks = 0;
+  int startCalls = 0;
+  int stopCalls = 0;
+  int disposeCalls = 0;
+
+  void Function(PcmCaptureConfig config)? _onConfigChanged;
+  StreamController<Uint8List>? _controller;
+
+  @override
+  Future<bool> hasPermission() async {
+    permissionChecks++;
+    return permission;
+  }
+
+  @override
+  Future<void> setOnConfigChanged(
+    void Function(PcmCaptureConfig config)? callback,
+  ) async {
+    _onConfigChanged = callback;
+  }
+
+  @override
+  Future<Stream<Uint8List>> startStream({
+    required int sampleRate,
+    required int channels,
+  }) async {
+    startCalls++;
+    final controller = StreamController<Uint8List>(sync: true);
+    _controller = controller;
+    _onConfigChanged?.call(
+      config ?? PcmCaptureConfig(sampleRate: sampleRate, channels: channels),
+    );
+    final pending = List<Uint8List>.from(chunks);
+    Timer.run(() {
+      for (final chunk in pending) {
+        if (!controller.isClosed) controller.add(chunk);
+      }
+    });
+    return controller.stream;
+  }
+
+  void emit(Uint8List bytes) {
+    final controller = _controller;
+    if (controller != null && !controller.isClosed) controller.add(bytes);
+  }
+
+  @override
+  Future<void> stop() async {
+    stopCalls++;
+    final controller = _controller;
+    _controller = null;
+    if (controller != null && !controller.isClosed) {
+      // The platform recorder stops independently of stream teardown. Do not
+      // await close here: a pending subscription cancel can complete later.
+      unawaited(controller.close());
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls++;
+    final controller = _controller;
+    _controller = null;
+    if (controller != null && !controller.isClosed) {
+      unawaited(controller.close());
+    }
+  }
+}
+
+/// Encodes normalized mono samples as little-endian PCM16.
+Uint8List pcm16Bytes(List<double> samples) {
+  final buffer = ByteData(samples.length * 2);
+  for (var index = 0; index < samples.length; index++) {
+    final value = samples[index].clamp(-1.0, 1.0);
+    buffer.setInt16(index * 2, (value * 32767).round(), Endian.little);
+  }
+  return buffer.buffer.asUint8List();
 }
 
 class FakeSoundService implements SoundService {
