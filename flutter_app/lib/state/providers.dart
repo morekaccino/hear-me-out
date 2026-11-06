@@ -9,8 +9,13 @@ import '../core/audio/pitch_source.dart';
 import '../core/media/backup_exclusion.dart';
 import '../core/media/media_store.dart';
 import '../core/media/media_store_factory.dart';
+import '../core/media/recording_exporter_factory.dart';
+import '../core/media/recording_index_store.dart';
+import '../core/media/recording_service.dart';
+import '../core/storage/recording_index_store.dart';
 import '../shared/audio/audio_engine.dart';
 import '../shared/audio/sound_service.dart';
+import '../shared/audio/take_player.dart';
 
 typedef PitchSourceFactory = PitchSource Function();
 
@@ -128,6 +133,48 @@ Future<BackupExclusionResult> _excludeMediaDirectory(
     return BackupExclusionResult.failed(error);
   }
 }
+
+/// Absolute directory where explicit take exports are written on IO, or an
+/// empty string on web. The browser owns downloads on web.
+final exportsDirectoryProvider = FutureProvider<String>((ref) async {
+  if (kIsWeb) return '';
+  final supportDirectory = await getApplicationSupportDirectory();
+  return '${supportDirectory.path}/exports';
+});
+
+/// Persists the take manifest separately from `ProgressState`.
+final recordingIndexStoreProvider = Provider<RecordingIndexStore>(
+  (ref) => SharedPreferencesRecordingIndexStore(),
+);
+
+/// Builds the bounded local recording service.
+///
+/// The service never starts the microphone by itself. It is constructed only
+/// when the recordings screen or a test reads this provider.
+final recordingServiceProvider = FutureProvider<RecordingService>((ref) async {
+  final store = await ref.watch(mediaStoreProvider.future);
+  final exportsDirectory = await ref.watch(exportsDirectoryProvider.future);
+  final service = RecordingService(
+    store: store,
+    indexStore: ref.watch(recordingIndexStoreProvider),
+    exporter: createRecordingExporter(exportsDirectory: exportsDirectory),
+    clock: ref.watch(clockProvider),
+    recorderFactory: ref.watch(phraseRecorderFactoryProvider),
+  );
+  ref.onDispose(() {
+    unawaited(service.dispose());
+  });
+  return service;
+});
+
+/// Plays WAV takes from local storage. Overridden in widget tests.
+final takePlayerProvider = Provider<TakePlayer>((ref) {
+  final player = AudioPlayersTakePlayer();
+  ref.onDispose(() {
+    unawaited(player.dispose());
+  });
+  return player;
+});
 
 final soundServiceProvider = Provider<SoundService>((ref) {
   final service = AudioPlayersSoundService();

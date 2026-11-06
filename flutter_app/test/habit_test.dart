@@ -28,15 +28,9 @@ void main() {
       final state = ProgressState.fresh();
       final now = DateTime(2026, 11, 6, 12);
       state.recordPracticeSeconds(300, now);
-      state.recordPracticeSeconds(
-        120,
-        DateTime(2026, 11, 5, 12),
-      );
+      state.recordPracticeSeconds(120, DateTime(2026, 11, 5, 12));
       // Eight days ago is outside the window and must not count.
-      state.recordPracticeSeconds(
-        900,
-        DateTime(2026, 10, 29, 12),
-      );
+      state.recordPracticeSeconds(900, DateTime(2026, 10, 29, 12));
 
       expect(state.weeklyPracticeMinutes(now), 7);
       expect(state.weeklyPracticeSeconds(now), 420);
@@ -186,43 +180,53 @@ void main() {
   });
 
   group('Controller habit loop', () {
-    test('a lesson with many wrong answers finishes and stays repeatable', () async {
-      final store = MemoryProgressStore(
-        ProgressState.fresh(
-          settings: const AppSettings(
-            onboardingComplete: true,
-            answerMode: AnswerMode.name,
+    test(
+      'a lesson with many wrong answers finishes and stays repeatable',
+      () async {
+        final store = MemoryProgressStore(
+          ProgressState.fresh(
+            settings: const AppSettings(
+              onboardingComplete: true,
+              answerMode: AnswerMode.name,
+            ),
           ),
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [progressStoreProvider.overrideWithValue(store)],
-      );
-      addTearDown(container.dispose);
-      await container.read(appControllerProvider.future);
-      final notifier = container.read(appControllerProvider.notifier);
-      notifier.startLesson('c3u2l1', micAvailable: false);
+        );
+        final container = ProviderContainer(
+          overrides: [progressStoreProvider.overrideWithValue(store)],
+        );
+        addTearDown(container.dispose);
+        await container.read(appControllerProvider.future);
+        final notifier = container.read(appControllerProvider.notifier);
+        notifier.startLesson('c3u2l1', micAvailable: false);
 
-      var guard = 0;
-      while (container.read(appControllerProvider).requireValue.result == null &&
-          guard < 40) {
-        guard++;
-        await notifier.submitAnswer(correct: false);
-        await notifier.nextExercise();
-      }
+        var guard = 0;
+        while (container.read(appControllerProvider).requireValue.result ==
+                null &&
+            guard < 40) {
+          guard++;
+          await notifier.submitAnswer(correct: false);
+          await notifier.nextExercise();
+        }
 
-      final data = container.read(appControllerProvider).requireValue;
-      expect(data.result, isNotNull);
-      expect(data.result!.passed, isFalse);
-      expect(data.progress.isLessonCompleted('c3u2l1'), isFalse);
-      expect(data.progress.toJson().containsKey('hearts'), isFalse);
-      expect(data.progress.toJson().containsKey('streakFreezes'), isFalse);
-      expect(store.value!.toJson().containsKey('hearts'), isFalse);
+        final data = container.read(appControllerProvider).requireValue;
+        expect(data.result, isNotNull);
+        expect(data.result!.passed, isFalse);
+        expect(data.progress.isLessonCompleted('c3u2l1'), isFalse);
+        expect(data.progress.toJson().containsKey('hearts'), isFalse);
+        expect(data.progress.toJson().containsKey('streakFreezes'), isFalse);
+        expect(store.value!.toJson().containsKey('hearts'), isFalse);
 
-      notifier.startLesson('c3u2l1', micAvailable: false);
-      expect(container.read(appControllerProvider).requireValue.run, isNotNull);
-      expect(container.read(appControllerProvider).requireValue.run!.index, 0);
-    });
+        notifier.startLesson('c3u2l1', micAvailable: false);
+        expect(
+          container.read(appControllerProvider).requireValue.run,
+          isNotNull,
+        );
+        expect(
+          container.read(appControllerProvider).requireValue.run!.index,
+          0,
+        );
+      },
+    );
 
     test('weekly minutes come from measured session time', () async {
       var now = DateTime(2026, 11, 6, 12);
@@ -248,7 +252,8 @@ void main() {
       now = now.add(const Duration(minutes: 5));
 
       var guard = 0;
-      while (container.read(appControllerProvider).requireValue.result == null &&
+      while (container.read(appControllerProvider).requireValue.result ==
+              null &&
           guard < 40) {
         guard++;
         await notifier.submitAnswer(correct: true);
@@ -265,120 +270,122 @@ void main() {
       expect(store.value!.weeklyPracticeMinutes(now), 5);
     });
 
-    test('practice is always available and completion does not add a life', () async {
-      final store = MemoryProgressStore(
-        ProgressState.fresh(
-          settings: const AppSettings(
-            onboardingComplete: true,
-            answerMode: AnswerMode.name,
+    test(
+      'practice is always available and completion does not add a life',
+      () async {
+        final store = MemoryProgressStore(
+          ProgressState.fresh(
+            settings: const AppSettings(
+              onboardingComplete: true,
+              answerMode: AnswerMode.name,
+            ),
           ),
-        ),
-      );
-      final container = ProviderContainer(
-        overrides: [progressStoreProvider.overrideWithValue(store)],
-      );
-      addTearDown(container.dispose);
-      await container.read(appControllerProvider.future);
-      final notifier = container.read(appControllerProvider.notifier);
+        );
+        final container = ProviderContainer(
+          overrides: [progressStoreProvider.overrideWithValue(store)],
+        );
+        addTearDown(container.dispose);
+        await container.read(appControllerProvider.future);
+        final notifier = container.read(appControllerProvider.notifier);
 
-      notifier.startPractice(kind: 'all', micAvailable: false);
-      final run = container.read(appControllerProvider).requireValue.run!;
-      expect(run.isPractice, isTrue);
-      expect(run.exercises, isNotEmpty);
-      expect(
-        container.read(appControllerProvider).requireValue.progress.toJson()
-            .containsKey('hearts'),
-        isFalse,
-      );
-    });
+        notifier.startPractice(kind: 'all', micAvailable: false);
+        final run = container.read(appControllerProvider).requireValue.run!;
+        expect(run.isPractice, isTrue);
+        expect(run.exercises, isNotEmpty);
+        expect(
+          container
+              .read(appControllerProvider)
+              .requireValue
+              .progress
+              .toJson()
+              .containsKey('hearts'),
+          isFalse,
+        );
+      },
+    );
   });
 
   group('No heart or shop UI', () {
-    testWidgets('path, practice, profile, and quests contain no hearts or shop chrome', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
+    testWidgets(
+      'path, practice, profile, and quests contain no hearts or shop chrome',
+      (tester) async {
+        tester.view.physicalSize = const Size(390, 844);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
 
-      final store = MemoryProgressStore(
-        ProgressState.fresh(
-          settings: const AppSettings(
-            onboardingComplete: true,
-            answerMode: AnswerMode.name,
-          ),
-        ),
-      );
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            progressStoreProvider.overrideWithValue(store),
-            onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
-            audioEngineProvider.overrideWithValue(FakeAudioEngine()),
-            pitchSourceFactoryProvider.overrideWithValue(
-              FakePitchSourceFactory(permission: false).call,
+        final store = MemoryProgressStore(
+          ProgressState.fresh(
+            settings: const AppSettings(
+              onboardingComplete: true,
+              answerMode: AnswerMode.name,
             ),
-            soundServiceProvider.overrideWithValue(FakeSoundService()),
-          ],
-          child: const HearMeOutApp(),
-        ),
-      );
-      await tester.pumpAndSettle();
+          ),
+        );
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              progressStoreProvider.overrideWithValue(store),
+              onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
+              audioEngineProvider.overrideWithValue(FakeAudioEngine()),
+              pitchSourceFactoryProvider.overrideWithValue(
+                FakePitchSourceFactory(permission: false).call,
+              ),
+              soundServiceProvider.overrideWithValue(FakeSoundService()),
+            ],
+            child: const HearMeOutApp(),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      void expectNoEconomyStrings() {
-        expect(find.byIcon(Icons.favorite_rounded), findsNothing);
-        expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
-        expect(find.byIcon(Icons.diamond_rounded), findsNothing);
-        expect(find.byIcon(Icons.inventory_2_rounded), findsNothing);
-        expect(find.byIcon(Icons.storefront_rounded), findsNothing);
-        for (final word in <String>[
-          'heart',
-          'gem',
-          'chest',
-          'shop',
-          'double xp',
-        ]) {
-          expect(
-            find.textContaining(RegExp(word, caseSensitive: false)),
-            findsNothing,
-            reason: word,
-          );
+        void expectNoEconomyStrings() {
+          expect(find.byIcon(Icons.favorite_rounded), findsNothing);
+          expect(find.byIcon(Icons.favorite_border_rounded), findsNothing);
+          expect(find.byIcon(Icons.diamond_rounded), findsNothing);
+          expect(find.byIcon(Icons.inventory_2_rounded), findsNothing);
+          expect(find.byIcon(Icons.storefront_rounded), findsNothing);
+          for (final word in <String>[
+            'heart',
+            'gem',
+            'chest',
+            'shop',
+            'double xp',
+          ]) {
+            expect(
+              find.textContaining(RegExp(word, caseSensitive: false)),
+              findsNothing,
+              reason: word,
+            );
+          }
         }
-      }
 
-      expectNoEconomyStrings();
-      expect(find.text('Shop'), findsNothing);
-      expect(find.text('0 / 30 min this week'), findsOneWidget);
+        expectNoEconomyStrings();
+        expect(find.text('Shop'), findsNothing);
+        expect(find.text('0 / 30 min this week'), findsOneWidget);
 
-      await tester.tap(find.text('Practice'));
-      await tester.pumpAndSettle();
-      expectNoEconomyStrings();
-      expect(find.text('This week'), findsOneWidget);
+        await tester.tap(find.text('Practice'));
+        await tester.pumpAndSettle();
+        expectNoEconomyStrings();
+        expect(find.text('This week'), findsOneWidget);
 
-      await tester.tap(find.text('Quests'));
-      await tester.pumpAndSettle();
-      expectNoEconomyStrings();
-      expect(find.text('Play 3 phrases'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('Learn 4 bars'), 200);
-      expect(find.text('Record a take'), findsOneWidget);
-      expect(find.text('Learn 4 bars'), findsOneWidget);
-      expect(
-        find.text(
-          'Coming with recordings. Progress stays at zero until a '
-          'real take is saved.',
-        ),
-        findsOneWidget,
-      );
+        await tester.tap(find.text('Quests'));
+        await tester.pumpAndSettle();
+        expectNoEconomyStrings();
+        expect(find.text('Play 3 phrases'), findsOneWidget);
+        await tester.scrollUntilVisible(find.text('Learn 4 bars'), 200);
+        expect(find.text('Record a take'), findsOneWidget);
+        expect(find.text('Learn 4 bars'), findsOneWidget);
+        expect(find.textContaining('Coming with recordings'), findsNothing);
 
-      await tester.tap(find.text('Profile'));
-      await tester.pumpAndSettle();
-      expectNoEconomyStrings();
-      await tester.drag(find.byType(ListView).first, const Offset(0, -700));
-      await tester.pumpAndSettle();
-      expect(find.text('Weekly goal'), findsOneWidget);
-      expect(find.text('Practice streak'), findsOneWidget);
-    });
+        await tester.tap(find.text('Profile'));
+        await tester.pumpAndSettle();
+        expectNoEconomyStrings();
+        await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+        await tester.pumpAndSettle();
+        expect(find.text('Weekly goal'), findsOneWidget);
+        expect(find.text('Practice streak'), findsOneWidget);
+      },
+    );
 
     testWidgets('settings persist the weekly goal and opt-in streak', (
       tester,
@@ -477,7 +484,8 @@ void main() {
       );
 
       var guard = 0;
-      while (container.read(appControllerProvider).requireValue.result == null &&
+      while (container.read(appControllerProvider).requireValue.result ==
+              null &&
           guard < 40) {
         guard++;
         final run = container.read(appControllerProvider).requireValue.run!;

@@ -18,6 +18,7 @@ import '../../shared/widgets/tappable.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../lesson/lesson_screen.dart';
+import '../recordings/recordings_screen.dart';
 import '../technique/technique_screen.dart';
 
 class PracticeScreen extends ConsumerStatefulWidget {
@@ -36,6 +37,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
   bool _starting = false;
   bool _openingPractice = false;
   bool _openingTechnique = false;
+  bool _openingRecordings = false;
   int _micGeneration = 0;
   int _selectedString = 0;
 
@@ -143,6 +145,20 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
           .push(duoLessonRoute<void>((_) => const TechniqueScreen()));
     } finally {
       _openingTechnique = false;
+    }
+  }
+
+  Future<void> _openRecordings() async {
+    if (_openingRecordings) return;
+    _openingRecordings = true;
+    try {
+      // A recording owns the platform recorder, so the tuner must be off.
+      await _stopTuner();
+      if (!mounted) return;
+      await Navigator.of(context)
+          .push(duoLessonRoute<void>((_) => const RecordingsScreen()));
+    } finally {
+      _openingRecordings = false;
     }
   }
 
@@ -343,6 +359,19 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 title: 'Technique check',
                 subtitle: 'Posture, hands, and a 60-second drill',
                 onTap: _openTechnique,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Recordings',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              _PracticeRow(
+                icon: Icons.mic_rounded,
+                color: AppColors.purple,
+                title: 'Record a take',
+                subtitle: 'Record up to 60 seconds and listen back locally',
+                onTap: _openRecordings,
               ),
               const SizedBox(height: 16),
               Text(

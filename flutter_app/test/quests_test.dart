@@ -84,11 +84,11 @@ void main() {
       );
     });
 
-    test('the recording quest is honest while its producer is absent', () {
+    test('the recording quest is produced by a real saved take', () {
       final quest = questDefinitions.firstWhere((q) => q.kind == 'recordings');
       final state = ProgressState.fresh();
-      expect(recordingFlowAvailable, isFalse);
-      expect(quest.awaitingProducer, isTrue);
+      expect(recordingFlowAvailable, isTrue);
+      expect(quest.awaitingProducer, isFalse);
       expect(state.questProgress(quest), 0);
       expect(state.isQuestComplete(quest), isFalse);
     });
