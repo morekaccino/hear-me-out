@@ -12,6 +12,7 @@ import '../../core/storage/progress_store.dart';
 import '../../shared/audio/sound_service.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
+import '../../state/retention_controller.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
@@ -29,6 +30,7 @@ class ProfileScreen extends ConsumerWidget {
     }
     final progress = data.progress;
     final settings = progress.settings;
+    final retention = ref.watch(retentionControllerProvider).asData?.value;
     final notes =
         noteCatalog
             .where((note) => (progress.progressFor(note)?.attempts ?? 0) > 0)
@@ -377,6 +379,95 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 24),
+              const Text(
+                'Privacy',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              SectionCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _SettingRow(
+                      icon: Icons.science_rounded,
+                      label: 'Beta usage log',
+                      trailing: Switch.adaptive(
+                        key: const ValueKey('retention-opt-in-switch'),
+                        value: retention?.optIn ?? false,
+                        activeThumbColor: AppColors.green,
+                        onChanged: retention == null
+                            ? null
+                            : (value) {
+                                _play(
+                                  ref,
+                                  value ? Sfx.uiToggleOn : Sfx.uiToggleOff,
+                                );
+                                unawaited(
+                                  ref
+                                      .read(
+                                        retentionControllerProvider.notifier,
+                                      )
+                                      .setOptIn(value),
+                                );
+                              },
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 32, bottom: 10),
+                      child: Text(
+                        'Off by default. Stores only an event name, a UTC '
+                        'timestamp, and a random install id. No audio, no note '
+                        'names, no piece titles, no free text, no account. It '
+                        'stays on this device only and is never uploaded. '
+                        'Turning this off stops new events; Erase log deletes '
+                        'what is stored.\n\n'
+                        'Opt-in data is biased, so it is not an unbiased '
+                        'baseline. Use the hand-recruited beta cohort for the '
+                        'pilot.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.45,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '${retention?.eventCount ?? 0} events stored locally.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textLight,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Divider(),
+                    _SettingRow(
+                      icon: Icons.copy_rounded,
+                      label: 'Copy usage log',
+                      value: 'JSON',
+                      onTap: retention == null
+                          ? null
+                          : () => _copyUsageLog(context, ref, retention),
+                    ),
+                    const Divider(),
+                    _SettingRow(
+                      icon: Icons.delete_outline_rounded,
+                      label: 'Erase log',
+                      value: '',
+                      destructive: true,
+                      onTap: retention == null
+                          ? null
+                          : () => _confirmEraseLog(context, ref),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
               MediaPrivacyCard(
                 backup: ref.watch(mediaBackupStatusProvider),
               ),
@@ -512,6 +603,58 @@ class ProfileScreen extends ConsumerWidget {
     _play(ref, Sfx.copySuccess);
     await ref.read(appControllerProvider.notifier).replaceProgress(restored);
     if (context.mounted) _snack(context, 'Progress restored.');
+  }
+
+  Future<void> _copyUsageLog(
+    BuildContext context,
+    WidgetRef ref,
+    RetentionState retention,
+  ) async {
+    try {
+      await Clipboard.setData(ClipboardData(text: retention.log.exportJson()));
+    } catch (_) {
+      _play(ref, Sfx.errorSoft);
+      if (context.mounted) {
+        _snack(context, 'Could not copy the usage log to the clipboard.');
+      }
+      return;
+    }
+    _play(ref, Sfx.copySuccess);
+    if (!context.mounted) return;
+    _snack(context, 'Usage log copied to clipboard.');
+  }
+
+  Future<void> _confirmEraseLog(BuildContext context, WidgetRef ref) async {
+    _play(ref, Sfx.uiSelect);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Erase usage log?'),
+        content: const Text(
+          'This deletes every locally stored usage event. It cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _play(ref, Sfx.uiTapSecondary);
+              Navigator.pop(dialogContext, false);
+            },
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+            onPressed: () {
+              _play(ref, Sfx.uiLocked);
+              Navigator.pop(dialogContext, true);
+            },
+            child: const Text('Erase'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    await ref.read(retentionControllerProvider.notifier).erase();
+    if (context.mounted) _snack(context, 'Usage log erased.');
   }
 
   Future<void> _confirmReset(BuildContext context, WidgetRef ref) async {

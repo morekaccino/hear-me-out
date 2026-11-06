@@ -18,6 +18,7 @@ import '../../shared/widgets/progress_widgets.dart';
 import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
+import '../../state/retention_controller.dart';
 import 'onboarding_pieces.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -51,6 +52,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(
+      ref.read(retentionControllerProvider.notifier).recordOnboardingStart(),
+    );
   }
 
   @override

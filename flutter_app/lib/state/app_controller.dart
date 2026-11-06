@@ -10,8 +10,10 @@ import '../core/learning/prompt.dart';
 import '../core/learning/skill.dart';
 import '../core/music/curriculum.dart';
 import '../core/music/note.dart';
+import '../core/retention/retention_event.dart';
 import '../core/storage/progress_store.dart';
 import 'providers.dart';
+import 'retention_controller.dart';
 
 const Set<int> _streakMilestones = {7, 14, 30, 50, 100, 180, 365};
 
@@ -87,6 +89,9 @@ class AppController extends AsyncNotifier<AppData> {
     progress.refreshHearts(DateTime.now());
     progress.refreshDaily(DateTime.now());
     _applySoundSettings(progress.settings);
+    // Instrumentation is fire-and-forget: local storage must never delay the
+    // first frame or a lesson.
+    unawaited(ref.read(retentionControllerProvider.notifier).recordAppOpen());
     return AppData(progress: progress);
   }
 
@@ -104,12 +109,23 @@ class AppController extends AsyncNotifier<AppData> {
     }
   }
 
+  Future<void> _recordRetention(RetentionEventName name, {DateTime? at}) async {
+    try {
+      await ref.read(retentionControllerProvider.notifier).record(name, at: at);
+    } catch (_) {
+      // Instrumentation is best-effort and must never break a lesson.
+    }
+  }
+
   Future<void> completeOnboarding(AppSettings settings) async {
     final data = _data;
     data.progress.settings = settings.copyWith(onboardingComplete: true);
     _applySoundSettings(data.progress.settings);
     state = AsyncData(data.copyWith(progress: data.progress));
     await _save();
+    unawaited(
+      ref.read(retentionControllerProvider.notifier).recordOnboardingComplete(),
+    );
   }
 
   Future<void> updateSettings(AppSettings settings) async {
@@ -139,6 +155,7 @@ class AppController extends AsyncNotifier<AppData> {
     );
     run.lives = data.progress.hearts;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
+    unawaited(_recordRetention(RetentionEventName.sessionStart));
   }
 
   void startPractice({required String kind, required bool micAvailable}) {
@@ -173,6 +190,7 @@ class AppController extends AsyncNotifier<AppData> {
     );
     run.lives = data.progress.hearts;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
+    unawaited(_recordRetention(RetentionEventName.sessionStart));
   }
 
   /// Starts a 15-exercise test of the material before [sectionId]. Passing it
@@ -225,6 +243,7 @@ class AppController extends AsyncNotifier<AppData> {
     );
     run.lives = data.progress.hearts;
     state = AsyncData(data.copyWith(run: run, clearResult: true));
+    unawaited(_recordRetention(RetentionEventName.sessionStart));
   }
 
   /// Records a determinate answer. Use [submitOutcome] when the app cannot
@@ -319,6 +338,11 @@ class AppController extends AsyncNotifier<AppData> {
 
     state = AsyncData(data.copyWith(run: run));
     await _save();
+    if (prompt is NotePrompt) {
+      unawaited(
+        ref.read(retentionControllerProvider.notifier).recordFirstNote(at: now),
+      );
+    }
   }
 
   /// Clears the feedback for an indeterminate attempt without advancing or
@@ -481,6 +505,10 @@ class AppController extends AsyncNotifier<AppData> {
       data.copyWith(progress: data.progress, clearRun: true, result: result),
     );
     await _save();
+    unawaited(_recordRetention(RetentionEventName.sessionComplete, at: now));
+    unawaited(
+      ref.read(retentionControllerProvider.notifier).recordDailyActive(at: now),
+    );
   }
 
   void exitLesson() {

@@ -5,8 +5,11 @@ import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/onboarding_choices.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
+import 'package:hear_me_out/core/retention/retention_event.dart';
+import 'package:hear_me_out/core/retention/retention_log.dart';
 import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/core/storage/retention_store.dart';
 import 'package:hear_me_out/shared/audio/audio_engine.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
 
@@ -53,6 +56,36 @@ class FakeOnboardingStore implements OnboardingStore {
 
   @override
   Future<void> clear() async => value = null;
+}
+
+class MemoryRetentionStore implements RetentionStore {
+  MemoryRetentionStore({
+    bool optIn = false,
+    String installId = 'test-install',
+    List<RetentionEvent> events = const [],
+  }) : value = RetentionStoredData(
+         optIn: optIn,
+         log: RetentionLog(installId: installId, events: events),
+       );
+
+  RetentionStoredData value;
+  int saveCount = 0;
+  int clearCount = 0;
+
+  @override
+  Future<RetentionStoredData> load() async => value;
+
+  @override
+  Future<void> save(RetentionStoredData data) async {
+    value = data;
+    saveCount++;
+  }
+
+  @override
+  Future<void> clear() async {
+    value = RetentionStoredData(optIn: value.optIn, log: value.log.clear());
+    clearCount++;
+  }
 }
 
 class FakePitchSource implements PitchSource {
