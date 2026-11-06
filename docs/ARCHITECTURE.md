@@ -19,7 +19,7 @@ gamification, see [`DESIGN.md`](DESIGN.md).
 flutter_app/lib/
 ├── core/
 │   ├── music/       Note, guitar transposition, score models, curriculum
-│   ├── media/       MediaStore interface and in-memory test store
+│   ├── media/       MediaStore interface, file and IndexedDB stores, factory
 │   ├── learning/    Objectives, prompts, templates, composer, LessonRun
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
@@ -113,8 +113,8 @@ T4.1. The phrase UI remains unreachable from main navigation until T1.7 passes
   canonical document. Callers must call `Score.validate()` for musical rules.
 - `core/media/media_store.dart` — `MediaStore`, `MediaRef`, and
   `MemoryMediaStore`. Recordings live in media storage, never in
-  `ProgressState`. The interface is pure Dart; persistent mobile/web stores are
-  T4.1.
+  `ProgressState`. The interface is pure Dart; the persistent stores and the
+  platform factory are described under [Media storage](#media-storage).
 
 - `lib/content/pieces/launch_pieces.dart` — the locked 10-piece V1 launch list
   (5 Foundation, 5 Returner), their stage outcomes, and the legal questions.
@@ -125,6 +125,45 @@ Tests live in `test/note_event_test.dart`, `test/phrase_test.dart`,
 `test/score_test.dart`, `test/score_parser_test.dart`,
 `test/launch_pieces_test.dart`, and `test/media_store_test.dart`; fixtures are
 in `test/fixtures/score/`.
+
+## Media storage
+
+Media is a separate storage domain from progress. `ProgressState` holds no
+media bytes or refs, backups never contain recordings, and clearing progress
+does not delete media. `MediaStore` is the only contract the recording flow
+uses: `put`, `get`, `delete`, `list`, `usageBytes`, and `clear`.
+
+`MediaRef` carries the manifest for a take: id, mime type, byte length, creation
+time, and optional piece id, phrase id, duration, analysis score, and analysis
+version. The file index and IndexedDB records persist those optional fields when
+present; older records without them load as nulls. `put` validates the manifest
+on every store (non-blank piece/phrase ids, non-negative duration and analysis
+version, finite score) and throws `ArgumentError` naming the field, so a value
+accepted by `put` is always readable back.
+
+Platform selection lives behind a conditional export in
+`core/media/media_store_factory.dart`:
+
+- `media_store_factory_io.dart` builds `FileMediaStore`. The app resolves the
+  application support directory with `path_provider` and passes `<dir>/media`;
+  `core/` never imports the plugin. Bytes live in `objects/<id>.bin`, metadata
+  in `index.json`. Writes use a temporary file and rename, so a failed write
+  leaves the previous recording intact. Invalid ids, orphans, and index entries
+  whose file disappeared are handled explicitly.
+- `media_store_factory_web.dart` builds `WebMediaStore`, which uses IndexedDB
+  through `package:web` and `dart:js_interop`. Each record holds metadata plus
+  the bytes in one object store. A missing or blocked IndexedDB raises a clear
+  error; there is no silent memory fallback for real recordings.
+
+`mediaStoreProvider` in `state/providers.dart` chooses the platform store and
+is overridable in tests with `MemoryMediaStore`. It does not start a recorder.
+The VM test runner cannot exercise IndexedDB, so
+`test/web_media_store_test.dart` is browser-only and runs with
+`dart test -p chrome test/web_media_store_test.dart` (also part of CI).
+The IO directory is **not yet excluded from Android Auto Backup or iCloud**;
+T4.5 owns that work and T4.2 is blocked by T4.5, so recordings must not ship
+before it lands. Quota enforcement, delete/export UI, retention, and recording
+itself arrive in T4.2 and later; this ticket provides storage only.
 
 ## Progress and scheduling
 
@@ -421,6 +460,9 @@ fresh profile.
 | `test/score_test.dart` | Score validator rules, error codes, capo/bar bounds, ties |
 | `test/score_parser_test.dart` | Canonical score JSON, schema version, field paths, roundtrip |
 | `test/media_store_test.dart` | MediaStore put/get/delete/list/usage/clear, purity |
+| `test/file_media_store_test.dart` | File store atomic replace, ids, orphans, pruning, manifest, clock injection |
+| `test/media_store_factory_test.dart` | Platform factory, required directory, provider override |
+| `test/web_media_store_test.dart` | IndexedDB roundtrip, manifest, list/usage, delete/clear, malformed rows, closed state (Chrome) |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
 | `test/session_factory_test.dart` | All lessons, teach cards, choices, modes, ordering, pacing |

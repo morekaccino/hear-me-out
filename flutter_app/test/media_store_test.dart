@@ -11,14 +11,93 @@ void main() {
       final store = MemoryMediaStore(clock: () => now);
       final bytes = Uint8List.fromList([1, 2, 3, 4]);
 
-      final ref = await store.put(bytes, mimeType: 'audio/wav', id: 'take-1');
+      final ref = await store.put(
+        bytes,
+        mimeType: 'audio/wav',
+        id: 'take-1',
+        pieceId: 'ode-to-joy',
+        phraseId: 'bars-1-2',
+        durationMs: 4200,
+        score: 0.875,
+        analysisVersion: 3,
+      );
 
       expect(ref.id, 'take-1');
       expect(ref.mimeType, 'audio/wav');
       expect(ref.byteLength, 4);
       expect(ref.createdAt, now);
+      expect(ref.pieceId, 'ode-to-joy');
+      expect(ref.phraseId, 'bars-1-2');
+      expect(ref.durationMs, 4200);
+      expect(ref.score, 0.875);
+      expect(ref.analysisVersion, 3);
       expect(await store.get('take-1'), [1, 2, 3, 4]);
       expect(await store.usageBytes(), 4);
+    });
+
+    test('manifest fields are optional', () async {
+      final store = MemoryMediaStore();
+      final ref = await store.put(
+        Uint8List.fromList([1]),
+        mimeType: 'audio/wav',
+        id: 'take-1',
+      );
+
+      expect(ref.pieceId, isNull);
+      expect(ref.phraseId, isNull);
+      expect(ref.durationMs, isNull);
+      expect(ref.score, isNull);
+      expect(ref.analysisVersion, isNull);
+    });
+
+    test('invalid manifest values are rejected with the field name', () async {
+      final store = MemoryMediaStore();
+      final bytes = Uint8List.fromList([1]);
+      final cases = <String, Future<MediaRef> Function()>{
+        'pieceId': () => store.put(bytes, mimeType: 'audio/wav', pieceId: ''),
+        'phraseId': () =>
+            store.put(bytes, mimeType: 'audio/wav', phraseId: '  '),
+        'durationMs': () =>
+            store.put(bytes, mimeType: 'audio/wav', durationMs: -1),
+        'analysisVersion': () =>
+            store.put(bytes, mimeType: 'audio/wav', analysisVersion: -1),
+        'score': () =>
+            store.put(bytes, mimeType: 'audio/wav', score: double.nan),
+      };
+
+      for (final entry in cases.entries) {
+        await expectLater(
+          entry.value(),
+          throwsA(
+            isA<ArgumentError>().having(
+              (error) => error.name,
+              'name',
+              entry.key,
+            ),
+          ),
+          reason: entry.key,
+        );
+      }
+
+      expect(await store.list(), isEmpty);
+      expect(await store.usageBytes(), 0);
+    });
+
+    test('non-finite scores are rejected', () async {
+      final store = MemoryMediaStore();
+
+      for (final score in <double>[double.infinity, double.negativeInfinity]) {
+        await expectLater(
+          store.put(
+            Uint8List.fromList([1]),
+            mimeType: 'audio/wav',
+            score: score,
+          ),
+          throwsA(
+            isA<ArgumentError>().having((error) => error.name, 'name', 'score'),
+          ),
+        );
+      }
     });
 
     test('put replaces an existing id atomically', () async {
@@ -178,23 +257,26 @@ void main() {
       expect(await store.list(), isEmpty);
     });
 
-    test('MediaRef compares by value', () {
+    test('MediaRef compares by value, including manifest fields', () {
       final createdAt = DateTime.utc(2026, 1, 1);
-      final first = MediaRef(
+      MediaRef make({double? score}) => MediaRef(
         id: 'a',
         mimeType: 'audio/wav',
         byteLength: 2,
         createdAt: createdAt,
+        pieceId: 'piece',
+        phraseId: 'phrase',
+        durationMs: 1000,
+        score: score,
+        analysisVersion: 1,
       );
-      final second = MediaRef(
-        id: 'a',
-        mimeType: 'audio/wav',
-        byteLength: 2,
-        createdAt: createdAt,
-      );
+
+      final first = make(score: 0.5);
+      final second = make(score: 0.5);
 
       expect(first, second);
       expect(first.hashCode, second.hashCode);
+      expect(first, isNot(make(score: 0.75)));
     });
   });
 
