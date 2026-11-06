@@ -162,6 +162,9 @@ class NoteSegmenter {
 
     final duration = _durationFor(samples, onset, next);
     if (estimates.isEmpty) {
+      // A weak unpitched thump is a knock, not a note. Do not let it enter
+      // alignment and shadow the real string attack that follows.
+      if (onset.strength < 0.3) return null;
       return DetectedNote(
         startSeconds: onset.timeSeconds,
         durationSeconds: duration,
@@ -206,11 +209,22 @@ class NoteSegmenter {
       estimates.map((estimate) => estimate.clarity).toList()..sort(),
     );
     final frameFactor = estimates.length >= 2 ? 1.0 : 0.75;
-    final confidence = (clarity *
+    var confidence = (clarity *
             (0.6 + 0.4 * agreement) *
             frameFactor *
             confidenceMultiplier)
         .clamp(0.0, 1.0);
+    // A standard guitar sounds between E2 (40) and E6 (88). Anything outside
+    // that is unpitched evidence, not a note.
+    if (midi < 40 || midi > 88) {
+      confidence = 0;
+    }
+    // A weak attack that also produces a dubious pitch is a knock or thump,
+    // not a note. Dropping it keeps it from shadowing the real string attack.
+    if (onset.strength < 0.3) {
+      confidence *= 0.5;
+      if (confidence < DetectedNote.determinateConfidence) return null;
+    }
 
     return DetectedNote(
       startSeconds: onset.timeSeconds,

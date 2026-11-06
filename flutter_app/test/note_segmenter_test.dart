@@ -137,6 +137,22 @@ void main() {
       expect(detected.first.confidence, lessThan(0.6));
     });
 
+    test('a weak body thump is not emitted as a note', () {
+      final samples = silentTake(22050, 2);
+      addTone(
+        samples,
+        22050,
+        startSeconds: 0.5,
+        durationSeconds: 0.3,
+        midi: 35,
+        amplitude: 0.6,
+        harmonics: const [1.0],
+        attackSeconds: 0.002,
+        decaySeconds: 0.08,
+      );
+      expect(detectNotes(samples), isEmpty);
+    });
+
     test('successive onsets produce separate notes', () {
       final samples = silentTake(22050, 2.2);
       for (var index = 0; index < 3; index++) {

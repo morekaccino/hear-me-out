@@ -90,7 +90,7 @@ class OnsetDetector {
     );
     final rmsByFrame = Float64List(frameCount);
     final lowRatioByFrame = Float64List(frameCount);
-    final peakFrequencyByFrame = Float64List(frameCount);
+    final centroidByFrame = Float64List(frameCount);
 
     for (var frame = 0; frame < frameCount; frame++) {
       final start = frame * hopSize;
@@ -107,27 +107,26 @@ class OnsetDetector {
       final spectrum = logSpectra[frame];
       var totalEnergy = 0.0;
       var lowEnergy = 0.0;
-      var peakMagnitude = 0.0;
-      var peakBin = 0;
+      var magnitudeSum = 0.0;
+      var weightedSum = 0.0;
       for (var bin = 0; bin < binCount; bin++) {
         final magnitude = math.sqrt(
           real[bin] * real[bin] + imaginary[bin] * imaginary[bin],
         );
         final energy = magnitude * magnitude;
+        final frequency = bin * sampleRate / frameSize;
         totalEnergy += energy;
-        if (bin * sampleRate / frameSize < 120) {
+        magnitudeSum += magnitude;
+        weightedSum += magnitude * frequency;
+        if (frequency < 120) {
           lowEnergy += energy;
-        }
-        if (magnitude > peakMagnitude) {
-          peakMagnitude = magnitude;
-          peakBin = bin;
         }
         // A fixed logarithmic scale keeps note releases (where every
         // magnitude falls) at a low flux while preserving quiet attacks.
         spectrum[bin] = math.log(1 + 100 * magnitude);
       }
       lowRatioByFrame[frame] = totalEnergy > 0 ? lowEnergy / totalEnergy : 0;
-      peakFrequencyByFrame[frame] = peakBin * sampleRate / frameSize;
+      centroidByFrame[frame] = magnitudeSum > 0 ? weightedSum / magnitudeSum : 0;
     }
 
     final flux = Float64List(frameCount);
@@ -150,6 +149,10 @@ class OnsetDetector {
     final lookbackFrames = math.max(
       1,
       (0.04 * sampleRate / hopSize).round(),
+    );
+    final bodyLookaheadFrames = math.max(
+      1,
+      (0.045 * sampleRate / hopSize).round(),
     );
 
     final peaks = <int>[];
@@ -195,14 +198,19 @@ class OnsetDetector {
       final denominator = math.max(localMax - threshold[frame], 1e-6);
       var strength = ((flux[frame] - threshold[frame]) / denominator)
           .clamp(0.0, 1.0);
-      // A body thump is a low-frequency burst below the guitar's range.
-      // Keep the event but make it weak so the note segmenter rejects it as
-      // unpitched instead of scoring a phantom note.
-      final peakFrequency = peakFrequencyByFrame[frame];
-      final lowRatio = lowRatioByFrame[frame];
-      if (lowRatio > 0.6 && peakFrequency < 70) {
-        strength *= 0.2;
-      } else if (lowRatio > 0.9 && peakFrequency < 120) {
+      // A body thump is a low-frequency burst whose spectral centroid sits
+      // below the guitar's range. Look a few frames past the attack so the
+      // broadband pick transient does not mask the low-frequency body. Keeping
+      // the event weak lets the segmenter reject it as unpitched instead of
+      // scoring a phantom note. A normal low E2 (82 Hz plus harmonics) keeps
+      // its centroid above 85 Hz.
+      final bodyFrame = math.min(
+        frame + bodyLookaheadFrames,
+        frameCount - 1,
+      );
+      final lowRatio = lowRatioByFrame[bodyFrame];
+      final centroid = centroidByFrame[bodyFrame];
+      if (lowRatio > 0.8 && centroid < 85) {
         strength *= 0.2;
       }
       final sampleIndex = _refineAttack(
