@@ -28,6 +28,12 @@ const List<String> deviceClasses = [
   'tablet',
   'laptop-web',
 ];
+const Map<String, List<String>> deviceClassPlatforms = {
+  'mid-range-android': ['android'],
+  'iphone': ['ios'],
+  'tablet': ['ios', 'android'],
+  'laptop-web': ['web'],
+};
 const List<String> takeStatuses = ['accepted', 'failed', 'excluded'];
 const List<int> phraseNoteCounts = [4, 8, 16];
 
@@ -243,12 +249,55 @@ void crossCheckLabelAndManifest(
     }
   }
 
+  final players = manifest['players'];
+  final playerId = entry['playerId'];
+  if (players is List && playerId is String) {
+    Map<String, Object?>? playerEntry;
+    for (final item in players) {
+      final map = _objectMap(item);
+      if (map != null && map['playerId'] == playerId) {
+        playerEntry = map;
+        break;
+      }
+    }
+    final registeredGuitar = playerEntry?['guitar'];
+    final labelGuitar = label['guitar'];
+    if (registeredGuitar is String &&
+        labelGuitar is String &&
+        registeredGuitar != 'both' &&
+        registeredGuitar != labelGuitar) {
+      labelReport.addError(
+        r'$.guitar',
+        'label says "$labelGuitar" but player $playerId is registered as '
+            '"$registeredGuitar"',
+      );
+    }
+  }
+
   final status = entry['status'];
   if (status is String && status != 'accepted') {
     labelReport.addWarning(
       r'$.takeId',
       'manifest status is "$status"; this take is not part of the scored corpus',
     );
+  }
+  if (status == 'failed') {
+    final expert = _objectMap(label['expert']);
+    if (expert != null) {
+      if (expert['outcome'] != null && expert['outcome'] != 'indeterminate') {
+        labelReport.addError(
+          r'$.expert.outcome',
+          'manifest status is "failed"; failed takes must be indeterminate',
+        );
+      }
+      if (expert['completeness'] != null &&
+          expert['completeness'] != 'incomplete') {
+        labelReport.addError(
+          r'$.expert.completeness',
+          'manifest status is "failed"; failed takes must be incomplete',
+        );
+      }
+    }
   }
 }
 
@@ -341,16 +390,21 @@ void _validateLabelInto(ValidationReport report, Map<String, Object?> json) {
       condition != null) {
     final expectedPrefix = '$playerId-$device-$condition-';
     if (!takeId.startsWith(expectedPrefix)) {
-      report.addWarning(
+      report.addError(
         r'$.takeId',
-        'does not start with "$expectedPrefix"; use '
-            '<playerId>-<device>-<condition>-<NNN> so files sort by take',
+        'must start with "$expectedPrefix"; take ids are '
+            '<playerId>-<device>-<condition>-<NNN>',
       );
     }
   }
 
-  _validateTarget(report, json, sampleRate, phraseNoteCount);
-  _validateExpert(report, json);
+  final hasIndeterminateNote = _validateTarget(
+    report,
+    json,
+    sampleRate,
+    phraseNoteCount,
+  );
+  _validateExpert(report, json, hasIndeterminateNote: hasIndeterminateNote);
   _validateConsent(report, json);
 
   final notes = json['notes'];
@@ -359,23 +413,25 @@ void _validateLabelInto(ValidationReport report, Map<String, Object?> json) {
   }
 }
 
-void _validateTarget(
+bool _validateTarget(
   ValidationReport report,
   Map<String, Object?> json,
   int? sampleRate,
   int? phraseNoteCount,
 ) {
   final targetValue = _required(report, json, 'target', _root);
-  if (targetValue == null) return;
+  if (targetValue == null) return false;
   if (targetValue is! List) {
     report.addError(r'$.target', 'must be a list of note events');
-    return;
+    return false;
   }
   if (targetValue.isEmpty) {
     report.addError(r'$.target', 'must contain at least one note event');
-    return;
+    return false;
   }
 
+  var hasIndeterminateNote = false;
+  var lowConfidenceCount = 0;
   final timedEvents = <_TimedEvent>[];
   for (var i = 0; i < targetValue.length; i++) {
     final path = '\$.target[$i]';
@@ -448,6 +504,8 @@ void _validateTarget(
       max: 1,
     );
     if (confidence != null && confidence < 0.6) {
+      hasIndeterminateNote = true;
+      lowConfidenceCount++;
       report.addWarning(
         '$path.confidence',
         'below 0.6; this note is indeterminate, so the take cannot pass',
@@ -539,9 +597,21 @@ void _validateTarget(
       'is $phraseNoteCount but target has ${targetValue.length} events',
     );
   }
+  if (lowConfidenceCount > targetValue.length * 0.2) {
+    report.addWarning(
+      r'$.target',
+      'more than 20% of target notes are below 0.6 confidence; the take is '
+          'unusable and must be retried',
+    );
+  }
+  return hasIndeterminateNote;
 }
 
-void _validateExpert(ValidationReport report, Map<String, Object?> json) {
+void _validateExpert(
+  ValidationReport report,
+  Map<String, Object?> json, {
+  required bool hasIndeterminateNote,
+}) {
   final expertValue = _required(report, json, 'expert', _root);
   if (expertValue == null) return;
   final expert = _objectMap(expertValue);
@@ -576,6 +646,23 @@ void _validateExpert(ValidationReport report, Map<String, Object?> json) {
       r'$.expert.reviewedBy',
       'must differ from labeler; every take needs an independent review',
     );
+  }
+
+  if (hasIndeterminateNote) {
+    if (completeness != null && completeness != 'incomplete') {
+      report.addError(
+        r'$.expert.completeness',
+        'must be incomplete because at least one target note has confidence '
+            'below 0.6',
+      );
+    }
+    if (outcome != null && outcome != 'indeterminate') {
+      report.addError(
+        r'$.expert.outcome',
+        'must be indeterminate because at least one target note has confidence '
+            'below 0.6',
+      );
+    }
   }
 
   if (outcome == 'correct') {
@@ -686,7 +773,13 @@ void _validateManifestInto(ValidationReport report, Map<String, Object?> json) {
   var nearBeginnerCount = 0;
   for (final player in players.values) {
     final level = player['playingLevel'];
-    if (level is int) playerLevels.add(level);
+    if (level is int) {
+      playerLevels.add(level);
+    } else if (level is double &&
+        level.isFinite &&
+        level == level.roundToDouble()) {
+      playerLevels.add(level.toInt());
+    }
     final guitar = player['guitar'];
     if (guitar == 'nylon' || guitar == 'steel') {
       playerGuitars.add(guitar as String);
@@ -875,8 +968,26 @@ Map<String, Map<String, Object?>> _validateDevices(
       }
     }
 
-    _readEnum(report, device, 'platform', path, platforms);
-    _readEnum(report, device, 'deviceClass', path, deviceClasses);
+    final platform = _readEnum(report, device, 'platform', path, platforms);
+    final deviceClass = _readEnum(
+      report,
+      device,
+      'deviceClass',
+      path,
+      deviceClasses,
+    );
+    final allowedPlatforms = deviceClass == null
+        ? null
+        : deviceClassPlatforms[deviceClass];
+    if (platform != null &&
+        allowedPlatforms != null &&
+        !allowedPlatforms.contains(platform)) {
+      report.addError(
+        '$path.platform',
+        'deviceClass "$deviceClass" requires platform '
+            '${allowedPlatforms.join(' or ')}; got "$platform"',
+      );
+    }
   }
   return result;
 }
@@ -971,16 +1082,24 @@ List<Map<String, Object?>> _validateManifestTakes(
         playerId != null &&
         device != null &&
         condition != null) {
+      final expectedPrefix = '$playerId-$device-$condition-';
+      if (!takeId.startsWith(expectedPrefix)) {
+        report.addError(
+          '$path.takeId',
+          'must start with "$expectedPrefix"; take ids are '
+              '<playerId>-<device>-<condition>-<NNN>',
+        );
+      }
       final expectedLabel = '$playerId/$device/$condition/$takeId.json';
       if (labelFile != null && labelFile != expectedLabel) {
-        report.addWarning(
+        report.addError(
           '$path.labelFile',
           'does not match the folder layout; expected "$expectedLabel"',
         );
       }
       final expectedAudio = '$playerId/$device/$condition/$takeId.wav';
       if (audioFile != null && audioFile != expectedAudio) {
-        report.addWarning(
+        report.addError(
           '$path.audioFile',
           'does not match the folder layout; expected "$expectedAudio"',
         );
@@ -1081,11 +1200,17 @@ Object? _required(
   String key,
   String path,
 ) {
+  final field = _fieldPath(path, key);
   if (!map.containsKey(key)) {
-    report.addError(_fieldPath(path, key), 'missing required field');
+    report.addError(field, 'missing required field');
     return null;
   }
-  return map[key];
+  final value = map[key];
+  if (value == null) {
+    report.addError(field, 'must not be null');
+    return null;
+  }
+  return value;
 }
 
 String? _readString(

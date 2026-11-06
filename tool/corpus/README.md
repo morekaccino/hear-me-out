@@ -73,10 +73,13 @@ warnings and errors, are not mixed into that output.
 
 Label:
 
-- required fields, no unknown fields, `schemaVersion = 1`;
+- required fields are present and not JSON `null`; no unknown fields;
+  `schemaVersion = 1`;
 - enums for `platform`, `condition`, `guitar`, `expert.outcome`, and
   `expert.completeness`;
 - `takeId`, `playerId`, and `device` slug forms;
+- `takeId` starts with `<playerId>-<device>-<condition>-`; a mismatch is an
+  error;
 - `sampleRate` 8000–192000, `channels` 1–2, `tempoBpm` 60–90;
 - `phraseNoteCount` is 4, 8, or 16 and equals the target length;
 - target indices are contiguous and in performance order;
@@ -87,6 +90,8 @@ Label:
   0–1;
 - `onsetSeconds` agrees with `onsetSample / sampleRate`;
 - no overlapping monophonic events;
+- any target note with confidence < 0.6 forces `completeness = "incomplete"`
+  and `outcome = "indeterminate"`;
 - `expert.outcome = correct` requires complete timing and accuracy ≥0.85;
 - incomplete takes cannot be labelled `incorrect`;
 - `labeler` and `reviewedBy` are different;
@@ -94,17 +99,24 @@ Label:
 
 Manifest:
 
-- required fields, no unknown fields, `schemaVersion = 1`;
+- required fields are present and not JSON `null`; no unknown fields;
+  `schemaVersion = 1`;
 - player, device, and take references;
 - unique player, device, and take ids;
-- device/platform agreement;
-- relative `.json`/`.wav` paths with no `..`, absolute paths, or backslashes;
+- device class/platform agreement (`iphone` = `ios`, `laptop-web` = `web`,
+  `mid-range-android` = `android`, `tablet` = `ios` or `android`);
+- `takeId` starts with `<playerId>-<device>-<condition>-`;
+- `.json`/`.wav` paths exactly match
+  `<playerId>/<device>/<condition>/<takeId>.<ext>`, are relative, use forward
+  slashes, and contain no `..`;
 - warnings for a corpus that is not yet at the required player mix, device
   coverage, or 20 accepted takes per device/condition cell.
 
 When a label and manifest are passed together, the label's `takeId` must appear
-in the manifest, and `playerId`, `device`, `platform`, and `condition` must
-agree.
+in the manifest, and `playerId`, `device`, `platform`, `condition`, and `guitar`
+must agree. The `guitar` check accepts either instrument when the player is
+registered as `both`. A manifest status of `failed` requires the label to be
+`indeterminate` and `incomplete`.
 
 ## Tests
 
@@ -118,17 +130,23 @@ dart run test/corpus_label_test.dart
 It exits non-zero if any assertion fails. The test covers:
 
 - the valid and invalid fixtures;
+- null top-level and nested fields, including manifest collections and
+  `schemaVersion`;
 - missing fields, unknown fields, unsupported schema version;
 - overlaps, non-contiguous indices, phrase-count mismatch;
 - wrong written/sounding pairs, unknown note ids, bad string/fret combinations;
 - NaN/infinite times and sample/second mismatches;
+- low-confidence notes forcing `incomplete`/`indeterminate`;
 - incomplete/incorrect outcome consistency, review independence;
+- `takeId` prefixes and folder-layout paths;
+- device class/platform agreement and player-guitar agreement;
 - manifest references, paths, and label/manifest agreement;
 - CLI `--json`, `--help`, exit codes, and clean JSON output.
 
 `flutter test` does not discover this root-level test because it is outside
-`flutter_app/`. Run it with the command above; `flutter test` remains the
-regression check for the Flutter app.
+`flutter_app/`. The CI workflow runs it explicitly with
+`dart run test/corpus_label_test.dart`; `flutter test` remains the regression
+check for the Flutter app.
 
 ## Fixtures
 

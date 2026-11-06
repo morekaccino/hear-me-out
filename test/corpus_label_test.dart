@@ -32,6 +32,147 @@ void main() {
     _expect(report.warnings.isEmpty, 'expected no warnings');
   });
 
+  _test('null top-level field is rejected', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    label['takeId'] = null;
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.takeId', 'must not be null'),
+      'expected a null error at \$.takeId, got ${report.errors}',
+    );
+  });
+
+  _test('null target object is rejected', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    label['target'] = null;
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.target', 'must not be null'),
+      'expected a null error at \$.target, got ${report.errors}',
+    );
+  });
+
+  _test('null nested target field is rejected', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final target = label['target'] as List<Object?>;
+    (target[0] as Map<String, Object?>)['writtenNote'] = null;
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.target[0].writtenNote', 'must not be null'),
+      'expected a nested null error, got ${report.errors}',
+    );
+  });
+
+  _test('null nested expert field is rejected', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final expert = label['expert'] as Map<String, Object?>;
+    expert['outcome'] = null;
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.expert.outcome', 'must not be null'),
+      'expected a nested null error, got ${report.errors}',
+    );
+  });
+
+  _test('null nested consent field is rejected', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final consent = label['consent'] as Map<String, Object?>;
+    consent['audioCapture'] = null;
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.consent.audioCapture', 'must not be null'),
+      'expected a nested null error, got ${report.errors}',
+    );
+  });
+
+  _test('null manifest collections and schemaVersion are rejected', () {
+    for (final field in const [
+      'schemaVersion',
+      'players',
+      'devices',
+      'takes',
+    ]) {
+      final copy = _copy(manifest) as Map<String, Object?>;
+      copy[field] = null;
+      final report = validateManifest(copy);
+      _expect(
+        _hasError(report, '\$.$field', 'must not be null'),
+        'expected a null error at \$.$field, got ${report.errors}',
+      );
+    }
+  });
+
+  _test('low confidence cannot be correct and complete', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final target = label['target'] as List<Object?>;
+    (target[2] as Map<String, Object?>)['confidence'] = 0.4;
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.expert.outcome', 'must be indeterminate'),
+      'expected the outcome to be forced indeterminate, got ${report.errors}',
+    );
+    _expect(
+      _hasError(report, r'$.expert.completeness', 'must be incomplete'),
+      'expected completeness to be forced incomplete, got ${report.errors}',
+    );
+    _expect(!report.isValid, 'expected the label to be invalid');
+  });
+
+  _test('low confidence is valid as indeterminate and incomplete', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final target = label['target'] as List<Object?>;
+    (target[2] as Map<String, Object?>)['confidence'] = 0.4;
+    final expert = label['expert'] as Map<String, Object?>;
+    expert['outcome'] = 'indeterminate';
+    expert['completeness'] = 'incomplete';
+    expert['noteAccuracy'] = 0.875;
+    final report = validateLabel(label);
+    _expect(
+      report.isValid,
+      'expected a valid indeterminate take, got ${report.errors}',
+    );
+    _expect(report.warnings.isNotEmpty, 'expected the confidence warning');
+  });
+
+  _test('more than 20% low confidence warns the take is unusable', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final target = label['target'] as List<Object?>;
+    (target[2] as Map<String, Object?>)['confidence'] = 0.4;
+    (target[3] as Map<String, Object?>)['confidence'] = 0.4;
+    final expert = label['expert'] as Map<String, Object?>;
+    expert['outcome'] = 'indeterminate';
+    expert['completeness'] = 'incomplete';
+    expert['noteAccuracy'] = 0.75;
+    final report = validateLabel(label);
+    _expect(
+      report.warnings.any(
+        (warning) => warning.message.contains('more than 20%'),
+      ),
+      'expected an unusable-take warning, got ${report.warnings}',
+    );
+  });
+
+  _test('confidence exactly 0.6 is determinate', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    final target = label['target'] as List<Object?>;
+    (target[2] as Map<String, Object?>)['confidence'] = 0.6;
+    final report = validateLabel(label);
+    _expect(
+      report.isValid,
+      'expected 0.6 to be determinate, got ${report.errors}',
+    );
+  });
+
+  _test('takeId must match player/device/condition prefix', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    label['takeId'] = 'p01-iphone-13-quiet-001';
+    final report = validateLabel(label);
+    _expect(
+      _hasError(report, r'$.takeId', 'must start with'),
+      'expected a takeId prefix error, got ${report.errors}',
+    );
+  });
+
   _test('missing required field is rejected', () {
     final label = _copy(valid) as Map<String, Object?>;
     label.remove('tempoBpm');
@@ -254,6 +395,112 @@ void main() {
     _expect(
       report.warnings.isNotEmpty,
       'fixture should warn about corpus size',
+    );
+  });
+
+  _test('manifest takeId must match player/device/condition prefix', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final takes = copy['takes'] as List<Object?>;
+    (takes[0] as Map<String, Object?>)['takeId'] = 'p01-iphone-13-quiet-001';
+    final report = validateManifest(copy);
+    _expect(
+      _hasError(report, r'$.takes[0].takeId', 'must start with'),
+      'expected a manifest takeId prefix error, got ${report.errors}',
+    );
+  });
+
+  _test('manifest file paths must match the folder layout', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final takes = copy['takes'] as List<Object?>;
+    (takes[0] as Map<String, Object?>)['labelFile'] =
+        'p01/pixel-6a/quiet/other.json';
+    final report = validateManifest(copy);
+    _expect(
+      _hasError(report, r'$.takes[0].labelFile', 'folder layout'),
+      'expected a folder-layout error, got ${report.errors}',
+    );
+  });
+
+  _test('device class must be compatible with platform', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final devices = copy['devices'] as List<Object?>;
+    (devices[0] as Map<String, Object?>)['deviceClass'] = 'iphone';
+    final report = validateManifest(copy);
+    _expect(
+      _hasError(report, r'$.devices[0].platform', 'requires platform'),
+      'expected a device-class/platform error, got ${report.errors}',
+    );
+  });
+
+  _test('tablet may use android or ios', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final devices = copy['devices'] as List<Object?>;
+    (devices[0] as Map<String, Object?>)['deviceClass'] = 'tablet';
+    final report = validateManifest(copy);
+    _expect(
+      report.isValid,
+      'expected a tablet/android manifest to be valid, got ${report.errors}',
+    );
+  });
+
+  _test('label guitar must match the player registration', () {
+    final label = _copy(valid) as Map<String, Object?>;
+    label['guitar'] = 'steel';
+    final report = validateLabel(label);
+    crossCheckLabelAndManifest(label, manifest, report);
+    _expect(
+      _hasError(report, r'$.guitar', 'registered as'),
+      'expected a guitar mismatch, got ${report.errors}',
+    );
+  });
+
+  _test('a player registered as both accepts either guitar', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final players = copy['players'] as List<Object?>;
+    (players[0] as Map<String, Object?>)['guitar'] = 'both';
+    final label = _copy(valid) as Map<String, Object?>;
+    label['guitar'] = 'steel';
+    final report = validateLabel(label);
+    crossCheckLabelAndManifest(label, copy, report);
+    _expect(
+      !report.errors.any((error) => error.path == r'$.guitar'),
+      'expected both to accept steel, got ${report.errors}',
+    );
+  });
+
+  _test('failed manifest status forces indeterminate and incomplete', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final takes = copy['takes'] as List<Object?>;
+    (takes[0] as Map<String, Object?>)['status'] = 'failed';
+    final report = validateLabel(valid);
+    crossCheckLabelAndManifest(valid, copy, report);
+    _expect(
+      _hasError(report, r'$.expert.outcome', 'must be indeterminate'),
+      'expected a failed-status outcome error, got ${report.errors}',
+    );
+    _expect(
+      _hasError(report, r'$.expert.completeness', 'must be incomplete'),
+      'expected a failed-status completeness error, got ${report.errors}',
+    );
+  });
+
+  _test('decimal playing levels still count toward the mix', () {
+    final copy = _copy(manifest) as Map<String, Object?>;
+    final players = copy['players'] as List<Object?>;
+    (players[0] as Map<String, Object?>)['playingLevel'] = 1.0;
+    (players[1] as Map<String, Object?>)['playingLevel'] = 2.0;
+    players.add({
+      'playerId': 'p03',
+      'segment': 'returner',
+      'guitar': 'nylon',
+      'playingLevel': 3.0,
+    });
+    final report = validateManifest(copy);
+    _expect(
+      !report.warnings.any(
+        (warning) => warning.message.contains('playing levels'),
+      ),
+      'expected decimal levels to count, got ${report.warnings}',
     );
   });
 
