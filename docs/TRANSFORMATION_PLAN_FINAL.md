@@ -373,6 +373,13 @@ A synth is not a model of guitar tone, articulation, or phrasing. Record a human
 - Cost per piece: $500–1,500 and 8–16 hours; budget and contractor plan required.
 - If the calendar cannot be sustained, switch to one-time piece packs at $49–79 instead of a subscription.
 
+**T3.9 status:** modeled in [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md). The
+10-piece launch is a 2–3 month supply, not a year. Launch plus 24 months costs
+about $57k low / $116k base / $174k high at contractor rates, about $51k above
+the plan's $25k/$40k content lines. The document recommends funding the base
+cadence or switching to one-time piece packs at $49–$79, and defines the
+measurable gate.
+
 ### 6.6 Technique strand
 
 - Per-stage focus: setup/tuning/posture; left-hand thumb/arch/fingertips; right-hand rest/free stroke/alternation; damping; shifts; slurs.
