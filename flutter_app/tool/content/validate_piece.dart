@@ -300,10 +300,11 @@ class _ScoreSummary {
     return '$minTempo-$maxTempo BPM';
   }
 
-  /// The sounding note keeps the authored letter and accidental so a B-flat
-  /// exercise never prints A-sharp.
+  /// The sounding note is the authored note one octave lower. Keep the letter
+  /// and accidental exactly, so Cb4 becomes Cb3 and B#4 becomes B#3 instead of
+  /// being normalized to B2 or C4.
   Note _soundingNote(Note written) =>
-      Note.spelledFromMidi(written.midi - 12, written.letter);
+      Note(written.letter, written.octave - 1, accidental: written.accidental);
 
   String get writtenRangeText {
     if (minWrittenNote == null || maxWrittenNote == null) return '-';

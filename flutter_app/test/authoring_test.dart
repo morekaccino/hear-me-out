@@ -34,6 +34,44 @@ Map<String, dynamic> eventAt(
       as Map<String, dynamic>;
 }
 
+/// Builds a one-bar etude of four identical notes for summary spelling tests.
+Map<String, dynamic> oneBarNoteStudy({
+  required String writtenNote,
+  required int soundingMidi,
+  required int string,
+  required int fret,
+}) {
+  final json = copyContentFixture('valid_piece');
+  final piece = json['piece'] as Map<String, dynamic>;
+  piece['id'] = 'spelling-study';
+  piece['title'] = 'Spelling Study';
+  json['phrases'] = <Map<String, dynamic>>[
+    <String, dynamic>{
+      'id': 'spelling-study-p1',
+      'bars': 1,
+      'timeSignature': <String, dynamic>{'numerator': 4, 'denominator': 4},
+      'targetTempoBpm': 72,
+      'difficulty': 1,
+      'startBar': 1,
+      'pickupBeats': 0.0,
+      'events': <Map<String, dynamic>>[
+        for (var beat = 0; beat < 4; beat++)
+          <String, dynamic>{
+            'startBeat': beat,
+            'durationBeats': 1,
+            'kind': 'note',
+            'writtenNote': writtenNote,
+            'soundingMidi': soundingMidi,
+            'string': string,
+            'fret': fret,
+          },
+      ],
+    },
+  ];
+  (json['authoring'] as Map<String, dynamic>)['kind'] = 'etude';
+  return json;
+}
+
 void expectIssue(
   List<ScoreIssue> issues, {
   required String code,
@@ -565,34 +603,12 @@ void main() {
     });
 
     test('--summary preserves authored flat spellings', () {
-      final json = copyContentFixture('valid_piece');
-      final piece = json['piece'] as Map<String, dynamic>;
-      piece['id'] = 'flat-study';
-      piece['title'] = 'Flat Study';
-      json['phrases'] = <Map<String, dynamic>>[
-        <String, dynamic>{
-          'id': 'flat-study-p1',
-          'bars': 1,
-          'timeSignature': <String, dynamic>{'numerator': 4, 'denominator': 4},
-          'targetTempoBpm': 72,
-          'difficulty': 1,
-          'startBar': 1,
-          'pickupBeats': 0.0,
-          'events': <Map<String, dynamic>>[
-            for (var beat = 0; beat < 4; beat++)
-              <String, dynamic>{
-                'startBeat': beat,
-                'durationBeats': 1,
-                'kind': 'note',
-                'writtenNote': 'Bb4',
-                'soundingMidi': 58,
-                'string': 3,
-                'fret': 3,
-              },
-          ],
-        },
-      ];
-      (json['authoring'] as Map<String, dynamic>)['kind'] = 'etude';
+      final json = oneBarNoteStudy(
+        writtenNote: 'Bb4',
+        soundingMidi: 58,
+        string: 3,
+        fret: 3,
+      );
       final path = writeJson('flat_study', json);
 
       final textOut = StringBuffer();
@@ -622,6 +638,101 @@ void main() {
       expect(range['written'], {'min': 'Bb4', 'max': 'Bb4'});
       expect(range['sounding'], {'min': 'Bb3', 'max': 'Bb3'});
     });
+
+    const spellingCases =
+        <
+          ({
+            String written,
+            int soundingMidi,
+            int string,
+            int fret,
+            String expected,
+          })
+        >[
+          (
+            written: 'Cb4',
+            soundingMidi: 47,
+            string: 5,
+            fret: 2,
+            expected: 'Cb3',
+          ),
+          (
+            written: 'B#4',
+            soundingMidi: 60,
+            string: 2,
+            fret: 1,
+            expected: 'B#3',
+          ),
+          (
+            written: 'Cb5',
+            soundingMidi: 59,
+            string: 2,
+            fret: 0,
+            expected: 'Cb4',
+          ),
+          (
+            written: 'B#5',
+            soundingMidi: 72,
+            string: 1,
+            fret: 8,
+            expected: 'B#4',
+          ),
+        ];
+
+    for (final spellingCase in spellingCases) {
+      test(
+        '--summary preserves ${spellingCase.written} spelling and octave',
+        () {
+          final json = oneBarNoteStudy(
+            writtenNote: spellingCase.written,
+            soundingMidi: spellingCase.soundingMidi,
+            string: spellingCase.string,
+            fret: spellingCase.fret,
+          );
+          final fileStem =
+              'spelling_${spellingCase.written.replaceAll('#', 'sharp')}';
+          final path = writeJson(fileStem, json);
+
+          final textOut = StringBuffer();
+          final textCode = runCli(
+            [path, '--summary'],
+            out: textOut,
+            err: StringBuffer(),
+          );
+
+          expect(textCode, 0);
+          expect(
+            textOut.toString(),
+            contains(
+              'Range: written ${spellingCase.written}, '
+              'sounding ${spellingCase.expected}',
+            ),
+          );
+
+          final jsonOut = StringBuffer();
+          final jsonCode = runCli(
+            [path, '--summary', '--json'],
+            out: jsonOut,
+            err: StringBuffer(),
+          );
+          final payload =
+              jsonDecode(jsonOut.toString()) as Map<String, dynamic>;
+          final range =
+              (payload['summary'] as Map<String, dynamic>)['range']
+                  as Map<String, dynamic>;
+
+          expect(jsonCode, 0);
+          expect(range['written'], {
+            'min': spellingCase.written,
+            'max': spellingCase.written,
+          });
+          expect(range['sounding'], {
+            'min': spellingCase.expected,
+            'max': spellingCase.expected,
+          });
+        },
+      );
+    }
 
     test('rejects malformed JSON with a parse error', () {
       final file = File('${tempDir.path}/broken.json')
