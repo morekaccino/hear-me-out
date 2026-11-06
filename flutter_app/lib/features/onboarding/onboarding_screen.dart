@@ -104,16 +104,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   Future<void> _startMic() async {
     if (_checkingMic || _source != null) return;
-    // The mic must never hear the synth preview. Stop it before the pitch
-    // source is created, not merely when leaving the piece screen.
-    await _stopPreview();
-    if (!mounted) return;
+    // Register the start before the preview stop can yield. Otherwise a skip
+    // or a second tap during a slow stop cannot invalidate this start.
     final generation = ++_micGeneration;
     setState(() {
       _checkingMic = true;
       _micExpanded = true;
       _micError = null;
     });
+    // The mic must never hear the synth preview. Stop it before the pitch
+    // source is created, not merely when leaving the piece screen.
+    await _stopPreview();
+    if (!mounted || generation != _micGeneration) return;
     final source = ref.read(pitchSourceFactoryProvider)();
     bool started;
     try {

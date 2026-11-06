@@ -397,6 +397,57 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('skipping during a slow preview stop cancels the mic start', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    final stopGate = Completer<void>();
+    audioEngine.stopGate = stopGate;
+    final sources = FakePitchSourceFactory();
+    addTearDown(() {
+      if (!stopGate.isCompleted) stopGate.complete();
+    });
+
+    await tester.pumpWidget(buildApp(sources: sources));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CHECK YOUR MIC'));
+    await tester.pump();
+    expect(find.text('STARTING…'), findsOneWidget);
+
+    await tester.tap(find.text('NOT NOW'));
+    await tester.pumpAndSettle();
+    expect(find.text('How well do you read?'), findsOneWidget);
+
+    stopGate.complete();
+    await tester.pumpAndSettle();
+    expect(sources.created, isEmpty);
+    expect(find.text('STARTING…'), findsNothing);
+  });
+
+  testWidgets('double-tapping the mic check creates one source', (tester) async {
+    setSize(tester, const Size(390, 844));
+    final stopGate = Completer<void>();
+    audioEngine.stopGate = stopGate;
+    final sources = FakePitchSourceFactory();
+    addTearDown(() {
+      if (!stopGate.isCompleted) stopGate.complete();
+    });
+
+    await tester.pumpWidget(buildApp(sources: sources));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CHECK YOUR MIC'));
+    await tester.tap(find.text('CHECK YOUR MIC'));
+    await tester.pump();
+    expect(find.text('STARTING…'), findsOneWidget);
+
+    stopGate.complete();
+    await tester.pumpAndSettle();
+    expect(sources.created, hasLength(1));
+    expect(sources.created.single.started, isTrue);
+  });
+
   testWidgets('corrupt onboarding JSON does not block the flow', (
     tester,
   ) async {

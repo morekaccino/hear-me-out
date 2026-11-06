@@ -166,6 +166,10 @@ class FakeAudioEngine implements AudioEngine {
   /// real player: the future resolves when playback starts, not when it ends.
   Completer<void>? playGate;
 
+  /// When set, [stop] stays pending until the gate completes. This models a
+  /// slow platform stop so mic-start races are testable.
+  Completer<void>? stopGate;
+
   @override
   Future<void> play(SoundSpec spec) async {
     played.add(spec);
@@ -178,6 +182,8 @@ class FakeAudioEngine implements AudioEngine {
   Future<void> stop() async {
     stopCount++;
     events.add('audio-stop');
+    final gate = stopGate;
+    if (gate != null) await gate.future;
   }
 
   @override
