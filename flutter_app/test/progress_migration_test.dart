@@ -350,6 +350,19 @@ void main() {
         ).mastered,
         isTrue,
       );
+
+      // A seven-day calendar week that contains a daylight-saving change must
+      // not collapse to six elapsed days.
+      final dstWeek = PhraseProgress(
+        phraseId: 'dst',
+        reps: 4,
+        correct: 5,
+        correctDays: <String>{'2026-03-07', '2026-03-08'},
+        performanceDays: <String>{'2026-03-07', '2026-03-10', '2026-03-14'},
+        firstPerformanceDay: '2026-03-07',
+      );
+      expect(dstWeek.performanceSpanDays, 7);
+      expect(dstWeek.mastered, isTrue);
     });
   });
 

@@ -211,7 +211,8 @@ DateTime? _tryParseDay(String value) {
   final year = int.parse(match.group(1)!);
   final month = int.parse(match.group(2)!);
   final day = int.parse(match.group(3)!);
-  final date = DateTime(year, month, day);
+  // UTC keeps the span in whole calendar days across DST transitions.
+  final date = DateTime.utc(year, month, day);
   if (date.year != year || date.month != month || date.day != day) {
     return null;
   }
