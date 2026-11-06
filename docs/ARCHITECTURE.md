@@ -20,7 +20,7 @@ flutter_app/lib/
 ├── core/
 │   ├── music/       Note, guitar transposition, score models, curriculum
 │   ├── media/       MediaStore interface, file and IndexedDB stores, factory
-│   ├── learning/    Objectives, prompts, templates, composer, LessonRun
+│   ├── learning/    Objectives, prompts, templates, composer, LessonRun, PracticeSession
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
 │   └── storage/     shared_preferences JSON store, export/import
@@ -270,6 +270,19 @@ heart and queues the objective for a short end-of-lesson retry; distinct
 objectives are capped at four. Practice sessions never spend hearts and never
 end on `outOfLives`; only lessons do. `isJumpTest` runs a 15-slot section test
 and unlocks earlier sections on a pass.
+
+`PracticeSession` in `core/learning/practice_session.dart` is the separate
+Today-loop aggregate. It owns one `ObjectiveRef` target, a computed 5/10/20
+minute block plan, the maintenance-day extension, and clock-driven elapsed and
+instrument time. Callers supply every timestamp through `start`, `pause`,
+`resume`, `tick`, and `advance`; the aggregate never reads the wall clock and
+never scores. The block roles are setup, technique, model, acquire, apply,
+maintenance, and reflect. A five-minute session totals five minutes with three
+and a half minutes of guitar time; a maintenance day extends it to six minutes
+and adds a previously learned phrase last. `LessonRun` remains the Reading Lab
+and single-note lesson engine. `content/practice_session_factory.dart` chooses
+the target from due, weak, and fragile skills and picks a learned maintenance
+target; the core aggregate does not import content.
 
 ### Prompt and template types
 
