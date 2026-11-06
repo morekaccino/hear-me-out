@@ -36,6 +36,7 @@ List<double> renderPromptTake(
   Set<int> skip = const <int>{},
   Map<int, int> wrongMidi = const <int, int>{},
   double onsetShiftSeconds = 0,
+  double cents = 0,
   List<({int midi, double atSeconds})> extras =
       const <({int midi, double atSeconds})>[],
 }) {
@@ -53,6 +54,7 @@ List<double> renderPromptTake(
       startSeconds: target.onsetSeconds + onsetShiftSeconds,
       durationSeconds: noteDuration,
       midi: wrongMidi[target.index] ?? target.midi,
+      cents: cents,
     );
   }
   for (final extra in extras) {

@@ -30,8 +30,10 @@ void main() {
     required MemoryProgressStore store,
     bool headphonesConfirmed = false,
     bool clockVerified = false,
+    int? contentVersion,
     FakeAudioEngine? engine,
     FakePcmCapture? capture,
+    PhraseRecorder Function()? recorderFactory,
   }) {
     final recorderCapture =
         capture ??
@@ -45,13 +47,14 @@ void main() {
         soundServiceProvider.overrideWithValue(FakeSoundService()),
         audioEngineProvider.overrideWithValue(engine ?? FakeAudioEngine()),
         phraseRecorderFactoryProvider.overrideWithValue(
-          () => PhraseRecorder(capture: recorderCapture),
+          recorderFactory ?? () => PhraseRecorder(capture: recorderCapture),
         ),
       ],
       child: MaterialApp(
         theme: AppTheme.light,
         home: PhrasePlayerScreen(
           phrase: prompt.phrase,
+          contentVersion: contentVersion,
           headphonesConfirmed: headphonesConfirmed,
           clockVerified: clockVerified,
         ),
@@ -74,6 +77,20 @@ void main() {
     for (var beat = 0; beat < 4; beat++) {
       await tester.pump(const Duration(milliseconds: 834));
     }
+  }
+
+  Future<void> recordAndStop(WidgetTester tester) async {
+    await tester.tap(find.text('RECORD'));
+    await tester.pump();
+    await tester.pump();
+    await pumpPastCountIn(tester);
+    await tester.tap(find.text('STOP'));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 20; index++) {
+      if (find.text('TRY AGAIN').evaluate().isNotEmpty) break;
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    await tester.pumpAndSettle();
   }
 
   testWidgets('fits 390x844 and shows no game chrome', (tester) async {
@@ -158,6 +175,13 @@ void main() {
     expect(saved.reps, 1);
     expect(saved.contentVersion, prompt.phrase.contentVersion);
 
+    // Changing the gate after the take must not rewrite what happened to it.
+    await tester.ensureVisible(find.text('Wired headphones connected'));
+    await tester.tap(find.text('Wired headphones connected'));
+    await tester.pump();
+    expect(find.text('Saved to phrase progress.'), findsOneWidget);
+    expect(find.text('Practice only — this take was not saved.'), findsNothing);
+
     await tester.ensureVisible(find.text('TRY AGAIN'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('TRY AGAIN'));
@@ -197,33 +221,108 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('an indeterminate take uses calm retry copy', (tester) async {
+  testWidgets('an indeterminate gate-open take is not saved', (tester) async {
     useSize(tester, const Size(390, 844));
     final store = freshStore();
     final silence = FakePcmCapture(
       chunks: [pcm16Bytes(silentTake(48000, 12))],
       config: const PcmCaptureConfig(sampleRate: 48000, channels: 1),
     );
-    await tester.pumpWidget(buildScreen(store: store, capture: silence));
+    await tester.pumpWidget(
+      buildScreen(store: store, capture: silence, headphonesConfirmed: true),
+    );
     await tester.pumpAndSettle();
+    expect(find.text('Scored take ready'), findsOneWidget);
 
-    await tester.tap(find.text('RECORD'));
-    await tester.pump();
-    await tester.pump();
-    await pumpPastCountIn(tester);
-    await tester.tap(find.text('STOP'));
-    await tester.pumpAndSettle();
-    for (var index = 0; index < 20; index++) {
-      if (find.text('Let’s try that again').evaluate().isNotEmpty) break;
-      await tester.pump(const Duration(milliseconds: 100));
-    }
+    await recordAndStop(tester);
 
     expect(find.text('Let’s try that again'), findsOneWidget);
     expect(
       find.text('Could not hear the whole phrase — try again.'),
       findsOneWidget,
     );
+    expect(
+      find.text('Not saved. Incomplete takes never update progress.'),
+      findsOneWidget,
+    );
     expect(find.textContaining('wrong'), findsNothing);
+    expect(store.value!.phraseProgressFor('ode-to-joy-p1'), isNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('uses the saved intonation tolerance', (tester) async {
+    useSize(tester, const Size(390, 844));
+    final store = MemoryProgressStore(
+      ProgressState.fresh(
+        settings: const AppSettings(
+          onboardingComplete: true,
+          toleranceCents: 50,
+        ),
+      ),
+    );
+    final take = renderPromptTake(prompt, sampleRate: 48000, cents: 40);
+    final capture = FakePcmCapture(
+      chunks: [pcm16Bytes(take)],
+      config: const PcmCaptureConfig(sampleRate: 48000, channels: 1),
+    );
+    await tester.pumpWidget(
+      buildScreen(store: store, headphonesConfirmed: true, capture: capture),
+    );
+    await tester.pumpAndSettle();
+
+    await recordAndStop(tester);
+
+    // A 40-cent take is in tune at the saved 50-cent tolerance, so the
+    // correction is the positive next step rather than "center each note".
+    expect(
+      find.text('Clean take. Keep this tempo and add the next bar.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Clean take. Keep this tempo and center each note.'),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a verified clock allows a saved take', (tester) async {
+    useSize(tester, const Size(390, 844));
+    final store = freshStore();
+    await tester.pumpWidget(
+      buildScreen(store: store, clockVerified: true, contentVersion: 3),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scored take ready'), findsOneWidget);
+    expect(find.text('Device clock verified'), findsOneWidget);
+
+    await recordAndStop(tester);
+
+    expect(find.text('Saved to phrase progress.'), findsOneWidget);
+    final saved = store.value!.phraseProgressFor('ode-to-joy-p1');
+    expect(saved, isNotNull);
+    expect(saved!.contentVersion, 3);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a failed recorder factory clears STARTING', (tester) async {
+    useSize(tester, const Size(390, 844));
+    final store = freshStore();
+    await tester.pumpWidget(
+      buildScreen(
+        store: store,
+        recorderFactory: () => throw StateError('factory failed'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('RECORD'));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Could not start the microphone.'), findsOneWidget);
+    expect(find.text('RECORD'), findsOneWidget);
+    expect(find.text('STARTING'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

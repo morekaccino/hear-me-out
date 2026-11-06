@@ -45,6 +45,12 @@ class PhraseRecorder {
 
   static const int analysisSampleRate = 22050;
 
+  /// Android, iOS, macOS, and most browsers accept 48 kHz.
+  static const int preferredSampleRate = 48000;
+
+  /// Some older devices and browsers only expose 44.1 kHz.
+  static const int fallbackSampleRate = 44100;
+
   final PcmCapture capture;
   final int requestedSampleRate;
   final int requestedChannels;
@@ -86,10 +92,7 @@ class PhraseRecorder {
     });
     if (generation != _generation || _disposed) return false;
 
-    final stream = await capture.startStream(
-      sampleRate: requestedSampleRate,
-      channels: requestedChannels,
-    );
+    final stream = await _startStream(generation, requestedSampleRate);
     if (generation != _generation || _disposed) {
       _captureStarted = true;
       await _stopCapture();
@@ -164,6 +167,47 @@ class PhraseRecorder {
       await capture.dispose();
     } catch (_) {
       // The platform may already have released the recorder.
+    }
+  }
+
+  /// Starts the platform stream at the preferred rate, retrying once at the
+  /// 44.1 kHz fallback when the first attempt fails.
+  ///
+  /// The failed capture is stopped before the retry so a platform that opened a
+  /// recorder before throwing cannot leave a second recorder alive.
+  Future<Stream<Uint8List>> _startStream(int generation, int sampleRate) async {
+    try {
+      return await capture.startStream(
+        sampleRate: sampleRate,
+        channels: requestedChannels,
+      );
+    } catch (_) {
+      if (sampleRate == fallbackSampleRate) rethrow;
+
+      _captureStarted = true;
+      await _stopCapture();
+      if (generation != _generation || _disposed) {
+        throw StateError('Phrase recording start was superseded');
+      }
+
+      _config = PcmCaptureConfig(
+        sampleRate: fallbackSampleRate,
+        channels: requestedChannels,
+      );
+      await capture.setOnConfigChanged((config) {
+        if (generation == _generation) _onConfigChanged(config);
+      });
+
+      try {
+        return await capture.startStream(
+          sampleRate: fallbackSampleRate,
+          channels: requestedChannels,
+        );
+      } catch (_) {
+        _captureStarted = true;
+        await _stopCapture();
+        rethrow;
+      }
     }
   }
 

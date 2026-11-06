@@ -153,22 +153,26 @@ footer so a test build cannot be mistaken for released behavior.
   or low-confidence note is an indeterminate retry, never "wrong". Incomplete
   takes report `updatesProgress == false`.
 - `core/audio/phrase_recorder.dart` wraps the existing `PcmCapture` seam. It
-  requests 48 kHz mono PCM16, follows the effective format callback, resamples
-  to 22.05 kHz with `Pcm16StreamDecoder`, flushes on stop, ignores late bytes,
-  and disposes the capture once. It never starts a second capture while running.
+  requests 48 kHz mono PCM16 with a 44.1 kHz startup fallback (stopping the
+  failed capture first), follows the effective format callback, resamples to
+  22.05 kHz with `Pcm16StreamDecoder`, flushes on stop, ignores late bytes, and
+  disposes the capture once. It never starts a second capture while running.
   `phraseRecorderFactoryProvider` in `state/providers.dart` is the injection
   point; widgets never import `record`.
 - `core/audio/scored_take_gate.dart` is the scored-take gate. A take may update
   phrase progress only when wired headphones are confirmed or a loopback
   `CalibrationReport` has both `timingUsable` and `offsetVerified`. Otherwise
   the screen records practice feedback, labels the take "Practice only", and
-  never calls `recordPhraseResult`.
+  never calls `recordPhraseResult`. The screen captures the gate state when the
+  take stops, so a later headphones toggle cannot rewrite the saved/practice
+  label.
 - `features/phrase/phrase_player_screen.dart` is a responsive `PageFrame`
   surface at 390x844 and 1200 px. It shows the phrase title, level, tempo, bars,
   a note strip with bar/beat labels, a synth preview, a visual count-in,
-  record/stop, status, the gate card, and one `FeedbackPanel` correction. It has
-  no hearts, XP, streak, gems, quests, or other game chrome. Retry clears the
-  result and re-arms the take.
+  record/stop, status, the gate card, and one `FeedbackPanel` correction. It
+  scores with `AppSettings.toleranceCents`, not a hard-coded 30-cent threshold.
+  It has no hearts, XP, streak, gems, quests, or other game chrome. Retry clears
+  the result and re-arms the take.
 
 The prompt is intentionally not part of the sealed `Prompt` hierarchy. The
 lesson composer and lesson screen keep their existing behavior.

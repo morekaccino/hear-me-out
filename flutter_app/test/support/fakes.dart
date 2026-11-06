@@ -175,16 +175,20 @@ class FakePcmCapture implements PcmCapture {
     this.permission = true,
     this.config,
     List<Uint8List> chunks = const <Uint8List>[],
-  }) : chunks = List<Uint8List>.from(chunks);
+    Set<int> failSampleRates = const <int>{},
+  }) : chunks = List<Uint8List>.from(chunks),
+       failSampleRates = Set<int>.from(failSampleRates);
 
   bool permission;
   PcmCaptureConfig? config;
   List<Uint8List> chunks;
+  Set<int> failSampleRates;
 
   int permissionChecks = 0;
   int startCalls = 0;
   int stopCalls = 0;
   int disposeCalls = 0;
+  final List<int> startAttempts = <int>[];
 
   void Function(PcmCaptureConfig config)? _onConfigChanged;
   StreamController<Uint8List>? _controller;
@@ -208,6 +212,10 @@ class FakePcmCapture implements PcmCapture {
     required int channels,
   }) async {
     startCalls++;
+    startAttempts.add(sampleRate);
+    if (failSampleRates.contains(sampleRate)) {
+      throw StateError('Platform refused $sampleRate Hz');
+    }
     final controller = StreamController<Uint8List>(sync: true);
     _controller = controller;
     _onConfigChanged?.call(
@@ -225,6 +233,12 @@ class FakePcmCapture implements PcmCapture {
   void emit(Uint8List bytes) {
     final controller = _controller;
     if (controller != null && !controller.isClosed) controller.add(bytes);
+  }
+
+  /// Simulates a late platform format callback after the stream started.
+  void changeConfig(PcmCaptureConfig next) {
+    config = next;
+    _onConfigChanged?.call(next);
   }
 
   @override

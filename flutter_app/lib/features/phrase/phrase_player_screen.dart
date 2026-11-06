@@ -41,7 +41,11 @@ Widget? phrasePlayerForPhraseId(
   if (!phraseLoopEnabled) return null;
   final record = (registry ?? phraseObjectiveRegistry).recordFor(phraseId);
   if (record == null) return null;
-  return PhrasePlayerScreen(phrase: record.phrase, pieceId: record.piece.id);
+  return PhrasePlayerScreen(
+    phrase: record.phrase,
+    pieceId: record.piece.id,
+    contentVersion: record.contentVersion,
+  );
 }
 
 /// Gated phrase practice: read a phrase, hear it, play it, and get one
@@ -56,6 +60,7 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
     super.key,
     required this.phrase,
     this.pieceId,
+    this.contentVersion,
     this.clockVerified = false,
     this.headphonesConfirmed = false,
     this.verifier = const PhraseVerifier(),
@@ -66,6 +71,9 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
   /// Stable piece id when the phrase came from the content registry, so the
   /// attempt can record its repertoire skill. Null for a direct test build.
   final String? pieceId;
+
+  /// Registry content version when it overrides the phrase's own version.
+  final int? contentVersion;
 
   /// True when a loopback calibration verified the device clock.
   final bool clockVerified;
@@ -80,7 +88,7 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
 }
 
 class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
-  late final PhrasePlayPrompt _prompt;
+  late PhrasePlayPrompt _prompt;
   late final AudioEngine _audioEngine;
 
   PhraseRecorder? _recorder;
@@ -92,6 +100,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
   bool _recording = false;
   bool _analyzing = false;
   bool _saved = false;
+  bool _takeScoredAllowed = false;
   bool _headphonesConfirmed = false;
   int _countInRemaining = 0;
   int _generation = 0;
@@ -104,7 +113,19 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
   @override
   void initState() {
     super.initState();
-    _prompt = PhrasePlayPrompt(phrase: widget.phrase);
+    final tolerance =
+        ref
+            .read(appControllerProvider)
+            .asData
+            ?.value
+            .progress
+            .settings
+            .toleranceCents ??
+        30;
+    _prompt = PhrasePlayPrompt(
+      phrase: widget.phrase,
+      intonationToleranceCents: tolerance,
+    );
     _audioEngine = ref.read(audioEngineProvider);
     _headphonesConfirmed = widget.headphonesConfirmed;
     _countInRemaining = _prompt.countInBeats;
@@ -137,13 +158,17 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
       _error = null;
       _verification = null;
       _saved = false;
+      _takeScoredAllowed = false;
       _countInRemaining = _prompt.countInBeats;
     });
 
-    // A preview must never play while the recorder is listening.
-    await _audioEngine.stop();
-    final recorder = ref.read(phraseRecorderFactoryProvider)();
+    PhraseRecorder? recorder;
     try {
+      // A preview must never play while the recorder is listening. Both this
+      // stop and the factory sit inside the try so a platform failure cannot
+      // leave the screen stuck in STARTING.
+      await _audioEngine.stop();
+      recorder = ref.read(phraseRecorderFactoryProvider)();
       final started = await recorder.start();
       if (!mounted || generation != _generation) {
         await recorder.dispose();
@@ -164,7 +189,8 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
       });
       _armTimers();
     } catch (_) {
-      await recorder.dispose();
+      final failed = recorder;
+      if (failed != null) await failed.dispose();
       if (!mounted || generation != _generation) return;
       setState(() {
         _starting = false;
@@ -202,6 +228,10 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
   Future<void> _stopTake() async {
     final recorder = _recorder;
     if (recorder == null) return;
+    // Capture the gate that applies to this take. The learner can change the
+    // headphones checkbox after analysis; the saved/practice label must not
+    // change retroactively.
+    final takeGate = _gate;
     _recorder = null;
     final generation = ++_generation;
     _countInTimer?.cancel();
@@ -236,7 +266,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
     );
 
     var saved = false;
-    if (_gate.allowsScoredTake && verification.updatesProgress) {
+    if (takeGate.allowsScoredTake && verification.updatesProgress) {
       try {
         // The controller may still be loading if this preview screen is opened
         // before the app's first frame. Wait for it, then record the take.
@@ -248,7 +278,8 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
               result: verification.result,
               tempoBpm: _prompt.bpm,
               pieceId: widget.pieceId,
-              contentVersion: widget.phrase.contentVersion,
+              contentVersion:
+                  widget.contentVersion ?? widget.phrase.contentVersion,
             );
       } catch (_) {
         saved = false;
@@ -260,6 +291,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
       _verification = verification;
       _analyzing = false;
       _saved = saved;
+      _takeScoredAllowed = takeGate.allowsScoredTake;
     });
   }
 
@@ -275,6 +307,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
       _verification = null;
       _error = null;
       _saved = false;
+      _takeScoredAllowed = false;
       _countInRemaining = _prompt.countInBeats;
     });
   }
@@ -305,7 +338,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
   String? get _takeNote {
     final verification = _verification;
     if (verification == null) return null;
-    if (!_gate.allowsScoredTake) {
+    if (!_takeScoredAllowed) {
       return 'Practice only — this take was not saved.';
     }
     if (!verification.updatesProgress) {
@@ -317,6 +350,21 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(
+      appControllerProvider.select(
+        (async) => async.asData?.value.progress.settings.toleranceCents ?? 30,
+      ),
+      (previous, next) {
+        if (next != _prompt.intonationToleranceCents && mounted) {
+          setState(() {
+            _prompt = PhrasePlayPrompt(
+              phrase: widget.phrase,
+              intonationToleranceCents: next,
+            );
+          });
+        }
+      },
+    );
     final canRecord = !_starting && !_analyzing;
     final canPlay = !_starting && !_recording && !_analyzing;
     return Scaffold(

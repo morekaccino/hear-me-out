@@ -30,7 +30,7 @@ class PhraseVerification {
   final bool practicePass;
   final bool performanceReady;
 
-  /// Exactly one sentence the learner can act on.
+  /// Exactly one correction the learner can act on.
   final String correction;
 
   /// Raw scorer evidence, kept for progress recording and diagnostics.

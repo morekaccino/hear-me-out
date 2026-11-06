@@ -101,6 +101,48 @@ void main() {
       },
     );
 
+    test('falls back to 44.1 kHz when 48 kHz startup fails', () async {
+      final capture = FakePcmCapture(
+        failSampleRates: {48000},
+        chunks: [toneBytes(44100)],
+        config: const PcmCaptureConfig(sampleRate: 44100, channels: 1),
+      );
+      final recorder = PhraseRecorder(capture: capture);
+
+      expect(await recorder.start(), isTrue);
+      expect(capture.startAttempts, [48000, 44100]);
+      // The failed 48 kHz attempt is stopped before the retry.
+      expect(capture.stopCalls, 1);
+
+      await Future<void>.delayed(Duration.zero);
+      final take = await recorder.stop();
+      expect(take.sourceSampleRate, 44100);
+      expect(take.sampleRate, PhraseRecorder.analysisSampleRate);
+      expect(take.durationSeconds, closeTo(1.0, 0.02));
+      expect(capture.stopCalls, 2);
+      await recorder.dispose();
+    });
+
+    test('ignores a format correction after the first sample', () async {
+      final capture = FakePcmCapture(
+        chunks: [toneBytes(48000, seconds: 0.25)],
+        config: const PcmCaptureConfig(sampleRate: 48000, channels: 1),
+      );
+      final recorder = PhraseRecorder(capture: capture);
+
+      expect(await recorder.start(), isTrue);
+      await Future<void>.delayed(Duration.zero);
+      capture.changeConfig(
+        const PcmCaptureConfig(sampleRate: 44100, channels: 1),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      final take = await recorder.stop();
+      expect(take.sourceSampleRate, 48000);
+      expect(take.durationSeconds, closeTo(0.25, 0.02));
+      await recorder.dispose();
+    });
+
     test(
       'denied permission starts no capture and records no samples',
       () async {
