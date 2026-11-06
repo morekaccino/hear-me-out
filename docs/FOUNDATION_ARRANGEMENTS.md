@@ -44,7 +44,7 @@ listed in `pubspec.yaml` yet.
 |---|---|---|---:|---:|---|---|---|---:|
 | `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | E4-E5 | 1-4 / 0-3 | 1 |
 | `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D4-A4 | 3-4 / 0-4 | 2 |
-| `amazing-grace` | G major | 3/4 | 66 | 8 | 2 + 2 + 2 + 2 | D4-B4 | 2-4 / 0-2 | 2 |
+| `amazing-grace` | G major | 3/4 | 66 | 9 | 3 + 2 + 2 + 2 | D4-B4 | 2-4 / 0-2 | 2 |
 | `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | D4-C5 | 2-4 / 0-3 | 3 |
 | `original-study-1` | A minor | 4/4 | 60 | 12 | 3 + 3 + 3 + 3 | E3-F4 | 4-6 / 0-3 | 3 |
 
@@ -75,12 +75,12 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Key / meter / tempo:** A minor, 6/8, 60 BPM.
 - **Phrase map:** P1 bars 1-3 (one-eighth anacrusis plus two full bars);
   P2 bars 4-5; P3 bars 6-7; P4 bars 8-9. Total 9 bars.
-- **Position and range:** written G4-E5 (sounding G3-E4); strings 1-3, frets
-  0-3. Open G4, B4, and E5 carry the "open strings" focus.
+- **Position and range:** written E4-E5 (sounding E3-E4); strings 1-4, frets
+  0-3. Open G4, B4, and E5 carry the "open strings" focus; the low E4 in P2 is
+  string 4 fret 2 (Decision 0005).
 - **Technique focus:** open strings, steady pulse, 6/8 lilt.
 - **Transposition:** none. The tune is written in the guitar's normal octave,
-  one octave above sounding pitch. The low E4 of the second phrase is moved up
-  one octave to E5 so stage 1 never leaves strings 1-3.
+  one octave above sounding pitch.
 - **Editorial changes:** the sixteenth-note passing ornaments in the source are
   written as eighths and dotted quarters; the raised seventh G-sharp is kept at
   the cadence. The source is often notated in A Dorian with F-sharp; this
@@ -97,14 +97,12 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Key / meter / tempo:** D major, 4/4, 72 BPM.
 - **Phrase map:** P1 bars 1-2; P2 bars 3-4; P3 bars 5-6; P4 bars 7-8. Total
   8 bars.
-- **Position and range:** written D5-A5 (sounding D4-A4); strings 1-2, frets
-  0-5. The theme is one octave above the first-position guitar octave, so D5 is
-  string 2 fret 3 and the melody never needs string 4. A5 is string 1 fret 5;
-  every other note is at fret 0-3.
+- **Position and range:** written D4-A4 (sounding D3-A3); strings 3-4, frets
+  0-4. D4 and E4 sit on string 4; F#4 needs fret 4. The melody stays in the
+  guitar's natural first-position octave.
 - **Technique focus:** stepwise melody, quarter-note pulse, phrase endings.
-- **Transposition:** octave up from the written D4-A4 version; the key stays D
-  major and no note is octave-displaced inside a phrase. The high octave is
-  what keeps the stage-2 setting on strings 1-3.
+- **Transposition:** none; the theme is in D major at the written first-position
+  octave. Decision 0005 records the string-4 use.
 - **Editorial changes:** the theme is complete and unaltered.
 - **Legal question for T6.3:** confirm the 1824 melody and the chosen edition
   are public domain in the US, UK/EU, and Canada, and that the engraving is
@@ -115,21 +113,16 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Source melody:** New Britain (1835), the tune normally sung to "Amazing
   Grace". New single-line guitar setting after public-domain hymnal melodies.
 - **Key / meter / tempo:** G major, 3/4, 66 BPM.
-- **Phrase map:** P1 bars 1-2; P2 bars 3-4; P3 bars 5-6; P4 bars 7-8. Total
-  8 bars.
-- **Position and range:** written G4-G5 (sounding G3-G4); strings 1-3, frets
-  0-3. The melody starts on G4 (string 3 open). Bars 3-4 are an octave up
-  (G5-E5-D5) because the written G4-E4-D4 would need string 4; bars 1-2 and
-  5-8 stay in the lower octave. The final cadence is G4 tied across the bar
-  line.
-- **Technique focus:** triple meter, breath-length phrases, legato changes, one
-  register echo into the upper octave.
+- **Phrase map:** P1 bars 1-3 (one-bar anacrusis plus two bars); P2 bars 4-5;
+  P3 bars 6-7; P4 bars 8-9. Total 9 bars.
+- **Position and range:** written D4-B4 (sounding D3-B3); strings 2-4, frets
+  0-2. D4/E4 sit on string 4; G4-A4 on string 3; B4 on string 2. The melody
+  stays in the natural first-position octave.
+- **Technique focus:** triple meter, breath-length phrases, legato changes.
 - **Excerpt:** the opening four bars and the final four bars of the 16-bar
-  tune, without the anacrusis so the piece starts on G4. The middle eight bars,
-  including the D5 climax, are omitted so the piece stays an 8-bar stage-2
-  reading task and ends on the tonic G.
-- **Transposition:** none; the tune stays in G major. The second phrase is
-  moved up an octave to avoid string 4.
+  tune, with the one-bar anacrusis; it reads as an 8-bar melody plus pickup.
+- **Transposition:** none; the tune stays in G major. Decision 0005 records the
+  string-4 use for D4/E4.
 - **Legal question for T6.3:** confirm the New Britain melody is public domain
   in the US, UK/EU, and Canada; confirm the chosen melody edition is public
   domain or newly engraved; confirm no hymnal harmonization is copied.
@@ -144,10 +137,9 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Phrase map:** P1 bars 1-4 (verse, first half); P2 bars 5-8 (verse, second
   half); P3 bars 9-10 (chorus, first half); P4 bars 11-12 (chorus, final
   cadence). Total 12 bars.
-- **Position and range:** written D4-C5 (sounding D3-C4); strings 3-4, frets
-  0-5. D4-F4 sit on string 4 (frets 0-3); G4-C5 sit on string 3, with B4 and C5
-  at frets 4-5 so the upper notes stay inside the T3.1 strings 3-6 envelope.
-  The melody never goes below D4, so strings 5-6 are not used.
+- **Position and range:** written D4-C5 (sounding D3-C4); strings 2-4, frets
+  0-3. D4-F4 sit on string 4 (frets 0-3); G4-B4 on string 3; C5 is string 2
+  fret 1. The melody never goes below D4, so strings 5-6 are not used.
 - **Technique focus:** middle-string reading (string 4 for the lower melody
   notes, string 3 for the upper ones), syncopated eighths, and two chromatic
   notes (A-sharp lower neighbour and F-natural flat seventh). The earlier
