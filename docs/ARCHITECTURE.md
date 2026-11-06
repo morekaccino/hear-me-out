@@ -116,9 +116,15 @@ T4.1. The phrase UI remains unreachable from main navigation until T1.7 passes
   `ProgressState`. The interface is pure Dart; persistent mobile/web stores are
   T4.1.
 
+- `lib/content/pieces/launch_pieces.dart` — the locked 10-piece V1 launch list
+  (5 Foundation, 5 Returner), their stage outcomes, and the legal questions.
+  Metadata only; T3.3/T3.4 add the notes. See
+  [`LAUNCH_PIECES.md`](LAUNCH_PIECES.md).
+
 Tests live in `test/note_event_test.dart`, `test/phrase_test.dart`,
-`test/score_test.dart`, `test/score_parser_test.dart`, and
-`test/media_store_test.dart`; fixtures are in `test/fixtures/score/`.
+`test/score_test.dart`, `test/score_parser_test.dart`,
+`test/launch_pieces_test.dart`, and `test/media_store_test.dart`; fixtures are
+in `test/fixtures/score/`.
 
 ## Progress and scheduling
 
