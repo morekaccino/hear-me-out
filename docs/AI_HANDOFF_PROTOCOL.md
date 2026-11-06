@@ -456,7 +456,7 @@ behavior as shipped.
 | Area | Documents |
 |---|---|
 | Plane context | [D0.1 — START HERE](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7), [D0.13 — Glossary, Naming & AI Operating Manual](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/de8d99d5-8da5-4acf-8926-e139c7527a2d); D0.13 holds the definitions, naming rules, and Plane operating manual. |
-| Process and project | [`../AGENTS.md`](../AGENTS.md), [`PLANE.md`](PLANE.md), [`PHASE_GATES.md`](PHASE_GATES.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md), this protocol |
+| Process and project | [`../AGENTS.md`](../AGENTS.md), [`PLANE.md`](PLANE.md), [`PHASE_GATES.md`](PHASE_GATES.md), [`WEEKLY_REVIEW.md`](WEEKLY_REVIEW.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md), this protocol |
 | Product and plan | [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md), [`DESIGN.md`](DESIGN.md) |
 | Code | [`ARCHITECTURE.md`](ARCHITECTURE.md), [`DEVELOPMENT.md`](DEVELOPMENT.md), [`../LEARNING_ALGORITHM.md`](../LEARNING_ALGORITHM.md) |
 | Sound | [`SOUND.md`](SOUND.md) |
@@ -478,6 +478,9 @@ Do not copy a decision or risk list into this protocol. The live lists are:
 - **Risk register:** Plane `T9.1` —
   <https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/694298da-0c68-4ae6-a03a-e349cb125176>.
   Every risk needs an owner, a mitigation ticket, and a kill criterion.
+- **Weekly review:** [`WEEKLY_REVIEW.md`](WEEKLY_REVIEW.md) — the 30-minute
+  cadence that reconciles risks, decisions, cycle progress, blockers, and real
+  metrics. It runs every week, including a busy build week.
 - **Current cycle:** open the Cycles view in Plane for the active plan and
   blockers.
 - **Dependencies:** open the ticket's Relations section for `blocked_by` and
