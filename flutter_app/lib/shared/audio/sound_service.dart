@@ -26,14 +26,13 @@ enum Sfx {
   answerCorrectCombo('answer_correct_combo.wav', volume: 0.68),
   answerWrong('answer_wrong.wav', volume: 0.5),
   answerOctave('answer_octave.wav', volume: 0.52),
-  lifeLost('life_lost.wav', volume: 0.42),
   lessonComplete('lesson_complete.wav', volume: 0.7),
   lessonPerfect('lesson_perfect.wav', volume: 0.74),
   lessonFailed('lesson_failed.wav', volume: 0.6),
   practiceComplete('practice_complete.wav', volume: 0.55),
   rewardStreak('reward_streak.wav', volume: 0.5),
   rewardStreakMilestone('reward_streak_milestone.wav', volume: 0.6),
-  rewardDailyGoal('reward_daily_goal.wav', volume: 0.55),
+  rewardWeeklyGoal('reward_weekly_goal.wav', volume: 0.55),
   rewardLevelUp('reward_level_up.wav', volume: 0.6),
   rewardUnlock('reward_unlock.wav', volume: 0.48),
   xpTick('xp_tick.wav', volume: 0.2);
@@ -122,9 +121,7 @@ class AudioPlayersSoundService implements SoundService {
             usageType: AndroidUsageType.game,
             audioFocus: AndroidAudioFocus.none,
           ),
-          iOS: AudioContextIOS(
-            category: AVAudioSessionCategory.ambient,
-          ),
+          iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
         ),
       );
     } catch (error) {

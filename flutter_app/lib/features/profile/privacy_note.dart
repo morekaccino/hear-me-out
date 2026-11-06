@@ -5,7 +5,7 @@ import '../../core/media/backup_exclusion.dart';
 import '../../shared/theme/app_theme.dart';
 
 const String _privacyBase =
-    'No account. No cloud. Your progress, streak, and settings stay on this '
+    'No account. No cloud. Your progress, practice history, and settings stay on this '
     'device. Audio is analyzed on this device.';
 
 /// Copy for the profile privacy card.

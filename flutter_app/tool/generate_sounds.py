@@ -317,17 +317,6 @@ def build_sounds() -> dict[str, tuple[list[float], float]]:
         ),
         0.05,
     )
-    sounds["life_lost.wav"] = (
-        _mix(
-            0.38,
-            [
-                (0.0, _thud(155.0, 0.26, 0.42)),
-                (0.11, _thud(105.0, 0.26, 0.3)),
-                (0.05, _pluck(F4, 0.26, 0.15, 0.14)),
-            ],
-        ),
-        0.03,
-    )
     sounds["lesson_complete.wav"] = (
         _mix(
             1.3,
@@ -407,7 +396,7 @@ def build_sounds() -> dict[str, tuple[list[float], float]]:
         ),
         0.12,
     )
-    sounds["reward_daily_goal.wav"] = (
+    sounds["reward_weekly_goal.wav"] = (
         _mix(
             0.8,
             [

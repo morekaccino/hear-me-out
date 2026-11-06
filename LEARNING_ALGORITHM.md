@@ -110,7 +110,7 @@ An indeterminate attempt means the app could not tell what happened: a
 low-confidence note, a missed note, a false start, an early stop, or silence. It
 is a retry, not a failure.
 
-- It changes no FSRS state, XP, streak, heart, daily counter, combo, or quest.
+- It changes no FSRS state, XP, streak, daily counter, combo, or quest.
 - It does not queue a mistake retry.
 - It shows a calm retry message and leaves the learner on the same prompt.
 - If any note is indeterminate, the whole phrase take is incomplete and
@@ -188,7 +188,9 @@ Rules enforced by the planner and validator:
 
 ## 8. Practice
 
-Practice never spends hearts and restores one heart on completion.
+Practice is always available. It never spends or restores a life because there
+are no hearts; a wrong answer only lowers accuracy and queues the repair. The
+only habit signals are the weekly minutes goal and the optional streak.
 
 Modes:
 
@@ -202,18 +204,32 @@ If the learner has no skills yet, practice falls back to the first note lesson.
 
 ## 9. Persistence
 
-`ProgressState` schema 4 stores:
+`ProgressState` schema 7 stores:
 
 - `skills` — the full skill map;
 - `notes` — legacy note boxes kept for the note chips;
 - completed lessons and checkpoints;
 - legacy completed lesson IDs;
-- XP, streak, gems, hearts, chests, quests, settings, recent sessions.
+- XP, streak, gems, chests, quests, settings, recent sessions;
+- `practiceSecondsByDay` — real guitar time per local day;
+- `lastPracticeDay` — the last day with effective practice.
 
 Version 3 documents migrate note boxes into skill cards: box 0 → 0.5 days, 1 → 1
-day, 2 → 3 days, 3 → 7 days, 4 → 21 days, 5 → 45 days. XP, streak, gems, hearts,
-chests, and quests are preserved. Old lesson IDs map through
-`legacyLessonIdMap`. Future schema versions are rejected, not guessed.
+day, 2 → 3 days, 3 → 7 days, 4 → 21 days, 5 → 45 days. Version 7 removes the
+heart pool, heart refill timer, streak freezes, and the XP daily goal. It maps
+`lastCompletedDay` to `lastPracticeDay`, adds `weeklyGoalMinutes` (default 30)
+and `streakEnabled` (default false), and starts `practiceSecondsByDay` empty
+because old saves contain no measured guitar time. XP, streak, gems, chests,
+quests, notes, skills, phrase evidence, and lesson history are preserved. Old
+lesson IDs map through `legacyLessonIdMap`. Future schema versions are rejected,
+not guessed.
+
+The optional streak advances on any local day with 3+ minutes of guitar time or
+one determinate recorded take. A missed day reads as zero with neutral copy; no
+resource is spent and no freeze exists. The weekly goal sums real measured
+session seconds in a rolling seven-day window; XP is not the habit goal.
+Completion and return are read locally from `recentSessions` and
+`practiceSecondsByDay` for before/after comparison.
 
 ## 10. Why this is better than a fixed box ladder
 

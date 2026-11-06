@@ -30,6 +30,10 @@ final phraseRecorderFactoryProvider = Provider<PhraseRecorderFactory>(
       () => PhraseRecorder(capture: createPlatformPcmCapture()),
 );
 
+/// Single clock seam for session timing. Tests override it to advance a lesson
+/// without waiting in real time.
+final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
 /// Time to ignore at the start of a mic exercise so the previous note's tail
 /// cannot trigger an answer. Tests set this to zero.
 final lessonGraceProvider = Provider<Duration>(

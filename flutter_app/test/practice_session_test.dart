@@ -380,7 +380,7 @@ void main() {
     });
   });
 
-  test('LessonRun keeps its lesson, lives, progress, and retry behavior', () {
+  test('LessonRun keeps its lesson, progress, and retry behavior', () {
     const lesson = LessonDefinition(
       id: 'test.lesson',
       unitId: 'test',
@@ -400,7 +400,6 @@ void main() {
       isPractice: false,
     );
 
-    expect(run.lives, livesPerLesson);
     expect(run.index, 0);
     expect(run.progress, 0);
     expect(run.stepLabel, 'Step 1 of 2');

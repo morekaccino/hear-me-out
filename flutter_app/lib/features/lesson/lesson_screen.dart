@@ -261,10 +261,6 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       );
     } else if (octaveError) {
       _play(Sfx.answerOctave);
-    } else if (updatedRun != null &&
-        !updatedRun.isPractice &&
-        updatedRun.lives == 0) {
-      _play(Sfx.lifeLost);
     } else {
       _play(Sfx.answerWrong);
     }
@@ -659,7 +655,15 @@ class _LessonTopBar extends StatelessWidget {
                           ),
                         )
                       else
-                        HeartsRow(lives: run.lives),
+                        Text(
+                          'LESSON',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1,
+                            color: AppColors.textLight,
+                          ),
+                        ),
                     ],
                   ),
                   // The bar shares the content column, so its edges line up
@@ -1162,7 +1166,7 @@ class _FeedbackForRun extends StatelessWidget {
         indeterminate: true,
         title: 'Could not hear that clearly',
         subtitle: 'Try again — nothing was scored.',
-        detail: 'Your progress, hearts, and streak are unchanged.',
+        detail: 'Your progress and streak are unchanged.',
         onContinue: onRetry,
         continueLabel: 'TRY AGAIN',
       );
@@ -1176,10 +1180,7 @@ class _FeedbackForRun extends StatelessWidget {
     final detectedWritten = _writtenFromSounding(detected, target);
 
     final octaveError = !correct && run.lastOctaveError;
-    final outOfLives = !run.isPractice && !correct && run.outOfLives;
-    final title = outOfLives
-        ? 'Out of hearts'
-        : correct
+    final title = correct
         ? (run.combo >= 3 ? 'Combo x${run.combo}!' : 'Correct!')
         : octaveError
         ? 'Right note, wrong octave'
@@ -1213,9 +1214,7 @@ class _FeedbackForRun extends StatelessWidget {
       subtitle: subtitle,
       detail: detail,
       onContinue: onContinue,
-      continueLabel: outOfLives
-          ? 'SEE RESULTS'
-          : run.index >= run.exercises.length - 1
+      continueLabel: run.index >= run.exercises.length - 1
           ? 'FINISH'
           : 'CONTINUE',
     );
@@ -1267,8 +1266,8 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
 
     if (result.leveledUp) {
       sounds.add(Sfx.rewardLevelUp);
-    } else if (result.dailyGoalReached) {
-      sounds.add(Sfx.rewardDailyGoal);
+    } else if (result.weeklyGoalReached) {
+      sounds.add(Sfx.rewardWeeklyGoal);
     } else if (result.streakMilestone) {
       sounds.add(Sfx.rewardStreakMilestone);
     } else if (result.streakAdvanced) {
@@ -1291,10 +1290,6 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
   Widget build(BuildContext context) {
     final result = widget.result;
     final isCheckpoint = lessonById[result.lessonId]?.isReview ?? false;
-    final progress = ref.watch(appControllerProvider).asData?.value.progress;
-    final hearts = progress?.hearts ?? maxHearts;
-    final canRefill =
-        !result.passed && hearts <= 0 && (progress?.gems ?? 0) >= heartRefillCost;
     return Scaffold(
       body: Stack(
         children: [
@@ -1321,7 +1316,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                                 : isCheckpoint
                                 ? 'Unit complete!'
                                 : 'Lesson complete!')
-                          : 'Out of hearts',
+                          : 'Not passed yet',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 30,
@@ -1364,12 +1359,19 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                         ),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: _ResultStat(
-                            icon: Icons.local_fire_department_rounded,
-                            color: const Color(0xFFFF9600),
-                            value: '${result.streak}',
-                            label: 'Streak',
-                          ),
+                          child: result.streakEnabled
+                              ? _ResultStat(
+                                  icon: Icons.local_fire_department_rounded,
+                                  color: const Color(0xFFFF9600),
+                                  value: '${result.streak}',
+                                  label: 'Streak',
+                                )
+                              : _ResultStat(
+                                  icon: Icons.auto_awesome_rounded,
+                                  color: AppColors.purple,
+                                  value: '${result.bestCombo}',
+                                  label: 'Best combo',
+                                ),
                         ),
                       ],
                     ),
@@ -1377,20 +1379,7 @@ class _LessonCompleteViewState extends ConsumerState<LessonCompleteView> {
                     if (result.passed)
                       DuoButton(label: 'CONTINUE', onPressed: widget.onContinue)
                     else ...[
-                      if (canRefill)
-                        DuoButton(
-                          label: 'REFILL & RETRY',
-                          onPressed: () async {
-                            final bought = await ref
-                                .read(appControllerProvider.notifier)
-                                .buyHeartRefill();
-                            if (bought) widget.onRetry();
-                          },
-                        )
-                      else if (hearts <= 0)
-                        DuoButton(label: 'OUT OF HEARTS', onPressed: null)
-                      else
-                        DuoButton(label: 'TRY AGAIN', onPressed: widget.onRetry),
+                      DuoButton(label: 'TRY AGAIN', onPressed: widget.onRetry),
                       const SizedBox(height: 8),
                       OutlineDuoButton(
                         label: 'BACK TO PATH',

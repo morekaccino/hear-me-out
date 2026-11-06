@@ -61,8 +61,9 @@ hit the note, missed it, or played the right note in the wrong octave.
   answers across at least three days, with production and transfer evidence.
   Wrong answers trigger a repair chain, not a single end-of-lesson retry.
 - **Duolingo-style path** — section and unit banners, a winding lesson map,
-  guidebooks, streak / gem / heart counters, chests, jump-ahead tests, daily
-  quests, and a five-heart pool. No fake leaderboards or leagues.
+  guidebooks, gem counters, an optional streak, chests, jump-ahead tests, and
+  daily quests. There is no heart pool and no loss-based gate. No fake
+  leaderboards or leagues.
 - **A voice of its own** — original marimba/bell/woodblock cues for correct,
   wrong, combo, lesson, practice, streak, goal, and level-up moments, with a
   persisted sound-effects setting.
@@ -75,16 +76,16 @@ hit the note, missed it, or played the right note in the wrong octave.
 ## Screens
 
 - **Learn** — a Today card, an eight-section course map, winding unit paths,
-  guidebooks, checkpoints, jump-ahead tests, and streak / gem / heart / XP
-  progress.
+  guidebooks, checkpoints, jump-ahead tests, a weekly minutes goal, and gem / XP
+  progress with an optional streak.
 - **Lesson** — staff, fretboard, chord, rhythm, and ear-training questions with
   real feedback and a mastery gate.
 - **Practice** — a standard-tuning guitar tuner plus Smart review across every
-  skill family, due review, weak skills, and free practice. Practice never
-  spends hearts and restores one.
+  skill family, due review, weak skills, and free practice. Practice is always
+  available and never spends or restores a life.
 - **Quests** — three local daily quests that pay gems.
-- **Shop** — heart refills, streak freezes, and double XP, bought with earned
-  gems only.
+- **Shop** — double XP, bought with earned gems only. T5.5 owns the full
+  economy/quest/shop migration.
 - **Profile** — real stats, per-note box progress, settings including a
   System/Light/Dark appearance, backup/restore, and reset.
 
@@ -143,8 +144,8 @@ The suite covers:
 - JSON persistence, corrupt-storage fallbacks, and a simulated app restart
 - onboarding, path, lesson, quests, shop, practice, profile, and responsive-shell
   widget flows
-- hearts, gems, chests, daily quests, streak freezes, double XP, and jump-ahead
-  tests
+- gems, chests, daily quests, double XP, jump-ahead tests, the weekly minutes
+  goal, and the optional quiet streak
 
 ### Device checklist
 

@@ -114,66 +114,76 @@ void main() {
       );
       expect(state.isLessonCompleted('u1l1'), isTrue);
       expect(state.xp, 15);
-      expect(state.streak, 1);
-      expect(state.lastCompletedDay, '2026-10-31');
+      expect(state.streak, 0);
+      expect(state.lastPracticeDay, isNull);
       expect(state.bestLessonAccuracy['u1l1'], 1);
       expect(state.recentSessions, hasLength(1));
     });
 
-    test('streak counts once per day and continues the next day', () {
-      final state = ProgressState.fresh();
+    test('an opt-in streak counts once per effective-practice day', () {
+      final state = ProgressState.fresh(
+        settings: const AppSettings(streakEnabled: true),
+      );
       final dayOne = DateTime(2026, 10, 30, 10);
       final dayTwo = DateTime(2026, 10, 31, 10);
       final dayFour = DateTime(2026, 11, 2, 10);
 
-      state.completeLesson(
-        lessonId: 'u1l1',
-        accuracy: 1,
-        earnedXp: 10,
-        answered: 10,
+      state.recordPracticeEffort(
         now: dayOne,
+        instrumentTime: const Duration(minutes: 5),
       );
-      state.completeLesson(
-        lessonId: 'u1l2',
-        accuracy: 1,
-        earnedXp: 10,
-        answered: 10,
+      state.recordPracticeEffort(
         now: dayOne.add(const Duration(hours: 2)),
+        instrumentTime: const Duration(minutes: 4),
       );
-      expect(state.streak, 1);
+      expect(state.effectiveStreakAt(dayOne), 1);
+      expect(state.lastPracticeDay, '2026-10-30');
 
-      state.completeLesson(
-        lessonId: 'u1l3',
-        accuracy: 1,
-        earnedXp: 10,
-        answered: 10,
+      state.recordPracticeEffort(
         now: dayTwo,
+        instrumentTime: const Duration(minutes: 4),
       );
-      expect(state.streak, 2);
+      expect(state.effectiveStreakAt(dayTwo), 2);
       expect(state.bestStreak, 2);
 
-      state.completeLesson(
-        lessonId: 'u1l4',
-        accuracy: 1,
-        earnedXp: 10,
-        answered: 10,
+      state.recordPracticeEffort(
         now: dayFour,
+        instrumentTime: const Duration(minutes: 4),
       );
-      expect(state.streak, 1);
+      expect(state.effectiveStreakAt(dayFour), 1);
       expect(state.bestStreak, 2);
     });
 
-    test('a broken streak reads as zero until the next completed lesson', () {
-      final state = ProgressState.fresh();
-      state.completeLesson(
-        lessonId: 'u1l1',
-        accuracy: 1,
-        earnedXp: 10,
-        answered: 10,
+    test('a missed day reads as zero quietly until practice resumes', () {
+      final state = ProgressState.fresh(
+        settings: const AppSettings(streakEnabled: true),
+      );
+      state.recordPracticeEffort(
         now: DateTime(2026, 10, 20, 10),
+        instrumentTime: const Duration(minutes: 5),
       );
       expect(state.effectiveStreakAt(DateTime(2026, 10, 21, 10)), 1);
       expect(state.effectiveStreakAt(DateTime(2026, 10, 23, 10)), 0);
+
+      // Resuming after a gap starts at one. Nothing is spent and no negative
+      // state is stored.
+      state.recordPracticeEffort(
+        now: DateTime(2026, 10, 24, 10),
+        instrumentTime: const Duration(minutes: 5),
+      );
+      expect(state.effectiveStreakAt(DateTime(2026, 10, 24, 10)), 1);
+    });
+
+    test('a disabled streak is neither shown nor advanced', () {
+      final state = ProgressState.fresh();
+      state.recordPracticeEffort(
+        now: DateTime(2026, 10, 20, 10),
+        instrumentTime: const Duration(minutes: 20),
+      );
+      expect(state.effectiveStreakAt(DateTime(2026, 10, 20, 10)), 0);
+      expect(state.streak, 0);
+      expect(state.lastPracticeDay, isNull);
+      expect(state.weeklyPracticeMinutes(DateTime(2026, 10, 20, 10)), 20);
     });
 
     test('a failed session is recorded but does not unlock the lesson', () {

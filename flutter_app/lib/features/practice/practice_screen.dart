@@ -173,14 +173,11 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
           );
         }
       }
-      unawaited(
-        ref.read(soundServiceProvider).play(Sfx.lessonStart),
-      );
+      unawaited(ref.read(soundServiceProvider).play(Sfx.lessonStart));
       final controller = ref.read(appControllerProvider.notifier);
       controller.startPractice(kind: kind, micAvailable: micAvailable);
-      await Navigator.of(
-        context,
-      ).push(duoLessonRoute<void>((_) => const LessonScreen()));
+      await Navigator.of(context)
+          .push(duoLessonRoute<void>((_) => const LessonScreen()));
     } finally {
       _openingPractice = false;
     }
@@ -225,12 +222,6 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                     ),
                   ),
                   StatPill(
-                    icon: Icons.favorite_rounded,
-                    value: '${progress.hearts}',
-                    iconColor: AppColors.red,
-                  ),
-                  const SizedBox(width: 12),
-                  StatPill(
                     icon: Icons.diamond_rounded,
                     value: '${progress.gems}',
                     iconColor: AppColors.blue,
@@ -242,45 +233,14 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                 'Tune up, then review the skills that need work.',
                 style: TextStyle(fontSize: 14, color: AppColors.textMuted),
               ),
-              if (progress.hearts < maxHearts) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.redSoft,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.red, width: 1.5),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.favorite_rounded,
-                        color: AppColors.red,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'Finish any practice session to earn one heart back.',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.redDark,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              const SizedBox(height: 16),
+              _WeeklyGoalCard(progress: progress),
               const SizedBox(height: 24),
               _TunerCard(
                 selectedString: _selectedString,
                 onStringSelected: (index) {
                   if (index == _selectedString) return;
-                  unawaited(
-                    ref.read(soundServiceProvider).play(Sfx.uiSelect),
-                  );
+                  unawaited(ref.read(soundServiceProvider).play(Sfx.uiSelect));
                   setState(() => _selectedString = index);
                 },
                 running: _source != null,
@@ -608,6 +568,67 @@ class _TunerCard extends StatelessWidget {
   }
 }
 
+class _WeeklyGoalCard extends StatelessWidget {
+  const _WeeklyGoalCard({required this.progress});
+
+  final ProgressState progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final minutes = progress.weeklyPracticeMinutes(now);
+    final goal = progress.settings.weeklyGoalMinutes;
+    final ratio = goal <= 0 ? 0.0 : (minutes / goal).clamp(0.0, 1.0);
+    final remaining = progress.weeklyPracticeGoalRemaining(now);
+    return SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.flag_rounded,
+                size: 20,
+                color: AppColors.greenDark,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'This week',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+              ),
+              Text(
+                '$minutes / $goal min',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          LessonProgressBar(value: ratio, height: 12),
+          const SizedBox(height: 6),
+          Text(
+            ratio >= 1
+                ? 'Weekly goal complete. Nice work.'
+                : minutes == 0
+                ? 'Any guitar time this week counts.'
+                : '$remaining min to this week’s goal.',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _MiniStat extends StatelessWidget {
   const _MiniStat({
     required this.value,
@@ -732,10 +753,7 @@ class _PracticeRow extends StatelessWidget {
                 ),
               )
             else
-              Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textLight,
-              ),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
           ],
         ),
       ),

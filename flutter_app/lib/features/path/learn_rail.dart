@@ -18,9 +18,11 @@ class LearnRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final goal = progress.settings.dailyGoalXp;
-    final xpToday = progress.xpTodayForDisplay;
-    final ratio = goal == 0 ? 0.0 : (xpToday / goal).clamp(0.0, 1.0);
+    final now = DateTime.now();
+    final goal = progress.settings.weeklyGoalMinutes;
+    final minutes = progress.weeklyPracticeMinutes(now);
+    final remaining = progress.weeklyPracticeGoalRemaining(now);
+    final ratio = goal == 0 ? 0.0 : (minutes / goal).clamp(0.0, 1.0);
 
     return Padding(
       key: const ValueKey('learn-rail'),
@@ -34,9 +36,10 @@ class LearnRail extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
             PathCounters(
-              streak: progress.effectiveStreak,
+              streak: progress.settings.streakEnabled
+                  ? progress.effectiveStreak
+                  : null,
               gems: progress.gems,
-              hearts: progress.hearts,
             ),
             const SizedBox(height: DuoSpacing.lg),
             _RailCard(
@@ -94,7 +97,7 @@ class LearnRail extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Daily goal',
+                    'Weekly goal',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: DuoSpacing.md),
@@ -109,7 +112,7 @@ class LearnRail extends StatelessWidget {
                       Expanded(
                         child: _QuestProgress(
                           value: ratio,
-                          label: '$xpToday / $goal',
+                          label: '$minutes / $goal min',
                           color: AppColors.green,
                           duration: const Duration(milliseconds: 600),
                         ),
@@ -119,10 +122,10 @@ class LearnRail extends StatelessWidget {
                   const SizedBox(height: DuoSpacing.xs),
                   Text(
                     ratio >= 1
-                        ? 'Goal complete. Nice work today.'
-                        : xpToday == 0
-                        ? 'Finish a lesson to start.'
-                        : '${goal - xpToday} XP to your daily goal.',
+                        ? 'Weekly goal complete. Nice work.'
+                        : minutes == 0
+                        ? 'A few minutes this week is a good start.'
+                        : '$remaining min to this week’s goal.',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,

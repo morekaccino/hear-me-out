@@ -38,7 +38,6 @@ class PathScreen extends ConsumerWidget {
     }
     final progress = data.progress;
     final now = DateTime.now();
-    progress.refreshHearts(now);
     progress.refreshDaily(now);
     final currentLesson = _currentLesson(progress.completedLessons);
     final nextSection = _nextSectionAfter(currentLesson);
@@ -76,9 +75,10 @@ class PathScreen extends ConsumerWidget {
                         DuoSpacing.xs,
                       ),
                       child: PathCounters(
-                        streak: progress.effectiveStreak,
+                        streak: progress.settings.streakEnabled
+                            ? progress.effectiveStreak
+                            : null,
                         gems: progress.gems,
-                        hearts: progress.hearts,
                       ),
                     ),
                   ),
@@ -96,12 +96,7 @@ class PathScreen extends ConsumerWidget {
                     currentLesson: currentLesson,
                     onContinue: currentLesson == null
                         ? null
-                        : () => _launchLesson(
-                            context,
-                            ref,
-                            currentLesson,
-                            progress,
-                          ),
+                        : () => _launchLesson(context, ref, currentLesson),
                     onReview: onOpenPractice,
                     onCourseMap: () =>
                         _showCourseMap(context, ref, progress),
@@ -165,7 +160,7 @@ class PathScreen extends ConsumerWidget {
                                 );
                                 return;
                               }
-                              _launchLesson(context, ref, lesson, progress);
+                              _launchLesson(context, ref, lesson);
                             },
                           ),
                         ),
@@ -422,7 +417,7 @@ class PathScreen extends ConsumerWidget {
                   label: 'START “${next.title.toUpperCase()}”',
                   onPressed: () {
                     Navigator.pop(sheetContext);
-                    unawaited(_launchLesson(context, ref, next, progress));
+                    unawaited(_launchLesson(context, ref, next));
                   },
                   color: AppColors.green,
                 ),
@@ -444,56 +439,9 @@ class PathScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     LessonDefinition lesson,
-    ProgressState progress,
   ) async {
-    if (progress.hearts <= 0) {
-      await _showOutOfHearts(context, ref, progress);
-      return;
-    }
     unawaited(ref.read(soundServiceProvider).play(Sfx.lessonStart));
     await _openLesson(context, ref, lesson.id);
-  }
-
-  Future<void> _showOutOfHearts(
-    BuildContext context,
-    WidgetRef ref,
-    ProgressState progress,
-  ) async {
-    final refill = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Out of hearts'),
-        content: Text(
-          'Refill all five hearts for $heartRefillCost gems, or finish a practice session to earn one back.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('NOT NOW'),
-          ),
-          FilledButton(
-            onPressed: progress.gems >= heartRefillCost
-                ? () => Navigator.pop(dialogContext, true)
-                : null,
-            child: Text('REFILL · $heartRefillCost'),
-          ),
-        ],
-      ),
-    );
-    if (refill != true || !context.mounted) return;
-    final bought = await ref
-        .read(appControllerProvider.notifier)
-        .buyHeartRefill();
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          bought
-              ? 'Hearts refilled. You are ready to play.'
-              : 'Not enough gems for a refill.',
-        ),
-      ),
-    );
   }
 
   Future<void> _confirmJump(
@@ -1596,9 +1544,9 @@ class _TodayCard extends StatelessWidget {
     final now = DateTime.now();
     final due = progress.dueSkills(now).length;
     final fragile = progress.fragileSkills(limit: 99).length;
-    final goal = progress.settings.dailyGoalXp;
-    final xp = progress.xpTodayForDisplay;
-    final ratio = goal <= 0 ? 0.0 : (xp / goal).clamp(0.0, 1.0);
+    final goal = progress.settings.weeklyGoalMinutes;
+    final minutes = progress.weeklyPracticeMinutes(now);
+    final ratio = goal <= 0 ? 0.0 : (minutes / goal).clamp(0.0, 1.0);
     final lessonNumber = currentLesson == null
         ? allLessons.length
         : allLessons.indexWhere((lesson) => lesson.id == currentLesson!.id) + 1;
@@ -1646,7 +1594,7 @@ class _TodayCard extends StatelessWidget {
           LessonProgressBar(value: ratio, height: 12),
           const SizedBox(height: 4),
           Text(
-            '$xp / $goal XP today',
+            '$minutes / $goal min this week',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w700,

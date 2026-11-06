@@ -86,7 +86,7 @@ Use `AppColors`; do not add one-off hex values in widgets.
 | `blue` | `#1CB0F6` | same | Secondary action, info, practice, Accidentals |
 | `blueDark` | `#1899D6` | same | Secondary pressed/text |
 | `blueSoft` | `#DDF4FF` | `#133441` | Info panels, mic idle surface, selected nav |
-| `red` | `#FF4B4B` | same | Error, wrong answer, hearts |
+| `red` | `#FF4B4B` | same | Error, wrong answer |
 | `redDark` | `#EA2B2B` | same | Error text, pressed red |
 | `redSoft` | `#FFDFE0` | `#3A2022` | Error/feedback background |
 | `yellow` | `#FFC800` | same | Achievement, XP, chests |
@@ -178,11 +178,9 @@ Use the shared widgets before creating new ones.
   24, white circular icon, white title, optional translucent detail card, white
   continue button with colored text.
 - **`LessonProgressBar`** — 16 px default height, rounded, 280 ms fill.
-- **`HeartsRow`** — five 26 px hearts for lessons only; practice shows a
-  `PRACTICE` label instead.
-- **`StatPill` / pill counters** — compact icon+number pills for streak, gems,
-  hearts, and XP. Use the orange flame, blue diamond, and red heart
-  consistently; the learn column shows them without borders.
+- **`StatPill` / pill counters** — compact icon+number pills for the optional
+  streak, gems, and XP. Use the orange flame and blue diamond consistently; the
+  learn column shows them without borders.
 - **`Mascot`** — original green music-note character with `happy`, `cheer`, and
   `thinking` moods. Use at onboarding, empty/result states, and profile; do not
   crowd every card with it.
@@ -195,7 +193,7 @@ Use the shared widgets before creating new ones.
 Use the tokens in `shared/theme/motion.dart`; do not invent durations.
 
 - `fast` (140 ms): things leaving, taps, press feedback.
-- `base` (220 ms): question changes, panels arriving, hearts popping.
+- `base` (220 ms): question changes, panels arriving, small chip pops.
 - `slow` (320 ms): opening a lesson, filling the progress bar.
 - `overshoot` (`Cubic(0.34, 1.56, 0.64, 1)`): fills, pops, and reveals. Use it
   for arrival, never for dismissal.
@@ -214,7 +212,7 @@ Safari.
   pops from 90% with the overshoot curve.
 - **Progress bar:** the fill springs to its new value with `overshoot`. The
   track has a visible border and a `Step 3 of 8` caption.
-- **Heart lost:** the heart flips to hollow with a scale pop.
+- **Wrong answer:** the feedback panel settles in and the repair chip pops.
 - **Press feedback:** buttons move down 3 px; answer chips scale to 97%.
 - **Current node halo:** scale only. No opacity pulse.
 
@@ -235,9 +233,8 @@ The staff itself is the hero visual on lesson screens.
 ### Iconography
 
 - Use Material rounded icons (`Icons.*_rounded`) consistently.
-- Common status icons: flame for streak, bolt for XP, flag for daily goal,
-  favorite/heart for hearts, diamond for gems, mic for play, music note for
-  notation.
+- Common status icons: flame for the optional streak, bolt for XP, flag for the
+  weekly goal, diamond for gems, mic for play, music note for notation.
 - Most icons are 20–28 px; navigation icons are 26 px.
 - Icons reinforce text; they should not be the only way to understand a value
   or action.
@@ -260,8 +257,8 @@ The staff itself is the hero visual on lesson screens.
   Locked chests use the same sheet with chest copy.
 - **Correct:** green feedback, check icon, concrete note/string/fret hint.
 - **Incorrect:** red feedback, close icon, correct answer, and a recovery action.
-- **Out of hearts:** clear lesson result, refill-and-retry action when gems
-  allow, back-to-path action; practice must never reach this state.
+- **Failed lesson:** a neutral “Not passed yet” result with try-again and
+  back-to-path actions. There is no resource gate and no out-of-lives state.
 
 ### Musical content rules
 
@@ -299,9 +296,9 @@ The full asset map, event map, generator, and audition tool are in
 ### Path
 
 The home screen. Show the next lesson clearly, the current section and unit,
-streak, XP, and daily goal. The path is organized as sections and units, not a
-flat list. The desktop layout matches the Duolingo learn page: left nav, a
-600 px path column, and a 320–372 px quest rail. The path and quest rail share
+the weekly minutes goal, and the optional streak. The path is organized as
+sections and units, not a flat list. The desktop layout matches the Duolingo
+learn page: left nav, a 600 px path column, and a 320–372 px quest rail. The path and quest rail share
 one scroll view; only the left nav is fixed. The path itself has **no drawn
 road**: units follow one another with a repeated node rhythm and no connecting
 line.
@@ -331,9 +328,9 @@ line.
   slot above it for the START bubble. A chest gets its own 96 px slot: nodes
   after it slide down, so the chest never overlaps its neighbors.
 - **Path header:** on narrow screens the learn column shows end-aligned
-  icon+number counters (orange flame, blue diamond, red heart). On wide screens
-  the same counters sit at the top of the quest rail. There is no daily-goal
-  card in the path.
+  icon+number counters (blue diamond, plus the orange flame only after the
+  learner opts into the streak). On wide screens the same counters sit at the
+  top of the quest rail. There is no XP daily-goal card in the path.
 - **Section breaks:** only sections after the player's current one get a
   break. The immediate next one is preceded by a centered `Up next` label.
   The break is a centered section title between two rules, then a **JUMP
@@ -351,8 +348,8 @@ line.
   is locked until the lesson before it is complete, then opens once for gems.
 - **Quest rail:** `Daily Quests` card with real quest progress bars, counts
   inside the bar, a chest at the end of each row, and a `VIEW ALL` link, then a
-  `Daily goal` card. The rail scrolls with the path. No leagues, ads, or
-  upsells.
+  `Weekly goal` card showing measured minutes. The rail scrolls with the path.
+  No leagues, ads, or upsells.
 - **Responsive components:** the nav narrows from 256 to 232 px, the quest rail
   from 372 to 320 px, the path column caps at 600 px, and the banner switches to
   an icon-only 40 px guidebook button below 480 px. Node and counter sizes stay
@@ -376,7 +373,8 @@ know:
 A lesson follows a teaching arc. A new note first appears as a **teach card**:
 the title reads "A new note", the panel uses `blueSoft` with a blue border, the
 note name is large, and the string/fret hint follows it. The only action is
-`GOT IT`, and no heart can be lost. The next exposure is a **guided attempt**
+`GOT IT`, and meeting a note is never scored. The next exposure is a
+**guided attempt**
 with three choices, one of them deliberately distant from the target. After that
 the note joins normal practice.
 
@@ -426,9 +424,9 @@ unselected icons and labels stay muted at every width. A cursor change with no v
 or a hover with no cursor, is a bug; use `HoverRegion` or `DuoTappable` instead
 of a bare `GestureDetector`.
 
-Show the correct string/fret on feedback. Keep the five hearts visible for
-lessons; show `PRACTICE` instead for practice. A checkpoint is a 15-exercise
-mixed review with trophy copy and the standard lesson flow.
+Show the correct string/fret on feedback. The top bar labels the mode
+(`LESSON`, `PRACTICE`, or `CHECKPOINT`); there is no life counter. A checkpoint
+is a 15-exercise mixed review with trophy copy and the standard lesson flow.
 
 If a note is missed, it returns once at the end under “Mistake review.” Keep the
 base progress bar full during this phase; the learner should feel a short,
@@ -438,8 +436,8 @@ specific repair, not a second lesson.
 
 Low-pressure drilling. The tuner is a utility; smart practice is the main event.
 Due, weak, and free practice are separate intents. Never imply a practice
-session is a test. Practice does not consume hearts and restores one on
-completion.
+session is a test. Practice is always available; it does not consume or restore
+a life.
 
 ### Technique
 
@@ -448,7 +446,7 @@ accent. Each V1 stage has one focus (setup and posture, left hand, right hand,
 damping, shifts, or slurs), exactly three observable checklist items, exactly
 three self-rating rows, one 60-second drill, and a short demo script. Ticks and
 ratings are session-only; they are not persisted, do not change FSRS, and award
-no hearts, XP, gems, or streak.
+no XP, gems, or streak.
 
 The microphone cannot see hands. Say so on the screen: this is not automated
 hand assessment and it does not replace a teacher. Put the pain, numbness, and
@@ -463,7 +461,8 @@ available.
 ### Profile
 
 A transparent record of real work: notes with box progress, accuracy, completed
-lessons, streak, XP, settings, backup/restore, reset. No vanity metrics. Privacy
+lessons, weekly minutes, the optional streak, XP, settings, backup/restore,
+reset. No vanity metrics. Privacy
 copy is part of the design, not a footer afterthought. It must say that
 recordings stay on the device, are never uploaded, and that the microphone is
 active only during a lesson, practice, tuner, or recording session. It may claim
@@ -501,21 +500,23 @@ reachable for a real new install; leaving it off records nothing. See
 
 ## Gamification rules
 
-- **Streak:** a daily habit signal, not a punishment. It increments on the first
-  completed lesson of a local day. Practice does not advance it.
+- **Neither hearts nor loss loops.** There is no heart pool, regeneration timer,
+  refill purchase, or out-of-lives failure. A wrong answer lowers accuracy and
+  queues the repair; it never removes a resource or blocks practice.
+- **Weekly goal:** `weeklyGoalMinutes` defaults to 30 and tracks real measured
+  guitar time in a rolling seven-day window. A fresh profile reads 0. XP is an
+  internal reward number, not the habit goal.
+- **Streak:** opt-in and off by default. A local day with 3+ minutes of guitar
+  time or one determinate recorded take advances it. A missed day reads as zero
+  with neutral copy; there is no freeze to buy and no “you lost it” message.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
   practice 5; jump test 20. Double XP doubles the award. Show real earned
   amounts.
-- **Hearts:** five shared hearts. A wrong lesson answer costs one; zero ends the
-  lesson. One heart regenerates every four hours, practice restores one, and a
-  350-gem refill fills all five. Practice never costs hearts.
-- **Gems:** earned from chests and claimed daily quests. Spent only in the
-  local shop on heart refills, streak freezes, and double XP.
+- **Gems:** earned from chests and claimed daily quests. Spent only on the
+  local double-XP boost. T5.5 owns the full economy migration.
 - **Chests:** one per unit, unlocked by the lesson before it, opened once.
 - **Daily quests:** complete a lesson, answer ten notes, and build a five-answer
   combo. Each pays gems once per local day.
-- **Streak freeze:** up to two equipped; one protects a missed day.
-- **Daily goal:** 10/20/30 XP, tracked per local day.
 - **Combo:** positive feedback only; do not add a combo loss mechanic.
 - **Level:** `xp ~/ 100 + 1`; do not invent a separate progression currency.
 - **Jump ahead:** a 15-exercise test can unlock earlier sections without

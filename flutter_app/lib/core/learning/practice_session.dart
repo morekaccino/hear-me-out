@@ -64,7 +64,7 @@ enum PracticeSessionStatus { notStarted, running, paused, finished }
 /// One Today practice session.
 ///
 /// The aggregate owns the plan, one target, and clock-driven state. It does not
-/// know about notes, lessons, hearts, XP, or content packs, and it never reads
+/// know about notes, lessons, XP, or content packs, and it never reads
 /// the wall clock. Callers pass every timestamp so the five-minute budget is
 /// testable.
 ///

@@ -20,7 +20,8 @@ void main() {
           answerMode: AnswerMode.play,
           toleranceCents: 40,
           soundEffects: false,
-          dailyGoalXp: 30,
+          weeklyGoalMinutes: 45,
+          streakEnabled: true,
         ),
       );
       final now = DateTime(2026, 10, 31, 10);
@@ -43,15 +44,20 @@ void main() {
       expect(restored.settings.answerMode, AnswerMode.play);
       expect(restored.settings.toleranceCents, 40);
       expect(restored.settings.soundEffects, isFalse);
+      expect(restored.settings.weeklyGoalMinutes, 45);
+      expect(restored.settings.streakEnabled, isTrue);
       expect(restored.notes['G4']!.correct, 1);
       expect(restored.notes['G4']!.averageAbsCents, 8);
       expect(restored.completedLessons, contains('c3u2l1'));
       expect(restored.bestLessonAccuracy['c3u2l1'], 0.9);
       expect(restored.recentSessions.single.lessonId, 'c3u2l1');
       expect(restored.gems, progress.gems);
-      expect(restored.hearts, progress.hearts);
+      expect(restored.practiceSecondsByDay, isEmpty);
       expect(restored.daily.correct, 1);
       expect(restored.daily.lessons, 1);
+      expect(restored.toJson().containsKey('hearts'), isFalse);
+      expect(restored.toJson().containsKey('nextHeartAt'), isFalse);
+      expect(restored.toJson().containsKey('streakFreezes'), isFalse);
     });
 
     test('export and import preserve progress', () {
@@ -87,7 +93,8 @@ void main() {
       expect(importProgress('{"schemaVersion": 4}'), isNotNull);
       expect(importProgress('{"schemaVersion": 5}'), isNotNull);
       expect(importProgress('{"schemaVersion": 6}'), isNotNull);
-      expect(importProgress('{"schemaVersion": 7}'), isNull);
+      expect(importProgress('{"schemaVersion": 7}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 8}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });
@@ -141,9 +148,12 @@ void main() {
       await container.read(appControllerProvider.future);
       await container
           .read(appControllerProvider.notifier)
-          .completeOnboarding(const AppSettings(dailyGoalXp: 30));
+          .completeOnboarding(
+            const AppSettings(weeklyGoalMinutes: 45, streakEnabled: true),
+          );
       expect(store.value!.settings.onboardingComplete, isTrue);
-      expect(store.value!.settings.dailyGoalXp, 30);
+      expect(store.value!.settings.weeklyGoalMinutes, 45);
+      expect(store.value!.settings.streakEnabled, isTrue);
     });
 
     test('a full lesson completes, awards XP, and persists', () async {
@@ -187,7 +197,8 @@ void main() {
       expect(data.result!.answered, scored);
       expect(data.progress.isLessonCompleted('c3u2l1'), isTrue);
       expect(data.progress.xp, 15);
-      expect(data.progress.streak, 1);
+      expect(data.progress.streak, 0);
+      expect(data.progress.effectiveStreak, 0);
 
       expect(store.value!.isLessonCompleted('c3u2l1'), isTrue);
       expect(store.value!.xp, 15);
@@ -223,7 +234,7 @@ void main() {
       final reloaded = await second.read(appControllerProvider.future);
       expect(reloaded.progress.isLessonCompleted('c3u2l1'), isTrue);
       expect(reloaded.progress.xp, 15);
-      expect(reloaded.progress.streak, 1);
+      expect(reloaded.progress.streak, 0);
     });
 
     test('a missed note comes back at the end of the lesson', () async {
@@ -283,7 +294,7 @@ void main() {
       notifier.startLesson('c3u2l1', micAvailable: false);
       var guard = 0;
       while (container.read(appControllerProvider).requireValue.result == null &&
-          guard < exercisesPerLesson) {
+          guard < 40) {
         guard++;
         await notifier.submitAnswer(correct: false);
         await notifier.nextExercise();
@@ -295,7 +306,7 @@ void main() {
       expect(data.progress.xp, 0);
     });
 
-    test('practice never spends lives and completes with XP', () async {
+    test('practice is always available and completes with XP', () async {
       final store = MemoryProgressStore();
       final container = ProviderContainer(
         overrides: [progressStoreProvider.overrideWithValue(store)],
@@ -314,7 +325,6 @@ void main() {
       }
 
       final run = container.read(appControllerProvider).requireValue.run!;
-      expect(run.lives, livesPerLesson);
       expect(run.index, 3);
       expect(run.isFinished, isFalse);
 

@@ -89,9 +89,9 @@ features or monetization.
 The visual language **follows current Duolingo**: bright white surfaces in light
 mode, deep navy surfaces in dark mode, heavy
 Nunito type, thick outlines, hard offset shadows, per-unit path colors, 3D
-path nodes, heart /
-gem / streak counters, chests, and a responsive side rail on wide screens. Keep
-the mascot and all artwork original; do not copy the owl, proprietary
+path nodes, gem / optional streak counters, chests, and a responsive side rail
+on wide screens. Keep the mascot and all artwork original; do not copy the owl,
+proprietary
 illustrations, font files, or trademarked assets.
 
 - Bright white background, `Nunito`, heavy `w700`/`w800` text, thick outlines,
@@ -100,7 +100,7 @@ illustrations, font files, or trademarked assets.
   `SectionCard`, `AnswerOption`, `FeedbackPanel`, `Mascot`, `PageFrame`) before
   inventing new styles.
 - Green = primary/success and Foundations; purple = First Position and free
-  practice; blue = info/secondary and Accidentals; red = error/hearts; yellow =
+  practice; blue = info/secondary and Accidentals; red = error; yellow =
   reward/progress.
 - Primary buttons default to 56 px tall, uppercase, radius 16, with a visible
   bottom edge and a 3 px press movement; compact variants use 48–54 px. Answer
@@ -143,8 +143,10 @@ tone, accessibility notes, and non-goals are in
    detection, and staff geometry must stay pure Dart and testable.
 3. **Written pitch is not sounding pitch.** Guitar notation is written one
    octave above sounding pitch. Use `Guitar.soundingMidiForWritten`.
-4. **Practice never costs hearts.** Lessons share a five-heart pool; practice does
-   not spend hearts and restores one on completion. Do not regress this.
+4. **There are no hearts.** Lessons and practice never spend or restore a life.
+   A wrong answer only lowers accuracy and queues the pedagogical repair. The
+   habit signal is a weekly minutes goal; the streak is optional and resets
+   quietly. Do not reintroduce a loss-based gate.
 5. **Mastery needs space.** A note is mastered only at box >= 4, with at least
    five correct answers across at least two calendar days.
 6. **Do not fake stats or progress.** Every number must come from
@@ -269,18 +271,20 @@ Then open <http://127.0.0.1:8080/>.
 - **Answer modes:** mixed starts each new note with naming and includes at
   least three play exercises when possible; name-only never starts the mic;
   play-only plays everything.
-- **Hearts:** five shared hearts. A wrong lesson answer spends one; zero ends the
-  lesson. Hearts refill one per four hours, a practice session restores one, and
-  the shop can refill all five for 350 gems. Practice never spends hearts.
+- **No hearts:** there is no heart pool, regeneration timer, refill, or
+  out-of-lives failure. A lesson always reaches its result; wrong answers lower
+  accuracy and queue the repair, never a life.
+- **Weekly goal:** `settings.weeklyGoalMinutes` defaults to 30 and is the primary
+  habit signal. Progress is summed from real measured session seconds in the
+  rolling seven-day window. XP remains an internal progress number and is not
+  the habit goal. A fresh profile reads 0.
 - **Gems and shop:** fresh profiles start with 500 gems. Gems come from chests
-  and daily quests and buy heart refills, streak freezes, and double XP. No
-  real-money purchases.
+  and daily quests and buy double XP. No real-money purchases. T5.5 owns the
+  full economy/quest/shop migration.
 - **Chests:** one per unit, unlocked by the lesson before it, opened once for
   gems. Opening persists in `openedChests`.
 - **Daily quests:** complete a lesson, answer ten notes, and build a five-answer
   combo. Claiming awards gems once per local day.
-- **Streak freeze:** up to two equipped; one is consumed when a completed lesson
-  arrives after a missed day and preserves the streak.
 - **Double XP:** 15 minutes of doubled lesson/practice XP after purchase.
 - **Jump ahead:** passing a 15-exercise test unlocks the sections before the
   target section without deleting note progress.
@@ -297,8 +301,10 @@ Then open <http://127.0.0.1:8080/>.
   and unknown ids are skipped rather than crashing practice.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
   practice 5; jump test 20. Double XP multiplies the award.
-- **Streak:** first completed lesson of a local calendar day; practice does not
-  advance it.
+- **Streak:** opt-in (`settings.streakEnabled`, default false). Any local day
+  with 3+ minutes of guitar time or one determinate recorded take advances it.
+  A missed day reads as zero with neutral copy; there is no freeze, spending,
+  or “you lost your streak” message.
 - **Mic matching:** require three stable frames, accept within the configured
   cents tolerance, flag ±12-semitone octave errors after six frames, and ignore
   the first 250 ms after a new play exercise.
@@ -331,7 +337,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 825 tests passing
+- `flutter test` - 835 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -344,7 +350,7 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
   and counters, and lessons, quests, shop, practice, and profile are reachable
   on narrow and wide layouts; System, Light, and Dark appearance all render
   with the Duo palette
-- 28 original Bright Pluck cues are bundled in `assets/audio/`; ear-training
+- 27 original Bright Pluck cues are bundled in `assets/audio/`; ear-training
   stimuli are synthesized locally as WAV bytes and the soundboard is available
   at `flutter_app/tool/soundboard.html`
 - The T2.5 phrase prompt, verifier, recorder, scored-take gate, and player
