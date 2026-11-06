@@ -414,7 +414,7 @@ void main() {
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+      await tester.drag(find.byType(ListView).first, const Offset(0, -900));
       await tester.pumpAndSettle();
       expect(find.text('30 min'), findsOneWidget);
 
@@ -423,6 +423,8 @@ void main() {
       expect(store.value!.settings.weeklyGoalMinutes, 45);
 
       final streakSwitch = find.byType(Switch).first;
+      await tester.ensureVisible(streakSwitch);
+      await tester.pumpAndSettle();
       await tester.tap(streakSwitch);
       await tester.pumpAndSettle();
       expect(store.value!.settings.streakEnabled, isTrue);
