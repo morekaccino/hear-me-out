@@ -2,9 +2,12 @@ import 'dart:math';
 
 import '../music/curriculum.dart';
 import '../music/note.dart';
+import '../storage/progress_migrations.dart';
+import 'phrase_progress.dart';
 import 'prompt.dart';
 import 'skill.dart';
 
+export 'phrase_progress.dart';
 export 'prompt.dart' show AnswerMode, answerModeFromName;
 
 enum AppThemeMode { system, light, dark }
@@ -347,14 +350,16 @@ class SessionSummary {
 }
 
 class ProgressState {
-  static const int currentSchemaVersion = 4;
+  static const int currentSchemaVersion = latestProgressSchemaVersion;
   static const int currentCurriculumVersion = 3;
 
   ProgressState({
     this.schemaVersion = currentSchemaVersion,
     this.curriculumVersion = currentCurriculumVersion,
+    this.contentVersion = 1,
     Map<String, NoteProgress>? notes,
     Map<String, SkillProgress>? skills,
+    Map<String, PhraseProgress>? phraseProgress,
     Set<String>? completedLessons,
     Set<String>? legacyCompletedLessons,
     Map<String, double>? bestLessonAccuracy,
@@ -377,8 +382,10 @@ class ProgressState {
     this.questDay,
     this.settings = const AppSettings(),
     List<SessionSummary>? recentSessions,
+    Map<String, dynamic>? extraFields,
   }) : notes = notes ?? <String, NoteProgress>{},
        skills = skills ?? <String, SkillProgress>{},
+       phraseProgress = phraseProgress ?? <String, PhraseProgress>{},
        completedLessons = completedLessons ?? <String>{},
        legacyCompletedLessons = legacyCompletedLessons ?? <String>{},
        bestLessonAccuracy = bestLessonAccuracy ?? <String, double>{},
@@ -386,12 +393,18 @@ class ProgressState {
        openedChests = openedChests ?? <String>{},
        daily = daily ?? DailyCounters(),
        claimedQuests = claimedQuests ?? <String>{},
-       recentSessions = recentSessions ?? <SessionSummary>[];
+       recentSessions = recentSessions ?? <SessionSummary>[],
+       _extraFields = extraFields ?? <String, dynamic>{};
 
   final int schemaVersion;
   int curriculumVersion;
+
+  /// Version of the bundled content catalogue, separate from the storage
+  /// schema and from [curriculumVersion].
+  int contentVersion;
   final Map<String, NoteProgress> notes;
   final Map<String, SkillProgress> skills;
+  final Map<String, PhraseProgress> phraseProgress;
   final Set<String> completedLessons;
   final Set<String> legacyCompletedLessons;
   final Map<String, double> bestLessonAccuracy;
@@ -415,10 +428,17 @@ class ProgressState {
   AppSettings settings;
   final List<SessionSummary> recentSessions;
 
+  /// Top-level keys this build does not understand. They are written back so
+  /// a newer build's fields survive a load/save through an older one.
+  final Map<String, dynamic> _extraFields;
+
   NoteProgress noteFor(Note note) =>
       notes.putIfAbsent(note.id, () => NoteProgress());
 
   NoteProgress? progressFor(Note note) => notes[note.id];
+
+  PhraseProgress? phraseProgressFor(String phraseId) =>
+      phraseProgress[phraseId];
 
   SkillProgress? skillProgressFor(String objectiveId) => skills[objectiveId];
 
@@ -802,9 +822,11 @@ class ProgressState {
   ProgressState copy() => ProgressState(
     schemaVersion: schemaVersion,
     curriculumVersion: curriculumVersion,
+    contentVersion: contentVersion,
     notes: {for (final entry in notes.entries) entry.key: entry.value.copy()},
-    skills: {
-      for (final entry in skills.entries) entry.key: entry.value.copy(),
+    skills: {for (final entry in skills.entries) entry.key: entry.value.copy()},
+    phraseProgress: {
+      for (final entry in phraseProgress.entries) entry.key: entry.value.copy(),
     },
     completedLessons: {...completedLessons},
     legacyCompletedLessons: {...legacyCompletedLessons},
@@ -828,16 +850,23 @@ class ProgressState {
     questDay: questDay,
     settings: settings,
     recentSessions: [...recentSessions],
+    extraFields: {..._extraFields},
   );
 
   Map<String, dynamic> toJson() => {
+    ..._extraFields,
     'schemaVersion': schemaVersion,
     'curriculumVersion': curriculumVersion,
+    'contentVersion': contentVersion,
     'notes': {
       for (final entry in notes.entries) entry.key: entry.value.toJson(),
     },
     'skills': {
       for (final entry in skills.entries) entry.key: entry.value.toJson(),
+    },
+    'phraseProgress': {
+      for (final entry in phraseProgress.entries)
+        entry.key: entry.value.toJson(),
     },
     'completedLessons': completedLessons.toList(),
     'legacyCompletedLessons': legacyCompletedLessons.toList(),
@@ -864,10 +893,18 @@ class ProgressState {
   };
 
   factory ProgressState.fromJson(Map<String, dynamic> json) {
+    final result = migrateProgress(json);
+    if (result is MigrationFailure) {
+      throw FormatException('Cannot read progress: ${result.reason}');
+    }
+    return ProgressState._fromMigratedJson((result as MigrationSuccess).json);
+  }
+
+  factory ProgressState._fromMigratedJson(Map<String, dynamic> json) {
     final state = ProgressState(
       schemaVersion: currentSchemaVersion,
-      curriculumVersion:
-          (json['curriculumVersion'] as num?)?.toInt() ?? 1,
+      curriculumVersion: (json['curriculumVersion'] as num?)?.toInt() ?? 1,
+      contentVersion: (json['contentVersion'] as num?)?.toInt() ?? 1,
       notes: {
         for (final entry
             in (json['notes'] as Map<String, dynamic>? ?? const {}).entries)
@@ -881,6 +918,9 @@ class ProgressState {
               entry.value as Map<String, dynamic>,
             ),
       },
+      phraseProgress: _parsePhraseProgress(
+        json['phraseProgress'] as Map<String, dynamic>?,
+      ),
       completedLessons: {
         for (final id
             in (json['completedLessons'] as List<dynamic>? ?? const []))
@@ -930,45 +970,14 @@ class ProgressState {
             in (json['recentSessions'] as List<dynamic>? ?? const []))
           if (session is Map<String, dynamic>) SessionSummary.fromJson(session),
       ],
+      extraFields: {
+        for (final entry in json.entries)
+          if (!_progressTopLevelKeys.contains(entry.key))
+            entry.key: entry.value,
+      },
     );
     state._migrateCurriculum();
-    state._migrateNotesToSkills();
     return state;
-  }
-
-  void _migrateNotesToSkills() {
-    if (skills.isNotEmpty) return;
-    for (final entry in notes.entries) {
-      final note = entry.value;
-      final stability = switch (note.box) {
-        0 => 0.5,
-        1 => 1.0,
-        2 => 3.0,
-        3 => 7.0,
-        4 => 21.0,
-        5 => 45.0,
-        _ => 0.5,
-      };
-      final difficulty = (10 - note.accuracy * 8).clamp(1.0, 10.0);
-      skills['note:${entry.key}'] = SkillProgress(
-        objectiveId: 'note:${entry.key}',
-        family: SkillFamily.noteReading,
-        stabilityDays: stability,
-        difficulty: difficulty,
-        dueAt: note.dueAt,
-        lastSeenAt: note.lastSeenAt,
-        reps: note.attempts,
-        lapses: note.incorrect,
-        correct: note.correct,
-        incorrect: note.incorrect,
-        correctDays: {...note.correctDays},
-        centsSamples: note.centsSamples,
-        centsTotal: note.centsTotal,
-        box: note.box,
-        streak: note.streak,
-        bestStreak: note.bestStreak,
-      );
-    }
   }
 
   void _migrateCurriculum() {
@@ -1010,6 +1019,55 @@ class ProgressState {
   factory ProgressState.fresh({AppSettings settings = const AppSettings()}) =>
       ProgressState(settings: settings);
 }
+
+Map<String, PhraseProgress> _parsePhraseProgress(Map<String, dynamic>? json) {
+  if (json == null) return <String, PhraseProgress>{};
+  final result = <String, PhraseProgress>{};
+  for (final entry in json.entries) {
+    final value = entry.value;
+    if (value is! Map) {
+      throw FormatException('phraseProgress.${entry.key} must be an object');
+    }
+    result[entry.key] = PhraseProgress.fromJson(
+      Map<String, dynamic>.from(value),
+      phraseId: entry.key,
+    );
+  }
+  return result;
+}
+
+/// Every top-level key this build writes. Anything else is preserved as
+/// forward-compatible data and re-emitted by [ProgressState.toJson].
+const Set<String> _progressTopLevelKeys = {
+  'schemaVersion',
+  'curriculumVersion',
+  'contentVersion',
+  'notes',
+  'skills',
+  'phraseProgress',
+  'completedLessons',
+  'legacyCompletedLessons',
+  'bestLessonAccuracy',
+  'completedCheckpoints',
+  'placementUnitId',
+  'xp',
+  'streak',
+  'bestStreak',
+  'lastCompletedDay',
+  'xpToday',
+  'xpDay',
+  'gems',
+  'hearts',
+  'nextHeartAt',
+  'streakFreezes',
+  'xpBoostUntil',
+  'openedChests',
+  'daily',
+  'claimedQuests',
+  'questDay',
+  'settings',
+  'recentSessions',
+};
 
 DateTime? _parseDate(Object? value) {
   if (value is! String) return null;

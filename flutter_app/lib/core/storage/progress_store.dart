@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../learning/progress.dart';
+import 'progress_migrations.dart';
 
 abstract class ProgressStore {
   Future<ProgressState?> load();
@@ -55,11 +56,9 @@ ProgressState? _decodeProgress(String raw) {
   try {
     final decoded = jsonDecode(raw);
     if (decoded is! Map<String, dynamic>) return null;
-    final version = decoded['schemaVersion'];
-    if (version is! num) return null;
-    final value = version.toInt();
-    if (value < 1 || value > ProgressState.currentSchemaVersion) return null;
-    return ProgressState.fromJson(decoded);
+    final migration = migrateProgress(decoded);
+    if (migration is MigrationFailure) return null;
+    return ProgressState.fromJson((migration as MigrationSuccess).json);
   } catch (_) {
     return null;
   }
