@@ -197,6 +197,7 @@ session rules.
 - [AGENTS.md](AGENTS.md) — operating guide for coding agents
 - [docs/PLANE.md](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
 - [docs/TRANSFORMATION_PLAN_FINAL.md](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 transformation plan
+- [docs/CONTENT_CALENDAR.md](docs/CONTENT_CALENDAR.md) — 24-month content supply, cost model, break-even, and the subscription-to-piece-pack gate (T3.9)
 - [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
 - [docs/SOUND.md](docs/SOUND.md) — Bright Pluck sound family and event map
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, invariants
