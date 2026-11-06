@@ -187,8 +187,8 @@ class Piece {
 
   LicenseStatus? get licenseStatus => LicenseStatus.tryParse(license);
 
-  /// V1 is standard tuning with no capo and public-domain or original
-  /// material.
+  /// V1 requires capo 0 and public-domain or original material. Non-standard
+  /// tuning is reported as a warning so future content can opt in explicitly.
   bool get isV1Compatible =>
       capo == 0 && (licenseStatus?.isV1Compatible ?? false);
 
