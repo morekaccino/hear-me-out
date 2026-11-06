@@ -17,28 +17,31 @@ case is a midpoint, not a promise.
 ## 1. Executive summary
 
 - **The 10-piece launch is a 2–3 month supply of active repertoire, not a
-  year.** The plan keeps 3–5 pieces in rotation (section 7.2). At 3–5 pieces
-  consumed per month, 10 pieces lasts 2–3 months. The first post-launch piece
-  is due in month 1.
+  year.** The plan keeps 3–5 pieces in rotation (section 7.2). Assuming an
+  active learner retires 3–5 pieces per month, 10 pieces lasts 2–3 months. The
+  first post-launch piece is due in month 1.
 - **Base cadence:** 2 pieces/month in months 1–6, 3/month in months 7–12,
   2/month in months 13–20, and 1/month in months 21–24. That reaches **40
   pieces at month 12 and 60 at month 24**.
 - **Etudes:** 2/week in months 1–12 (104 new, 164 total at month 12) and
   4/month in months 13–24 (48 new, 212 total at month 24). That clears the
   plan's 100+ and 200+ floors.
-- **Technique and recordings:** 24 technique videos and 144 human reference
-  takes over 24 months, plus 3 generic exam-style packs.
-- **Cost:** about **$57k low / $116k base / $174k high** for launch plus 24
+- **Technique and recordings:** 24 technique videos and **144 total reference
+  takes (20 launch + 124 new)** over 24 months, plus 3 generic exam-style
+  packs.
+- **Cost:** about **$51k low / $103k base / $155k high** for launch plus 24
   months, at contractor/loaded rates. The 24 months after launch alone are
-  about $47k / $94k / $141k.
+  about $41k / $83k / $125k including the three exam packs. These totals
+  exclude the one-time $5–10k T6.3 territory review; add it for an all-in legal
+  figure.
 - **Budget gap:** the plan budgets $25k in Year 1 and $40k in Year 2 ($65k
-  total) for content. The base model is about **$51k above that** over 24
+  total) for content. The base model is about **$38k above that** over 24
   months, concentrated in the first 12 months after launch. The plan's Year 1
   line is approximately the cost of the launch inventory alone.
 - **Revenue check:** at the plan's blended $69/year and 15% store fee + 5%
-  refund/tax reserve, net revenue is about $55.70 per annual Pro per year
-  (about $4.64/month). Content-only break-even is about **1,390 annual Pro in
-  Year 1, 690 in Year 2, and 1,040 averaged over 24 months**. The plan's base
+  refund/tax reserve, net revenue is about **$55.72** per annual Pro per year
+  (about $4.64/month). Content-only break-even is about **1,240 annual Pro in
+  Year 1, 615 in Year 2, and 925 averaged over 24 months**. The plan's base
   case reaches 225 Pro in Year 1 and 713 in Year 2, so Year 1 content is
   cash-funded and Year 2 is roughly content-neutral before other costs. The
   company-level break-even remains about 2,500 Pro (plan section 11.3).
@@ -70,15 +73,20 @@ The gap between the plan's 10 technique checklists and the 8 in code is small
 but real. Either add the two missing checklists or amend the plan's launch
 count before launch.
 
+The 20 launch reference recordings are two takes per piece and are priced
+inside the per-piece cost in section 4.1. They are not a separate cost line.
+
 ### 2.2 Why 10 pieces is 2–3 months, not a year
 
 The plan's repertoire model keeps **3–5 pieces in rotation**, with one
-maintenance play per session and a monthly full performance (section 7.2). The
-calendar assumes a learner retires about one piece per week from that rotation,
-so the active rotation consumes **3–5 pieces per month**. Ten pieces is
-therefore **2–3 months of active repertoire**, not 12 months.
+maintenance play per session and a monthly full performance (section 7.2). This
+is a **per-learner** rotation, not a library release rate. If an active learner
+retires about one piece per week, that learner consumes **3–5 pieces per
+month**; ten pieces is therefore **2–3 months of individual learner supply**,
+not 12 months. The library is shared across learners at different stages, so
+the release cadence does not need to match one learner's consumption.
 
-| Consumption assumption | Pieces per month | Months of supply from 10 pieces |
+| Consumption assumption (per active learner) | Pieces per month | Months of supply from 10 pieces |
 |---|---:|---:|
 | Slower: one piece every two weeks | 2 | 5 |
 | Plan rotation, low | 3 | 3.3 |
@@ -87,10 +95,13 @@ therefore **2–3 months of active repertoire**, not 12 months.
 The 2–3 month figure is an **estimate**, not a measured completion time. It
 uses the plan's rotation, not a T3.8 playtest. If learners keep the same 3–5
 pieces for six months, the launch lasts longer; that is not the retention path
-the calendar is sized for. The release cadence of 2–3 pieces/month is lower than
-the 3–5-piece consumption assumption. That is why the launch is consumed in
-2–3 months rather than a year, and why the calendar starts in month 1. The
-cadence is a minimum replacement rate, not a surplus.
+the calendar is sized for. The release cadence of 2–3 pieces/month is a
+**library-growth rate**, not a per-learner replacement rate. It is below the
+3–5-piece per-learner consumption estimate because the library is shared:
+different learners are at different stages, and the same piece can serve more
+than one learner. The cadence keeps the library deep enough for the learner
+population; it is not a promise that each learner gets 2–3 new pieces every
+month.
 
 The 60 etudes are a separate supply. At 2 new etudes/week, the etude library
 grows from week 1. The 20 reference recordings are a listening library, not a
@@ -113,6 +124,10 @@ By the end of month 3 the library has 16 pieces, 86 etudes, 3 technique
 videos, and 35 reference takes. The launch 10 are 62% of the piece library.
 By month 6 they are 45%; by month 12 they are 25%. The launch is a starting
 library, not a year of supply.
+
+The counts above include all human takes. The 20 launch takes and the 4 piece
+takes/month are inside the per-piece cost; only the 1 etude take/month is
+priced separately in section 4.4.
 
 ### 3.2 Full calendar
 
@@ -154,6 +169,10 @@ and 200+ etudes at month 24. The exam packs are generic Grade 1–3 sight-readin
 packs. They use no exam-board names, syllabi, or past papers (plan section
 11.1 and 10.3).
 
+The 144 total reference takes are **20 launch + 100 piece takes + 24 etude
+takes**. The 20 launch and 100 piece takes are inside the per-piece cost; only
+the 24 etude takes are priced separately in section 4.4.
+
 ### 3.3 Cadence rules and what they assume
 
 | Period | Pieces/month | Etudes/month | Videos/month | Why this rate |
@@ -167,6 +186,12 @@ The calendar is deliberately front-loaded. Months 7–12 are the most expensive
 and the most capacity-sensitive: 3 pieces/month is the only way to reach 40
 pieces by month 12 from 22 at month 6. If the gate fails, 2 pieces/month yields
 34 pieces at month 12, not 40. That is an honest fallback, not a hidden miss.
+
+**Scope deviation:** months 21–24 run at 1 piece/month, below the ticket's
+2–3 pieces/month scope. This is a deliberate taper to land on 60 pieces at
+month 24 without overrun. If 2–3 pieces/month is mandatory through month 24,
+the library reaches about 64–68 pieces and the base cost rises by roughly
+$4k–$8k. The model chooses 60 to match the plan's upper bound.
 
 ## 4. Cost model
 
@@ -192,13 +217,17 @@ edition. The high case assumes a commissioned arrangement, a difficult source,
 or one round of rework. Both include QA, recording, and legal review; neither
 includes the one-time T6.3 territory review (section 7.4).
 
+The two reference takes are $40–$105 each at the per-take rate used in section
+4.2. The per-piece total already includes them; section 4.4 does not add them
+again.
+
 ### 4.2 Other unit costs
 
 | Unit | Low | Base | High | Hours | What it covers |
 |---|---:|---:|---:|---:|---|
-| Etude | $60 | $130 | $200 | 1.0–2.5 | Compose/arrange, notate, validate, human QA, release. Reference take is separate. |
+| Etude | $60 | $130 | $200 | 1.0–2.5 | Compose/arrange, notate, validate, human QA, release. Etude reference take is separate. |
 | Technique video | $200 | $400 | $600 | 3–6 | Script, film, edit, captions, review. The checklist text is not included. |
-| Reference take | $50 | $100 | $150 | 0.5–1.0 | One human take, target or slow, with setup and edit. |
+| Etude reference take | $40 | $75 | $105 | 0.5–1.0 | One short etude take with setup and edit. Piece takes are inside the per-piece cost. |
 | Technique checklist | $100 | $200 | $300 | 2–4 | Text, rubric, drill description, review. Launch only in this model. |
 | Generic exam pack | $500 | $750 | $1,000 | 8–12 | 10–15 sight-reading items, answer key, validation, QA, release. |
 
@@ -206,40 +235,50 @@ These are estimates. They are not quotes from a specific arranger, engraver,
 guitarist, videographer, or lawyer. A single contractor may cover several
 roles; the model prices the work, not the org chart.
 
+The per-piece recording row in section 4.1 covers two piece takes at the same
+$40–$105 per-take rate. This line prices only the separate etude take; it is
+not a second charge for the piece takes.
+
+Legal review for etudes, videos, checklists, and exam packs is covered by the
+same T6.3 framework and is not itemized per unit. If a per-unit allocation is
+required, add about $10–$30 per etude and $50–$100 per pack.
+
 ### 4.3 Launch inventory cost
 
 | Item | Count | Low | Base | High |
 |---|---:|---:|---:|---:|
-| Pieces | 10 | $5,000 | $10,000 | $15,000 |
+| Pieces (including their two reference takes) | 10 | $5,000 | $10,000 | $15,000 |
 | Etudes | 60 | $3,600 | $7,800 | $12,000 |
 | Technique checklists | 10 | $1,000 | $2,000 | $3,000 |
-| Reference recordings | 20 | $1,000 | $2,000 | $3,000 |
-| **Launch total** | | **$10,600** | **$21,800** | **$33,000** |
+| **Launch total** | | **$9,600** | **$19,800** | **$30,000** |
 
-This is the full cost of the inventory at the model's unit costs. Some launch
-arrangement work is already done (T3.3/T3.4), so the forward cash cost from
-today is lower. The line is kept at full cost so it can be compared with the
-plan's Year 1 content budget. The 60 etudes and 20 recordings do not exist yet;
-their cost is still ahead.
+This is the full cost of the inventory at the model's unit costs. The 20 launch
+reference takes are two per piece and are inside the piece cost; they are not a
+separate line. Some launch arrangement work is already done (T3.3/T3.4), so the
+forward cash cost from today is lower. The line is kept at full cost so it can
+be compared with the plan's Year 1 content budget. The 60 etudes and 20 takes
+do not exist yet; their cost is still ahead.
 
 ### 4.4 Monthly cost at low, base, and high
 
 The monthly totals use the base cadence and the unit costs above. They exclude
 the launch inventory and the three exam packs, which are added separately.
 
-| Phase | Months | Pieces/month | Etudes/month | Videos/month | Ref takes/month | Monthly low | Monthly base | Monthly high |
+| Phase | Months | Pieces/month | Etudes/month | Videos/month | Etude takes/month | Monthly low | Monthly base | Monthly high |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 1–6 | 2 | 8.67 | 1 | 5 | $1,970 | $4,027 | $6,084 |
-| 2 | 7–12 | 3 | 8.67 | 1 | 7 | $2,570 | $5,227 | $7,884 |
-| 3 | 13–20 | 2 | 4 | 1 | 5 | $1,690 | $3,420 | $5,150 |
-| 4 | 21–24 | 1 | 4 | 1 | 3 | $1,090 | $2,220 | $3,350 |
+| 1 | 1–6 | 2 | 8.67 | 1 | 1 | $1,760 | $3,602 | $5,439 |
+| 2 | 7–12 | 3 | 8.67 | 1 | 1 | $2,260 | $4,602 | $6,939 |
+| 3 | 13–20 | 2 | 4 | 1 | 1 | $1,480 | $2,995 | $4,505 |
+| 4 | 21–24 | 1 | 4 | 1 | 1 | $980 | $1,995 | $3,005 |
 
 Monthly totals are constant within each phase because the cadence is constant;
 the month-by-month counts are in section 3.2. The three exam packs are one-time
-additions in months 13, 16, and 19.
+additions in months 13, 16, and 19. The per-piece cost already includes two
+piece reference takes; the only reference cost added here is one etude take per
+month at $40/$75/$105.
 
 Worked base example, phase 1: 2 pieces × $1,000 = $2,000; 8.67 etudes × $130 =
-$1,127; 1 video × $400 = $400; 5 takes × $100 = $500; total $4,027. The 8.67
+$1,127; 1 video × $400 = $400; 1 etude take × $75 = $75; total $3,602. The 8.67
 figure is 2 etudes/week averaged over 12 months; the calendar rounds to 8 or 9
 in individual months.
 
@@ -247,34 +286,40 @@ in individual months.
 
 | Cost block | Low | Base | High |
 |---|---:|---:|---:|
-| Launch inventory (month 0) | $10,600 | $21,800 | $33,000 |
-| Months 1–6 | $11,820 | $24,162 | $36,504 |
-| Months 7–12 | $15,420 | $31,362 | $47,304 |
-| Months 13–20 | $13,520 | $27,360 | $41,200 |
-| Months 21–24 | $4,360 | $8,880 | $13,400 |
+| Launch inventory (month 0) | $9,600 | $19,800 | $30,000 |
+| Months 1–6 | $10,560 | $21,612 | $32,634 |
+| Months 7–12 | $13,560 | $27,612 | $41,634 |
+| Months 13–20 | $11,840 | $23,960 | $36,040 |
+| Months 21–24 | $3,920 | $7,980 | $12,020 |
 | 3 generic exam packs | $1,500 | $2,250 | $3,000 |
-| **Total, launch + 24 months** | **$57,220** | **$115,814** | **$174,408** |
+| **Total, launch + 24 months** | **$50,980** | **$103,214** | **$155,328** |
 
 Cumulative checkpoints:
 
 | Milestone | Low | Base | High |
 |---|---:|---:|---:|
-| Month 0 (launch) | $10,600 | $21,800 | $33,000 |
-| Month 6 | $22,420 | $45,962 | $69,504 |
-| Month 12 | $37,840 | $77,324 | $116,808 |
-| Month 18 | $47,980 | $97,844 | $147,708 |
-| Month 24 | $57,220 | $115,814 | $174,408 |
+| Month 0 (launch) | $9,600 | $19,800 | $30,000 |
+| Month 6 | $20,160 | $41,412 | $62,634 |
+| Month 12 | $33,720 | $69,024 | $104,268 |
+| Month 18 | $42,600 | $86,994 | $131,298 |
+| Month 24 | $50,980 | $103,214 | $155,328 |
 
-The 24 months **after launch** cost about $47k low, $94k base, and $141k high.
-The launch inventory adds about $11k, $22k, and $33k. Use the post-launch
-number for the ongoing subscription supply and the total for the full program.
+The 24 months **after launch** cost about $41k low, $83k base, and $125k high
+including the three exam packs. The launch inventory adds about $10k, $20k, and
+$30k. Use the post-launch number for the ongoing subscription supply and the
+total for the full program.
+
+The total excludes the one-time $5–10k T6.3 territory review. The per-piece
+legal allocation covers routine review only; add the T6.3 figure for an all-in
+legal number.
 
 ### 4.6 What is not in the cost
 
 - App engineering, DSP, hosting, support, marketing, and founder salary. These
   are separate lines in the plan's P&L (section 11.3).
 - The one-time T6.3 legal review and territory framework ($5–10k, plan section
-  11.6). The per-piece legal allocation covers routine review only.
+  11.6). The per-piece legal allocation covers routine review only. The
+  headline totals in section 4.5 exclude it.
 - Music licence fees for copyrighted works. The plan excludes pop songs and
   copyrighted arrangements (section 6.2); this model does not price them.
 - Taxes, VAT/sales tax, payment processing beyond the plan's 15% store fee and
@@ -300,30 +345,30 @@ $39,726 ÷ 713 = $55.72.
 
 | Metric | Year 1 | Year 2 | 24-month total |
 |---|---:|---:|---:|
-| Modeled content cost (base) | $77,324 | $38,490 | $115,814 |
+| Modeled content cost (base) | $69,024 | $34,190 | $103,214 |
 | Plan content budget | $25,000 | $40,000 | $65,000 |
-| Difference | **−$52,324** | **+$1,510** | **−$50,814** |
+| Difference | **−$44,024** | **+$5,810** | **−$38,214** |
 | Plan base-case Pro (plan table) | 225 | 713 | — |
 | Plan net revenue | $12,536 | $39,726 | — |
-| Net revenue ÷ content cost | 16% | 103% | — |
-| Content-only break-even, annual plans | **~1,390 Pro** | **~690 Pro** | **~1,040 Pro** |
-| Content-only break-even, monthly plans | ~890 Pro | ~440 Pro | ~665 Pro |
+| Net revenue ÷ content cost | 18% | 116% | — |
+| Content-only break-even, annual plans | **~1,240 Pro** | **~615 Pro** | **~925 Pro** |
+| Content-only break-even, monthly plans | ~790 Pro | ~395 Pro | ~590 Pro |
 
 How to read it:
 
 - **Year 1 is cash-funded, not revenue-funded.** At 225 Pro, net revenue is
-  about $12.5k. The modeled Year 1 content cost is about $77k. Even the plan's
+  about $12.5k. The modeled Year 1 content cost is about $69k. Even the plan's
   $25k content line is about twice the net revenue. That is normal for a
   launch, but the cash plan must include it.
 - **Year 2 is roughly content-neutral.** At 713 Pro, net revenue is about
-  $39.7k; modeled Year 2 content is about $38.5k. That covers content but
-  leaves almost nothing for DSP, legal, hosting, marketing, or tools. The
-  plan's full break-even of about 2,500 Pro is still the real gate.
+  $39.7k; modeled Year 2 content is about $34.2k. That covers content and
+  leaves about $5.5k for DSP, legal, hosting, marketing, or tools. The plan's
+  full break-even of about 2,500 Pro is still the real gate.
 - **The gap is concentrated in Year 1.** The plan's $25k Year 1 line is close
-  to the launch inventory alone ($21.8k base). It does not also fund 12 months
-  of post-launch cadence ($55.5k base). The 24-month gap is about $51k, with a
-  range of roughly $50–55k depending on how much of the Year 1 line is launch
-  versus ongoing.
+  to the launch inventory alone ($19.8k base). It does not also fund 12 months
+  of post-launch cadence ($49.2k base). The 24-month gap is about $38k. The low
+  case is about $14k under the $65k budget (a surplus); the high case is about
+  $90k over it.
 
 These are estimates, not a forecast. The break-even counts use the model's
 base unit costs and the plan's blended annual price. A different price or plan
@@ -333,12 +378,12 @@ mix changes the count; a different cost changes it proportionally.
 
 The content-only break-even is the number of Pro subscribers whose net revenue
 covers content, before every other cost. It is not the company break-even. At
-about 1,040 annual-equivalent Pro averaged over 24 months, content pays for
+about 925 annual-equivalent Pro averaged over 24 months, content pays for
 itself; the plan's company break-even is about 2,500 Pro because DSP, legal,
 hosting, marketing, and tools also need funding (section 11.3).
 
 If all subscribers choose the monthly plan, the content-only break-even falls
-to about 665 averaged over 24 months because monthly net revenue per subscriber
+to about 590 averaged over 24 months because monthly net revenue per subscriber
 is higher. The plan's blended $69/year assumption is the safer base.
 
 ## 6. Decision gate: subscription or one-time piece packs
@@ -357,7 +402,13 @@ subscription (plan section 6.5). Use these triggers:
 | 4 | Calendar slip | New pieces shipped per month | < 1 piece/month | Two consecutive months | Subscription promise is broken (plan section 12.4); switch to packs |
 | 5 | Legal backlog | Days from "ready for legal" to written clearance | > 30 days | Two consecutive batches | Hard stop on releases; do not ship uncleared content |
 | 6 | QA rejection | Share of pieces rejected at T3.8 review | > 20% | Two consecutive months | Fix the briefs and reviewer capacity; cut cadence |
-| 7 | Demand shortfall | Pro subscribers at month 12 | < 690 annual-equivalent (or < 440 monthly) | Month 12 | Switch to packs |
+| 7 | Demand shortfall at month 24 | Pro subscribers at month 24 | < ~615 annual-equivalent (or < ~395 monthly) | Month 24 | Switch to packs for year 3 |
+
+Trigger 7 is a month-24 test against the Year 2 content break-even. Do not apply
+the Year 1 break-even (~1,240) at month 12: the plan's own base case is 225 Pro
+at the end of Year 1, so Year 1 is expected to be cash-funded. A month-12 test
+at the Year 1 break-even would fire on the plan's base case and would not
+distinguish a content problem from the planned launch cash gap.
 
 ### 6.2 Action rules
 
@@ -369,8 +420,8 @@ subscription (plan section 6.5). Use these triggers:
 - **Trigger 5 (legal):** hard stop. No release until T6.3 has cleared the
   source, the arrangement, and the territory. A legal backlog is not a reason
   to ship anyway.
-- **Trigger 7 (demand):** the subscriber base cannot cover the cadence. Switch
-  to packs even if the content pipeline is healthy.
+- **Trigger 7 (demand at month 24):** the subscriber base cannot cover year-3
+  content. Switch to packs for year 3 even if the content pipeline is healthy.
 - **Trigger 3 (coverage) for two consecutive quarters:** the subscriber base
   cannot cover the cadence. Switch to packs even if the content pipeline is
   healthy.
@@ -382,8 +433,8 @@ not promise a monthly cadence in marketing until the month-6 gate passes.**
 
 The base calendar is credible only if one of these is true:
 
-1. **Contractor-funded:** content is funded at about $116k over 24 months
-   (base), including the launch inventory. This is about $51k above the plan's
+1. **Contractor-funded:** content is funded at about $103k over 24 months
+   (base), including the launch inventory. This is about $38k above the plan's
    current $65k content budget. The plan's P&L must be reconciled before the
    cadence is promised.
 2. **Founder-led with a capped cadence:** the founder does arrangement and
@@ -399,9 +450,10 @@ fallback; a subscription with a slipping calendar is worse than a smaller,
 complete product.
 
 The month-6 gate is the decision point. Check triggers 1, 2, 4, 5, and 6 at
-month 6. Check trigger 3 quarterly (months 3, 6, 9, and 12). At month 12, add
-trigger 7. If the base case holds, continue to 40 pieces at month 12 and 60 at
-month 24. If it does not, switch to packs and record the decision.
+month 6. Check trigger 3 quarterly (months 3, 6, 9, and 12). At month 24, check
+trigger 7 against the Year 2 break-even before committing to year 3. If the
+base case holds, continue to 40 pieces at month 12 and 60 at month 24. If it
+does not, switch to packs and record the decision.
 
 ## 7. Sources, assumptions, and legal review
 
@@ -437,22 +489,22 @@ month 24. If it does not, switch to packs and record the decision.
 | 3 | Piece cadence | 2/month (1–6), 3/month (7–12), 2/month (13–20), 1/month (21–24) | Plan 6.5 plus this model | Funding, demand, capacity |
 | 4 | Etude cadence | 2/week (1–12), 4/month (13–24) | Plan 6.5 for 1–6; extrapolated | Generator beta, pedagogue capacity |
 | 5 | Technique videos | 1/month, 24 total | Plan 6.5 for 1–6; extrapolated | T2.7 scope; a 12-video library may be enough |
-| 6 | Reference takes | 2 per new piece; 1 representative etude take/month; 20 at launch | Plan 6.4/6.5; this model | Batch recording; etude reference policy |
+| 6 | Reference takes | 2 per new piece (inside the piece cost); 1 etude take/month (priced separately); 20 at launch (inside the piece cost) | Plan 6.4/6.5; this model | Batch recording; etude reference policy |
 | 7 | Piece unit cost | $500–$1,500, 8–16 h | Ticket and plan 6.5 | Quotes, scope, founder-led work |
 | 8 | Etude unit cost | $60–$200, 1–2.5 h | Estimate | Length, generator, review |
 | 9 | Video unit cost | $200–$600, 3–6 h | Estimate | Production quality, presenter, editing |
-| 10 | Reference take cost | $50–$150, 0.5–1 h | Estimate | Studio, session player, batch size |
+| 10 | Etude reference take cost | $40–$105, 0.5–1 h | Estimate | Studio, session player, batch size |
 | 11 | Exam pack cost | $500–$1,000, 8–12 h | Estimate | Item count, answer key, QA |
-| 12 | Launch cost | $10.6k / $21.8k / $33k | Derived | Actual launch scope |
-| 13 | 24-month cost | $57k / $116k / $174k | Derived | Any of the above |
+| 12 | Launch cost | $9.6k / $19.8k / $30k | Derived | Actual launch scope |
+| 13 | 24-month cost | $51k / $103k / $155k | Derived | Any of the above |
 | 14 | Plan content budget | $25k Year 1, $40k Year 2, $65k total | Plan 11.3 | Plan revision |
 | 15 | Pricing and fees | $69/year blended, 15% store fee, 5% reserve; net $55.72/year | Plan 11.1/11.3 | Price test, store terms, tax |
 | 16 | Plan base case | 225 Pro Year 1, 713 Year 2 | Plan 11.3 | Conversion and renewal |
-| 17 | Content-only break-even | ~1,390 / ~690 / ~1,040 annual Pro (Year 1/2/24-month) | Derived | Cost, price, plan mix |
+| 17 | Content-only break-even | ~1,240 / ~615 / ~925 annual Pro (Year 1/2/24-month) | Derived | Cost, price, plan mix |
 | 18 | Company break-even | ~2,500 Pro | Plan 11.3 | Cost base and price |
-| 19 | 10-piece supply | 2–3 months at 3–5 pieces/month | Plan 7.2 plus estimate | T3.8 measured completion time |
+| 19 | 10-piece supply | 2–3 months at 3–5 pieces/month per active learner | Plan 7.2 plus estimate | T3.8 measured completion time |
 | 20 | Legal review | 4–8 weeks first batch, 2–4 weeks later; $5–10k one-time | Plan 11.6; `LAUNCH_PIECES.md` | Territory, source edition, licensed work |
-| 21 | Exclusions | App, DSP, hosting, marketing, salary, taxes, currency | Plan 11.3 | Scope change |
+| 21 | Exclusions | App, DSP, hosting, marketing, salary, taxes, currency, one-time T6.3 review | Plan 11.3 | Scope change |
 
 ### 7.3 Public-domain, IMSLP, and commissioned arrangements
 
@@ -471,6 +523,11 @@ The 10 launch pieces are public-domain or original, but their legal status is
 not settled. `LAUNCH_PIECES.md` records open questions about source editions,
 arrangement originality, moral rights, and contributor agreements. No piece
 ships on the strength of a `license` string alone.
+
+Etudes, videos, checklists, and exam packs are assumed original or
+public-domain. Their contributor agreements and originality warranties are
+covered by the same T6.3 framework and are not itemized per unit. If a per-unit
+allocation is required, add about $10–$30 per etude and $50–$100 per pack.
 
 ### 7.4 Legal-review lead time and the T6.3 dependency
 
@@ -494,7 +551,7 @@ ships on the strength of a `license` string alone.
 ### 7.5 What would change the answer
 
 - **Contractor rates:** a 30% change in rates moves the 24-month base by about
-  $35k.
+  $31k.
 - **Founder-led work:** cash cost falls, but capacity falls with it. The 30–80
   hours/month in months 1–12 is the constraint, not the invoice.
 - **Etude generator:** if T3.7 produces validated etudes, etude authoring hours
@@ -533,7 +590,7 @@ ships on the strength of a `license` string alone.
    cadence is not credible.
 5. **Is the plan's Year 1 content line launch-only or launch plus cadence?** The
    model reads it as approximately launch-only. If it is meant to cover both,
-   the plan is about $52k short in Year 1.
+   the plan is about $44k short in Year 1.
 6. **Will the subscription be marketed as a monthly content promise?** The
    recommendation is no, until the month-6 gate passes. The plan's pricing page
    should say what is actually shipped, not what is planned.

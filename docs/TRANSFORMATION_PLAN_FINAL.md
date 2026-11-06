@@ -375,7 +375,7 @@ A synth is not a model of guitar tone, articulation, or phrasing. Record a human
 
 **T3.9 status:** modeled in [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md). The
 10-piece launch is a 2–3 month supply, not a year. Launch plus 24 months costs
-about $57k low / $116k base / $174k high at contractor rates, about $51k above
+about $51k low / $103k base / $155k high at contractor rates, about $38k above
 the plan's $25k/$40k content lines. The document recommends funding the base
 cadence or switching to one-time piece packs at $49–$79, and defines the
 measurable gate.
