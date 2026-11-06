@@ -61,6 +61,7 @@ void main() {
 
         await controller.setOptIn(true, at: day);
         expect(store.value.optIn, isTrue);
+        expect(store.value.log.installAt, day.toUtc());
         expect(count(store, RetentionEventName.appOpen), 1);
 
         await controller.recordAppOpen(at: day.add(const Duration(hours: 4)));
@@ -106,12 +107,34 @@ void main() {
       final container = containerWith(store);
       await container.read(retentionControllerProvider.future);
       final controller = container.read(retentionControllerProvider.notifier);
+      await controller.recordAppOpen(at: DateTime(2026, 6, 4, 9));
       await controller.record(RetentionEventName.sessionStart);
       await controller.erase();
 
       expect(store.value.optIn, isTrue);
       expect(store.value.log.installId, 'install-keep');
+      expect(store.value.log.installAt, isNotNull);
       expect(store.value.log.events, isEmpty);
+    });
+
+    test('onboarding events only record after opt-in and only once', () async {
+      final store = MemoryRetentionStore();
+      final container = containerWith(store);
+      await container.read(retentionControllerProvider.future);
+      final controller = container.read(retentionControllerProvider.notifier);
+
+      await controller.recordOnboardingStart();
+      await controller.recordOnboardingComplete();
+      expect(store.value.log.events, isEmpty);
+
+      await controller.setOptIn(true);
+      await controller.recordOnboardingStart();
+      await controller.recordOnboardingStart();
+      await controller.recordOnboardingComplete();
+      await controller.recordOnboardingComplete();
+
+      expect(count(store, RetentionEventName.onboardingStart), 1);
+      expect(count(store, RetentionEventName.onboardingComplete), 1);
     });
 
     test('firstNote emits once, not on every answer', () async {

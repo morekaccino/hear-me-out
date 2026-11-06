@@ -2,7 +2,8 @@
 
 This document describes the local-only, opt-in beta usage log added in T5.4.
 It exists so the team can measure the onboarding and practice funnel without
-turning the app into a tracking product.
+turning the app into a tracking product. The decision is recorded in
+[`decisions/0006-local-retention-instrumentation.md`](decisions/0006-local-retention-instrumentation.md).
 
 ## Boundaries
 
@@ -19,13 +20,15 @@ turning the app into a tracking product.
 ## Opt-in
 
 - Logging is **off by default**.
-- The switch is in **Profile → Privacy → Beta usage log**.
-- Enabling the switch creates the first `app_open` event and starts the
-  retention clock (`installDay`) at the moment of consent.
+- The switch appears on the **first onboarding screen** and in
+  **Profile → Privacy → Beta usage log**.
+- Enabling the switch creates the first `app_open` event, pins `installAt`, and
+  records `onboarding_start`. The first onboarding screen is therefore the
+  point where a new install can enter the funnel.
 - Disabling the switch stops new events immediately. Existing events stay
   until the user taps **Erase log**.
-- Onboarding events are only present when the log was already enabled before
-  that step. A user who opts in later has no retroactive onboarding funnel.
+- A user who leaves the switch off has no onboarding events. A user who turns
+  it on and later turns it off keeps the events recorded while it was on.
 
 ## Events
 
@@ -34,8 +37,8 @@ The wire names are stable. Do not rename them without a schema change.
 | Wire name | Enum | Emitted when | Repeat rule |
 |---|---|---|---|
 | `app_open` | `appOpen` | The app starts, resumes, or the user opts in | At most once per local day |
-| `onboarding_start` | `onboardingStart` | The onboarding screen initializes | Once per install |
-| `onboarding_complete` | `onboardingComplete` | Onboarding is finished | Once per install |
+| `onboarding_start` | `onboardingStart` | The first onboarding screen initializes or its consent switch is enabled | Once per install |
+| `onboarding_complete` | `onboardingComplete` | Onboarding is finished while opted in | Once per install |
 | `first_note` | `firstNote` | The first scored `NotePrompt` answer | Once per install |
 | `first_phrase` | `firstPhrase` | Reserved for the real phrase path (T2.5) | Once per install |
 | `first_recording` | `firstRecording` | Reserved for the real recording path (T4.2) | Once per install |
@@ -78,16 +81,21 @@ Each event has exactly three fields:
   "schemaVersion": 1,
   "optIn": false,
   "installId": "6f1c...",
+  "installAt": "2026-11-06T09:00:00.000Z",
   "events": []
 }
 ```
 
+- `installAt` pins the install day at the first consent/`app_open`. It is kept
+  outside the event list so trimming cannot move D1/D7/D30. Older documents
+  without it fall back to the first `app_open`.
 - Corrupt JSON, wrong field types, and unknown event names are ignored. A bad
   event is dropped without making the rest of the log unreadable.
 - A document with `schemaVersion` greater than `1` is rejected as a whole and
   is not rewritten by a plain load. A later explicit save replaces it.
 - The log keeps at most **500 events**. The oldest events are dropped first.
-  This is the retention window: there is no time-based purge.
+  This is the retention window: there is no time-based purge. `installAt`
+  survives trimming.
 - `ProgressState` is unchanged. The log is not part of the progress backup.
 
 ## Export
@@ -98,23 +106,25 @@ Each event has exactly three fields:
 {
   "schemaVersion": 1,
   "installId": "6f1c...",
+  "installAt": "2026-11-06T09:00:00.000Z",
   "events": [
     {"name": "app_open", "at": "2026-11-06T09:00:00.000Z", "installId": "6f1c..."}
   ]
 }
 ```
 
-Every event keeps only `name`, `at`, and `installId`. The export has no
-`exportedAt`, device, app version, or free-text field. Uploading or sharing the
-export is a manual user or researcher action outside the app.
+Every event keeps only `name`, `at`, and `installId`. The export adds the
+document's `installAt` so D1/D7/D30 survive trimming; it has no `exportedAt`,
+device, app version, or free-text field. Uploading or sharing the export is a
+manual user or researcher action outside the app.
 
 ## Erase
 
 **Erase log** asks for confirmation, then deletes every stored event and writes
-an empty log with the same pseudonymous install id and the same opt-in choice.
-It does not remove the key and does not turn logging off. A subsequent event
-starts a fresh log with the same install id; turn the switch off as well if you
-want both. The action cannot be undone.
+an empty log with the same pseudonymous install id, install day, and opt-in
+choice. It does not remove the key and does not turn logging off. A subsequent
+event starts a fresh log with the same install id; turn the switch off as well
+if you want both. The action cannot be undone.
 
 ## Bias caveat
 
@@ -139,7 +149,8 @@ Storage (`lib/core/storage/retention_store.dart`):
   data; it never throws.
 - `RetentionStore.save`
 - `RetentionStore.clear` — removes the whole key. The Profile erase action does
-  not call this; it saves an empty log so the install id and choice survive.
+  not call this; it saves an empty log so the install id, install day, and
+  choice survive.
 
 State (`lib/state/retention_controller.dart`):
 
@@ -150,11 +161,13 @@ State (`lib/state/retention_controller.dart`):
 
 ## Tests
 
-- `test/retention_test.dart` — event names, bound, funnel, D1/D7/D30, export
-  fields, and the pure-domain import rule.
+- `test/retention_test.dart` — event names, bound, timestamp-ordered funnel,
+  D1/D7/D30, pinned install day, export fields, and the pure-domain import rule.
 - `test/retention_store_test.dart` — default opt-out, round trip, corrupt and
-  future data, bad event entries, bound on load, erase.
+  future data, bad event entries, bound on load, install-day persistence.
 - `test/retention_controller_test.dart` — opt-in gating, persistence, erase,
-  first-event dedupe, and the `AppController` session hooks.
+  onboarding dedupe, first-event dedupe, and the `AppController` session hooks.
 - `test/retention_profile_test.dart` — default-off switch, toggle, copy, erase,
   and 390×844 / 1200 px layouts.
+- `test/onboarding_test.dart` — first-screen consent, reachable onboarding
+  funnel, and no events when the switch stays off.

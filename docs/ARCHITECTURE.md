@@ -210,9 +210,13 @@ wires the hooks in `AppController`, onboarding, and app resume.
 
 The log has no audio, note names, piece titles, free text, account, device
 fingerprint, or network path. It is not part of `ProgressState` or the progress
-backup. See [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) for
-the exact event list, fields, export format, erase behavior, and the bias
-caveat.
+backup. The stored document pins `installAt` separately from the bounded event
+list so trimming cannot move D1/D7/D30. Consent is offered on the first
+onboarding screen and in Profile; both are off by default. See
+[`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) for the exact
+event list, fields, export format, erase behavior, and the bias caveat, and
+decision [`0006`](decisions/0006-local-retention-instrumentation.md) for the
+change from the old "no analytics" rule.
 
 ## Progress and scheduling
 

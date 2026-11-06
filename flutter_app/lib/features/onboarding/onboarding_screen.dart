@@ -190,6 +190,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     await _goTo(2);
   }
 
+  void _setRetentionOptIn(bool value) {
+    unawaited(
+      ref
+          .read(soundServiceProvider)
+          .play(value ? Sfx.uiToggleOn : Sfx.uiToggleOff),
+    );
+    final controller = ref.read(retentionControllerProvider.notifier);
+    unawaited(controller.setOptIn(value));
+    if (value) {
+      // The consent switch is the first point a new install can reach, so the
+      // onboarding funnel starts here. The event is deduplicated and dropped
+      // when opt-in is off.
+      unawaited(controller.recordOnboardingStart());
+    }
+  }
+
   void _selectPiece(String pieceId) {
     if (_pieceId == pieceId) return;
     unawaited(ref.read(soundServiceProvider).play(Sfx.uiSelect));
@@ -265,6 +281,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final retention = ref.watch(retentionControllerProvider).asData?.value;
     return Scaffold(
       body: SafeArea(
         child: PageFrame(
@@ -287,9 +304,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       micExpanded: _micExpanded,
                       reading: _reading,
                       micError: _micError,
+                      retentionOptIn: retention?.optIn ?? false,
                       onChoose: _chooseGuitar,
                       onCheckMic: _startMic,
                       onStopMic: _stopMic,
+                      onRetentionChanged: _setRetentionOptIn,
                     ),
                     _ReadingPage(
                       selected: _readingLevel,
@@ -380,9 +399,11 @@ class _GuitarPage extends StatelessWidget {
     required this.micExpanded,
     required this.reading,
     required this.micError,
+    required this.retentionOptIn,
     required this.onChoose,
     required this.onCheckMic,
     required this.onStopMic,
+    required this.onRetentionChanged,
   });
 
   final bool? selected;
@@ -391,9 +412,11 @@ class _GuitarPage extends StatelessWidget {
   final bool micExpanded;
   final PitchReading reading;
   final String? micError;
+  final bool retentionOptIn;
   final ValueChanged<bool> onChoose;
   final VoidCallback onCheckMic;
   final VoidCallback onStopMic;
+  final ValueChanged<bool> onRetentionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -482,6 +505,59 @@ class _GuitarPage extends StatelessWidget {
                 ),
               ),
           ],
+          const SizedBox(height: 24),
+          SectionCard(
+            color: AppColors.blueSoft,
+            borderColor: AppColors.blue.withValues(alpha: 0.35),
+            padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.science_rounded,
+                    size: 20,
+                    color: AppColors.blueDark,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Optional beta usage log',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.blueDark,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Off by default. Local only: event names and times, '
+                        'no audio, no free text, no account. Never uploaded. '
+                        'Erase any time in Profile.',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                          color: AppColors.blueDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Switch.adaptive(
+                  key: const ValueKey('onboarding-retention-switch'),
+                  value: retentionOptIn,
+                  activeThumbColor: AppColors.green,
+                  onChanged: onRetentionChanged,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

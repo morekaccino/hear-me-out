@@ -490,6 +490,15 @@ fourth screen and never a permission gate. No hearts, XP, gems, streak, or
 quests appear during onboarding. The user should reach the path in under a
 minute.
 
+The first screen also carries a compact, off-by-default **Optional beta usage
+log** consent card below the optional microphone check. It is part of the first
+screen, not a fourth step. The copy says local only, no audio, no free text, no
+account, never uploaded, and erase any time in Profile. The switch creates
+`app_open` and `onboarding_start` when enabled, so the onboarding funnel is
+reachable for a real new install; leaving it off records nothing. See
+[`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) and decision
+[`0006`](decisions/0006-local-retention-instrumentation.md).
+
 ## Gamification rules
 
 - **Streak:** a daily habit signal, not a punishment. It increments on the first

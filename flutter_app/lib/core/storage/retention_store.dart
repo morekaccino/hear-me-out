@@ -57,6 +57,10 @@ class SharedPreferencesRetentionStore implements RetentionStore {
       if (installId is! String || installId.isEmpty || optIn is! bool) {
         return _fresh();
       }
+      final rawInstallAt = decoded['installAt'];
+      final installAt = rawInstallAt is String
+          ? DateTime.tryParse(rawInstallAt)
+          : null;
 
       final events = <RetentionEvent>[];
       final rawEvents = decoded['events'];
@@ -74,7 +78,11 @@ class SharedPreferencesRetentionStore implements RetentionStore {
           : events;
       return RetentionStoredData(
         optIn: optIn,
-        log: RetentionLog(installId: installId, events: trimmed),
+        log: RetentionLog(
+          installId: installId,
+          events: trimmed,
+          installAt: installAt,
+        ),
       );
     } catch (_) {
       // A malformed document must never stop the app from opening.
@@ -91,6 +99,7 @@ class SharedPreferencesRetentionStore implements RetentionStore {
         'schemaVersion': currentSchemaVersion,
         'optIn': data.optIn,
         'installId': data.log.installId,
+        'installAt': data.log.installAt?.toIso8601String(),
         'events': [for (final event in data.log.events) event.toJson()],
       }),
     );

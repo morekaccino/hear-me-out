@@ -26,26 +26,86 @@ void main() {
       );
     });
 
-    test('save and load round trip opt-in, id, and events', () async {
-      final log = RetentionLog(installId: 'install-1')
-          .record(RetentionEventName.appOpen, at: DateTime.utc(2026, 1, 1, 9))
-          .record(
-            RetentionEventName.sessionStart,
-            at: DateTime.utc(2026, 1, 1, 9, 5),
-          );
-      final store = SharedPreferencesRetentionStore();
-      await store.save(RetentionStoredData(optIn: true, log: log));
+    test(
+      'save and load round trip opt-in, id, install day, and events',
+      () async {
+        final log = RetentionLog(installId: 'install-1')
+            .record(RetentionEventName.appOpen, at: DateTime.utc(2026, 1, 1, 9))
+            .record(
+              RetentionEventName.sessionStart,
+              at: DateTime.utc(2026, 1, 1, 9, 5),
+            );
+        final store = SharedPreferencesRetentionStore();
+        await store.save(RetentionStoredData(optIn: true, log: log));
 
-      final reloaded = await SharedPreferencesRetentionStore().load();
-      expect(reloaded.optIn, isTrue);
-      expect(reloaded.log.installId, 'install-1');
-      expect(reloaded.log.events, hasLength(2));
-      expect(reloaded.log.events.first.name, RetentionEventName.appOpen);
-      expect(
-        reloaded.log.events.last.timestamp,
-        DateTime.utc(2026, 1, 1, 9, 5),
-      );
+        final reloaded = await SharedPreferencesRetentionStore().load();
+        expect(reloaded.optIn, isTrue);
+        expect(reloaded.log.installId, 'install-1');
+        expect(reloaded.log.installAt, DateTime.utc(2026, 1, 1, 9));
+        expect(reloaded.log.installDay, '2026-01-01');
+        expect(reloaded.log.events, hasLength(2));
+        expect(reloaded.log.events.first.name, RetentionEventName.appOpen);
+        expect(
+          reloaded.log.events.last.timestamp,
+          DateTime.utc(2026, 1, 1, 9, 5),
+        );
+      },
+    );
+
+    test('an old document without installAt falls back to app open', () async {
+      SharedPreferences.setMockInitialValues({
+        SharedPreferencesRetentionStore.storageKey: jsonEncode({
+          'schemaVersion': 1,
+          'optIn': true,
+          'installId': 'install-1',
+          'events': [
+            {
+              'name': 'app_open',
+              'at': '2026-01-01T09:00:00.000Z',
+              'installId': 'install-1',
+            },
+          ],
+        }),
+      });
+
+      final data = await SharedPreferencesRetentionStore().load();
+      expect(data.log.installAt, DateTime.utc(2026, 1, 1, 9));
+      expect(data.log.installDay, '2026-01-01');
     });
+
+    test(
+      'load keeps the pinned install day after the app open is trimmed',
+      () async {
+        final start = DateTime.utc(2026, 1, 1, 9);
+        final events = [
+          for (var index = 0; index < retentionEventLimit; index++)
+            RetentionEvent(
+              name: RetentionEventName.sessionStart,
+              timestamp: start.add(Duration(minutes: index + 1)),
+              installId: 'install-1',
+            ),
+        ];
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesRetentionStore.storageKey: jsonEncode({
+            'schemaVersion': 1,
+            'optIn': true,
+            'installId': 'install-1',
+            'installAt': start.toIso8601String(),
+            'events': [for (final event in events) event.toJson()],
+          }),
+        });
+
+        final data = await SharedPreferencesRetentionStore().load();
+        expect(data.log.installAt, start);
+        expect(data.log.installDay, '2026-01-01');
+        expect(
+          data.log.events.any(
+            (event) => event.name == RetentionEventName.appOpen,
+          ),
+          isFalse,
+        );
+      },
+    );
 
     test('corrupt JSON is ignored', () async {
       SharedPreferences.setMockInitialValues({

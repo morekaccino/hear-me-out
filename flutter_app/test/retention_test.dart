@@ -147,6 +147,36 @@ void main() {
       expect(log.d1Retained, isFalse);
     });
 
+    test('funnel uses the earliest timestamp, not insertion order', () {
+      final early = DateTime.utc(2026, 1, 1, 9);
+      final late = DateTime.utc(2026, 1, 2, 9);
+      final log = RetentionLog(installId: 'install-1')
+          .record(RetentionEventName.sessionStart, at: late)
+          .record(RetentionEventName.appOpen, at: early);
+
+      expect(log.firstEvent(RetentionEventName.appOpen)?.timestamp, early);
+      expect(log.funnel()[RetentionEventName.appOpen], early);
+    });
+
+    test('the install day survives trimming the first app open', () {
+      final install = DateTime(2026, 7, 1, 9);
+      var log = RetentionLog(installId: 'install-1')
+          .record(RetentionEventName.appOpen, at: install);
+      for (var index = 0; index < retentionEventLimit; index++) {
+        log = log.record(
+          RetentionEventName.sessionStart,
+          at: install.add(Duration(minutes: index + 1)),
+        );
+      }
+
+      expect(
+        log.events.any((event) => event.name == RetentionEventName.appOpen),
+        isFalse,
+      );
+      expect(log.installAt, install.toUtc());
+      expect(log.installDay, '2026-07-01');
+    });
+
     test('export JSON has only name, timestamp, and install id', () {
       final at = DateTime(2026, 5, 1, 12);
       final log = RetentionLog(installId: 'install-1')
@@ -154,8 +184,14 @@ void main() {
           .record(RetentionEventName.firstNote, at: at);
 
       final decoded = jsonDecode(log.exportJson()) as Map<String, dynamic>;
-      expect(decoded.keys.toSet(), {'schemaVersion', 'installId', 'events'});
+      expect(decoded.keys.toSet(), {
+        'schemaVersion',
+        'installId',
+        'installAt',
+        'events',
+      });
       expect(decoded['installId'], 'install-1');
+      expect(decoded['installAt'], at.toUtc().toIso8601String());
       final events = decoded['events'] as List<dynamic>;
       expect(events, hasLength(2));
       for (final raw in events) {
@@ -178,11 +214,13 @@ void main() {
       }
     });
 
-    test('clear keeps the install id and the bound', () {
+    test('clear keeps the install id, install day, and the bound', () {
       final log = RetentionLog(installId: 'install-1')
           .record(RetentionEventName.appOpen, at: DateTime.utc(2026, 1, 1));
       final cleared = log.clear();
       expect(cleared.installId, 'install-1');
+      expect(cleared.installAt, DateTime.utc(2026, 1, 1));
+      expect(cleared.installDay, log.installDay);
       expect(cleared.events, isEmpty);
       expect(cleared.maxEvents, retentionEventLimit);
     });

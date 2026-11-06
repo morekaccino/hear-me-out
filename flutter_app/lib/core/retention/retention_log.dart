@@ -26,7 +26,9 @@ class RetentionLog {
     required this.installId,
     Iterable<RetentionEvent> events = const [],
     this.maxEvents = retentionEventLimit,
-  }) : _events = List<RetentionEvent>.unmodifiable(
+    DateTime? installAt,
+  }) : installAt = installAt?.toUtc() ?? _firstAppOpenTimestamp(events),
+       _events = List<RetentionEvent>.unmodifiable(
          events.length > maxEvents
              ? events.skip(events.length - maxEvents)
              : events,
@@ -34,6 +36,10 @@ class RetentionLog {
 
   final String installId;
   final int maxEvents;
+
+  /// The local day the install was first counted, pinned independently of the
+  /// event list. Trimming the oldest events must not move D1/D7/D30.
+  final DateTime? installAt;
   final List<RetentionEvent> _events;
 
   /// Events in insertion order, oldest first.
@@ -45,9 +51,10 @@ class RetentionLog {
 
   /// Appends [name] at [at] and drops the oldest events over [maxEvents].
   RetentionLog record(RetentionEventName name, {required DateTime at}) {
+    final timestamp = at.toUtc();
     final next = [
       ..._events,
-      RetentionEvent(name: name, timestamp: at, installId: installId),
+      RetentionEvent(name: name, timestamp: timestamp, installId: installId),
     ];
     final overflow = next.length - maxEvents;
     if (overflow > 0) next.removeRange(0, overflow);
@@ -55,18 +62,27 @@ class RetentionLog {
       installId: installId,
       events: next,
       maxEvents: maxEvents,
+      installAt:
+          installAt ?? (name == RetentionEventName.appOpen ? timestamp : null),
     );
   }
 
-  /// Removes every event but keeps the install id and the bound.
-  RetentionLog clear() =>
-      RetentionLog(installId: installId, maxEvents: maxEvents);
+  /// Removes every event but keeps the install id, install day, and bound.
+  RetentionLog clear() => RetentionLog(
+    installId: installId,
+    maxEvents: maxEvents,
+    installAt: installAt,
+  );
 
   RetentionEvent? firstEvent(RetentionEventName name) {
+    RetentionEvent? earliest;
     for (final event in _events) {
-      if (event.name == name) return event;
+      if (event.name != name) continue;
+      if (earliest == null || event.timestamp.isBefore(earliest.timestamp)) {
+        earliest = event;
+      }
     }
-    return null;
+    return earliest;
   }
 
   bool hasEvent(RetentionEventName name) => firstEvent(name) != null;
@@ -91,6 +107,8 @@ class RetentionLog {
   /// The local day of the first app open, or of the first event if the install
   /// event is missing. Null when the log is empty.
   String? get installDay {
+    final pinned = installAt;
+    if (pinned != null) return localDayKey(pinned);
     final firstOpen = firstEvent(RetentionEventName.appOpen);
     if (firstOpen != null) return localDayKey(firstOpen.timestamp);
     if (_events.isEmpty) return null;
@@ -119,6 +137,7 @@ class RetentionLog {
   String exportJson() => const JsonEncoder.withIndent('  ').convert({
     'schemaVersion': 1,
     'installId': installId,
+    if (installAt != null) 'installAt': installAt!.toIso8601String(),
     'events': [for (final event in _events) event.toJson()],
   });
 }
@@ -144,4 +163,15 @@ String shiftLocalDay(String dayKey, int dayOffset) {
   final month = date.month.toString().padLeft(2, '0');
   final day = date.day.toString().padLeft(2, '0');
   return '$year-$month-$day';
+}
+
+DateTime? _firstAppOpenTimestamp(Iterable<RetentionEvent> events) {
+  DateTime? earliest;
+  for (final event in events) {
+    if (event.name != RetentionEventName.appOpen) continue;
+    if (earliest == null || event.timestamp.isBefore(earliest)) {
+      earliest = event.timestamp;
+    }
+  }
+  return earliest;
 }
