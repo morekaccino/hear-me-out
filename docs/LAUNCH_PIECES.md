@@ -1,7 +1,7 @@
 # Launch pieces (T3.1)
 
-**Status:** Metadata locked. Returner arrangements complete (T3.4);
-foundation arrangements owned by T3.3. Not recorded or legally cleared.
+**Status:** Metadata locked; Foundation (T3.3) and Returner (T3.4) arrangements
+complete; not recorded, musically reviewed, or legally cleared.
 **Owner:** T3.1. **Legal review:** T6.3. **Notes:** T3.3/T3.4.
 **Reference recordings:** T3.5.
 **Source of truth:** [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md)
@@ -9,9 +9,8 @@ section 6.2, with stage outcomes from section 6.1.
 
 This is the content spec for the 10 V1 launch pieces. It records the approved
 list and maps each piece to the stage it supports. It is **not** evidence of
-legal clearance: the returner arrangements are pending musical review, no
-reference recording exists yet, and no territory-by-territory license review
-has been completed.
+legal clearance: no arrangement, reference recording, or territory-by-territory
+license review exists yet.
 
 ## Decision
 
@@ -30,10 +29,10 @@ stops, or second voices. Tempos stay in the V1 50-90 BPM range.
 
 | ID | Piece | Composer / source | Tier | Stage | Tempo (BPM) | Phrases | Range and position | Technique focus | Intended license | Source |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `greensleeves` | Greensleeves | Traditional English (16th century) | Foundation | 1 | 60 | 4 | First position; strings 1-3; frets 0-3 | Open strings, steady pulse, 6/8 lilt | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Greensleeves>) |
-| `ode-to-joy` | Ode to Joy | Ludwig van Beethoven | Foundation | 2 | 72 | 4 | First position; strings 1-3; frets 0-3 | Stepwise melody, quarter-note pulse, phrase endings | public-domain | [IMSLP](<https://imslp.org/wiki/Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van)>) |
-| `amazing-grace` | Amazing Grace (New Britain) | Traditional American (words: John Newton, 1779; tune: New Britain, 1835) | Foundation | 2 | 66 | 4 | First position; strings 1-3; frets 0-3 | Triple meter, breath-length phrases, legato changes | public-domain | [IMSLP](<https://imslp.org/wiki/Amazing_Grace_(Anonymous)>) |
-| `down-by-the-riverside` | Down by the Riverside | Traditional African-American spiritual (19th century; author unknown) | Foundation | 3 | 76 | 4 | First position; strings 3-6; frets 0-3 | Notes on strings 4-6, syncopated eighths, one accidental | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Down_by_the_Riverside>) |
+| `greensleeves` | Greensleeves | Traditional English (16th century) | Foundation | 1 | 60 | 4 | First position; strings 1-4; frets 0-3 | Open strings, steady pulse, 6/8 lilt | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Greensleeves>) |
+| `ode-to-joy` | Ode to Joy | Ludwig van Beethoven | Foundation | 2 | 72 | 4 | First position; strings 3-4; frets 0-4 | Stepwise melody, quarter-note pulse, phrase endings | public-domain | [IMSLP](<https://imslp.org/wiki/Symphony_No.9,_Op.125_(Beethoven,_Ludwig_van)>) |
+| `amazing-grace` | Amazing Grace (New Britain) | Traditional American (words: John Newton, 1779; tune: New Britain, 1835) | Foundation | 2 | 66 | 4 | First position; strings 2-4; frets 0-2 | Triple meter, breath-length phrases, legato changes | public-domain | [IMSLP](<https://imslp.org/wiki/Amazing_Grace_(Anonymous)>) |
+| `down-by-the-riverside` | Down by the Riverside | Traditional African-American spiritual (19th century; author unknown) | Foundation | 3 | 76 | 4 | First position; strings 2-4; frets 0-3 | Middle strings, syncopated eighths, two accidentals | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Down_by_the_Riverside>) |
 | `original-study-1` | Original Monophonic Study No. 1 | Hear Me Out (original) | Foundation | 3 | 60 | 4 | First position; strings 4-6; frets 0-3 | Lower-string reading, accidentals, 12-bar form | original | Original work |
 | `scarborough-fair` | Scarborough Fair | Traditional English ballad (Child Ballad 2) | Returner | 5 | 58 | 4 | First position with two shifts; strings 1-3; frets 0-5 | Two position shifts with guide fingers; 3/4 phrasing | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Scarborough_Fair_(ballad)>) |
 | `londonderry-air` | Londonderry Air | Traditional Irish (collected 1855; lyrics "Danny Boy" by Frederic Weatherly, 1913) | Returner | 5 | 54 | 4 | First position with two shifts; strings 1-3; frets 0-5 | Two position shifts, sustained tone, wide leaps | public-domain | [Wikipedia](<https://en.wikipedia.org/wiki/Londonderry_Air>) |
@@ -134,25 +133,22 @@ Open legal questions that apply to the whole list:
 - Exam-board names, syllabi, or grade lists. The V1 stages are internal and are
   not exam grades.
 - Chords, bass lines, double stops, and any second voice.
-- Foundation note arrangements (T3.3) and audio assets. Returner notes are in
-  T3.4. T3.5 records the 20 human reference takes (target and slow tempo).
-  T6.4 is the paywall and day-7 recap, not the recording owner.
+- Audio assets and human reference takes. T3.3/T3.4 arranged the pieces.
+  T3.5 records the 20 human reference takes (target and slow tempo). T6.4 is
+  the paywall and day-7 recap, not the recording owner.
 - Legal clearance. T6.3 owns it.
 - More than 10 pieces. The monthly content calendar is separate from this
   launch decision.
 
 ## Not yet validated
 
-- Returner phrase notes and score JSON exist under
-  `flutter_app/assets/content/pieces/returner/` (T3.4). Foundation phrase notes
-  remain with T3.3.
+- The Foundation and Returner JSON arrangements exist and pass the T3.2
+  validator; the human musical review and 3-beginner playtest are T3.8.
 - No reference recordings exist at target or slow tempo. T3.5 owns the 20
   human reference takes (target and slow tempo) and must not use copyrighted
   recordings.
-- No legal clearance exists. T6.3 must answer the questions above, including
-  the Creative Commons terms of the reference editions named in
-  [`RETURNER_ARRANGEMENTS.md`](RETURNER_ARRANGEMENTS.md).
-- The returner tempos, ranges, and shift counts are machine-validated but not
+- No legal clearance exists. T6.3 must answer the questions above.
+- The tempos, ranges, and shift counts are planning targets, not
   human-validated arrangements.
 - The mic has not been tested on these pieces. The assessment spike remains the
   gate for the phrase loop.
@@ -166,7 +162,9 @@ Open legal questions that apply to the whole list:
 - The list exposes `launchPieces`, `launchPieceById(String id)`,
   `launchPiecesForTier(LaunchTier tier)`, and the `v1StageOutcomes` map.
 - Each entry uses the T2.1 `Piece` model with standard tuning, capo 0, and a
-  `public-domain` or `original` license. Phrase notes are deliberately absent.
+  `public-domain` or `original` license. The note arrangements live under
+  `flutter_app/assets/content/pieces/foundation/` and
+  `flutter_app/assets/content/pieces/returner/`.
 
 ## References
 
