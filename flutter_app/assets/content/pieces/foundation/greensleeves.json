@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "greensleeves",
+    "title": "Greensleeves",
+    "composer": "Traditional English (16th century)",
+    "license": "public-domain",
+    "tuning": {"name": "Standard", "openStrings": [40, 45, 50, 55, 59, 64]},
+    "capo": 0,
+    "timeSignature": {"numerator": 6, "denominator": 8},
+    "key": "A minor",
+    "sections": ["Verse"],
+    "sourceUrl": "https://en.wikipedia.org/wiki/Greensleeves"
+  },
+  "phrases": [
+    {
+      "id": "greensleeves-p1",
+      "title": "Anacrusis and first line",
+      "bars": 3,
+      "timeSignature": {"numerator": 6, "denominator": 8},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.first-position", "rhythm.compound-meter", "technique.open-strings"],
+      "difficulty": 1,
+      "startBar": 1,
+      "pickupBeats": 0.5,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 0.5, "durationBeats": 1.0, "kind": "note", "writtenNote": "C5", "soundingMidi": 60, "string": 2, "fret": 1},
+        {"startBeat": 1.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "D5", "soundingMidi": 62, "string": 2, "fret": 3},
+        {"startBeat": 2.0, "durationBeats": 1.5, "kind": "note", "writtenNote": "E5", "soundingMidi": 64, "string": 1, "fret": 0},
+        {"startBeat": 3.5, "durationBeats": 1.0, "kind": "note", "writtenNote": "D5", "soundingMidi": 62, "string": 2, "fret": 3},
+        {"startBeat": 4.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
+        {"startBeat": 5.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
+        {"startBeat": 5.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 6.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0}
+      ]
+    },
+    {
+      "id": "greensleeves-p2",
+      "title": "Second line with raised seventh",
+      "bars": 2,
+      "timeSignature": {"numerator": 6, "denominator": 8},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.first-position", "rhythm.compound-meter", "technique.first-position"],
+      "difficulty": 2,
+      "startBar": 4,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "C5", "soundingMidi": 60, "string": 2, "fret": 1},
+        {"startBeat": 1.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 1.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 2.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "G#4", "soundingMidi": 56, "string": 3, "fret": 1},
+        {"startBeat": 2.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 3.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
+        {"startBeat": 4.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "G#4", "soundingMidi": 56, "string": 3, "fret": 1},
+        {"startBeat": 4.5, "durationBeats": 1.0, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
+        {"startBeat": 5.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2}
+      ]
+    },
+    {
+      "id": "greensleeves-p3",
+      "title": "Third line",
+      "bars": 2,
+      "timeSignature": {"numerator": 6, "denominator": 8},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.first-position", "rhythm.compound-meter", "technique.open-strings"],
+      "difficulty": 1,
+      "startBar": 6,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "C5", "soundingMidi": 60, "string": 2, "fret": 1},
+        {"startBeat": 1.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "D5", "soundingMidi": 62, "string": 2, "fret": 3},
+        {"startBeat": 1.5, "durationBeats": 1.5, "kind": "note", "writtenNote": "E5", "soundingMidi": 64, "string": 1, "fret": 0},
+        {"startBeat": 3.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "D5", "soundingMidi": 62, "string": 2, "fret": 3},
+        {"startBeat": 4.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
+        {"startBeat": 4.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
+        {"startBeat": 5.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 5.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0}
+      ]
+    },
+    {
+      "id": "greensleeves-p4",
+      "title": "Cadence",
+      "bars": 2,
+      "timeSignature": {"numerator": 6, "denominator": 8},
+      "targetTempoBpm": 60,
+      "skills": ["note-reading.first-position", "rhythm.compound-meter", "technique.first-position"],
+      "difficulty": 2,
+      "startBar": 8,
+      "pickupBeats": 0.0,
+      "events": [
+        {"startBeat": 0.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "C5", "soundingMidi": 60, "string": 2, "fret": 1},
+        {"startBeat": 1.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
+        {"startBeat": 1.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
+        {"startBeat": 2.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "G#4", "soundingMidi": 56, "string": 3, "fret": 1},
+        {"startBeat": 3.0, "durationBeats": 3.0, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2}
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Traditional English melody (16th century); new single-line guitar setting by Hear Me Out.",
+    "reviewedBy": "Pending musical review",
+    "notes": "Nine-bar verse excerpt (one-eighth anacrusis plus eight bars) in A minor. The raised seventh (G-sharp) is kept from the traditional melody. The low E4 is the only note on string 4; sixteenth-note ornaments are simplified to eighths and dotted quarters.",
+    "kind": "piece",
+    "tier": "foundation",
+    "stage": 1
+  }
+}
