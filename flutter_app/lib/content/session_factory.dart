@@ -13,6 +13,7 @@ import '../core/music/note.dart';
 import 'note_reading/objectives.dart';
 import 'objectives.dart';
 import 'packs.dart';
+import 'skill_objectives.dart';
 
 /// Builds the prompts for one curriculum lesson.
 ///
@@ -138,7 +139,7 @@ List<Prompt> buildSkillPracticeExercises({
 }) {
   final rng = random ?? Random(now.millisecondsSinceEpoch);
   final skills = _skillPool(kind, progress, now);
-  final refs = _refsForSkills(skills, progress);
+  final refs = _refsForSkills(skills);
   if (refs.isEmpty) {
     return buildPracticeExercises(
       kind: kind,
@@ -185,21 +186,11 @@ List<SkillProgress> _skillPool(
   ].take(24).toList();
 }
 
-List<ObjectiveRef> _refsForSkills(
-  List<SkillProgress> skills,
-  ProgressState progress,
-) {
+List<ObjectiveRef> _refsForSkills(List<SkillProgress> skills) {
   final refs = <ObjectiveRef>[];
   for (final skill in skills) {
-    if (skill.objectiveId.startsWith('note:')) {
-      final note = Note.tryParse(skill.objectiveId.substring(5));
-      if (note != null) {
-        refs.add(noteObjective(note, stage: skill.box));
-      }
-      continue;
-    }
-    final objective = objectiveCatalog[skill.objectiveId];
-    if (objective != null) refs.add(objective);
+    final ref = objectiveRefForSkill(skill);
+    if (ref != null) refs.add(ref);
   }
   return refs;
 }
