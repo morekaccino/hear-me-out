@@ -10,6 +10,9 @@ does not use Flutter and does not add a package dependency.
 
 ## Run
 
+If `dart` is not on `PATH`, use the Dart SDK bundled with Flutter:
+`<flutter-sdk>/bin/cache/dart-sdk/bin/dart`.
+
 From the repository root:
 
 ```powershell

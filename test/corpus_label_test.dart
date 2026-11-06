@@ -347,6 +347,16 @@ void main() {
     _expect(summary['acceptedTakeCount'] == 1, 'expected one accepted take');
   });
 
+  _test('CLI validates a manifest without a label', () {
+    final result = _runCli(root, ['--json', '--manifest', manifestPath]);
+    _expect(result.exitCode == 0, 'expected exit 0, got ${result.exitCode}');
+    final decoded = jsonDecode(result.stdout as String) as Map<String, Object?>;
+    final files = decoded['files'] as List<Object?>;
+    final report = files.single as Map<String, Object?>;
+    _expect(report['kind'] == 'manifest', 'expected a manifest report');
+    _expect(report['valid'] == true, 'expected the manifest to be valid');
+  });
+
   _test('CLI --help exits successfully', () {
     final result = _runCli(root, ['--help']);
     _expect(result.exitCode == 0, 'expected exit 0, got ${result.exitCode}');
