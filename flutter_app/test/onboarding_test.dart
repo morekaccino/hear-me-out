@@ -284,6 +284,29 @@ void main() {
     expect(loaded?.firstPieceId, 'greensleeves');
   });
 
+  testWidgets('future onboarding JSON does not block the flow', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      SharedPreferencesOnboardingStore.storageKey: jsonEncode({
+        'schemaVersion':
+            SharedPreferencesOnboardingStore.currentSchemaVersion + 1,
+        'hasGuitar': true,
+      }),
+    });
+    setSize(tester, const Size(390, 844));
+
+    final store = SharedPreferencesOnboardingStore();
+    expect(await store.load(), isNull);
+
+    await tester.pumpWidget(buildApp(store: store));
+    await tester.pumpAndSettle();
+    await openPieces(tester);
+    await tapText(tester, 'Ode to Joy');
+    await tapText(tester, 'START PLAYING');
+
+    expect(find.text('Open Strings'), findsOneWidget);
+    expect((await store.load())?.firstPieceId, 'ode-to-joy');
+  });
+
   group('SharedPreferencesOnboardingStore', () {
     test('round-trips choices with a schema version', () async {
       SharedPreferences.setMockInitialValues({});
