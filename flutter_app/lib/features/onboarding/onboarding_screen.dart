@@ -36,6 +36,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   String? _pieceId;
   bool _finishing = false;
   String? _playingPieceId;
+  Timer? _previewTimer;
+  int _previewGeneration = 0;
 
   PitchSource? _source;
   StreamSubscription<PitchFrame>? _subscription;
@@ -54,6 +56,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _previewGeneration++;
+    _previewTimer?.cancel();
     unawaited(_stopMic());
     _pageController.dispose();
     super.dispose();
@@ -64,6 +68,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
       unawaited(_stopMic());
+      if (_playingPieceId != null) unawaited(_stopPreview());
     }
   }
 
@@ -83,8 +88,26 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     }
   }
 
+  Future<void> _stopPreview() async {
+    _previewGeneration++;
+    _previewTimer?.cancel();
+    _previewTimer = null;
+    if (mounted && _playingPieceId != null) {
+      setState(() => _playingPieceId = null);
+    }
+    try {
+      await ref.read(audioEngineProvider).stop();
+    } catch (_) {
+      // Preview audio is optional.
+    }
+  }
+
   Future<void> _startMic() async {
     if (_checkingMic || _source != null) return;
+    // The mic must never hear the synth preview. Stop it before the pitch
+    // source is created, not merely when leaving the piece screen.
+    await _stopPreview();
+    if (!mounted) return;
     final generation = ++_micGeneration;
     setState(() {
       _checkingMic = true;
@@ -136,14 +159,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   Future<void> _goTo(int page) async {
     if (!mounted || page == _page) return;
     if (_page == 0 && page > 0) await _stopMic();
-    if (_playingPieceId != null) {
-      try {
-        await ref.read(audioEngineProvider).stop();
-      } catch (_) {
-        // Preview audio is optional.
-      }
-      if (mounted) setState(() => _playingPieceId = null);
-    }
+    // Stop the synth unconditionally when leaving the piece screen. The
+    // preview ID is display state and can be stale while playback is tailing.
+    if (_page == 2) await _stopPreview();
     if (!mounted) return;
     if (!_pageController.hasClients) {
       setState(() => _page = page);
@@ -173,17 +191,36 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   Future<void> _playPreview(OnboardingPiece piece) async {
-    final engine = ref.read(audioEngineProvider);
+    // The reverse guard: never let a preview start over a live mic check.
+    if (_source != null || _checkingMic) {
+      await _stopMic();
+      if (!mounted) return;
+    }
+    await _stopPreview();
+    if (!mounted) return;
+
+    final generation = ++_previewGeneration;
     setState(() => _playingPieceId = piece.id);
-    try {
-      await engine.stop();
-      await engine.play(piece.preview);
-    } catch (_) {
-      // A platform without an audio player must not block onboarding.
-    } finally {
-      if (mounted && _playingPieceId == piece.id) {
+    // `AudioEngine.play` completes when playback starts, not when the sound
+    // ends. Keep the UI state for the actual motif length so the indicator
+    // cannot clear early and the preview is still known to be active.
+    _previewTimer = Timer(
+      piece.preview.duration + const Duration(milliseconds: 400),
+      () {
+        if (!mounted || generation != _previewGeneration) return;
+        _previewGeneration++;
+        _previewTimer = null;
         setState(() => _playingPieceId = null);
-      }
+      },
+    );
+    try {
+      await ref.read(audioEngineProvider).play(piece.preview);
+    } catch (_) {
+      if (!mounted || generation != _previewGeneration) return;
+      _previewGeneration++;
+      _previewTimer?.cancel();
+      _previewTimer = null;
+      setState(() => _playingPieceId = null);
     }
   }
 
@@ -192,11 +229,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final pieceId = _pieceId ?? onboardingPieces.first.id;
     setState(() => _finishing = true);
     await _stopMic();
-    try {
-      await ref.read(audioEngineProvider).stop();
-    } catch (_) {
-      // Preview audio is optional.
-    }
+    await _stopPreview();
 
     final choices = OnboardingChoices(
       hasGuitar: _hasGuitar,

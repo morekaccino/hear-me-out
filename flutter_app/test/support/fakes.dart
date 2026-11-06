@@ -56,11 +56,17 @@ class FakeOnboardingStore implements OnboardingStore {
 }
 
 class FakePitchSource implements PitchSource {
-  FakePitchSource({this.permission = true, this.startResult, this.startGate});
+  FakePitchSource({
+    this.permission = true,
+    this.startResult,
+    this.startGate,
+    this.onStart,
+  });
 
   final bool permission;
   final bool? startResult;
   final Completer<bool>? startGate;
+  final void Function()? onStart;
   final _controller = StreamController<PitchFrame>.broadcast();
   bool started = false;
   bool disposed = false;
@@ -78,6 +84,7 @@ class FakePitchSource implements PitchSource {
   @override
   Future<bool> start() async {
     started = true;
+    onStart?.call();
     final gate = startGate;
     if (gate != null) return gate.future;
     return startResult ?? permission;
@@ -104,11 +111,13 @@ class FakePitchSourceFactory {
     this.permission = true,
     this.startResult,
     this.startGate,
+    this.onStart,
   });
 
   final bool permission;
   final bool? startResult;
   final Completer<bool>? startGate;
+  final void Function()? onStart;
   final created = <FakePitchSource>[];
 
   PitchSource call() {
@@ -116,6 +125,7 @@ class FakePitchSourceFactory {
       permission: permission,
       startResult: startResult,
       startGate: startGate,
+      onStart: onStart,
     );
     created.add(source);
     return source;
@@ -149,16 +159,25 @@ class FakeSoundService implements SoundService {
 
 class FakeAudioEngine implements AudioEngine {
   final played = <SoundSpec>[];
+  final events = <String>[];
   int stopCount = 0;
+
+  /// When set, [play] stays pending until the gate completes. This models the
+  /// real player: the future resolves when playback starts, not when it ends.
+  Completer<void>? playGate;
 
   @override
   Future<void> play(SoundSpec spec) async {
     played.add(spec);
+    events.add('audio-play');
+    final gate = playGate;
+    if (gate != null) await gate.future;
   }
 
   @override
   Future<void> stop() async {
     stopCount++;
+    events.add('audio-stop');
   }
 
   @override

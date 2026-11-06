@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -255,11 +256,145 @@ void main() {
     await tester.ensureVisible(preview);
     await tester.pumpAndSettle();
     await tester.tap(preview);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(audioEngine.played, hasLength(1));
     expect(audioEngine.played.single.events, isNotEmpty);
+    expect(find.text('PLAYING…'), findsOneWidget);
     expect(tester.takeException(), isNull);
+
+    // Let the motif timer finish so the test leaves no pending timer.
+    await tester.pump(
+      onboardingPieces.first.preview.duration +
+          const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('PLAYING…'), findsNothing);
+  });
+
+  testWidgets('starting the mic stops a playing preview first', (tester) async {
+    setSize(tester, const Size(390, 844));
+    final gate = Completer<void>();
+    audioEngine.playGate = gate;
+    int? stopCountAtMicStart;
+    final sources = FakePitchSourceFactory(
+      onStart: () => stopCountAtMicStart = audioEngine.stopCount,
+    );
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+
+    await tester.pumpWidget(buildApp(sources: sources));
+    await tester.pumpAndSettle();
+    await openPieces(tester);
+
+    final preview = find.byKey(const ValueKey('preview-greensleeves'));
+    await tester.ensureVisible(preview);
+    await tester.pumpAndSettle();
+    await tester.tap(preview);
+    await tester.pump();
+    expect(find.text('PLAYING…'), findsOneWidget);
+    expect(gate.isCompleted, isFalse);
+    final stopsBeforeBack = audioEngine.stopCount;
+
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Do you have your guitar?'), findsOneWidget);
+    expect(find.text('PLAYING…'), findsNothing);
+    expect(audioEngine.stopCount, greaterThan(stopsBeforeBack));
+
+    await tester.tap(find.text('CHECK YOUR MIC'));
+    await tester.pumpAndSettle();
+    expect(sources.created, hasLength(1));
+    expect(sources.created.single.started, isTrue);
+    expect(stopCountAtMicStart, isNotNull);
+    expect(stopCountAtMicStart!, greaterThan(stopsBeforeBack));
+    expect(audioEngine.stopCount, stopCountAtMicStart);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('preview indicator follows the motif duration, not play()', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    final gate = Completer<void>();
+    audioEngine.playGate = gate;
+    addTearDown(() {
+      if (!gate.isCompleted) gate.complete();
+    });
+
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+    await openPieces(tester);
+
+    final preview = find.byKey(const ValueKey('preview-greensleeves'));
+    await tester.ensureVisible(preview);
+    await tester.pumpAndSettle();
+    await tester.tap(preview);
+    await tester.pump();
+
+    expect(find.text('PLAYING…'), findsOneWidget);
+    expect(gate.isCompleted, isFalse);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('PLAYING…'), findsOneWidget);
+
+    await tester.pump(
+      onboardingPieces.first.preview.duration +
+          const Duration(milliseconds: 500),
+    );
+    await tester.pump();
+    expect(find.text('PLAYING…'), findsNothing);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('starting a preview never leaves the mic listening', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    final sources = FakePitchSourceFactory();
+    await tester.pumpWidget(buildApp(sources: sources));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CHECK YOUR MIC'));
+    await tester.pumpAndSettle();
+    expect(sources.created, hasLength(1));
+    final source = sources.created.single;
+    expect(source.started, isTrue);
+
+    await tester.tap(find.text('NOT NOW'));
+    await tester.pump();
+    // The fake stream cancellation completes on the real event loop; advance
+    // it so the screen can finish stopping the source and navigate.
+    await tester.runAsync(() async {
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    });
+    await tester.pumpAndSettle();
+    expect(find.text('How well do you read?'), findsOneWidget);
+    expect(source.started, isFalse);
+    await tapText(tester, "I'm a slow reader");
+
+    final preview = find.byKey(const ValueKey('preview-greensleeves'));
+    await tester.ensureVisible(preview);
+    await tester.pumpAndSettle();
+    await tester.tap(preview);
+    await tester.pump();
+
+    expect(find.text('PLAYING…'), findsOneWidget);
+    expect(audioEngine.played, hasLength(1));
+    expect(source.started, isFalse);
+    expect(source.disposed, isTrue);
+
+    await tester.pump(
+      onboardingPieces.first.preview.duration +
+          const Duration(milliseconds: 500),
+    );
+    await tester.pumpAndSettle();
   });
 
   testWidgets('corrupt onboarding JSON does not block the flow', (
