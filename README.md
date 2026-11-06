@@ -202,6 +202,7 @@ session rules.
 - [docs/TRANSFORMATION_PLAN_FINAL.md](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 transformation plan
 - [docs/CONTENT_CALENDAR.md](docs/CONTENT_CALENDAR.md) — 24-month content supply, cost model, break-even, and the subscription-to-piece-pack gate (T3.9)
 - [docs/FINANCIAL_MODEL.md](docs/FINANCIAL_MODEL.md) — costed P&L, base and downside cash model, break-even, and sensitivity (T6.2)
+- [docs/PHASE_GATES.md](docs/PHASE_GATES.md) — phase-gate evidence checklist for Phase 0–3 (T9.8)
 - [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
 - [docs/SOUND.md](docs/SOUND.md) — Bright Pluck sound family and event map
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — layers, data flow, invariants
