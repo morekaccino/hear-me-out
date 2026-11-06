@@ -5,12 +5,23 @@ import 'dart:typed_data';
 /// [id] is opaque and stable for the lifetime of the item. [createdAt] is
 /// stored in UTC. [byteLength] lets the UI show storage use without loading
 /// the bytes.
+///
+/// The optional fields are the recording manifest. They are null when the
+/// caller has not supplied them, so existing callers stay source-compatible.
+/// A take can be linked to a [pieceId] and [phraseId], carry its
+/// [durationMs], and later receive an analysis [score] tagged with the
+/// [analysisVersion] that produced it.
 class MediaRef {
   const MediaRef({
     required this.id,
     required this.mimeType,
     required this.byteLength,
     required this.createdAt,
+    this.pieceId,
+    this.phraseId,
+    this.durationMs,
+    this.score,
+    this.analysisVersion,
   });
 
   final String id;
@@ -18,16 +29,46 @@ class MediaRef {
   final int byteLength;
   final DateTime createdAt;
 
+  /// Piece the recording belongs to, or null for a free take.
+  final String? pieceId;
+
+  /// Phrase the recording belongs to, or null for a whole-piece or free take.
+  final String? phraseId;
+
+  /// Recording length in milliseconds, when known.
+  final int? durationMs;
+
+  /// Analysis result for this take, when analysis has run.
+  final double? score;
+
+  /// Version of the analyzer that produced [score].
+  final int? analysisVersion;
+
   @override
   bool operator ==(Object other) =>
       other is MediaRef &&
       other.id == id &&
       other.mimeType == mimeType &&
       other.byteLength == byteLength &&
-      other.createdAt == createdAt;
+      other.createdAt == createdAt &&
+      other.pieceId == pieceId &&
+      other.phraseId == phraseId &&
+      other.durationMs == durationMs &&
+      other.score == score &&
+      other.analysisVersion == analysisVersion;
 
   @override
-  int get hashCode => Object.hash(id, mimeType, byteLength, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    mimeType,
+    byteLength,
+    createdAt,
+    pieceId,
+    phraseId,
+    durationMs,
+    score,
+    analysisVersion,
+  );
 
   @override
   String toString() => 'MediaRef($id, $mimeType, $byteLength bytes)';
@@ -36,9 +77,9 @@ class MediaRef {
 /// Local storage for recordings and other media.
 ///
 /// Recordings are never stored in `ProgressState`. Progress and media have
-/// different lifecycles, sizes, and backup rules. T4.1 will provide mobile and
-/// web implementations; this ticket defines only the interface and an
-/// in-memory implementation for tests.
+/// different lifecycles, sizes, and backup rules. The platform implementations
+/// are `FileMediaStore` (mobile/desktop) and `WebMediaStore` (IndexedDB);
+/// `MemoryMediaStore` is for tests only.
 ///
 /// Implementations must:
 /// - treat [MediaRef.id] as opaque and stable;
@@ -48,7 +89,19 @@ class MediaRef {
 abstract class MediaStore {
   /// Stores [bytes] under [id], or under a generated stable id when [id] is
   /// null. Storing an existing [id] replaces the previous item atomically.
-  Future<MediaRef> put(Uint8List bytes, {required String mimeType, String? id});
+  ///
+  /// The optional manifest fields are persisted with the item and returned by
+  /// [list]. Omitted fields are stored as null.
+  Future<MediaRef> put(
+    Uint8List bytes, {
+    required String mimeType,
+    String? id,
+    String? pieceId,
+    String? phraseId,
+    int? durationMs,
+    double? score,
+    int? analysisVersion,
+  });
 
   /// Returns a copy of the stored bytes, or null when [id] does not exist.
   Future<Uint8List?> get(String id);
@@ -80,6 +133,11 @@ class MemoryMediaStore implements MediaStore {
     Uint8List bytes, {
     required String mimeType,
     String? id,
+    String? pieceId,
+    String? phraseId,
+    int? durationMs,
+    double? score,
+    int? analysisVersion,
   }) async {
     if (mimeType.trim().isEmpty) {
       throw ArgumentError.value(mimeType, 'mimeType', 'must not be empty');
@@ -95,6 +153,11 @@ class MemoryMediaStore implements MediaStore {
       mimeType: mimeType,
       byteLength: copy.length,
       createdAt: _clock().toUtc(),
+      pieceId: pieceId,
+      phraseId: phraseId,
+      durationMs: durationMs,
+      score: score,
+      analysisVersion: analysisVersion,
     );
     // Construct the replacement completely before touching the map so a
     // failed put cannot partially replace an existing item.

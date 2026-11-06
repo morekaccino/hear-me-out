@@ -34,6 +34,7 @@ class WebMediaStore implements MediaStore {
   final web.IDBDatabase _database;
   final DateTime Function() _now;
   Future<void> _tail = Future<void>.value();
+  bool _closed = false;
   int _nextId = 1;
 
   /// Opens (and creates if needed) the media database.
@@ -56,6 +57,7 @@ class WebMediaStore implements MediaStore {
 
     final request = factory.open(databaseName, databaseVersion);
     final completer = Completer<web.IDBDatabase>();
+    var blocked = false;
 
     request.onupgradeneeded = ((web.Event _) {
       final database = request.result as web.IDBDatabase;
@@ -64,6 +66,7 @@ class WebMediaStore implements MediaStore {
       }
     }).toJS;
     request.onblocked = ((web.Event _) {
+      blocked = true;
       if (!completer.isCompleted) {
         completer.completeError(
           StateError(
@@ -74,9 +77,15 @@ class WebMediaStore implements MediaStore {
       }
     }).toJS;
     request.onsuccess = ((web.Event _) {
-      if (!completer.isCompleted) {
-        completer.complete(request.result as web.IDBDatabase);
+      final database = request.result as web.IDBDatabase;
+      if (blocked || completer.isCompleted) {
+        // The blocking tab eventually closed and this open succeeded after
+        // the future was rejected. Close the orphaned connection so it does
+        // not hold up a later schema upgrade.
+        database.close();
+        return;
       }
+      completer.complete(database);
     }).toJS;
     request.onerror = ((web.Event _) {
       if (!completer.isCompleted) {
@@ -85,11 +94,12 @@ class WebMediaStore implements MediaStore {
     }).toJS;
 
     final database = await completer.future;
+    final store = WebMediaStore._(database, now: now);
     // Let another tab upgrade the schema instead of blocking it indefinitely.
     database.onversionchange = ((web.Event _) {
-      database.close();
+      store.close();
     }).toJS;
-    return WebMediaStore._(database, now: now);
+    return store;
   }
 
   /// Whether [id] is a valid media id for this store.
@@ -100,6 +110,11 @@ class WebMediaStore implements MediaStore {
     Uint8List bytes, {
     required String mimeType,
     String? id,
+    String? pieceId,
+    String? phraseId,
+    int? durationMs,
+    double? score,
+    int? analysisVersion,
   }) {
     return _synchronized(() async {
       if (mimeType.trim().isEmpty) {
@@ -114,6 +129,11 @@ class WebMediaStore implements MediaStore {
         mimeType: mimeType,
         byteLength: bytes.length,
         createdAt: createdAt,
+        pieceId: pieceId,
+        phraseId: phraseId,
+        durationMs: durationMs,
+        score: score,
+        analysisVersion: analysisVersion,
       );
 
       final record = JSObject();
@@ -122,8 +142,13 @@ class WebMediaStore implements MediaStore {
       record.setProperty('byteLength'.toJS, bytes.length.toJS);
       record.setProperty('createdAt'.toJS, createdAt.toIso8601String().toJS);
       record.setProperty('bytes'.toJS, bytes.toJS);
+      _setOptionalString(record, 'pieceId', pieceId);
+      _setOptionalString(record, 'phraseId', phraseId);
+      _setOptionalInt(record, 'durationMs', durationMs);
+      _setOptionalDouble(record, 'score', score);
+      _setOptionalInt(record, 'analysisVersion', analysisVersion);
 
-      final transaction = _database.transaction(
+      final transaction = _openDatabase.transaction(
         objectStoreName.toJS,
         'readwrite',
       );
@@ -139,7 +164,7 @@ class WebMediaStore implements MediaStore {
   Future<Uint8List?> get(String id) {
     return _synchronized(() async {
       _validateId(id);
-      final transaction = _database.transaction(
+      final transaction = _openDatabase.transaction(
         objectStoreName.toJS,
         'readonly',
       );
@@ -160,7 +185,7 @@ class WebMediaStore implements MediaStore {
   Future<void> delete(String id) {
     return _synchronized(() async {
       _validateId(id);
-      final transaction = _database.transaction(
+      final transaction = _openDatabase.transaction(
         objectStoreName.toJS,
         'readwrite',
       );
@@ -172,22 +197,14 @@ class WebMediaStore implements MediaStore {
   @override
   Future<List<MediaRef>> list() {
     return _synchronized(() async {
-      final transaction = _database.transaction(
+      final transaction = _openDatabase.transaction(
         objectStoreName.toJS,
         'readonly',
       );
-      final request = transaction.objectStore(objectStoreName).getAll();
-      final result = await _run(transaction, request);
-      if (!result.isA<JSArray<JSAny?>>()) {
-        throw StateError('IndexedDB returned an unexpected media list.');
-      }
-
-      final records = result as JSArray<JSAny?>;
-      final refs = <MediaRef>[];
-      for (final item in records.toDart) {
-        if (!item.isA<JSObject>()) continue;
-        refs.add(_refFromRecord(item as JSObject));
-      }
+      final refs = await _readAllRefs(
+        transaction,
+        transaction.objectStore(objectStoreName),
+      );
       refs.sort((a, b) {
         final byTime = a.createdAt.compareTo(b.createdAt);
         return byTime != 0 ? byTime : a.id.compareTo(b.id);
@@ -208,7 +225,7 @@ class WebMediaStore implements MediaStore {
   @override
   Future<void> clear() {
     return _synchronized(() async {
-      final transaction = _database.transaction(
+      final transaction = _openDatabase.transaction(
         objectStoreName.toJS,
         'readwrite',
       );
@@ -218,34 +235,144 @@ class WebMediaStore implements MediaStore {
   }
 
   /// Closes the IndexedDB connection. The store is unusable afterwards.
-  void close() => _database.close();
+  void close() {
+    if (_closed) return;
+    _closed = true;
+    _database.close();
+  }
+
+  web.IDBDatabase get _openDatabase {
+    if (_closed) {
+      throw StateError(
+        'The media database is closed. Reopen the store before using it.',
+      );
+    }
+    return _database;
+  }
 
   String _generateId(DateTime createdAt) =>
       'media-${createdAt.microsecondsSinceEpoch}-${_nextId++}';
 
-  MediaRef _refFromRecord(JSObject record) {
-    final id = _stringField(record, 'id');
-    final mimeType = _stringField(record, 'mimeType');
-    final createdAt = _stringField(record, 'createdAt');
-    final byteLength = record.getProperty('byteLength'.toJS);
-    if (!byteLength.isA<JSNumber>()) {
-      throw StateError('Stored media record $id has no byteLength.');
+  void _setOptionalString(JSObject record, String name, String? value) {
+    if (value != null) record.setProperty(name.toJS, value.toJS);
+  }
+
+  void _setOptionalInt(JSObject record, String name, int? value) {
+    if (value != null) record.setProperty(name.toJS, value.toJS);
+  }
+
+  void _setOptionalDouble(JSObject record, String name, double? value) {
+    if (value != null) record.setProperty(name.toJS, value.toJS);
+  }
+
+  /// Builds a [MediaRef] from a stored record, or returns null when the
+  /// required fields are missing or malformed. One corrupt row must not make
+  /// [list] (and therefore [usageBytes]) unusable.
+  MediaRef? _tryRefFromRecord(JSObject record) {
+    final id = _requiredStringField(record, 'id');
+    final mimeType = _requiredStringField(record, 'mimeType');
+    final createdAtText = _requiredStringField(record, 'createdAt');
+    final byteLengthValue = record.getProperty('byteLength'.toJS);
+    if (id == null ||
+        mimeType == null ||
+        createdAtText == null ||
+        !byteLengthValue.isA<JSNumber>()) {
+      return null;
+    }
+
+    final byteLength = (byteLengthValue as JSNumber).toDartInt;
+    if (byteLength < 0) return null;
+
+    final DateTime createdAt;
+    try {
+      createdAt = DateTime.parse(createdAtText).toUtc();
+    } on FormatException {
+      return null;
     }
 
     return MediaRef(
       id: id,
       mimeType: mimeType,
-      byteLength: (byteLength as JSNumber).toDartInt,
-      createdAt: DateTime.parse(createdAt).toUtc(),
+      byteLength: byteLength,
+      createdAt: createdAt,
+      pieceId: _optionalStringField(record, 'pieceId'),
+      phraseId: _optionalStringField(record, 'phraseId'),
+      durationMs: _optionalIntField(record, 'durationMs'),
+      score: _optionalDoubleField(record, 'score'),
+      analysisVersion: _optionalIntField(record, 'analysisVersion'),
     );
   }
 
-  String _stringField(JSObject record, String name) {
+  String? _requiredStringField(JSObject record, String name) {
     final value = record.getProperty(name.toJS);
-    if (!value.isA<JSString>()) {
-      throw StateError('Stored media record has no $name.');
-    }
-    return (value as JSString).toDart;
+    if (!value.isA<JSString>()) return null;
+    final text = (value as JSString).toDart;
+    return text.trim().isEmpty ? null : text;
+  }
+
+  String? _optionalStringField(JSObject record, String name) {
+    final value = record.getProperty(name.toJS);
+    if (!value.isA<JSString>()) return null;
+    final text = (value as JSString).toDart;
+    return text.trim().isEmpty ? null : text;
+  }
+
+  int? _optionalIntField(JSObject record, String name) {
+    final value = record.getProperty(name.toJS);
+    if (!value.isA<JSNumber>()) return null;
+    final number = (value as JSNumber).toDartInt;
+    return number < 0 ? null : number;
+  }
+
+  double? _optionalDoubleField(JSObject record, String name) {
+    final value = record.getProperty(name.toJS);
+    if (!value.isA<JSNumber>()) return null;
+    final number = (value as JSNumber).toDartDouble;
+    return number.isFinite ? number : null;
+  }
+
+  /// Iterates the object store with a cursor so [list] never materializes
+  /// every recording's bytes at once. The cursor's value is inspected for
+  /// metadata only; bytes are not copied into Dart.
+  Future<List<MediaRef>> _readAllRefs(
+    web.IDBTransaction transaction,
+    web.IDBObjectStore store,
+  ) {
+    final completer = Completer<List<MediaRef>>();
+    final refs = <MediaRef>[];
+    final transactionDone = _transactionDone(transaction);
+    transactionDone.then(
+      (_) {
+        if (!completer.isCompleted) completer.complete(refs);
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (!completer.isCompleted) completer.completeError(error, stackTrace);
+      },
+    );
+
+    late final web.IDBRequest request;
+    request = store.openCursor();
+    request.onsuccess = ((web.Event _) {
+      final result = request.result;
+      if (result == null || !result.isA<web.IDBCursorWithValue>()) {
+        // Exhausted. The transaction's complete event finishes the future.
+        return;
+      }
+
+      final cursor = result as web.IDBCursorWithValue;
+      final value = cursor.value;
+      if (value.isA<JSObject>()) {
+        final ref = _tryRefFromRecord(value as JSObject);
+        if (ref != null) refs.add(ref);
+      }
+      cursor.continue_();
+    }).toJS;
+    request.onerror = ((web.Event _) {
+      if (!completer.isCompleted) {
+        completer.completeError(_indexedDbError('cursor', request.error));
+      }
+    }).toJS;
+    return completer.future;
   }
 
   void _validateId(String id) {

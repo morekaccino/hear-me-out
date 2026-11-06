@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -55,6 +56,77 @@ void main() {
     final refs = await reopened.list();
     expect(refs, [ref]);
     expect(await reopened.get('take-1'), bytes);
+  });
+
+  test(
+    'manifest fields persist in index.json across store instances',
+    () async {
+      final timedStore = FileMediaStore(
+        directory: tempDir.path,
+        now: () => DateTime.utc(2026, 1, 2, 3, 4, 5),
+      );
+
+      final ref = await timedStore.put(
+        Uint8List.fromList([1, 2, 3]),
+        mimeType: 'audio/wav',
+        id: 'take-1',
+        pieceId: 'ode-to-joy',
+        phraseId: 'bars-1-2',
+        durationMs: 4200,
+        score: 0.875,
+        analysisVersion: 3,
+      );
+
+      expect(ref.pieceId, 'ode-to-joy');
+      expect(ref.phraseId, 'bars-1-2');
+      expect(ref.durationMs, 4200);
+      expect(ref.score, 0.875);
+      expect(ref.analysisVersion, 3);
+
+      final reopened = FileMediaStore(directory: tempDir.path);
+      expect(await reopened.list(), [ref]);
+
+      final indexPath =
+          '${tempDir.path}${Platform.pathSeparator}'
+          '${FileMediaStore.indexFileName}';
+      final index = jsonDecode(
+        await File(indexPath).readAsString(),
+      ) as Map<String, dynamic>;
+      final item =
+          (index['items'] as Map<String, dynamic>)['take-1']
+              as Map<String, dynamic>;
+      expect(item['pieceId'], 'ode-to-joy');
+      expect(item['phraseId'], 'bars-1-2');
+      expect(item['durationMs'], 4200);
+      expect(item['score'], 0.875);
+      expect(item['analysisVersion'], 3);
+    },
+  );
+
+  test('replacing an id without manifest fields clears them', () async {
+    await store.put(
+      Uint8List.fromList([1]),
+      mimeType: 'audio/wav',
+      id: 'take-1',
+      pieceId: 'piece',
+      phraseId: 'phrase',
+      durationMs: 100,
+      score: 0.5,
+      analysisVersion: 1,
+    );
+
+    final replacement = await store.put(
+      Uint8List.fromList([2]),
+      mimeType: 'audio/wav',
+      id: 'take-1',
+    );
+
+    expect(replacement.pieceId, isNull);
+    expect(replacement.phraseId, isNull);
+    expect(replacement.durationMs, isNull);
+    expect(replacement.score, isNull);
+    expect(replacement.analysisVersion, isNull);
+    expect(await store.list(), [replacement]);
   });
 
   test('put replaces an existing id and updates its metadata', () async {
@@ -254,6 +326,25 @@ void main() {
       expect(await reopened.usageBytes(), 5);
     },
   );
+
+  test('an index entry with malformed manifest metadata is pruned', () async {
+    await store.put(Uint8List.fromList([1]), mimeType: 'audio/wav', id: 'bad');
+    final indexPath =
+        '${tempDir.path}${Platform.pathSeparator}'
+        '${FileMediaStore.indexFileName}';
+    final index = jsonDecode(
+      await File(indexPath).readAsString(),
+    ) as Map<String, dynamic>;
+    final item =
+        (index['items'] as Map<String, dynamic>)['bad'] as Map<String, dynamic>;
+    item['score'] = 'high';
+    await File(indexPath).writeAsString(jsonEncode(index));
+
+    final reopened = FileMediaStore(directory: tempDir.path);
+
+    expect(await reopened.list(), isEmpty);
+    expect(await reopened.listOrphans(), ['bad']);
+  });
 
   test('timestamp injection is deterministic and stored in UTC', () async {
     final localTime = DateTime(2026, 3, 4, 5, 6, 7);

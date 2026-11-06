@@ -27,6 +27,11 @@ final lessonGraceProvider = Provider<Duration>(
 /// On IO the store lives under the application support directory. On web it is
 /// IndexedDB. Tests override this provider with `MemoryMediaStore`; nothing here
 /// starts a recorder or touches the microphone.
+///
+/// **Backup warning:** the IO directory is not yet excluded from Android Auto
+/// Backup or iCloud backup. T4.5 owns that platform work (backup rules and
+/// `NSURLIsExcludedFromBackupKey`), and T4.2 is blocked by T4.5. Do not ship
+/// user recordings through this provider before T4.5 lands.
 final mediaStoreProvider = FutureProvider<MediaStore>((ref) async {
   if (kIsWeb) {
     return createMediaStore();

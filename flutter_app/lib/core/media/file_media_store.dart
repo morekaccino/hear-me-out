@@ -92,6 +92,11 @@ class FileMediaStore implements MediaStore {
     Uint8List bytes, {
     required String mimeType,
     String? id,
+    String? pieceId,
+    String? phraseId,
+    int? durationMs,
+    double? score,
+    int? analysisVersion,
   }) {
     return _synchronized(() async {
       if (mimeType.trim().isEmpty) {
@@ -108,6 +113,11 @@ class FileMediaStore implements MediaStore {
         mimeType: mimeType,
         byteLength: bytes.length,
         createdAt: createdAt,
+        pieceId: pieceId,
+        phraseId: phraseId,
+        durationMs: durationMs,
+        score: score,
+        analysisVersion: analysisVersion,
       );
       final objectFile = _objectFile(resolvedId);
       final tempFile = File('${objectFile.path}.tmp');
@@ -353,6 +363,22 @@ class FileMediaStore implements MediaStore {
         continue;
       }
 
+      String? pieceId;
+      String? phraseId;
+      int? durationMs;
+      double? score;
+      int? analysisVersion;
+      try {
+        pieceId = _optionalString(value, 'pieceId');
+        phraseId = _optionalString(value, 'phraseId');
+        durationMs = _optionalInt(value, 'durationMs');
+        score = _optionalScore(value, 'score');
+        analysisVersion = _optionalInt(value, 'analysisVersion');
+      } on FormatException {
+        changed = true;
+        continue;
+      }
+
       final file = _objectFile(id);
       if (!await file.exists()) {
         changed = true;
@@ -366,6 +392,11 @@ class FileMediaStore implements MediaStore {
         mimeType: mimeType,
         byteLength: actualLength,
         createdAt: parsedAt,
+        pieceId: pieceId,
+        phraseId: phraseId,
+        durationMs: durationMs,
+        score: score,
+        analysisVersion: analysisVersion,
       );
     }
 
@@ -384,6 +415,33 @@ class FileMediaStore implements MediaStore {
     }
   }
 
+  String? _optionalString(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is! String || value.trim().isEmpty) {
+      throw FormatException('$key must be a non-empty string');
+    }
+    return value;
+  }
+
+  int? _optionalInt(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is! int || value < 0) {
+      throw FormatException('$key must be a non-negative integer');
+    }
+    return value;
+  }
+
+  double? _optionalScore(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) return null;
+    if (value is! num || value.isNaN || value.isInfinite) {
+      throw FormatException('$key must be a finite number');
+    }
+    return value.toDouble();
+  }
+
   Future<File> _stageIndex(Map<String, MediaRef> entries) async {
     final ids = entries.keys.toList()..sort();
     final items = <String, Object?>{};
@@ -393,6 +451,11 @@ class FileMediaStore implements MediaStore {
         'mimeType': ref.mimeType,
         'byteLength': ref.byteLength,
         'createdAt': ref.createdAt.toUtc().toIso8601String(),
+        if (ref.pieceId != null) 'pieceId': ref.pieceId,
+        if (ref.phraseId != null) 'phraseId': ref.phraseId,
+        if (ref.durationMs != null) 'durationMs': ref.durationMs,
+        if (ref.score != null) 'score': ref.score,
+        if (ref.analysisVersion != null) 'analysisVersion': ref.analysisVersion,
       };
     }
 
