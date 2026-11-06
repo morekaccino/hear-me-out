@@ -120,8 +120,11 @@ class TodayState {
 /// The controller is the only writer of the session clock. The screen calls
 /// [tick] once a second while the session runs; tests call the same methods with
 /// a supplied clock. Completion is recorded once through
-/// `AppController.recordTodayPractice`, which uses the existing practice path.
-/// No hearts, XP, streak, gems, or quest progress is touched.
+/// `AppController.recordTodayPractice`, which uses the existing practice path
+/// and T2.10's measured-time/optional-habit API. The Today surface shows no XP,
+/// streak, gems, or quests; the shared habit API may still advance the user's
+/// optional streak in the background, exactly as the weekly goal does
+/// elsewhere.
 class TodayController extends Notifier<TodayState> {
   late TodayClock _clock;
   bool _completionRecorded = false;
@@ -199,6 +202,10 @@ class TodayController extends Notifier<TodayState> {
     if (!current.session.isRunning) return;
     current.session.pause(now ?? _clock());
     state = current.copyWith();
+    // `PracticeSession.pause` accounts the elapsed interval first. That
+    // interval can cross the stop point and finish the session, so completion
+    // must be recorded here as well as on tick/advance/early-end.
+    _recordCompletionIfNeeded();
   }
 
   void resume({DateTime? now}) {

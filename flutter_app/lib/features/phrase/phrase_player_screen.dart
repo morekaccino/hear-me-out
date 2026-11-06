@@ -37,6 +37,11 @@ Widget? phrasePlayerFor(Phrase phrase) =>
 Widget? phrasePlayerForPhraseId(
   String phraseId, {
   PhraseObjectiveRegistry? registry,
+  bool recordProgress = true,
+  bool practiceOnly = false,
+  bool headphonesConfirmed = false,
+  bool clockVerified = false,
+  Future<bool> Function(PhraseVerification verification)? onTakeCompleted,
 }) {
   if (!phraseLoopEnabled) return null;
   final record = (registry ?? phraseObjectiveRegistry).recordFor(phraseId);
@@ -45,6 +50,11 @@ Widget? phrasePlayerForPhraseId(
     phrase: record.phrase,
     pieceId: record.piece.id,
     contentVersion: record.contentVersion,
+    recordProgress: recordProgress,
+    practiceOnly: practiceOnly,
+    headphonesConfirmed: headphonesConfirmed,
+    clockVerified: clockVerified,
+    onTakeCompleted: onTakeCompleted,
   );
 }
 
@@ -63,6 +73,9 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
     this.contentVersion,
     this.clockVerified = false,
     this.headphonesConfirmed = false,
+    this.recordProgress = true,
+    this.practiceOnly = false,
+    this.onTakeCompleted,
     this.verifier = const PhraseVerifier(),
   });
 
@@ -80,6 +93,23 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
 
   /// Initial value for the learner's wired-headphones confirmation.
   final bool headphonesConfirmed;
+
+  /// Whether this screen records a determinate, gate-open take itself.
+  ///
+  /// Today's Apply block sets this to false and uses [onTakeCompleted] so the
+  /// take is recorded once, through the Today controller, with the Today
+  /// performance-day check. A normal player entry keeps the default true.
+  final bool recordProgress;
+
+  /// True for unscored phrase practice. The player still listens and gives
+  /// feedback, but it never saves progress and labels the card "Practice take".
+  final bool practiceOnly;
+
+  /// Receives a complete, determinate take when [recordProgress] is false.
+  ///
+  /// The returned bool is the saved/practice label the player shows. The
+  /// callback owns persistence, so a Today take is recorded exactly once.
+  final Future<bool> Function(PhraseVerification verification)? onTakeCompleted;
 
   final PhraseVerifier verifier;
 
@@ -266,7 +296,17 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
     );
 
     var saved = false;
-    if (takeGate.allowsScoredTake && verification.updatesProgress) {
+    if (widget.practiceOnly) {
+      saved = false;
+    } else if (!widget.recordProgress && widget.onTakeCompleted != null) {
+      if (takeGate.allowsScoredTake && verification.updatesProgress) {
+        try {
+          saved = await widget.onTakeCompleted!(verification);
+        } catch (_) {
+          saved = false;
+        }
+      }
+    } else if (takeGate.allowsScoredTake && verification.updatesProgress) {
       try {
         // The controller may still be loading if this preview screen is opened
         // before the app's first frame. Wait for it, then record the take.
@@ -339,6 +379,9 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
   String? get _takeNote {
     final verification = _verification;
     if (verification == null) return null;
+    if (widget.practiceOnly) {
+      return 'Practice only — this take was not saved.';
+    }
     if (!_takeScoredAllowed) {
       return 'Practice only — this take was not saved.';
     }
@@ -542,11 +585,11 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
 
   Widget _gateCard() {
     final gate = _gate;
-    final accent = gate.allowsScoredTake
-        ? AppColors.blue
-        : AppColors.borderStrong;
+    final practiceOnly = widget.practiceOnly;
+    final scored = !practiceOnly && gate.allowsScoredTake;
+    final accent = scored ? AppColors.blue : AppColors.borderStrong;
     return SectionCard(
-      color: gate.allowsScoredTake ? AppColors.blueSoft : AppColors.surface,
+      color: scored ? AppColors.blueSoft : AppColors.surface,
       borderColor: accent,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,18 +597,22 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
           Row(
             children: [
               Icon(
-                gate.allowsScoredTake
+                practiceOnly
+                    ? Icons.headphones_rounded
+                    : gate.allowsScoredTake
                     ? Icons.verified_rounded
                     : Icons.headphones_rounded,
-                color: gate.allowsScoredTake
-                    ? AppColors.blueDark
-                    : AppColors.textMuted,
+                color: scored ? AppColors.blueDark : AppColors.textMuted,
                 size: 22,
               ),
               const SizedBox(width: DuoSpacing.xs),
               Expanded(
                 child: Text(
-                  gate.allowsScoredTake ? 'Scored take ready' : 'Scored take',
+                  practiceOnly
+                      ? 'Practice take'
+                      : gate.allowsScoredTake
+                      ? 'Scored take ready'
+                      : 'Scored take',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
@@ -577,7 +624,9 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
           ),
           const SizedBox(height: DuoSpacing.xxs),
           Text(
-            gate.reason,
+            practiceOnly
+                ? 'This take is unscored practice. Nothing is saved.'
+                : gate.reason,
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -585,69 +634,71 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
               height: 1.35,
             ),
           ),
-          DuoTappable(
-            enabled: !_starting && !_recording && !_analyzing,
-            onTap: () {
-              setState(() => _headphonesConfirmed = !_headphonesConfirmed);
-            },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Checkbox(
-                    value: _headphonesConfirmed,
-                    onChanged: _starting || _recording || _analyzing
-                        ? null
-                        : (value) {
-                            setState(
-                              () => _headphonesConfirmed = value ?? false,
-                            );
-                          },
-                    activeColor: AppColors.green,
-                    visualDensity: VisualDensity.compact,
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  const SizedBox(width: DuoSpacing.xxs),
-                  Expanded(
-                    child: Text(
-                      'Wired headphones connected',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.text,
+          if (!practiceOnly) ...[
+            DuoTappable(
+              enabled: !_starting && !_recording && !_analyzing,
+              onTap: () {
+                setState(() => _headphonesConfirmed = !_headphonesConfirmed);
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _headphonesConfirmed,
+                      onChanged: _starting || _recording || _analyzing
+                          ? null
+                          : (value) {
+                              setState(
+                                () => _headphonesConfirmed = value ?? false,
+                              );
+                            },
+                      activeColor: AppColors.green,
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    const SizedBox(width: DuoSpacing.xxs),
+                    Expanded(
+                      child: Text(
+                        'Wired headphones connected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              Icon(
-                widget.clockVerified
-                    ? Icons.check_circle_rounded
-                    : Icons.cancel_rounded,
-                color: widget.clockVerified
-                    ? AppColors.greenDark
-                    : AppColors.textLight,
-                size: 18,
-              ),
-              const SizedBox(width: DuoSpacing.xxs),
-              Expanded(
-                child: Text(
-                  widget.clockVerified
-                      ? 'Device clock verified'
-                      : 'Device clock not verified',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMuted,
-                  ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+            Row(
+              children: [
+                Icon(
+                  widget.clockVerified
+                      ? Icons.check_circle_rounded
+                      : Icons.cancel_rounded,
+                  color: widget.clockVerified
+                      ? AppColors.greenDark
+                      : AppColors.textLight,
+                  size: 18,
+                ),
+                const SizedBox(width: DuoSpacing.xxs),
+                Expanded(
+                  child: Text(
+                    widget.clockVerified
+                        ? 'Device clock verified'
+                        : 'Device clock not verified',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

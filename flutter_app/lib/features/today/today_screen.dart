@@ -420,7 +420,7 @@ class _LengthChip extends StatelessWidget {
         label: '${length.minutes} minute plan',
         excludeSemantics: true,
         child: Container(
-          height: 44,
+          height: 48,
           padding: const EdgeInsets.symmetric(horizontal: DuoSpacing.md),
           alignment: Alignment.center,
           decoration: BoxDecoration(
@@ -1083,7 +1083,12 @@ class _BlockBody extends ConsumerWidget {
     final note = target.note;
     final phraseId = todayPhraseIdFor(block.target);
     final phrasePractice = !earlier && phraseId != null
-        ? phrasePlayerForPhraseId(phraseId, registry: registry)
+        ? phrasePlayerForPhraseId(
+            phraseId,
+            registry: registry,
+            recordProgress: false,
+            practiceOnly: true,
+          )
         : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1175,9 +1180,28 @@ class _BlockBody extends ConsumerWidget {
 
   Widget _apply(BuildContext context, WidgetRef ref) {
     final phraseId = todayPhraseIdFor(block.target);
+    final controller = ref.read(todayControllerProvider.notifier);
     final player =
         state.performanceDay && state.gate.allowsScoredTake && phraseId != null
-        ? phrasePlayerForPhraseId(phraseId, registry: registry)
+        ? phrasePlayerForPhraseId(
+            phraseId,
+            registry: registry,
+            recordProgress: false,
+            headphonesConfirmed: state.gate.headphonesConfirmed,
+            clockVerified: state.gate.clockVerified,
+            onTakeCompleted: (verification) {
+              final record = target.phrase;
+              if (record == null) return Future<bool>.value(false);
+              return controller.savePhraseResult(
+                phraseId: record.phrase.id,
+                result: verification.result,
+                tempoBpm: record.phrase.targetTempoBpm,
+                pieceId: record.piece.id,
+                contentVersion: record.contentVersion,
+                correction: verification.correction,
+              );
+            },
+          )
         : null;
     final status = _applyStatus(
       phraseId: phraseId,
@@ -1352,7 +1376,9 @@ class _BlockBody extends ConsumerWidget {
           const SizedBox(height: DuoSpacing.xs),
           _SummaryLine(
             key: const ValueKey('today-correction'),
-            label: 'ONE CORRECTION',
+            label: state.lastCorrection != null
+                ? 'ONE CORRECTION'
+                : 'ONE CORRECTION · FROM YOUR RATING',
             value: correction,
             color: AppColors.orangeDark,
           ),
@@ -1540,6 +1566,8 @@ class _RatingChip extends StatelessWidget {
       key: ValueKey('today-reflect-rating-$rating'),
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 48),
+        alignment: Alignment.center,
         padding: const EdgeInsets.symmetric(
           horizontal: DuoSpacing.sm,
           vertical: DuoSpacing.xs,

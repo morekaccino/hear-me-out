@@ -241,6 +241,33 @@ void main() {
       },
     );
 
+    test('pausing across the stop point records completion once', () async {
+      final start = DateTime(2026, 11, 6, 10);
+      var now = start;
+      final store = freshStore();
+      final container = await makeContainer(store: store, clock: () => now);
+      final controller = container.read(todayControllerProvider.notifier);
+
+      controller.start();
+      now = start.add(const Duration(seconds: 299));
+      controller.tick();
+      expect(
+        container.read(todayControllerProvider).session.isFinished,
+        isFalse,
+      );
+
+      now = start.add(const Duration(seconds: 301));
+      controller.pause();
+      await Future<void>.delayed(Duration.zero);
+
+      final state = container.read(todayControllerProvider);
+      expect(state.session.isFinished, isTrue);
+      expect(state.session.stopPointReached, isTrue);
+      expect(state.completedRecorded, isTrue);
+      expect(store.value!.daily.practice, 1);
+      expect(store.value!.practiceSecondsByDay[dayKey(start)], 210);
+    });
+
     test('many small ticks do not drift', () async {
       final start = DateTime(2026, 11, 6, 10);
       var now = start;
@@ -366,11 +393,13 @@ void main() {
         tempoBpm: 72,
         pieceId: 'ode-to-joy',
         contentVersion: 1,
+        correction: 'Bar 1: play F♯5 cleanly.',
       );
 
       expect(saved, isTrue);
       final state = container.read(todayControllerProvider);
       expect(state.lastTakeSaved, isTrue);
+      expect(state.lastCorrection, 'Bar 1: play F♯5 cleanly.');
       final phrase = store.value!.phraseProgressFor('ode-to-joy-p1');
       expect(phrase, isNotNull);
       expect(phrase!.reps, 1);

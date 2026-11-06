@@ -173,7 +173,10 @@ footer so a test build cannot be mistaken for released behavior.
   record/stop, status, the gate card, and one `FeedbackPanel` correction. It
   scores with `AppSettings.toleranceCents`, not a hard-coded 30-cent threshold.
   It has no hearts, XP, streak, quests, or other game chrome. Retry clears
-  the result and re-arms the take.
+  the result and re-arms the take. It also supports `recordProgress: false`
+  with an `onTakeCompleted` callback, so Today owns the single recording and
+  receives the real take correction, and `practiceOnly` for an unscored Acquire
+  take.
 
 The prompt is intentionally not part of the sealed `Prompt` hierarchy. The
 lesson composer and lesson screen keep their existing behavior.
@@ -196,7 +199,7 @@ Today is built but gated. `features/today/today_gate.dart` re-exports decision
 can choose the home surface without importing the phrase module. While the gate
 is false, main navigation keeps `PathScreen` and has no Today destination; the
 switch has no production "on" path. Tests construct `TodayScreen` directly or
-pass `HomeShell(enableToday: true)`.
+use `HomeShell.withTodayForTesting()`, a `@visibleForTesting` constructor.
 
 - `features/today/today_controller.dart` owns one T2.4 `PracticeSession`. It
   builds the target through `content/practice_session_factory.dart`, exposes
@@ -221,11 +224,11 @@ pass `HomeShell(enableToday: true)`.
   surface never promotes a take as a validated accuracy claim.
 - `features/today/today_screen.dart` renders a responsive `PageFrame` column
   (720 px max) that fits 390x844 and 1200 px. The plan is a visible sequence:
-  setup, technique, model, acquire, apply, maintenance when present, and
-  reflect. Each block states what to do, why, and its budget. The current block
-  carries the start/continue control. The header shows guitar time and the stop
-  point, and pause/stop/early-end controls make the end calm and explicit.
-  There are no hearts, XP, streak, gems, quests, or fake metrics.
+  setup, technique, model, acquire, apply, reflect, then the maintenance block
+  at the end when present. Each block states what to do, why, and its budget.
+  The current block carries the start/continue control. The header shows guitar
+  time and the stop point, and pause/stop/early-end controls make the end calm
+  and explicit. There are no hearts, XP, streak, gems, quests, or fake metrics.
 - `features/today/today_content.dart` resolves the one target for display. A
   note target gets a staff read-along card; a phrase target resolves through
   T2.11's `PhraseObjectiveRegistry`, never a second registry. The model block
@@ -234,10 +237,16 @@ pass `HomeShell(enableToday: true)`.
   The technique block links to the existing T2.7 `TechniqueScreen` and shows
   only the existing 60-second drill data.
 - The Apply block records only on a performance day and only through the T2.5
-  gate. When the gate is closed or the phrase player is still gated, the block
-  says the take is unscored practice. The reflect block asks for the 1-3
-  self-rating first, then shows one real metric (the last take's note accuracy
-  or measured guitar time), one correction, and one next step.
+  gate. It opens the phrase player with `recordProgress: false` and an
+  `onTakeCompleted` callback, so the take is recorded exactly once through
+  `TodayController.savePhraseResult` and the reflect card receives the real
+  `PhraseResult` and correction. Acquire opens the player in practice-only
+  mode, which never saves progress. When the gate is closed or the phrase
+  player is still gated, the block says the take is unscored practice. The
+  reflect block asks for the 1-3 self-rating first, then shows one real metric
+  (the last take's note accuracy or measured guitar time), one correction, and
+  one next step. A correction that comes only from the self-rating is labelled
+  `ONE CORRECTION · FROM YOUR RATING`, not presented as take evidence.
 
 Session state is in memory; the durable facts are the measured seconds in
 `ProgressState.practiceSecondsByDay` (through `recordPracticeEffort`) and phrase

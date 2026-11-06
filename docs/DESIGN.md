@@ -318,10 +318,10 @@ streak, gems, quests, or punishment.
   time), with the session clock beside it and a hard stop time below. It has
   pause, stop, resume, and end-early controls. Stopping early is calm: `You
   stopped early. That is okay — the minutes you played still count.`
-- **Plan sequence:** setup, technique, model, acquire, apply, and reflect, with
-  a maintenance block when selected. Every block shows a title, role, budget,
-  `What:` copy, and `Why:` copy. The current block is expanded with its own
-  start/continue control; completed blocks get a check, future blocks read
+- **Plan sequence:** setup, technique, model, acquire, apply, reflect, then the
+  maintenance block at the end when selected. Every block shows a title, role,
+  budget, `What:` copy, and `Why:` copy. The current block is expanded with its
+  own start/continue control; completed blocks get a check, future blocks read
   `UP NEXT`.
 - **Setup:** a short tune-and-posture checklist and a hand-off to the Practice
   tab's tuner. No score.
@@ -330,16 +330,18 @@ streak, gems, quests, or punishment.
 - **Model:** a `SYNTH PREVIEW` badge, a locally generated preview, and the line
   `Human reference recordings are not available yet.` Never label the synth as
   a human recording.
-- **Acquire:** a staff read-along card for a note, or a link to the phrase
-  player when its gate is open. Copy: one bar at 50–70%, 3–5 blocked reps, then
-  one correction. The phrase player, when used, stays unscored unless the T2.5
-  gate is open.
+- **Acquire:** a staff read-along card for a note, or the phrase player in
+  practice-only mode when its gate is open. Copy: one bar at 50–70%, 3–5
+  blocked reps, then one correction. Practice-only player takes never save.
 - **Apply:** one take at target tempo. Recording is a performance-day action,
   not an every-session action. The default is practice only; a closed
-  scored-take gate says the take is unscored and is not saved.
+  scored-take gate says the take is unscored and is not saved. On a performance
+  day with the gate open, the player returns its take to Today, which records
+  it once and uses the take's correction in the reflect card.
 - **Reflect:** the 1-3 self-rating comes first. Only after the rating does the
   learner see one real metric (last-take note accuracy or measured guitar time),
-  one correction, and one next step. Nothing is invented.
+  one correction, and one next step. Nothing is invented. If no take correction
+  exists, the label says the correction comes from the self-rating.
 - **Responsive:** a 720 px `PageFrame` column that fits 390x844 and 1200 px. Wide
   screens keep `HomeShell`'s side rail. The plan scrolls as one column, not a
   desktop split view.

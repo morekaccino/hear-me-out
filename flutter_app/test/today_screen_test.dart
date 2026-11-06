@@ -79,10 +79,7 @@ void main() {
     );
   }
 
-  Widget buildHome({
-    required bool enableToday,
-    DateTime Function()? clock,
-  }) {
+  Widget buildHome({required bool enableToday, DateTime Function()? clock}) {
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(freshStore()),
@@ -132,6 +129,10 @@ void main() {
     expect(find.byKey(const ValueKey('today-length-5')), findsOneWidget);
     expect(find.byKey(const ValueKey('today-length-10')), findsOneWidget);
     expect(find.byKey(const ValueKey('today-length-20')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('today-length-5'))).height,
+      greaterThanOrEqualTo(48),
+    );
     expect(textOf(tester, 'today-total-minutes'), '5 MIN');
     expect(
       find.textContaining('3:30 of this plan is guitar in hand'),
@@ -276,8 +277,15 @@ void main() {
     expect(store.value!.daily.practice, 1);
 
     await tapKey(tester, 'today-reflect-rating-3');
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('today-reflect-rating-3')))
+          .height,
+      greaterThanOrEqualTo(48),
+    );
     expect(find.byKey(const ValueKey('today-metric')), findsOneWidget);
     expect(find.byKey(const ValueKey('today-correction')), findsOneWidget);
+    expect(find.text('ONE CORRECTION · FROM YOUR RATING'), findsOneWidget);
     expect(find.byKey(const ValueKey('today-next-step')), findsOneWidget);
     expect(find.textContaining('Guitar time: 0:05.'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -446,9 +454,7 @@ void main() {
     useSize(tester, const Size(390, 844));
     final start = DateTime(2026, 11, 6, 10);
     var now = start;
-    await tester.pumpWidget(
-      buildHome(enableToday: true, clock: () => now),
-    );
+    await tester.pumpWidget(buildHome(enableToday: true, clock: () => now));
     await tester.pumpAndSettle();
 
     await tapKey(tester, 'today-session-start');
