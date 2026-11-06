@@ -1,0 +1,736 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "londonderry-air",
+    "title": "Londonderry Air",
+    "composer": "Traditional Irish (collected 1855; lyrics \"Danny Boy\" by Frederic Weatherly, 1913)",
+    "license": "public-domain",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "key": "G major",
+    "sections": [
+      "A",
+      "B"
+    ],
+    "sourceUrl": "https://en.wikipedia.org/wiki/Londonderry_Air"
+  },
+  "phrases": [
+    {
+      "id": "londonderry-air-p1",
+      "title": "Oh Danny Boy",
+      "bars": 4,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 54,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes",
+        "technique.sustain"
+      ],
+      "difficulty": 2,
+      "startBar": 1,
+      "pickupBeats": 2.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#4",
+          "soundingMidi": 54,
+          "string": 4,
+          "fret": 4
+        },
+        {
+          "startBeat": 0.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 3.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 4.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 0.5,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 8.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 9.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 9.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 11.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 12.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 12.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 13.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 13.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        }
+      ]
+    },
+    {
+      "id": "londonderry-air-p2",
+      "title": "From glen to glen",
+      "bars": 4,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 54,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes",
+        "technique.sustain"
+      ],
+      "difficulty": 2,
+      "startBar": 5,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#4",
+          "soundingMidi": 54,
+          "string": 4,
+          "fret": 4
+        },
+        {
+          "startBeat": 2.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 5.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 6.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 8.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 9.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 0.5,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 10.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#4",
+          "soundingMidi": 54,
+          "string": 4,
+          "fret": 4
+        },
+        {
+          "startBeat": 11.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 11.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 12.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 13.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 14.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 14.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 15.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 15.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        }
+      ]
+    },
+    {
+      "id": "londonderry-air-p3",
+      "title": "The summer's gone",
+      "bars": 2,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 54,
+      "skills": [
+        "note-reading.second-position",
+        "rhythm.quarter-notes",
+        "technique.position-shift"
+      ],
+      "difficulty": 3,
+      "startBar": 9,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 2.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 2,
+          "fret": 5
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 2,
+          "fret": 5
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 2,
+          "fret": 5
+        }
+      ]
+    },
+    {
+      "id": "londonderry-air-p4",
+      "title": "And I shall hear",
+      "bars": 3,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 54,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.quarter-notes",
+        "technique.position-shift"
+      ],
+      "difficulty": 3,
+      "startBar": 11,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 0.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 0.5,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 2.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 3.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 2,
+          "kind": "rest"
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Traditional melody after the F major Danny Boy setting in Paul Hardy's Songs Tunebook, transposed up a whole tone to G and reduced to the vocal line. Weatherly's lyric is not used.",
+    "reviewedBy": "Pending musical review",
+    "notes": "13 bars in 4/4 with a two-beat pickup. The first two phrases are in first position; the B-section lift moves to second position (E5 on string 2 fret 5), then phrase 4 returns to first position: two hand shifts. The low E4 and F#4 are melody notes on string 4, not a bass voice.",
+    "kind": "piece",
+    "tier": "returner",
+    "stage": 5
+  }
+}
