@@ -320,15 +320,19 @@ lead may change the order but not the set.
 | 5 | `P8-C` | 8 notes from a public-domain piece | 72 | Actual repertoire |
 | 6 | `P16-A` | 16 notes, E-minor scale fragment from low E to high E | 90 | 16-note phrase, high and low strings |
 | 7 | `P16-B` | 16 notes from a public-domain piece | 90 | 16-note repertoire phrase |
-| 8 | `P4-R` | 4 notes with a rest: note-rest-note-note | 60 | Rests |
+| 8 | `P4-R` | 4 notes plus a rest: note-rest-note-note-note | 60 | Rests |
 | 9 | `P8-S` | 8 notes with a slur, a tie, and a position shift | 72 | Articulation and shift |
 | 10 | `E-01` | Endpoint take: rotate early stop, extra note, missed note, false start | 60–90 | Endpoint behavior |
 
 This gives three 4-note takes, four 8-note takes, two 16-note takes, and one
-endpoint take per player per cell. Across the cell's 20 takes, include both
-guitar types when the assigned players own them; at minimum the corpus as a
-whole must include nylon and steel. If a cell's two players both have the same
-guitar type, schedule a third player or swap a device assignment.
+endpoint take per player per cell. The counts are **target events** (pitch
+onsets), not written noteheads: a tied pair is one event, and a rest is a gap,
+not an event. P4-R therefore has four pitch events plus one rest.
+
+Across the cell's 20 takes, include both guitar types when the assigned players
+own them; at minimum the corpus as a whole must include nylon and steel. If a
+cell's two players both have the same guitar type, schedule a third player or
+swap a device assignment.
 
 ### 5.2 Phrase cards
 

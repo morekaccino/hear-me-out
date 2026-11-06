@@ -151,6 +151,9 @@ The schema is monophonic: events must not overlap.
   note is the pitch transition, not a new pick attack.
 - A rest is a gap between events. Do not create an event for a rest, and do not
   stretch the previous event across it.
+- `phraseNoteCount` counts target **events**, not written noteheads. A tied pair
+  is one event; a rest is not an event. A four-note phrase with one rest has
+  `phraseNoteCount: 4` and five rhythmic positions.
 - A pickup is a normal event before the first full bar. Its onset can be earlier
   than the first beat of the phrase; that is expected.
 
