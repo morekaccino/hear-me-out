@@ -12,8 +12,9 @@ ReadingLevel? readingLevelFromName(String? value) {
 
 /// The answers collected by the three onboarding screens.
 ///
-/// This stays separate from [ProgressState] so the placement diagnostic (T2.8)
-/// and the piece launch list (T3.1) can evolve without a storage migration.
+/// This stays separate from the progress schema so the placement diagnostic
+/// (T2.8) and the piece launch list (T3.1) can evolve without a storage
+/// migration.
 class OnboardingChoices {
   const OnboardingChoices({
     this.hasGuitar,
