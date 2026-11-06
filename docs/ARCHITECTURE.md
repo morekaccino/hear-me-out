@@ -205,6 +205,10 @@ surface only.
 - per-skill `SkillProgress`: stability, difficulty, due time, reps, lapses,
   correct/incorrect, correct-day set, production/transfer evidence, response
   time, level, fragile flag, cent samples
+- per-phrase `PhraseProgress`: raw phrase-attempt evidence — memory state,
+  correct and performance days, best tempo, and best accuracy. It has no
+  storage-level mastery flag; T2.3/T2.5 decide performance mastery from
+  determinacy, clean takes, timing, transfer, and checkpoint evidence.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
 - XP, streak, daily XP
@@ -471,16 +475,43 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 `hear_me_out_progress_v1`.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
-and store loading go through `_decodeProgress`, which requires a numeric
-`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 4.
-Version 1 documents load with default economy values (500 gems, five hearts,
-no chests or quests); version 2 adds the System appearance; version 3 documents
-migrate note boxes into skill cards. Future versions are rejected rather than
-partially parsed.
+and store loading go through `_decodeProgress`, which runs the pure migration
+pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 5.
+
+### Schema v5 migration pipeline
+
+`migrateProgress` takes a decoded map and returns a `MigrationSuccess` with a
+new map or a `MigrationFailure` with a reason. It has no IO, clock, or random
+input, and it never mutates its argument. The steps are explicit:
+
+| Step | Adds |
+|---|---|
+| v1 → v2 | default economy: 500 gems, five hearts, no chests or quests |
+| v2 → v3 | System appearance and the remaining `AppSettings` defaults |
+| v3 → v4 | skill cards rebuilt from legacy note boxes when no skills exist |
+| v4 → v5 | `contentVersion` (default 1), an empty `phraseProgress` map, re-applied `AppSettings` defaults, and a defensive skill rebuild when `skills` is empty |
+
+A v5 document is returned as an equivalent new map, not migrated again.
+Unknown top-level fields are copied through and re-emitted by
+`ProgressState.toJson`, so a newer build can add fields without an older build
+deleting them. A known field always wins over an unknown field with the same
+name. Unknown fields nested inside typed objects (`settings`, `notes`, `skills`,
+one `phraseProgress` entry) are not preserved; only top-level keys are.
+
+Future versions are rejected, not guessed. Missing or non-integer versions,
+versions below 1, and malformed fields that a step or the current-shape
+validator cannot interpret also fail. There is no partial save: `load` returns
+null, `importProgress` returns null, and `ProgressState.fromJson` throws a
+`FormatException` that the storage boundary catches. Before returning null for
+an unreadable document, `SharedPreferencesProgressStore` copies the raw JSON to
+`hear_me_out_progress_unreadable`. A later fresh-profile save therefore cannot
+destroy a document written by a newer build; the recovery copy survives `save`
+and `clear`. `PhraseProgress` stores raw attempt evidence only and does not
+award mastery.
 
 Backups are copied as pretty JSON via the clipboard. Restore validates first,
 then replaces the state and saves it. Corrupt/missing storage falls back to a
-fresh profile.
+fresh profile; an unreadable document is quarantined first.
 
 ## Test map
 
@@ -506,6 +537,7 @@ fresh profile.
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
+| `test/progress_migration_test.dart` | v1–v5 fixtures, version rejection, phrase evidence, quarantine/rollback |
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
