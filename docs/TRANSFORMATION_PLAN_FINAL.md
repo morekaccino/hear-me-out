@@ -562,6 +562,15 @@ This implies roughly **625 / 1,667 / 3,333 installs per month**. If organic acqu
 
 The monthly model is the annual table divided into 12 install cohorts, 3% conversion, ~4.2%/month churn (50% annual), net revenue after fees/refunds, and costs divided into monthly contractor/legal/hosting lines. Track cash monthly; the annual table is the summary, not a substitute for the cash schedule.
 
+> **T6.2 reconciliation (2026-11-06):** The tables above are the historical
+> plan. The costed model uses T3.9: $69,024 Year 1, $34,190 Year 2, $23,940
+> Year 3, for a launch + 24-month content total of $103,214. The 3-year total
+> is close, but Year 1 cash need is ~$44k higher. Base peak cash need is ~$120k
+> at month 24; downside ~$161k at month 36. The ~2,500 Pro figure is a
+> cash-recovery target, not the operating break-even (~1,399 Pro); 50% annual
+> retention is 5.61%/month, not 4.2%/month. See
+> [`FINANCIAL_MODEL.md`](FINANCIAL_MODEL.md) for the math and monthly schedule.
+
 **Upside/stretch:** 3,000 Pro + 100 teachers ≈ $220k gross, ~$50–80k profit. Teacher and exam revenue are **upside only**, not in the base case, until three paid teacher pilots pass.
 
 Founder salary is not included. If a market salary of $60–100k/year is required, add it and break-even moves to ~4,000–5,000 Pro or a higher price.

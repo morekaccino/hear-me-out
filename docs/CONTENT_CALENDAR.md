@@ -44,7 +44,10 @@ case is a midpoint, not a promise.
   Year 1, 615 in Year 2, and 925 averaged over 24 months**. The plan's base
   case reaches 225 Pro in Year 1 and 713 in Year 2, so Year 1 content is
   cash-funded and Year 2 is roughly content-neutral before other costs. The
-  company-level break-even remains about 2,500 Pro (plan section 11.3).
+  company-level break-even is modeled in
+  [`FINANCIAL_MODEL.md`](FINANCIAL_MODEL.md): at the reconciled Year 3 cost
+  base (~$78k), operating break-even is ~1,399 annual Pro; the plan's ~2,500
+  Pro figure is a cash-recovery target, not the operating break-even.
 - **Recommendation:** do not promise a monthly content cadence until the
   month-6 gate passes. Fund the base cadence at the modeled level, or run
   founder-led content at a capped 1–2 pieces/month. If neither is true, switch
@@ -362,8 +365,10 @@ How to read it:
   launch, but the cash plan must include it.
 - **Year 2 is roughly content-neutral.** At 713 Pro, net revenue is about
   $39.7k; modeled Year 2 content is about $34.2k. That covers content and
-  leaves about $5.5k for DSP, legal, hosting, marketing, or tools. The plan's
-  full break-even of about 2,500 Pro is still the real gate.
+  leaves about $5.5k for DSP, legal, hosting, marketing, or tools. The
+  company-level gate is in [`FINANCIAL_MODEL.md`](FINANCIAL_MODEL.md):
+  operating break-even is ~1,399 Pro at the reconciled Year 3 cost base; the
+  ~2,500 Pro figure is a cash-recovery target, not the operating break-even.
 - **The gap is concentrated in Year 1.** The plan's $25k Year 1 line is close
   to the launch inventory alone ($19.8k base). It does not also fund 12 months
   of post-launch cadence ($49.2k base). The 24-month gap is about $38k. The low
@@ -379,8 +384,12 @@ mix changes the count; a different cost changes it proportionally.
 The content-only break-even is the number of Pro subscribers whose net revenue
 covers content, before every other cost. It is not the company break-even. At
 about 925 annual-equivalent Pro averaged over 24 months, content pays for
-itself; the plan's company break-even is about 2,500 Pro because DSP, legal,
-hosting, marketing, and tools also need funding (section 11.3).
+itself; the company-level model is in
+[`FINANCIAL_MODEL.md`](FINANCIAL_MODEL.md). At the reconciled Year 3 cost base
+(~$78k), operating break-even is ~1,399 annual Pro. The plan's ~2,500 Pro
+figure is a cash-recovery target, not the operating break-even; the
+company-level break-even at the plan's own $114k Year 3 cost line is ~2,046
+Pro.
 
 If all subscribers choose the monthly plan, the content-only break-even falls
 to about 590 averaged over 24 months because monthly net revenue per subscriber
@@ -467,7 +476,8 @@ does not, switch to packs and record the decision.
   session, monthly full performance.
 - **Plan section 11.1:** $8.99/month, $69/year, exam packs at $19–$29 per grade.
 - **Plan section 11.3:** 15% store fee, 5% refunds/tax reserve, 225/713 Pro base
-  case, ~2,500 Pro company break-even.
+  case; the ~2,500 Pro figure is a cash-recovery target
+  ([`FINANCIAL_MODEL.md`](FINANCIAL_MODEL.md)), not the operating break-even.
 - **Plan section 11.6:** $5–10k legal review before launch.
 - **Plan section 12.4:** content calendar slips below 1 new piece/month →
   subscription promise broken.
@@ -501,7 +511,7 @@ does not, switch to packs and record the decision.
 | 15 | Pricing and fees | $69/year blended, 15% store fee, 5% reserve; net $55.72/year | Plan 11.1/11.3 | Price test, store terms, tax |
 | 16 | Plan base case | 225 Pro Year 1, 713 Year 2 | Plan 11.3 | Conversion and renewal |
 | 17 | Content-only break-even | ~1,240 / ~615 / ~925 annual Pro (Year 1/2/24-month) | Derived | Cost, price, plan mix |
-| 18 | Company break-even | ~2,500 Pro | Plan 11.3 | Cost base and price |
+| 18 | Company break-even | Operating ~1,399 Pro at the reconciled Year 3 cost; ~2,500 Pro is a cash-recovery target | Plan 11.3; [`FINANCIAL_MODEL.md`](FINANCIAL_MODEL.md) | Cost base and price |
 | 19 | 10-piece supply | 2–3 months at 3–5 pieces/month per active learner | Plan 7.2 plus estimate | T3.8 measured completion time |
 | 20 | Legal review | 4–8 weeks first batch, 2–4 weeks later; $5–10k one-time | Plan 11.6; `LAUNCH_PIECES.md` | Territory, source edition, licensed work |
 | 21 | Exclusions | App, DSP, hosting, marketing, salary, taxes, currency, one-time T6.3 review | Plan 11.3 | Scope change |
