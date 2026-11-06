@@ -13,6 +13,11 @@ The T3.6 set is indexed in
 per level, with the level rubric, file index, and honest machine-review status.
 Human playtest and musical review remain T3.8.
 
+The T3.7 beta generator and playability validator are documented in
+[`SIGHT_READING_GENERATOR.md`](SIGHT_READING_GENERATOR.md). A generated etude is
+a candidate; it does not enter the reviewed asset library without a human
+approval record. The 60 reviewed etudes remain the stable core.
+
 ## 1. Principles
 
 - V1 is strictly monophonic: one sounding note at a time, no chords, no double
@@ -414,6 +419,13 @@ imports, so `dart run` works without a device.
 
 T3.2 composes the T2.1 `MonophonicValidator`; those codes remain the source of
 truth for musical model invariants.
+
+T3.7 adds a separate `playability.*` issue family in
+`lib/core/music/playability.dart` for stretch, string crossings, shifts, open
+strings, repeated notes, range, rhythm cells, and cadence. Those issues carry
+a phrase, bar, and event location. A generated candidate must pass both
+`Score.validate()` and the playability validator; see
+[`SIGHT_READING_GENERATOR.md`](SIGHT_READING_GENERATOR.md) section 4.
 
 | Code | Severity | Owner | Trigger |
 |---|---|---|---|

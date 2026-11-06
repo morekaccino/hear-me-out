@@ -3,8 +3,10 @@
 **Status:** Authored and machine-validated. No human musical review, notation
 review, fingering review, or playtest has happened yet. That review is T3.8.
 **Owner:** T3.6. **Format:** T3.2 authoring document, see
-[`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md). **Generator and first-read UI:**
-T3.7. **Reference recordings:** T3.4/T3.5 and the content calendar.
+[`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md). **Generator:** T3.7 beta, see
+[`SIGHT_READING_GENERATOR.md`](SIGHT_READING_GENERATOR.md); it produces
+candidates only and does not change this reviewed set. **First-read UI:**
+T3.8/T5.3. **Reference recordings:** T3.4/T3.5 and the content calendar.
 
 This document is the index and rubric for the 60 launch sight-reading etudes.
 It records what the files contain and what has actually been checked. It does
@@ -273,6 +275,9 @@ CLI. Current result: 60/60 strict PASS, 12 focused tests, 801 full tests,
 
 - [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md) - envelope, fields, validation
   codes, and review checklist.
+- [`SIGHT_READING_GENERATOR.md`](SIGHT_READING_GENERATOR.md) - the T3.7 beta
+  generator, playability validator, approval gate, and pending pedagogue
+  sample plan. Generated material is a candidate, not part of this set.
 - [`LAUNCH_PIECES.md`](LAUNCH_PIECES.md) - the 10 launch pieces and the
   stage map these etudes support.
 - [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) sections 6.1,
