@@ -4,11 +4,13 @@ import 'dart:typed_data';
 
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/onboarding_choices.dart';
+import 'package:hear_me_out/core/learning/placement.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/retention/retention_log.dart';
 import 'package:hear_me_out/core/storage/onboarding_store.dart';
+import 'package:hear_me_out/core/storage/placement_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/core/storage/retention_store.dart';
 import 'package:hear_me_out/shared/audio/audio_engine.dart';
@@ -52,6 +54,25 @@ class FakeOnboardingStore implements OnboardingStore {
   @override
   Future<void> save(OnboardingChoices choices) async {
     value = choices;
+    saveCount++;
+  }
+
+  @override
+  Future<void> clear() async => value = null;
+}
+
+class MemoryPlacementStore implements PlacementStore {
+  MemoryPlacementStore([this.value]);
+
+  PlacementRecord? value;
+  int saveCount = 0;
+
+  @override
+  Future<PlacementRecord?> load() async => value;
+
+  @override
+  Future<void> save(PlacementRecord record) async {
+    value = record;
     saveCount++;
   }
 

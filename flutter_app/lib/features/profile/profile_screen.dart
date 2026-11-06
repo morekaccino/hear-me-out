@@ -17,6 +17,7 @@ import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../placement/placement_prompt_card.dart';
 import '../reading_lab/reading_lab_entry.dart';
 import '../reading_lab/reading_lab_screen.dart';
 import 'privacy_note.dart';
@@ -174,6 +175,8 @@ class ProfileScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 24),
+              const PlacementPromptCard(profile: true),
+              const SizedBox(height: 8),
               const Text(
                 'Skills',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),

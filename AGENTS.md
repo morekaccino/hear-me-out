@@ -350,7 +350,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 857 tests passing
+- `flutter test` - 952 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -369,6 +369,10 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 - The T2.5 phrase prompt, verifier, recorder, scored-take gate, and player
   screen exist, but `phraseLoopEnabled` is false and the screen has no
   main-navigation entry. No microphone-accuracy claim is validated.
+- The T2.8 placement check is skippable and reachable from onboarding, a Path
+  card, and the Profile starting-point card. Its versioned store is separate
+  from progress; stages 6-8 map to 5 or 9 with a Phase 2 label, and the
+  three-piece starter set comes from the real launch list.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
