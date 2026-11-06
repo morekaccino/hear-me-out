@@ -53,7 +53,7 @@
         {"startBeat": 2.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2},
         {"startBeat": 3.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
         {"startBeat": 4.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "G#4", "soundingMidi": 56, "string": 3, "fret": 1},
-        {"startBeat": 4.5, "durationBeats": 1.0, "kind": "note", "writtenNote": "E5", "soundingMidi": 64, "string": 1, "fret": 0},
+        {"startBeat": 4.5, "durationBeats": 1.0, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
         {"startBeat": 5.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2}
       ]
     },
@@ -101,7 +101,7 @@
     "author": "Hear Me Out content team",
     "source": "Traditional English melody (16th century); new single-line guitar setting by Hear Me Out.",
     "reviewedBy": "Pending musical review",
-    "notes": "Nine-bar verse excerpt (one-eighth anacrusis plus eight bars) in A minor. The raised seventh (G-sharp) is kept from the traditional melody. The low E4 of 'to cast me off' is played an octave higher as E5 (open high E) so the stage-1 setting stays on strings 1-3; every other note is at written pitch. Sixteenth-note ornaments are simplified to eighths and dotted quarters.",
+    "notes": "Nine-bar verse excerpt (one-beat anacrusis plus eight bars) in A minor. The raised seventh (G-sharp) is kept from the traditional melody. The low E4 is the only note on string 4; sixteenth-note ornaments are simplified to eighths and dotted quarters.",
     "kind": "piece",
     "tier": "foundation",
     "stage": 1

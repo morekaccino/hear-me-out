@@ -15,37 +15,38 @@
   "phrases": [
     {
       "id": "amazing-grace-p1",
-      "title": "Opening phrase",
-      "bars": 2,
+      "title": "Anacrusis and opening",
+      "bars": 3,
       "timeSignature": {"numerator": 3, "denominator": 4},
       "targetTempoBpm": 66,
       "skills": ["note-reading.first-position", "rhythm.triple-meter", "technique.legato"],
       "difficulty": 1,
       "startBar": 1,
-      "pickupBeats": 0.0,
+      "pickupBeats": 1.0,
       "events": [
-        {"startBeat": 0.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
-        {"startBeat": 2.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
-        {"startBeat": 2.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
-        {"startBeat": 3.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
-        {"startBeat": 5.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2}
+        {"startBeat": 0.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 1.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
+        {"startBeat": 3.0, "durationBeats": 0.5, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
+        {"startBeat": 3.5, "durationBeats": 0.5, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
+        {"startBeat": 4.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "B4", "soundingMidi": 59, "string": 2, "fret": 0},
+        {"startBeat": 6.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "A4", "soundingMidi": 57, "string": 3, "fret": 2}
       ]
     },
     {
       "id": "amazing-grace-p2",
-      "title": "Answering phrase (octave up)",
+      "title": "Answering phrase",
       "bars": 2,
       "timeSignature": {"numerator": 3, "denominator": 4},
       "targetTempoBpm": 66,
-      "skills": ["note-reading.first-position", "rhythm.triple-meter", "technique.string-crossing"],
-      "difficulty": 2,
-      "startBar": 3,
+      "skills": ["note-reading.first-position", "rhythm.triple-meter", "technique.legato"],
+      "difficulty": 1,
+      "startBar": 4,
       "pickupBeats": 0.0,
       "events": [
-        {"startBeat": 0.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "G5", "soundingMidi": 67, "string": 1, "fret": 3},
-        {"startBeat": 2.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "E5", "soundingMidi": 64, "string": 1, "fret": 0},
-        {"startBeat": 3.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "D5", "soundingMidi": 62, "string": 2, "fret": 3},
-        {"startBeat": 5.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "D5", "soundingMidi": 62, "string": 2, "fret": 3}
+        {"startBeat": 0.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
+        {"startBeat": 2.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "E4", "soundingMidi": 52, "string": 4, "fret": 2},
+        {"startBeat": 3.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0},
+        {"startBeat": 5.0, "durationBeats": 1.0, "kind": "note", "writtenNote": "D4", "soundingMidi": 50, "string": 4, "fret": 0}
       ]
     },
     {
@@ -56,7 +57,7 @@
       "targetTempoBpm": 66,
       "skills": ["note-reading.first-position", "rhythm.triple-meter", "technique.legato"],
       "difficulty": 2,
-      "startBar": 5,
+      "startBar": 6,
       "pickupBeats": 0.0,
       "events": [
         {"startBeat": 0.0, "durationBeats": 2.0, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0},
@@ -74,7 +75,7 @@
       "targetTempoBpm": 66,
       "skills": ["note-reading.first-position", "rhythm.triple-meter", "sightreading.phrase-endings"],
       "difficulty": 2,
-      "startBar": 7,
+      "startBar": 8,
       "pickupBeats": 0.0,
       "events": [
         {"startBeat": 0.0, "durationBeats": 3.0, "kind": "note", "writtenNote": "G4", "soundingMidi": 55, "string": 3, "fret": 0, "tieToNext": true},
@@ -87,7 +88,7 @@
     "author": "Hear Me Out content team",
     "source": "New Britain tune (1835); new single-line guitar setting by Hear Me Out, after public-domain hymnal melodies.",
     "reviewedBy": "Pending musical review",
-    "notes": "Eight-bar setting in G major starting on G4 (string 3 open). Bars 3-4 are played an octave higher (G5-E5-D5) because their written G4-E4-D4 would need string 4; the other phrases stay in the lower octave. Every note is on strings 1-3, frets 0-3, and the piece ends on the tonic.",
+    "notes": "Nine-bar excerpt: the one-beat anacrusis plus the opening four bars and the final four bars of New Britain. D4 and E4 need string 4; every note is inside frets 0-3 and the excerpt ends on the tonic.",
     "kind": "piece",
     "tier": "foundation",
     "stage": 2

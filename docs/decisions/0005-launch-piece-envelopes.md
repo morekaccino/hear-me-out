@@ -9,24 +9,25 @@
 
 T3.1 locked the 10-piece launch list with a nominal string/fret target per
 stage: stages 1-2 on strings 1-3, stage 3 on strings 4-6, and so on. T3.3
-arranged the five Foundation pieces. Reading the stage-1/2 melodies an octave
-up keeps Greensleeves and Amazing Grace inside strings 1-3, but two pieces
-still need a higher fret or a different string:
+arranged the five Foundation pieces. Four of the five need a string outside
+that nominal set to keep the traditional melody in first position:
 
-- Ode to Joy (D5-A5) uses strings 1-2, frets 0-5; A5 needs fret 5 on string 1.
-- Down by the Riverside uses strings 3-4, frets 0-5; B4/C5 need string 3
-  frets 4-5, and the piece does not use strings 5-6.
+- Greensleeves dips to written E4 (string 4 fret 2) once.
+- Ode to Joy's natural first-position octave uses strings 3-4, frets 0-4.
+- Amazing Grace starts on D4/E4 and uses strings 2-4, frets 0-2.
+- Down by the Riverside uses strings 2-4, frets 0-3.
 
-Forcing the original frets 0-3 would push those notes into an unnatural
-position or a different octave.
+Forcing the nominal string set would require octave shifts that change the
+melody's register (and read worse for a stage-1/2 learner). The adjacent string
+is the smaller change.
 
 ## Decision
 
 The stage string label describes the **primary teaching focus**, not a hard
-technical restriction. A launch piece may use an adjacent string or a first-
-position fret up to 5 when the melody requires it, provided:
+technical restriction. A launch piece may use an adjacent string when the
+melody requires it, provided:
 
-- it stays in first position (frets 0-5) and introduces no shift, chord, or
+- it stays in first position (frets 0-4) and introduces no shift, chord, or
   untaught technique;
 - T3.1's `rangeAndPosition`, `docs/LAUNCH_PIECES.md`, and the arrangement notes
   record the actual envelope;

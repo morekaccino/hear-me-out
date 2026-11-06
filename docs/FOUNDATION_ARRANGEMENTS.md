@@ -42,10 +42,10 @@ listed in `pubspec.yaml` yet.
 
 | Piece | Key | Meter | Tempo | Bars | Phrase bars | Written range | Strings / frets | Stage |
 |---|---|---|---:|---:|---|---|---|---:|
-| `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | G4-E5 | 1-3 / 0-3 | 1 |
-| `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D5-A5 | 1-2 / 0-5 | 2 |
-| `amazing-grace` | G major | 3/4 | 66 | 8 | 2 + 2 + 2 + 2 | G4-G5 | 1-3 / 0-3 | 2 |
-| `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | D4-C5 | 3-4 / 0-5 | 3 |
+| `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | E4-E5 | 1-4 / 0-3 | 1 |
+| `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D4-A4 | 3-4 / 0-4 | 2 |
+| `amazing-grace` | G major | 3/4 | 66 | 8 | 2 + 2 + 2 + 2 | D4-B4 | 2-4 / 0-2 | 2 |
+| `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | D4-C5 | 2-4 / 0-3 | 3 |
 | `original-study-1` | A minor | 4/4 | 60 | 12 | 3 + 3 + 3 + 3 | E3-F4 | 4-6 / 0-3 | 3 |
 
 "Written range" is staff pitch; the guitar sounds one octave lower. All notes
@@ -53,32 +53,18 @@ are inside the V1 written range E3-E6 and the sounding range E2-E5.
 
 ## Stage envelope
 
-T3.1's string range is met by every arrangement:
+Decision 0005 records the actual first-position envelope for each piece and
+keeps T3.1's `rangeAndPosition`, `docs/LAUNCH_PIECES.md`, and the tests in
+sync. Stage labels describe the primary teaching focus; they are not a hard
+string restriction. The monophonic and first-position rules are unchanged.
 
-| Piece | T3.1 string span | Actual strings | T3.1 fret ceiling | Actual max fret | Note |
+| Piece | T3.1 original span | Recorded strings | T3.1 original frets | Recorded max fret | Reason |
 |---|---|---|---|---|---|
-| `greensleeves` | 1-3 | 1-3 | 0-3 | 3 | E4 in P2 played as E5 |
-| `ode-to-joy` | 1-3 | 1-2 | 0-3 | 5 | A5 is string 1 fret 5 |
-| `amazing-grace` | 1-3 | 1-3 | 0-3 | 3 | bars 3-4 played an octave up |
-| `down-by-the-riverside` | 3-6 | 3-4 | 0-3 | 5 | B4/C5 are string 3 frets 4-5 |
-| `original-study-1` | 4-6 | 4-6 | 0-3 | 3 | matches T3.1 exactly |
-
-**Stage 1-2 uses no string 4.** The three melodies that would dip below G4 are
-kept on strings 1-3 by octave choices:
-
-- **Greensleeves:** the single low E4 in "to cast me off" is played an octave
-  higher as E5 (open high E). Every other note stays at written pitch.
-- **Ode to Joy:** the whole theme is written one octave above the first-position
-  guitar octave (D5-A5, sounding D4-A4), so it uses strings 1-2 and never string
-  4. A5 is string 1 fret 5.
-- **Amazing Grace:** the setting starts on G4 (string 3 open). Bars 3-4 are
-  played an octave higher (G5-E5-D5) because their written G4-E4-D4 would need
-  string 4; the other phrases stay in the lower octave.
-
-Two pieces need a fret above T3.1's 0-3 planning ceiling to stay inside their
-planned string range: Ode to Joy's A5 (fret 5 on string 1) and Down by the
-Riverside's B4/C5 (frets 4-5 on string 3). Both are recorded in the per-piece
-envelope and in `authoring.notes`; the test rejects any other fret reach.
+| `greensleeves` | 1-3 | 1-4 | 0-3 | 3 | E4 in P2 is string 4 fret 2. |
+| `ode-to-joy` | 1-3 | 3-4 | 0-3 | 4 | D4/E4 need string 4; F#4 needs fret 4. |
+| `amazing-grace` | 1-3 | 2-4 | 0-3 | 2 | The melody starts on D4/E4, which need string 4. |
+| `down-by-the-riverside` | 3-6 | 2-4 | 0-3 | 3 | B4/C5 need string 2; strings 5-6 are not used. |
+| `original-study-1` | 4-6 | 4-6 | 0-3 | 3 | Matches T3.1 exactly. |
 
 ## `greensleeves`
 
