@@ -39,11 +39,13 @@ pitch feedback, and a review schedule that remembers what was hard.
    mapping.
 4. **Never punish a missing microphone.** Naming is a first-class answer mode.
    The app must remain usable when permission is denied.
-5. **Privacy is a feature.** No account, no cloud, no analytics, no ads. The
-   microphone is active only during a lesson, practice, tuner, or recording
+5. **Privacy is a feature.** No account, no cloud, no remote analytics, no ads.
+   The microphone is active only during a lesson, practice, tuner, or recording
    session. Audio is analyzed on the device. When a learner records a take, it
    stays on the device; the app confirms platform backup exclusion when it can
-   and says so when it cannot.
+   and says so when it cannot. An optional beta usage log can record event
+   names and times locally; it is off by default, never uploaded, and documented
+   in [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md).
 6. **Encouraging, not childish.** The tone is warm and direct. A mistake is
    information, not a moral failure.
 
@@ -470,6 +472,13 @@ must say the app could not confirm the exclusion and the take may be included in
 device backup. It must not claim that recording ships before the recording UI
 exists.
 
+The Privacy section also holds the **Beta usage log** card. The switch is off by
+default, sits above plain-language copy, and offers **Copy usage log** and
+**Erase log**. The copy says what is stored (event name, time, random install
+id), what is never stored (audio, note names, piece titles, free text, account),
+that nothing is uploaded, and that opt-in data is biased and not a baseline.
+See [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md).
+
 ### Onboarding
 
 Three screens, one decision each: “Do you have your guitar?” (Yes / Not
@@ -480,6 +489,15 @@ microphone check is an optional secondary action on the first screen, never a
 fourth screen and never a permission gate. No hearts, XP, gems, streak, or
 quests appear during onboarding. The user should reach the path in under a
 minute.
+
+The first screen also carries a compact, off-by-default **Optional beta usage
+log** consent card below the optional microphone check. It is part of the first
+screen, not a fourth step. The copy says local only, no audio, no free text, no
+account, never uploaded, and erase any time in Profile. The switch creates
+`app_open` and `onboarding_start` when enabled, so the onboarding funnel is
+reachable for a real new install; leaving it off records nothing. See
+[`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) and decision
+[`0006`](decisions/0006-local-retention-instrumentation.md).
 
 ## Gamification rules
 
@@ -534,7 +552,10 @@ minute.
 ## Non-goals
 
 - Social feeds, leagues, friend duels, leaderboards, or public profiles.
-- Accounts, cloud sync, analytics, ads, subscriptions, or paywalls.
+- Accounts, cloud sync, remote analytics or third-party trackers, ads,
+  subscriptions, or paywalls. The only usage log is the local, opt-in, bounded
+  log described in
+  [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md).
 - Recording or uploading audio.
 - Fake lesson progress or decorative stats.
 - Copying Duolingo’s proprietary art, mascot, or exact screen layouts.

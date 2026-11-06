@@ -66,8 +66,9 @@ as shipped.
   a widget test if it affects the lesson flow.
 - Never add placeholder stats, fake lesson progress, or dead buttons. Every
   number on screen must come from `ProgressState`.
-- No cloud persistence, analytics, auth, or network calls. Progress belongs in
-  `ProgressStore`; audio stays in memory.
+- No cloud persistence, remote analytics or third-party trackers, auth, or
+  network calls. The only usage log is local, opt-in, bounded, and eraseable.
+  Progress belongs in `ProgressStore`; audio stays in memory.
 - Keep guitar transposition in mind. Written pitch and sounding pitch are not
   the same note.
 - Match the existing Duolingo-style design tokens in

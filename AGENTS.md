@@ -121,7 +121,9 @@ tone, accessibility notes, and non-goals are in
 
 ## Hard rules
 
-1. **No network, cloud, accounts, analytics, or remote persistence in the app.**
+1. **No network, cloud, accounts, remote analytics, or third-party trackers in
+   the app.** The only usage log is local, opt-in, bounded, and eraseable; it is
+   documented in [`docs/RETENTION_INSTRUMENTATION.md`](docs/RETENTION_INSTRUMENTATION.md).
    Progress lives in `shared_preferences`. Recordings live in the local media
    store, are never uploaded, and are excluded from cloud backup only when the
    platform confirms it; the UI must say when that confirmation is missing. The

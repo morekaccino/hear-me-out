@@ -50,9 +50,12 @@ If the microphone is unavailable, lessons fall back to naming notes.
 ## Data and privacy
 
 Progress is saved with `shared_preferences` on the device. There is no Firebase,
-no Firestore, no auth, no analytics, and no cloud sync. The microphone is active
-only during a lesson, practice, tuner, or recording session, and audio is
-analyzed on the device. When you record a take, it is stored only on the device.
+no Firestore, no auth, no remote analytics or third-party trackers, and no cloud
+sync. The only usage log is local, opt-in, bounded, and eraseable; see
+[`../docs/RETENTION_INSTRUMENTATION.md`](../docs/RETENTION_INSTRUMENTATION.md).
+The microphone is active only during a lesson, practice, tuner, or recording
+session, and audio is analyzed on the device. When you record a take, it is
+stored only on the device.
 Android backup rules exclude the recording directory from Auto Backup and device
 transfer. On iOS the app asks iOS to exclude it from iCloud backup and reports
 when it could not confirm that exclusion; the take may then be included in

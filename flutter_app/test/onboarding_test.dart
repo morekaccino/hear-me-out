@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/app.dart';
 import 'package:hear_me_out/core/learning/onboarding_choices.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/core/storage/retention_store.dart';
 import 'package:hear_me_out/features/onboarding/onboarding_pieces.dart';
 import 'package:hear_me_out/state/providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -29,11 +31,18 @@ void main() {
     audioEngine = FakeAudioEngine();
   });
 
-  Widget buildApp({OnboardingStore? store, FakePitchSourceFactory? sources}) {
+  Widget buildApp({
+    OnboardingStore? store,
+    FakePitchSourceFactory? sources,
+    MemoryRetentionStore? retentionStore,
+  }) {
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(progressStore),
         onboardingStoreProvider.overrideWithValue(store ?? onboarding),
+        retentionStoreProvider.overrideWithValue(
+          retentionStore ?? MemoryRetentionStore(),
+        ),
         audioEngineProvider.overrideWithValue(audioEngine),
         pitchSourceFactoryProvider.overrideWithValue(
           (sources ?? FakePitchSourceFactory(permission: false)).call,
@@ -94,6 +103,64 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Do you have your guitar?'), findsOneWidget);
     expect(find.byIcon(Icons.arrow_back_rounded), findsNothing);
+  });
+
+  testWidgets('onboarding usage log is off by default and records the funnel', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    final retention = MemoryRetentionStore();
+    await tester.pumpWidget(buildApp(retentionStore: retention));
+    await tester.pumpAndSettle();
+
+    final switchFinder = find.byKey(
+      const ValueKey('onboarding-retention-switch'),
+    );
+    await tester.ensureVisible(switchFinder);
+    await tester.pumpAndSettle();
+    expect(retention.value.optIn, isFalse);
+    expect(tester.widget<Switch>(switchFinder).value, isFalse);
+    expect(find.textContaining('no audio'), findsOneWidget);
+
+    await tester.tap(switchFinder);
+    await tester.pumpAndSettle();
+
+    expect(retention.value.optIn, isTrue);
+    expect(tester.widget<Switch>(switchFinder).value, isTrue);
+    expect(
+      retention.value.log.hasEvent(RetentionEventName.onboardingStart),
+      isTrue,
+    );
+
+    await tester.ensureVisible(find.text('YES, I HAVE IT'));
+    await tester.pumpAndSettle();
+    await openPieces(tester);
+    await tapText(tester, 'Greensleeves');
+    await tapText(tester, 'START PLAYING');
+
+    expect(
+      retention.value.log.hasEvent(RetentionEventName.onboardingComplete),
+      isTrue,
+    );
+    expect(find.text('Open Strings'), findsOneWidget);
+  });
+
+  testWidgets('onboarding records nothing when the switch stays off', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    final retention = MemoryRetentionStore();
+    await tester.pumpWidget(buildApp(retentionStore: retention));
+    await tester.pumpAndSettle();
+
+    await openPieces(tester);
+    await tapText(tester, 'Greensleeves');
+    await tapText(tester, 'START PLAYING');
+
+    expect(retention.value.log.events, isEmpty);
+    expect(retention.value.optIn, isFalse);
+    expect(retention.saveCount, 0);
+    expect(find.text('Open Strings'), findsOneWidget);
   });
 
   testWidgets('"Not now" advances and records that there is no guitar', (

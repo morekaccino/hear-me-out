@@ -23,6 +23,7 @@ flutter_app/lib/
 │   ├── learning/    Objectives, prompts, templates, composer, LessonRun, PracticeSession
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
+│   ├── retention/   Pure-Dart retention events, bounded log, funnel helpers
 │   └── storage/     shared_preferences JSON store, export/import
 ├── content/         lesson material: objectives, templates, session factories
 ├── features/        onboarding, path, lesson, practice, quests, shop, profile
@@ -197,6 +198,25 @@ choice and that gate.
 Quota enforcement, delete/export UI, retention, and recording itself arrive in
 T4.2 and later; this ticket provides storage, backup exclusion, and the status
 surface only.
+
+## Retention instrumentation
+
+The retention log is a separate, opt-in storage domain. `core/retention/` is
+pure Dart: `RetentionEventName`, `RetentionEvent`, and a bounded `RetentionLog`
+with `record`, `funnel`, `activeDays`, D1/D7/D30 helpers, and `exportJson`.
+`core/storage/retention_store.dart` owns the `hear_me_out_retention_v1` key and
+the schema. `state/retention_controller.dart` gates every write on opt-in and
+wires the hooks in `AppController`, onboarding, and app resume.
+
+The log has no audio, note names, piece titles, free text, account, device
+fingerprint, or network path. It is not part of `ProgressState` or the progress
+backup. The stored document pins `installAt` separately from the bounded event
+list so trimming cannot move D1/D7/D30. Consent is offered on the first
+onboarding screen and in Profile; both are off by default. See
+[`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) for the exact
+event list, fields, export format, erase behavior, and the bias caveat, and
+decision [`0006`](decisions/0006-local-retention-instrumentation.md) for the
+change from the old "no analytics" rule.
 
 ## Progress and scheduling
 
@@ -614,6 +634,10 @@ fresh profile; an unreadable document is quarantined first.
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
 | `test/economy_test.dart` | Hearts, gems, chests, quests, boosts, jump tests |
+| `test/retention_test.dart` | Event names, bound, funnel, D1/D7/D30, export fields, pure-domain imports |
+| `test/retention_store_test.dart` | Opt-out default, round trip, corrupt/future data, bound, erase |
+| `test/retention_controller_test.dart` | Opt-in gating, first-event dedupe, AppController session hooks |
+| `test/retention_profile_test.dart` | Default-off switch, toggle, copy, erase, 390 px and 1200 px layouts |
 | `test/technique_test.dart` | Eight-stage coverage, 3/3 item counts, 60-second drills, demo scripts, pain warning |
 | `test/technique_screen_test.dart` | Practice entry, tuner teardown, session-only state, drill timer, 390 px/wide layout |
 

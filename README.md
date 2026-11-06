@@ -68,7 +68,8 @@ hit the note, missed it, or played the right note in the wrong octave.
   persisted sound-effects setting.
 - **Working tuner** — standard E–A–D–G–B–E tuning with live pitch and cents.
 - **Local-only progress** — `shared_preferences` on the device. No accounts, no
-  analytics, no network calls, no cloud database.
+  remote analytics or third-party trackers, no network calls, no cloud database.
+  The only usage log is local, opt-in, bounded, and eraseable.
 - **Backup by clipboard** — export your progress as JSON and restore it later.
 
 ## Screens
@@ -220,8 +221,10 @@ session rules.
 - T4.2 adds the recording, delete, and export controls. When it lands, a take
   will leave the device only through an explicit export you start, and deleting
   a take will remove it from the device.
-- There is no Firebase, no Firestore, no auth, no analytics, no account, no
-  cloud sync, and no network persistence layer.
+- There is no Firebase, no Firestore, no auth, no remote analytics or
+  third-party trackers, no account, no cloud sync, and no network persistence
+  layer. The only usage log is local, opt-in, bounded, and eraseable; see
+  [`docs/RETENTION_INSTRUMENTATION.md`](docs/RETENTION_INSTRUMENTATION.md).
 - The shop is a closed gem economy. It takes no money and has no subscriptions
   or ads.
 - The only way progress leaves the app is if you copy a backup JSON to your

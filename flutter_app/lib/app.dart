@@ -11,6 +11,7 @@ import 'shared/theme/app_theme.dart';
 import 'shared/widgets/mascot.dart';
 import 'state/app_controller.dart';
 import 'state/providers.dart';
+import 'state/retention_controller.dart';
 
 class HearMeOutApp extends ConsumerStatefulWidget {
   const HearMeOutApp({super.key});
@@ -42,6 +43,13 @@ class _HearMeOutAppState extends ConsumerState<HearMeOutApp>
       _platformBrightness =
           WidgetsBinding.instance.platformDispatcher.platformBrightness;
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    // One event per local day even when the process stays alive overnight.
+    unawaited(ref.read(retentionControllerProvider.notifier).recordAppOpen());
   }
 
   @override
