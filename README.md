@@ -156,8 +156,10 @@ run the app on a physical phone with a guitar and check:
 3. Playing the same note twice in a row works after a short mute.
 4. Ambient noise does not trigger an answer.
 5. Denying microphone permission falls back to note names without crashing.
-6. On a 48 kHz-only device and on a device that negotiates stereo, the tuner and
-   lessons still read the correct pitch (not ~8.8% high).
+6. **Pending — needs physical-device evidence.** On a 48 kHz-only device and on
+   a device that negotiates stereo, the tuner and lessons still read the correct
+   pitch (not ~8.8% high). Synthetic tests cover the decode/resample path, but
+   this checklist item is not yet verified on hardware.
 7. Killing and reopening the app restores XP, streak, skills, and note boxes.
 
 Build an APK or app bundle with `flutter build apk` or `flutter build appbundle`

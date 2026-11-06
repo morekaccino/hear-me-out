@@ -92,8 +92,8 @@ class RecordPitchSource implements PitchSource {
   /// YIN is tuned for roughly 22 kHz after resampling.
   static const int analysisSampleRate = 22050;
 
-  static const int frameSize = 4096;
-  static const int hopSize = 2048;
+  static const int frameSize = 2048;
+  static const int hopSize = 1024;
   static const int requestedChannels = 1;
 
   final PcmCapture Function() _captureFactory;

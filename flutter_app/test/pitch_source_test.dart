@@ -262,4 +262,93 @@ void main() {
       expect((frame.frequency - 440).abs(), lessThan(2));
     }
   });
+
+  test(
+    'a post-frame config correction keeps the sample clock monotonic',
+    () async {
+      final capture = FakePcmCapture();
+      final source = RecordPitchSource(captureFactory: () => capture);
+      final frames = <PitchFrame>[];
+      final subscription = source.frames.listen(frames.add);
+      addTearDown(() async {
+        await subscription.cancel();
+        await source.dispose();
+      });
+
+      expect(await source.start(), isTrue);
+      capture.add(monoPcm16(sine(440, 48000, seconds: 0.5)));
+      await pumpEventQueue();
+
+      expect(frames, isNotEmpty);
+      final before = frames.length;
+      final lastBefore = frames.last;
+
+      // The platform changes both rate and channel count after a frame was
+      // already published. The clock must keep moving forward.
+      capture.emitConfig(44100, 2);
+      capture.add(
+        stereoPcm16(
+          sine(440, 44100, seconds: 0.5),
+          sine(440, 44100, seconds: 0.5),
+        ),
+      );
+      await pumpEventQueue();
+
+      final after = frames.sublist(before);
+      expect(after, isNotEmpty);
+
+      var previousIndex = lastBefore.sampleIndex;
+      for (final frame in after) {
+        expect(frame.sampleIndex, greaterThan(previousIndex));
+        previousIndex = frame.sampleIndex;
+        expect(
+          frame.sampleTime,
+          Duration(
+            microseconds:
+                (frame.sampleIndex *
+                        Duration.microsecondsPerSecond /
+                        RecordPitchSource.analysisSampleRate)
+                    .round(),
+          ),
+        );
+        expect((frame.frequency - 440).abs(), lessThan(2));
+      }
+    },
+  );
+
+  test('analysis cadence stays at 2048/1024 samples at 22.05 kHz', () async {
+    final capture = FakePcmCapture();
+    final source = RecordPitchSource(captureFactory: () => capture);
+    final frames = <PitchFrame>[];
+    final subscription = source.frames.listen(frames.add);
+    addTearDown(() async {
+      await subscription.cancel();
+      await source.dispose();
+    });
+
+    expect(RecordPitchSource.frameSize, 2048);
+    expect(RecordPitchSource.hopSize, 1024);
+
+    expect(await source.start(), isTrue);
+    capture.emitConfig(44100, 1);
+
+    final tone = monoPcm16(sine(440, 44100, seconds: 0.2));
+    // 4095 input frames at 44.1 kHz produce 2047 analysis samples, one short
+    // of the 2048-sample window.
+    capture.add(tone.sublist(0, 8190));
+    await pumpEventQueue();
+    expect(frames, isEmpty);
+
+    // The last input frame completes the window.
+    capture.add(tone.sublist(8190, 8192));
+    await pumpEventQueue();
+    expect(frames, hasLength(1));
+    expect(frames.first.sampleIndex, 0);
+
+    // One hop of 1024 analysis samples is 2048 input frames at 44.1 kHz.
+    capture.add(tone.sublist(8192, 8192 + 4096));
+    await pumpEventQueue();
+    expect(frames.length, greaterThanOrEqualTo(2));
+    expect(frames[1].sampleIndex, 1024);
+  });
 }

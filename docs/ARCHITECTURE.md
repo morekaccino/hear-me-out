@@ -219,7 +219,7 @@ record plugin -> PCM16 stream (requests 48 kHz mono, falls back to 44.1 kHz)
   -> Pcm16StreamDecoder: little-endian decode (keeps odd trailing byte)
   -> average all channels to mono
   -> linear resample to a fixed 22.05 kHz analysis rate
-  -> 4096-sample analysis window, 2048-sample hop (~186 ms / ~93 ms)
+  -> 2048-sample analysis window, 1024-sample hop (~93 ms / ~46 ms)
   -> YIN detector
   -> PitchFrame (sampleIndex / sampleTime)
   -> NoteMatcher
