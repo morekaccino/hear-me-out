@@ -207,7 +207,7 @@ surface only.
   time, level, fragile flag, cent samples
 - per-phrase `PhraseProgress`: raw phrase-attempt evidence — memory state,
   correct and performance days, best tempo, and best accuracy. It has no
-  storage-level mastery flag; T2.3/T2.5 decide performance mastery from
+  storage-level mastery flag; T2.5 decides performance mastery from
   determinacy, clean takes, timing, transfer, and checkpoint evidence.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
@@ -223,6 +223,16 @@ surface only.
 skills are capped at 30 days of stability; declarative facts at 180 days.
 Mastery requires at least 21 days of stability, four spaced reps, three correct
 days, one production success, one transfer success, and a passed checkpoint.
+
+`AttemptOutcome` is declared once in `core/learning/attempt_outcome.dart`.
+`SkillProgress.recordAnswer`, `ProgressState.recordSkillAnswer`, and
+`ProgressState.recordAnswer` return without changing anything for
+`indeterminate`: no FSRS state, XP, streak, heart, daily counter, combo, quest,
+or mistake queue. A phrase take with any indeterminate note is incomplete and
+records nothing, even if another note was confidently wrong. Phrase attempts
+record only `PhraseProgress` through `ProgressState.recordPhraseAttempt`;
+per-note skills record only from determinate note evidence, so one take cannot
+count twice.
 
 A wrong answer is not just a box change: it queues a same-session repair, a
 next-day repair card, and a 3-day recheck. Two lapses marks the skill fragile;
@@ -554,6 +564,7 @@ fresh profile; an unreadable document is quarantined first.
 | `test/web_media_store_test.dart` | IndexedDB roundtrip, manifest, list/usage, delete/clear, malformed rows, closed state (Chrome) |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
+| `test/attempt_outcome_test.dart` | Tri-state no-ops, determinate scheduling, phrase evidence, retry feedback |
 | `test/session_factory_test.dart` | All lessons, teach cards, choices, modes, ordering, pacing |
 | `test/composer_test.dart` | Family-agnostic composer, determinism, core/content layering |
 | `test/topics_test.dart` | Template rotation, theory/chord/rhythm prompts, verifiers |

@@ -80,7 +80,7 @@ void main() {
       SkillAnswer(
         objectiveId: skill.objectiveId,
         family: skill.family,
-        correct: false,
+        outcome: AttemptOutcome.incorrect,
         now: now,
       ),
     );
@@ -91,7 +91,7 @@ void main() {
       SkillAnswer(
         objectiveId: skill.objectiveId,
         family: skill.family,
-        correct: false,
+        outcome: AttemptOutcome.incorrect,
         now: now.add(const Duration(minutes: 10)),
       ),
     );
@@ -107,7 +107,7 @@ void main() {
     final progress = ProgressState.fresh();
     progress.recordAnswer(
       note: Note.parse('E4'),
-      correctAnswer: true,
+      outcome: AttemptOutcome.correct,
       now: now,
       production: true,
       transfer: true,

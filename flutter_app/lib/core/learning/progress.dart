@@ -8,6 +8,7 @@ import 'phrase_progress.dart';
 import 'prompt.dart';
 import 'skill.dart';
 
+export 'attempt_outcome.dart';
 export 'phrase_progress.dart';
 export 'prompt.dart' show AnswerMode, answerModeFromName;
 
@@ -634,8 +635,12 @@ class ProgressState {
   }
 
   void recordSkillAnswer(SkillAnswer answer) {
+    // Indeterminate means retry. Do not refresh the day, count an answer,
+    // touch the scheduler, or update the legacy note view.
+    if (answer.outcome == AttemptOutcome.indeterminate) return;
+
     refreshDaily(answer.now);
-    if (answer.correct) daily.correct++;
+    if (answer.outcome == AttemptOutcome.correct) daily.correct++;
     final skill = skillFor(answer.objectiveId, answer.family);
     skill.recordAnswer(answer);
 
@@ -643,7 +648,7 @@ class ProgressState {
       final note = noteFromObjectiveId(answer.objectiveId);
       if (note != null) {
         noteFor(note).recordAnswer(
-          correctAnswer: answer.correct,
+          correctAnswer: answer.outcome == AttemptOutcome.correct,
           now: answer.now,
           absCents: answer.absCents,
         );
@@ -651,9 +656,23 @@ class ProgressState {
     }
   }
 
+  /// Records phrase-level evidence only.
+  ///
+  /// Per-note skills are recorded separately from determinate note evidence;
+  /// this method never touches [skills] or [notes], so one take cannot count
+  /// as both phrase and note evidence. An indeterminate phrase is a no-op.
+  void recordPhraseAttempt(PhraseAttempt attempt) {
+    if (attempt.outcome == AttemptOutcome.indeterminate) return;
+    final phrase = phraseProgress.putIfAbsent(
+      attempt.phraseId,
+      () => PhraseProgress(phraseId: attempt.phraseId),
+    );
+    phrase.recordAttempt(attempt);
+  }
+
   void recordAnswer({
     required Note note,
-    required bool correctAnswer,
+    required AttemptOutcome outcome,
     required DateTime now,
     double? absCents,
     bool production = false,
@@ -663,11 +682,12 @@ class ProgressState {
     int responseMs = 0,
     String? templateId,
   }) {
+    if (outcome == AttemptOutcome.indeterminate) return;
     recordSkillAnswer(
       SkillAnswer(
         objectiveId: 'note:${note.id}',
         family: SkillFamily.noteReading,
-        correct: correctAnswer,
+        outcome: outcome,
         now: now,
         absCents: absCents,
         production: production,

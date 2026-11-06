@@ -134,7 +134,7 @@ void main() {
       for (var index = 0; index < quest.target; index++) {
         state.recordAnswer(
           note: Note.parse('G4'),
-          correctAnswer: true,
+          outcome: AttemptOutcome.correct,
           now: now,
         );
       }

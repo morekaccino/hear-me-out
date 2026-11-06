@@ -114,7 +114,7 @@ void main() {
 
   test('a note still learning keeps its exposures after an early exit', () {
     final progress = ProgressState.fresh();
-    progress.recordAnswer(note: e4, correctAnswer: true, now: now);
+    progress.recordAnswer(note: e4, outcome: AttemptOutcome.correct, now: now);
     final exercises = sessionOf(discover, progress: progress, mic: false);
     expect(
       exercises.where((p) => p.objective.id == 'note:E4' && p.isNew),
@@ -215,7 +215,7 @@ void main() {
   test('a later lesson mixes new notes with earlier notes', () {
     final progress = ProgressState.fresh();
     for (final note in [e4, f4]) {
-      progress.recordAnswer(note: note, correctAnswer: true, now: now);
+      progress.recordAnswer(note: note, outcome: AttemptOutcome.correct, now: now);
     }
     final exercises = notePromptsOf(
       later,
@@ -237,8 +237,8 @@ void main() {
 
   test('practice uses learned notes and avoids empty sessions', () {
     final progress = ProgressState.fresh();
-    progress.recordAnswer(note: g4, correctAnswer: true, now: now);
-    progress.recordAnswer(note: a4, correctAnswer: true, now: now);
+    progress.recordAnswer(note: g4, outcome: AttemptOutcome.correct, now: now);
+    progress.recordAnswer(note: a4, outcome: AttemptOutcome.correct, now: now);
     final exercises = buildPracticeExercises(
       kind: 'all',
       progress: progress,
@@ -293,8 +293,8 @@ void main() {
 
   test('a later note lesson reserves review slots for earlier notes', () {
     final progress = ProgressState.fresh();
-    progress.recordAnswer(note: e4, correctAnswer: true, now: now);
-    progress.recordAnswer(note: f4, correctAnswer: true, now: now);
+    progress.recordAnswer(note: e4, outcome: AttemptOutcome.correct, now: now);
+    progress.recordAnswer(note: f4, outcome: AttemptOutcome.correct, now: now);
     final prompts = sessionOf(
       later,
       progress: progress,
