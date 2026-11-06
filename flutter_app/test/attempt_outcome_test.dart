@@ -7,6 +7,7 @@ import 'package:hear_me_out/core/audio/alignment.dart';
 import 'package:hear_me_out/core/audio/note_segmenter.dart';
 import 'package:hear_me_out/core/audio/phrase_scorer.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/learning/prompt.dart';
 import 'package:hear_me_out/core/learning/skill.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
@@ -244,7 +245,7 @@ void main() {
       final after = container.read(appControllerProvider).requireValue;
       expect(after.run!.awaitingNext, isTrue);
       expect(after.run!.lastOutcome, AttemptOutcome.indeterminate);
-      expect(after.run!.lastCorrect, isFalse);
+      expect(after.run!.lastCorrect, isNull);
       expect(after.run!.index, indexBefore);
       expect(after.run!.correct, 0);
       expect(after.run!.wrong, 0);
@@ -301,6 +302,13 @@ void main() {
         expect(data.progress.daily.correct, 1);
         expect(data.progress.skills[firstObjective]!.reps, 1);
         expect(data.progress.hearts, heartsBefore);
+
+        // Retry is only for indeterminate feedback; it must not hide a
+        // determinate answer that has already been scored.
+        notifier.retryCurrent();
+        data = container.read(appControllerProvider).requireValue;
+        expect(data.run!.awaitingNext, isTrue);
+        expect(data.run!.lastOutcome, AttemptOutcome.correct);
 
         await notifier.nextExercise();
         var run = data.run!;
@@ -360,6 +368,114 @@ void main() {
               bpm: 60,
             );
         expect(result.outcome, AttemptOutcome.indeterminate);
+
+        final store = MemoryProgressStore(ProgressState.fresh());
+        final container = ProviderContainer(
+          overrides: [progressStoreProvider.overrideWithValue(store)],
+        );
+        addTearDown(container.dispose);
+        await container.read(appControllerProvider.future);
+        final before = jsonEncode(
+          container.read(appControllerProvider).requireValue.progress.toJson(),
+        );
+
+        final recorded = await container
+            .read(appControllerProvider.notifier)
+            .recordPhraseResult(
+              phraseId: 'twinkle.a',
+              result: result,
+              tempoBpm: 60,
+              now: now,
+            );
+
+        expect(recorded, isFalse);
+        final progress = container
+            .read(appControllerProvider)
+            .requireValue
+            .progress;
+        expect(progress.phraseProgress, isEmpty);
+        expect(jsonEncode(progress.toJson()), before);
+      },
+    );
+
+    test(
+      'a wrong note plus a low-confidence note is incomplete and records nothing',
+      () async {
+        final target = targets();
+        final result = PhraseScorer(sampleRate: sampleRate.toDouble())
+            .scoreDetections(
+              target: target,
+              detected: [
+                detection(target[0], confidence: 0.95),
+                DetectedNote(
+                  startSeconds: target[1].onsetSeconds,
+                  durationSeconds: 0.4,
+                  midi: target[1].midi + 1,
+                  cents: 0,
+                  confidence: 0.95,
+                  sampleIndex: 0,
+                ),
+                detection(target[2], confidence: 0.3),
+                detection(target[3], confidence: 0.95),
+              ],
+              bpm: 60,
+            );
+
+        expect(result.complete, isFalse);
+        expect(result.outcome, AttemptOutcome.indeterminate);
+        expect(result.notes[1].outcome, AttemptOutcome.incorrect);
+        expect(result.notes[2].outcome, AttemptOutcome.indeterminate);
+
+        final store = MemoryProgressStore(ProgressState.fresh());
+        final container = ProviderContainer(
+          overrides: [progressStoreProvider.overrideWithValue(store)],
+        );
+        addTearDown(container.dispose);
+        await container.read(appControllerProvider.future);
+        final before = jsonEncode(
+          container.read(appControllerProvider).requireValue.progress.toJson(),
+        );
+
+        final recorded = await container
+            .read(appControllerProvider.notifier)
+            .recordPhraseResult(
+              phraseId: 'twinkle.a',
+              result: result,
+              tempoBpm: 60,
+              now: now,
+            );
+
+        expect(recorded, isFalse);
+        final progress = container
+            .read(appControllerProvider)
+            .requireValue
+            .progress;
+        expect(progress.phraseProgress, isEmpty);
+        expect(jsonEncode(progress.toJson()), before);
+      },
+    );
+
+    test(
+      'an incomplete determinate result is rejected at the controller boundary',
+      () async {
+        final result = PhraseResult(
+          outcome: AttemptOutcome.incorrect,
+          notes: const [],
+          noteAccuracy: 0.5,
+          medianCents: null,
+          meanOnsetErrorMs: null,
+          driftMsPerBar: null,
+          timingWithinTolerance: true,
+          complete: false,
+          timingIssue: null,
+          practicePass: false,
+          performanceReady: false,
+          extraNotes: 0,
+          falseStart: false,
+          earlyStop: true,
+          timingToleranceMs: 80,
+          intonationInTune: false,
+        );
 
         final store = MemoryProgressStore(ProgressState.fresh());
         final container = ProviderContainer(
@@ -518,6 +634,73 @@ void main() {
         container.read(appControllerProvider).requireValue.run!.awaitingNext,
         isFalse,
       );
+    });
+
+    testWidgets('retry resets the response timer', (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      final store = MemoryProgressStore(
+        ProgressState.fresh(
+          settings: const AppSettings(
+            onboardingComplete: true,
+            answerMode: AnswerMode.name,
+          ),
+        ),
+      );
+      final container = ProviderContainer(
+        overrides: [
+          progressStoreProvider.overrideWithValue(store),
+          pitchSourceFactoryProvider.overrideWithValue(
+            FakePitchSourceFactory(permission: false).call,
+          ),
+          audioEngineProvider.overrideWithValue(FakeAudioEngine()),
+          soundServiceProvider.overrideWithValue(FakeSoundService()),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(appControllerProvider.future);
+      final notifier = container.read(appControllerProvider.notifier);
+      notifier.startLesson('c3u2l1', micAvailable: false);
+      var run = container.read(appControllerProvider).requireValue.run!;
+      while (!run.current.isScored) {
+        await notifier.nextExercise();
+        run = container.read(appControllerProvider).requireValue.run!;
+      }
+      final prompt = run.current as NotePrompt;
+      final objectiveId = prompt.objective.id;
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: LessonScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await notifier.submitOutcome(AttemptOutcome.indeterminate);
+      await tester.pumpAndSettle();
+
+      // Spend longer than a fast answer would take before retrying. Without
+      // resetting the timer, this delay would be charged to the next answer
+      // and could downgrade its FSRS rating.
+      await tester.runAsync(() => Future.delayed(const Duration(seconds: 2)));
+      await tester.ensureVisible(find.text('TRY AGAIN'));
+      await tester.tap(find.text('TRY AGAIN'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(prompt.note.display).first);
+      await tester.pumpAndSettle();
+
+      final skill = container
+          .read(appControllerProvider)
+          .requireValue
+          .progress
+          .skills[objectiveId]!;
+      expect(skill.correct, 1);
+      expect(skill.averageResponseMs, lessThan(1500));
     });
   });
 }

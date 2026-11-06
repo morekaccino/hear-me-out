@@ -422,13 +422,14 @@ class PhraseScorer {
         );
 
     AttemptOutcome outcome;
-    if (wrong > 0 || extraNotes > 0) {
-      outcome = AttemptOutcome.incorrect;
-    } else if (!complete) {
+    if (!complete) {
       // Any indeterminate note, false start, or early stop makes the take
-      // incomplete, and an incomplete take is never "correct". The 20%
-      // indeterminate limit below remains only as a practice-pass signal.
+      // incomplete. An incomplete take is a retry, never a failure, even when
+      // another note was confidently wrong. The 20% indeterminate limit below
+      // remains only as a practice-pass signal.
       outcome = AttemptOutcome.indeterminate;
+    } else if (wrong > 0 || extraNotes > 0) {
+      outcome = AttemptOutcome.incorrect;
     } else if (!timingWithinTolerance) {
       outcome = AttemptOutcome.incorrect;
     } else {

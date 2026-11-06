@@ -228,9 +228,11 @@ days, one production success, one transfer success, and a passed checkpoint.
 `SkillProgress.recordAnswer`, `ProgressState.recordSkillAnswer`, and
 `ProgressState.recordAnswer` return without changing anything for
 `indeterminate`: no FSRS state, XP, streak, heart, daily counter, combo, quest,
-or mistake queue. Phrase attempts record only `PhraseProgress` through
-`ProgressState.recordPhraseAttempt`; per-note skills record only from
-determinate note evidence, so one take cannot count twice.
+or mistake queue. A phrase take with any indeterminate note is incomplete and
+records nothing, even if another note was confidently wrong. Phrase attempts
+record only `PhraseProgress` through `ProgressState.recordPhraseAttempt`;
+per-note skills record only from determinate note evidence, so one take cannot
+count twice.
 
 A wrong answer is not just a box change: it queues a same-session repair, a
 next-day repair card, and a 3-day recheck. Two lapses marks the skill fragile;

@@ -113,6 +113,8 @@ is a retry, not a failure.
 - It changes no FSRS state, XP, streak, heart, daily counter, combo, or quest.
 - It does not queue a mistake retry.
 - It shows a calm retry message and leaves the learner on the same prompt.
+- If any note is indeterminate, the whole phrase take is incomplete and
+  indeterminate, even when another note was confidently wrong.
 - A phrase attempt records phrase-level evidence only. Per-note skills record
   only from determinate note evidence, so one take never counts twice.
 

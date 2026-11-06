@@ -70,7 +70,9 @@ class PhraseProgress {
   DateTime? lastPerformanceAt;
   int? bestTempoBpm;
 
-  /// Best accuracy as a fraction in `[0, 1]`.
+  /// Best raw note accuracy as a fraction in `[0, 1]` across determinate
+  /// takes, including failed takes. This is a high-water mark, not a
+  /// pass/mastery signal.
   double? bestAccuracy;
 
   int get attempts => correct + incorrect;

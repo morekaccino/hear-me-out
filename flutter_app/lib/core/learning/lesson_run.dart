@@ -43,9 +43,14 @@ class LessonRun {
   AttemptOutcome? lastOutcome;
 
   /// The determinate verdict of the last answer, or null when nothing has
-  /// been answered. An indeterminate attempt is not a wrong answer.
-  bool? get lastCorrect =>
-      lastOutcome == null ? null : lastOutcome == AttemptOutcome.correct;
+  /// been answered or the attempt was indeterminate. An indeterminate attempt
+  /// is not a wrong answer.
+  bool? get lastCorrect => switch (lastOutcome) {
+    null => null,
+    AttemptOutcome.correct => true,
+    AttemptOutcome.incorrect => false,
+    AttemptOutcome.indeterminate => null,
+  };
   bool lastOctaveError = false;
   double? lastCents;
   Note? lastDetected;

@@ -326,7 +326,11 @@ class AppController extends AsyncNotifier<AppData> {
   void retryCurrent() {
     final data = _data;
     final run = data.run;
-    if (run == null || !run.awaitingNext) return;
+    if (run == null ||
+        !run.awaitingNext ||
+        run.lastOutcome != AttemptOutcome.indeterminate) {
+      return;
+    }
     run.awaitingNext = false;
     run.lastOutcome = null;
     run.lastOctaveError = false;
@@ -338,18 +342,20 @@ class AppController extends AsyncNotifier<AppData> {
 
   /// Records phrase-level evidence from a scored phrase.
   ///
-  /// [PhraseResult.outcome] is the source of truth. A low-confidence or
-  /// incomplete take is indeterminate and records nothing. A determinate take
-  /// updates only the phrase's own progress; per-note skills are recorded
-  /// separately and are never derived from a phrase attempt, so the same take
-  /// cannot count twice.
+  /// [PhraseResult.outcome] is the source of truth. A low-confidence,
+  /// incomplete, or otherwise indeterminate take records nothing. A
+  /// determinate take updates only the phrase's own progress; per-note skills
+  /// are recorded separately and are never derived from a phrase attempt, so
+  /// the same take cannot count twice.
   Future<bool> recordPhraseResult({
     required String phraseId,
     required PhraseResult result,
     required int tempoBpm,
     DateTime? now,
   }) async {
-    if (result.outcome == AttemptOutcome.indeterminate) return false;
+    if (!result.complete || result.outcome == AttemptOutcome.indeterminate) {
+      return false;
+    }
     final data = _data;
     data.progress.recordPhraseAttempt(
       PhraseAttempt(

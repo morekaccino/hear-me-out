@@ -298,6 +298,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
       _reading = PitchReading.silent;
       _selectedOptionId = null;
       _activeKey = null;
+      // The retry is a new attempt. Do not let the indeterminate take's
+      // reading time contaminate the next response-time rating.
+      _promptStartedAt = DateTime.now();
     });
   }
 
