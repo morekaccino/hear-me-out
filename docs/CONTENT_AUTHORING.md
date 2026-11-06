@@ -8,6 +8,11 @@ T3.2 ships the format, parser, and validator. T3.3/T3.4 author the ten launch
 pieces, T3.6 authors the sixty etudes, and T6.3 owns legal review. The app does
 not read authoring JSON at runtime yet.
 
+The T3.6 set is indexed in
+[`SIGHT_READING_ETUDES.md`](SIGHT_READING_ETUDES.md): 60 original etudes, 12
+per level, with the level rubric, file index, and honest machine-review status.
+Human playtest and musical review remain T3.8.
+
 ## 1. Principles
 
 - V1 is strictly monophonic: one sounding note at a time, no chords, no double

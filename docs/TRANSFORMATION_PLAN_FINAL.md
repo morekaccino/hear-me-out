@@ -356,6 +356,7 @@ Stage 12 is a performance/recording checkpoint using any passed piece. Stages 4/
 ### 6.3 Sight-reading
 
 - 60 reviewed etudes at launch (12 per level, levels 1–5).
+- Authored set, level rubric, index, and machine-review status: [`SIGHT_READING_ETUDES.md`](SIGHT_READING_ETUDES.md). Human playtest and musical review remain T3.8.
 - Generator beta with a guitar-specific playability validator: max stretch, string crossings, position shifts, open strings, repeated notes, range, rhythm cells, musical cadence.
 - First read recorded and scored silently; feedback after the second read; first-read accuracy/timing is the metric.
 - No “unlimited” claim until the generator is validated.

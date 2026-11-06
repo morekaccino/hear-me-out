@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "etude-l1-06",
+    "title": "Sight-reading Etude L1-06",
+    "composer": "Hear Me Out",
+    "license": "original",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "key": "G major",
+    "sections": [
+      "A",
+      "B"
+    ]
+  },
+  "phrases": [
+    {
+      "id": "etude-l1-06-p1",
+      "title": "Complete four-bar theme",
+      "bars": 4,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 60,
+      "skills": [
+        "note-reading.open-strings",
+        "note-reading.first-position",
+        "rhythm.quarter-notes",
+        "rhythm.half-notes",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 1,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 9.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 12.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 14.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
+    "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
+    "notes": "Level 1 etude in G major: four bars at 60 BPM built on the pedal motif, using open strings and first position on strings 1-3 with a clear cadence on G4. T3.8 musical-review flag: deliberately repetitive motif; confirm that it reads as music.",
+    "kind": "etude",
+    "tier": "foundation",
+    "stage": 1
+  }
+}

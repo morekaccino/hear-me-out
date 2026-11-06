@@ -1,0 +1,476 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "etude-l3-12",
+    "title": "Sight-reading Etude L3-12",
+    "composer": "Hear Me Out",
+    "license": "original",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 3,
+      "denominator": 4
+    },
+    "key": "A minor",
+    "sections": [
+      "A",
+      "B"
+    ]
+  },
+  "phrases": [
+    {
+      "id": "etude-l3-12-p1",
+      "title": "First statement",
+      "bars": 3,
+      "timeSignature": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "sightreading.rhythmic-motif",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "rhythm.dotted-rhythms",
+        "technique.accidentals",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 3,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 0.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D#4",
+          "soundingMidi": 51,
+          "string": 4,
+          "fret": 1
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        }
+      ]
+    },
+    {
+      "id": "etude-l3-12-p2",
+      "title": "Answer",
+      "bars": 3,
+      "timeSignature": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "rhythm.dotted-rhythms",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 3,
+      "startBar": 4,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        }
+      ]
+    },
+    {
+      "id": "etude-l3-12-p3",
+      "title": "Return of the motif",
+      "bars": 3,
+      "timeSignature": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "sightreading.rhythmic-motif",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "rhythm.dotted-rhythms",
+        "technique.accidentals",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 3,
+      "startBar": 7,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 0.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D#4",
+          "soundingMidi": 51,
+          "string": 4,
+          "fret": 1
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        }
+      ]
+    },
+    {
+      "id": "etude-l3-12-p4",
+      "title": "Cadence",
+      "bars": 3,
+      "timeSignature": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "targetTempoBpm": 72,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "rhythm.dotted-rhythms",
+        "technique.accidentals",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 3,
+      "startBar": 10,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1.5,
+          "kind": "note",
+          "writtenNote": "E4",
+          "soundingMidi": 52,
+          "string": 4,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "F4",
+          "soundingMidi": 53,
+          "string": 4,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G#4",
+          "soundingMidi": 56,
+          "string": 3,
+          "fret": 1
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
+    "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
+    "notes": "Level 3 etude in A minor: twelve bars at 72 BPM using strings 1-6, the arch motif, dotted rhythms, and chromatic lower neighbours at the cadences.",
+    "kind": "etude",
+    "tier": "foundation",
+    "stage": 3
+  }
+}

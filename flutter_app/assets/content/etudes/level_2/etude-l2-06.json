@@ -1,0 +1,335 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "etude-l2-06",
+    "title": "Sight-reading Etude L2-06",
+    "composer": "Hear Me Out",
+    "license": "original",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 3,
+      "denominator": 4
+    },
+    "key": "C major",
+    "sections": [
+      "A",
+      "B"
+    ]
+  },
+  "phrases": [
+    {
+      "id": "etude-l2-06-p1",
+      "title": "Motif",
+      "bars": 4,
+      "timeSignature": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "targetTempoBpm": 66,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 2,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 3.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        },
+        {
+          "startBeat": 9.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 11.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 3,
+          "fret": 0
+        }
+      ]
+    },
+    {
+      "id": "etude-l2-06-p2",
+      "title": "Answer and cadence",
+      "bars": 4,
+      "timeSignature": {
+        "numerator": 3,
+        "denominator": 4
+      },
+      "targetTempoBpm": 66,
+      "skills": [
+        "note-reading.first-position",
+        "rhythm.eighth-notes",
+        "rhythm.quarter-notes",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 2,
+      "startBar": 5,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 3.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 7.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 9.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 3,
+          "fret": 4
+        },
+        {
+          "startBeat": 11.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 3,
+          "fret": 5
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
+    "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
+    "notes": "Level 2 etude in C major: eight bars at 66 BPM on strings 1-3, built on the pedal motif with quarter and eighth notes and a phrase-ending cadence. T3.8 musical-review flag: deliberately repetitive motif; confirm that it reads as music.",
+    "kind": "etude",
+    "tier": "foundation",
+    "stage": 2
+  }
+}
