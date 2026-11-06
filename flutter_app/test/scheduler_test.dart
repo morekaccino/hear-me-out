@@ -11,7 +11,12 @@ void main() {
     test('a first correct answer moves to box 1 and waits ten minutes', () {
       final state = ProgressState.fresh();
       final now = DateTime(2026, 10, 31, 10);
-      state.recordAnswer(note: g4, correctAnswer: true, now: now, absCents: 12);
+      state.recordAnswer(
+        note: g4,
+        outcome: AttemptOutcome.correct,
+        now: now,
+        absCents: 12,
+      );
       final note = state.progressFor(g4)!;
       expect(note.box, 1);
       expect(note.dueAt, now.add(const Duration(minutes: 10)));
@@ -47,12 +52,20 @@ void main() {
       final dayOne = DateTime(2026, 10, 30, 10);
       final dayTwo = DateTime(2026, 10, 31, 10);
       for (var index = 0; index < 4; index++) {
-        state.recordAnswer(note: g4, correctAnswer: true, now: dayOne);
+        state.recordAnswer(
+          note: g4,
+          outcome: AttemptOutcome.correct,
+          now: dayOne,
+        );
       }
       expect(state.progressFor(g4)!.box, 4);
       expect(state.progressFor(g4)!.mastered, isFalse);
 
-      state.recordAnswer(note: g4, correctAnswer: true, now: dayTwo);
+      state.recordAnswer(
+        note: g4,
+        outcome: AttemptOutcome.correct,
+        now: dayTwo,
+      );
       expect(state.progressFor(g4)!.box, 5);
       expect(state.progressFor(g4)!.mastered, isTrue);
       expect(state.masteredCount, 1);
@@ -64,7 +77,11 @@ void main() {
         final state = ProgressState.fresh();
         final day = DateTime(2026, 10, 30, 10);
         for (var index = 0; index < 10; index++) {
-          state.recordAnswer(note: g4, correctAnswer: true, now: day);
+          state.recordAnswer(
+            note: g4,
+            outcome: AttemptOutcome.correct,
+            now: day,
+          );
         }
         expect(state.progressFor(g4)!.mastered, isFalse);
       },

@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
+import 'attempt_outcome.dart';
 import 'objective.dart';
 
+export 'attempt_outcome.dart';
 export 'objective.dart' show SkillFamily;
 
 extension SkillFamilySchedule on SkillFamily {
@@ -48,7 +50,7 @@ class SkillAnswer {
   const SkillAnswer({
     required this.objectiveId,
     required this.family,
-    required this.correct,
+    required this.outcome,
     required this.now,
     this.responseMs = 0,
     this.usedHint = false,
@@ -61,7 +63,10 @@ class SkillAnswer {
 
   final String objectiveId;
   final SkillFamily family;
-  final bool correct;
+
+  /// Tri-state verdict. [AttemptOutcome.indeterminate] is a retry signal and
+  /// never reaches the scheduler.
+  final AttemptOutcome outcome;
   final DateTime now;
   final int responseMs;
   final bool usedHint;
@@ -71,8 +76,12 @@ class SkillAnswer {
   final String? templateId;
   final double? absCents;
 
+  bool get correct => outcome == AttemptOutcome.correct;
+
   ResponseRating get rating {
-    if (!correct || revealed) return ResponseRating.again;
+    if (outcome != AttemptOutcome.correct || revealed) {
+      return ResponseRating.again;
+    }
     if (usedHint) return ResponseRating.hard;
     final target = defaultTargetMs(family);
     if (responseMs > target * 2.5) return ResponseRating.hard;
@@ -375,6 +384,10 @@ class SkillProgress {
     FsrsScheduler scheduler = const FsrsScheduler(),
     DateTime? nowOverride,
   }) {
+    // An indeterminate attempt is a retry signal, not evidence. Leave every
+    // field untouched, including the memory state and the evidence counters.
+    if (answer.outcome == AttemptOutcome.indeterminate) return;
+
     final now = nowOverride ?? answer.now;
     final first = reps == 0;
     final result = scheduler.review(
@@ -403,7 +416,7 @@ class SkillProgress {
       correctDays.add(_dayKey(now));
     }
 
-    if (answer.correct) {
+    if (answer.outcome == AttemptOutcome.correct) {
       correct++;
       if (answer.production) productionCorrect++;
       if (answer.transfer) transferCorrect++;
@@ -438,9 +451,12 @@ class SkillProgress {
 
     // Adaptive difficulty: three clean successes at the current level raise it;
     // a lapse lowers it.
-    if (answer.correct && streak > 0 && streak % 3 == 0 && level < 3) {
+    if (answer.outcome == AttemptOutcome.correct &&
+        streak > 0 &&
+        streak % 3 == 0 &&
+        level < 3) {
       level++;
-    } else if (!answer.correct && level > 0) {
+    } else if (answer.outcome != AttemptOutcome.correct && level > 0) {
       level--;
     }
   }

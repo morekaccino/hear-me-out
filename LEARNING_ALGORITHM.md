@@ -101,6 +101,21 @@ The learner does not rate a card. The app infers the rating:
 
 Target times are per family: note naming is faster than playing a phrase.
 
+### Indeterminate attempts
+
+Every scored attempt is `correct`, `incorrect`, or `indeterminate`
+(`AttemptOutcome` in
+[`core/learning/attempt_outcome.dart`](../flutter_app/lib/core/learning/attempt_outcome.dart)).
+An indeterminate attempt means the app could not tell what happened: a
+low-confidence note, a missed note, a false start, an early stop, or silence. It
+is a retry, not a failure.
+
+- It changes no FSRS state, XP, streak, heart, daily counter, combo, or quest.
+- It does not queue a mistake retry.
+- It shows a calm retry message and leaves the learner on the same prompt.
+- A phrase attempt records phrase-level evidence only. Per-note skills record
+  only from determinate note evidence, so one take never counts twice.
+
 ## 4. Mastery
 
 A skill is mastered only when **all** of these are true:

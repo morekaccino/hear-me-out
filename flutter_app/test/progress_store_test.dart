@@ -26,7 +26,7 @@ void main() {
       final now = DateTime(2026, 10, 31, 10);
       progress.recordAnswer(
         note: Note.parse('G4'),
-        correctAnswer: true,
+        outcome: AttemptOutcome.correct,
         now: now,
         absCents: 8,
       );
@@ -103,7 +103,7 @@ void main() {
       );
       progress.recordAnswer(
         note: Note.parse('A4'),
-        correctAnswer: true,
+        outcome: AttemptOutcome.correct,
         now: DateTime(2026, 10, 31),
       );
       await store.save(progress);

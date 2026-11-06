@@ -231,7 +231,7 @@ void main() {
           SkillAnswer(
             objectiveId: skill.objectiveId,
             family: SkillFamily.rhythm,
-            correct: true,
+            outcome: AttemptOutcome.correct,
             now: DateTime(2026, 1, 1).add(Duration(days: day * 30)),
             responseMs: 1000,
           ),
@@ -252,7 +252,7 @@ void main() {
           SkillAnswer(
             objectiveId: skill.objectiveId,
             family: SkillFamily.theory,
-            correct: true,
+            outcome: AttemptOutcome.correct,
             now: DateTime(2026, 1, 1).add(Duration(days: day * 7)),
             responseMs: 1500,
             production: true,
@@ -274,7 +274,7 @@ void main() {
           SkillAnswer(
             objectiveId: skill.objectiveId,
             family: SkillFamily.theory,
-            correct: true,
+            outcome: AttemptOutcome.correct,
             now: DateTime(2026, 1, 1, 10, index),
             responseMs: 1000,
             production: true,
@@ -289,7 +289,7 @@ void main() {
       final slow = SkillAnswer(
         objectiveId: 'note:E4',
         family: SkillFamily.noteReading,
-        correct: true,
+        outcome: AttemptOutcome.correct,
         now: DateTime(2026, 1, 1),
         responseMs: 20000,
       );
@@ -298,7 +298,7 @@ void main() {
       final hinted = SkillAnswer(
         objectiveId: 'note:E4',
         family: SkillFamily.noteReading,
-        correct: true,
+        outcome: AttemptOutcome.correct,
         now: DateTime(2026, 1, 1),
         usedHint: true,
       );
@@ -307,7 +307,7 @@ void main() {
       final fast = SkillAnswer(
         objectiveId: 'note:E4',
         family: SkillFamily.noteReading,
-        correct: true,
+        outcome: AttemptOutcome.correct,
         now: DateTime(2026, 1, 1),
         responseMs: 500,
         production: true,
@@ -317,7 +317,7 @@ void main() {
       final wrong = SkillAnswer(
         objectiveId: 'note:E4',
         family: SkillFamily.noteReading,
-        correct: false,
+        outcome: AttemptOutcome.incorrect,
         now: DateTime(2026, 1, 1),
       );
       expect(wrong.rating, ResponseRating.again);

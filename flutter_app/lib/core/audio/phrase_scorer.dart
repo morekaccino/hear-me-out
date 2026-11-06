@@ -1,9 +1,9 @@
+import '../learning/attempt_outcome.dart';
 import 'alignment.dart';
 import 'note_segmenter.dart';
 import 'onset_detector.dart';
 
-/// Tri-state result for a note and for a whole phrase.
-enum AttemptOutcome { correct, incorrect, indeterminate }
+export '../learning/attempt_outcome.dart';
 
 /// Per-target-note evidence.
 class NoteResult {

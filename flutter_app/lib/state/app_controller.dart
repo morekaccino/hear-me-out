@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../content/session_factory.dart';
+import '../core/audio/phrase_scorer.dart';
 import '../core/learning/lesson_run.dart';
 import '../core/learning/progress.dart';
 import '../core/learning/prompt.dart';
@@ -226,8 +227,32 @@ class AppController extends AsyncNotifier<AppData> {
     state = AsyncData(data.copyWith(run: run, clearResult: true));
   }
 
+  /// Records a determinate answer. Use [submitOutcome] when the app cannot
+  /// decide whether the attempt was correct.
   Future<void> submitAnswer({
     required bool correct,
+    double? cents,
+    Note? detected,
+    bool octaveError = false,
+    int responseMs = 0,
+  }) {
+    return submitOutcome(
+      correct ? AttemptOutcome.correct : AttemptOutcome.incorrect,
+      cents: cents,
+      detected: detected,
+      octaveError: octaveError,
+      responseMs: responseMs,
+    );
+  }
+
+  /// The single answer entry point for all three outcomes.
+  ///
+  /// An indeterminate attempt is a retry signal: it presents feedback and
+  /// waits for the learner, but it does not schedule the skill, change XP,
+  /// streak, hearts, daily counters, or combo, and it does not queue a
+  /// mistake. Only determinate outcomes reach progress storage.
+  Future<void> submitOutcome(
+    AttemptOutcome outcome, {
     double? cents,
     Note? detected,
     bool octaveError = false,
@@ -242,6 +267,19 @@ class AppController extends AsyncNotifier<AppData> {
 
     final target = prompt is NotePrompt ? prompt.note : null;
     final now = DateTime.now();
+
+    run.lastTarget = target;
+    run.lastOutcome = outcome;
+    run.lastOctaveError = octaveError;
+    run.lastCents = cents;
+    run.lastDetected = detected;
+    run.awaitingNext = true;
+
+    if (outcome == AttemptOutcome.indeterminate) {
+      state = AsyncData(data.copyWith(run: run));
+      return;
+    }
+
     final production =
         prompt.usesMicrophone ||
         prompt is RhythmPrompt ||
@@ -252,7 +290,7 @@ class AppController extends AsyncNotifier<AppData> {
       SkillAnswer(
         objectiveId: prompt.objective.id,
         family: prompt.objective.family,
-        correct: correct,
+        outcome: outcome,
         now: now,
         absCents: cents,
         production: production,
@@ -262,14 +300,7 @@ class AppController extends AsyncNotifier<AppData> {
       ),
     );
 
-    run.lastTarget = target;
-    run.lastCorrect = correct;
-    run.lastOctaveError = octaveError;
-    run.lastCents = cents;
-    run.lastDetected = detected;
-    run.awaitingNext = true;
-
-    if (correct) {
+    if (outcome == AttemptOutcome.correct) {
       run.correct++;
       run.combo++;
       run.bestCombo = run.bestCombo < run.combo ? run.combo : run.bestCombo;
@@ -288,6 +319,50 @@ class AppController extends AsyncNotifier<AppData> {
 
     state = AsyncData(data.copyWith(run: run));
     await _save();
+  }
+
+  /// Clears the feedback for an indeterminate attempt without advancing or
+  /// scoring anything, so the learner can try the same prompt again.
+  void retryCurrent() {
+    final data = _data;
+    final run = data.run;
+    if (run == null || !run.awaitingNext) return;
+    run.awaitingNext = false;
+    run.lastOutcome = null;
+    run.lastOctaveError = false;
+    run.lastCents = null;
+    run.lastDetected = null;
+    run.lastTarget = null;
+    state = AsyncData(data.copyWith(run: run));
+  }
+
+  /// Records phrase-level evidence from a scored phrase.
+  ///
+  /// [PhraseResult.outcome] is the source of truth. A low-confidence or
+  /// incomplete take is indeterminate and records nothing. A determinate take
+  /// updates only the phrase's own progress; per-note skills are recorded
+  /// separately and are never derived from a phrase attempt, so the same take
+  /// cannot count twice.
+  Future<bool> recordPhraseResult({
+    required String phraseId,
+    required PhraseResult result,
+    required int tempoBpm,
+    DateTime? now,
+  }) async {
+    if (result.outcome == AttemptOutcome.indeterminate) return false;
+    final data = _data;
+    data.progress.recordPhraseAttempt(
+      PhraseAttempt(
+        phraseId: phraseId,
+        outcome: result.outcome,
+        now: now ?? DateTime.now(),
+        accuracy: result.noteAccuracy,
+        tempoBpm: tempoBpm,
+      ),
+    );
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+    return true;
   }
 
   Future<void> nextExercise() async {
@@ -310,10 +385,11 @@ class AppController extends AsyncNotifier<AppData> {
 
     run.index++;
     run.awaitingNext = false;
-    run.lastCorrect = null;
+    run.lastOutcome = null;
     run.lastOctaveError = false;
     run.lastCents = null;
     run.lastDetected = null;
+    run.lastTarget = null;
     state = AsyncData(data.copyWith(run: run));
   }
 

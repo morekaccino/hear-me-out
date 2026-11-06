@@ -208,7 +208,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
     );
     unawaited(
       _submit(
-        correct: verdict.correct,
+        outcome: verdict.correct
+            ? AttemptOutcome.correct
+            : AttemptOutcome.incorrect,
         cents: result.reading.voiced ? result.reading.cents : null,
         detected: result.reading.note,
         octaveError: verdict.octaveError,
@@ -217,7 +219,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   }
 
   Future<void> _submit({
-    required bool correct,
+    required AttemptOutcome outcome,
     double? cents,
     Note? detected,
     bool octaveError = false,
@@ -229,8 +231,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
     _submitting = true;
     final settings = data!.progress.settings;
-    if (settings.haptics) {
-      if (correct) {
+    if (settings.haptics && outcome.isDeterminate) {
+      if (outcome == AttemptOutcome.correct) {
         unawaited(HapticFeedback.lightImpact());
       } else {
         unawaited(HapticFeedback.mediumImpact());
@@ -239,8 +241,8 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
 
     await ref
         .read(appControllerProvider.notifier)
-        .submitAnswer(
-          correct: correct,
+        .submitOutcome(
+          outcome,
           cents: cents,
           detected: detected,
           octaveError: octaveError,
@@ -249,7 +251,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
               : DateTime.now().difference(_promptStartedAt!).inMilliseconds,
         );
     final updatedRun = ref.read(appControllerProvider).asData?.value.run;
-    if (correct) {
+    if (outcome == AttemptOutcome.indeterminate) {
+      // A calm retry: no error cue and no reward cue.
+    } else if (outcome == AttemptOutcome.correct) {
       _play(
         (updatedRun?.combo ?? 0) >= 3
             ? Sfx.answerCorrectCombo
@@ -278,7 +282,23 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
   /// Routes any tap-based prompt through the shared verifier.
   void _submitPrompt(Prompt prompt, Answer answer) {
     final verdict = const PromptVerifier().verify(answer, prompt);
-    unawaited(_submit(correct: verdict.correct));
+    unawaited(
+      _submit(
+        outcome: verdict.correct
+            ? AttemptOutcome.correct
+            : AttemptOutcome.incorrect,
+      ),
+    );
+  }
+
+  void _retryCurrent() {
+    ref.read(appControllerProvider.notifier).retryCurrent();
+    setState(() {
+      _submitting = false;
+      _reading = PitchReading.silent;
+      _selectedOptionId = null;
+      _activeKey = null;
+    });
   }
 
   void _prepareExercise(LessonRun run, NotePrompt exercise, bool showPlay) {
@@ -440,9 +460,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                   : null,
               feedback: run.awaitingNext
                   ? _FeedbackForRun(
-                      key: ValueKey('feedback-${run.index}-${run.lastCorrect}'),
+                      key: ValueKey('feedback-${run.index}-${run.lastOutcome}'),
                       run: run,
                       onContinue: _continue,
+                      onRetry: _retryCurrent,
                     )
                   : null,
             ),
@@ -541,7 +562,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                           _activeKey = null;
                         });
                       },
-                      onSkip: () => _submit(correct: false),
+                      onSkip: () => _submit(outcome: AttemptOutcome.incorrect),
                     )
                   else
                     _NameAnswer(
@@ -554,7 +575,11 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
                           ChoiceAnswer(option.id),
                           exercise,
                         );
-                        _submit(correct: verdict.correct);
+                        _submit(
+                          outcome: verdict.correct
+                              ? AttemptOutcome.correct
+                              : AttemptOutcome.incorrect,
+                        );
                       },
                     ),
                 ],
@@ -562,9 +587,10 @@ class _LessonScreenState extends ConsumerState<LessonScreen>
             ),
             feedback: run.awaitingNext
                 ? _FeedbackForRun(
-                    key: ValueKey('feedback-${run.index}-${run.lastCorrect}'),
+                    key: ValueKey('feedback-${run.index}-${run.lastOutcome}'),
                     run: run,
                     onContinue: _continue,
+                    onRetry: _retryCurrent,
                   )
                 : null,
           ),
@@ -1117,14 +1143,29 @@ class _FeedbackForRun extends StatelessWidget {
     super.key,
     required this.run,
     required this.onContinue,
+    required this.onRetry,
   });
 
   final LessonRun run;
   final VoidCallback onContinue;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    final correct = run.lastCorrect ?? false;
+    final outcome = run.lastOutcome ?? AttemptOutcome.incorrect;
+    if (outcome == AttemptOutcome.indeterminate) {
+      return FeedbackPanel(
+        correct: false,
+        indeterminate: true,
+        title: 'Could not hear that clearly',
+        subtitle: 'Try again — nothing was scored.',
+        detail: 'Your progress, hearts, and streak are unchanged.',
+        onContinue: onRetry,
+        continueLabel: 'TRY AGAIN',
+      );
+    }
+
+    final correct = outcome == AttemptOutcome.correct;
     final target = run.lastTarget;
     final position = target == null ? null : Guitar.bestPosition(target);
     final cents = run.lastCents;

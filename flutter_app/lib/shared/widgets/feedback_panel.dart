@@ -14,9 +14,17 @@ class FeedbackPanel extends StatelessWidget {
     required this.onContinue,
     this.continueLabel = 'CONTINUE',
     this.detail,
-  });
+    this.indeterminate = false,
+  }) : assert(
+         !(correct && indeterminate),
+         'An indeterminate attempt is not a correct answer.',
+       );
 
   final bool correct;
+
+  /// True when the app could not tell what happened. This uses the calm blue
+  /// tone, never the red error tone.
+  final bool indeterminate;
   final String title;
   final String subtitle;
   final String? detail;
@@ -25,8 +33,16 @@ class FeedbackPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = correct ? AppColors.green : AppColors.red;
-    final accentDark = correct ? AppColors.greenDark : AppColors.redDark;
+    final accent = indeterminate
+        ? AppColors.blue
+        : correct
+        ? AppColors.green
+        : AppColors.red;
+    final accentDark = indeterminate
+        ? AppColors.blueDark
+        : correct
+        ? AppColors.greenDark
+        : AppColors.redDark;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = constraints.maxWidth >= 900;
@@ -101,7 +117,11 @@ class FeedbackPanel extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        correct ? Icons.check_rounded : Icons.close_rounded,
+        indeterminate
+            ? Icons.hearing_rounded
+            : correct
+            ? Icons.check_rounded
+            : Icons.close_rounded,
         color: accentDark,
         size: 30,
       ),

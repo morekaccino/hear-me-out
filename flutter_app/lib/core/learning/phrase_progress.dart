@@ -1,8 +1,34 @@
+import 'attempt_outcome.dart';
+
+/// One scored phrase attempt, expressed in domain terms.
+///
+/// Audio and UI layers map their own result types to this before recording.
+/// [outcome] is the tri-state verdict; an indeterminate attempt is a retry and
+/// must not be recorded.
+class PhraseAttempt {
+  const PhraseAttempt({
+    required this.phraseId,
+    required this.outcome,
+    required this.now,
+    this.accuracy = 0,
+    this.tempoBpm,
+  });
+
+  final String phraseId;
+  final AttemptOutcome outcome;
+  final DateTime now;
+
+  /// Fraction of determinate target notes that were correct, in `[0, 1]`.
+  final double accuracy;
+
+  /// Tempo the phrase was played at, when known.
+  final int? tempoBpm;
+}
+
 /// Persisted performance progress for one phrase.
 ///
 /// This is a storage shape only. The scheduler and the mastery decision live
-/// with the phrase-session work (T2.3/T2.5). A phrase is identified by
-/// [Phrase.id].
+/// with the phrase-session work (T2.5). A phrase is identified by [Phrase.id].
 class PhraseProgress {
   PhraseProgress({
     required this.phraseId,
@@ -50,6 +76,34 @@ class PhraseProgress {
   int get attempts => correct + incorrect;
 
   double get accuracy => attempts == 0 ? 0 : correct / attempts;
+
+  /// Records one determinate phrase attempt.
+  ///
+  /// Indeterminate attempts are retries and change nothing. A determinate
+  /// attempt updates the raw phrase counters only; it never touches atomic
+  /// skills or legacy note progress.
+  void recordAttempt(PhraseAttempt attempt) {
+    if (attempt.outcome == AttemptOutcome.indeterminate) return;
+
+    final day = _dayKey(attempt.now);
+    reps++;
+    lastPerformanceAt = attempt.now;
+    performanceDays.add(day);
+    firstPerformanceDay ??= day;
+    if (attempt.outcome == AttemptOutcome.correct) {
+      correct++;
+      correctDays.add(day);
+    } else {
+      incorrect++;
+    }
+    if (attempt.accuracy.isFinite && attempt.accuracy > (bestAccuracy ?? 0)) {
+      bestAccuracy = attempt.accuracy;
+    }
+    final tempo = attempt.tempoBpm;
+    if (tempo != null && tempo > (bestTempoBpm ?? 0)) {
+      bestTempoBpm = tempo;
+    }
+  }
 
   /// The latest counted performance day, or null when there is none.
   String? get lastPerformanceDay {
@@ -146,6 +200,11 @@ String? _firstDay(Set<String> days) {
   final sorted = days.toList()..sort();
   return sorted.first;
 }
+
+String _dayKey(DateTime time) =>
+    '${time.year.toString().padLeft(4, '0')}-'
+    '${time.month.toString().padLeft(2, '0')}-'
+    '${time.day.toString().padLeft(2, '0')}';
 
 String? _readDay(Object? value) {
   if (value == null) return null;

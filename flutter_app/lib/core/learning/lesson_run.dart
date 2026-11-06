@@ -1,5 +1,6 @@
 import '../music/curriculum.dart';
 import '../music/note.dart';
+import 'attempt_outcome.dart';
 import 'prompt.dart';
 
 const int exercisesPerLesson = 12;
@@ -39,7 +40,12 @@ class LessonRun {
   int bestCombo = 0;
 
   bool awaitingNext = false;
-  bool? lastCorrect;
+  AttemptOutcome? lastOutcome;
+
+  /// The determinate verdict of the last answer, or null when nothing has
+  /// been answered. An indeterminate attempt is not a wrong answer.
+  bool? get lastCorrect =>
+      lastOutcome == null ? null : lastOutcome == AttemptOutcome.correct;
   bool lastOctaveError = false;
   double? lastCents;
   Note? lastDetected;
