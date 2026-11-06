@@ -212,7 +212,7 @@ use `HomeShell.withTodayForTesting()`, a `@visibleForTesting` constructor.
   `AppController.recordTodayPractice`, which increments the existing daily
   practice counter and records measured guitar time through T2.10's
   `recordPracticeEffort`. That owns the weekly minutes goal and the optional
-  habit streak; Today shows no XP, streak, gems, quest, or punishment.
+  habit streak; Today shows no XP, streak, quest, currency, or punishment.
   `instrumentElapsed` is the real guitar-in-hand time and is what the screen
   displays; the 5-minute plan has 3:30 of it.
 - `todayPerformanceDayProvider` defaults to false, so an Apply take is practice
@@ -228,7 +228,8 @@ use `HomeShell.withTodayForTesting()`, a `@visibleForTesting` constructor.
   at the end when present. Each block states what to do, why, and its budget.
   The current block carries the start/continue control. The header shows guitar
   time and the stop point, and pause/stop/early-end controls make the end calm
-  and explicit. There are no hearts, XP, streak, gems, quests, or fake metrics.
+  and explicit. There are no hearts, XP, streak, quests, currency, or fake
+  metrics.
 - `features/today/today_content.dart` resolves the one target for display. A
   note target gets a staff read-along card; a phrase target resolves through
   T2.11's `PhraseObjectiveRegistry`, never a second registry. The model block

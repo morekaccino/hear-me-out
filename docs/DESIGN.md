@@ -301,7 +301,7 @@ validated phrase accuracy.
 
 The screen answers three questions at all times: what the one target is, what
 block the learner is in, and when the session stops. It has no hearts, XP,
-streak, gems, quests, or punishment.
+streak, quests, currency, or punishment.
 
 - **Header:** the mascot, `Today’s practice`, and `One target. One correction.
   One next step.` After the stop point, the title becomes `Today is done` and

@@ -160,9 +160,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('has one target and no hearts, XP, streak, or gems', (
-    tester,
-  ) async {
+  testWidgets('has one target and no game chrome', (tester) async {
     useSize(tester, const Size(390, 844));
     await tester.pumpWidget(buildToday(store: freshStore()));
     await tester.pumpAndSettle();
