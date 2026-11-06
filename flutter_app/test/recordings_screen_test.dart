@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -18,17 +19,18 @@ import 'package:hear_me_out/content/pieces/launch_pieces.dart';
 import 'package:hear_me_out/features/recordings/recordings_screen.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
 import 'package:hear_me_out/state/providers.dart';
+import 'package:hear_me_out/state/recording_controller.dart';
 
 import 'support/fakes.dart';
 
 class _Harness {
-  _Harness() {
+  _Harness({MediaStore? store}) : store = store ?? MemoryMediaStore() {
     capture = FakePcmCapture(
       chunks: <Uint8List>[_tone()],
       config: const PcmCaptureConfig(sampleRate: 8000, channels: 1),
     );
     service = RecordingService(
-      store: store,
+      store: this.store,
       indexStore: indexStore,
       exporter: exporter,
       clock: () => DateTime.utc(2026, 11, 6, 12),
@@ -41,7 +43,7 @@ class _Harness {
     );
   }
 
-  final MemoryMediaStore store = MemoryMediaStore();
+  final MediaStore store;
   final MemoryRecordingIndexStore indexStore = MemoryRecordingIndexStore();
   final FakeRecordingExporter exporter = FakeRecordingExporter();
   final FakeRecordingTimerFactory timers = FakeRecordingTimerFactory();
@@ -66,6 +68,59 @@ class _Harness {
     );
     await indexStore.save(indexStore.value!);
   }
+}
+
+class _GatedMediaStore implements MediaStore {
+  _GatedMediaStore(this.inner);
+
+  final MemoryMediaStore inner;
+  Completer<void>? nextPutGate;
+  bool putWaiting = false;
+
+  @override
+  Future<MediaRef> put(
+    Uint8List bytes, {
+    required String mimeType,
+    String? id,
+    String? pieceId,
+    String? phraseId,
+    int? durationMs,
+    double? score,
+    int? analysisVersion,
+  }) async {
+    final gate = nextPutGate;
+    if (gate != null) {
+      nextPutGate = null;
+      putWaiting = true;
+      await gate.future;
+      putWaiting = false;
+    }
+    return inner.put(
+      bytes,
+      mimeType: mimeType,
+      id: id,
+      pieceId: pieceId,
+      phraseId: phraseId,
+      durationMs: durationMs,
+      score: score,
+      analysisVersion: analysisVersion,
+    );
+  }
+
+  @override
+  Future<Uint8List?> get(String id) => inner.get(id);
+
+  @override
+  Future<void> delete(String id) => inner.delete(id);
+
+  @override
+  Future<List<MediaRef>> list() => inner.list();
+
+  @override
+  Future<int> usageBytes() => inner.usageBytes();
+
+  @override
+  Future<void> clear() => inner.clear();
 }
 
 Uint8List _toneBytes() {
@@ -400,6 +455,77 @@ void main() {
     expect(await harness.store.list(), hasLength(2));
     expect(find.text(piece.title), findsWidgets);
     expect(find.text('2 of 20 takes stored'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('popping during save keeps the take and its retention set', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final inner = MemoryMediaStore(clock: () => DateTime.utc(2026, 1, 1));
+    final gated = _GatedMediaStore(inner);
+    final harness = _Harness(store: gated);
+    final first = await gated.put(
+      _toneBytes(),
+      mimeType: RecordingService.wavMimeType,
+      id: 'first',
+      pieceId: 'ode-to-joy',
+      phraseId: 'p1',
+      durationMs: 1000,
+    );
+    final previousLast = await gated.put(
+      _toneBytes(),
+      mimeType: RecordingService.wavMimeType,
+      id: 'last-before',
+      pieceId: 'ode-to-joy',
+      phraseId: 'p1',
+      durationMs: 1000,
+    );
+    harness.indexStore.value = RecordingIndex(<RecordingTake>[
+      RecordingTake.fromMediaRef(first),
+      RecordingTake.fromMediaRef(previousLast),
+    ]);
+    await harness.indexStore.save(harness.indexStore.value!);
+
+    await tester.pumpWidget(_buildNavigated(harness));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open recordings'));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingsScreen)),
+    );
+    final controller = container.read(recordingControllerProvider.notifier);
+    await controller.startTake(pieceId: 'ode-to-joy', phraseId: 'p1');
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(harness.service.isRecording, isTrue);
+
+    final gate = Completer<void>();
+    gated.nextPutGate = gate;
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    for (var attempt = 0; attempt < 20 && !gated.putWaiting; attempt++) {
+      await tester.pump();
+    }
+    expect(gated.putWaiting, isTrue);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Open recordings'), findsOneWidget);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+
+    final takes = await harness.service.listTakes();
+    expect(takes, hasLength(2));
+    final saved = takes.firstWhere((take) => take.id != 'first');
+    expect(saved.pieceId, 'ode-to-joy');
+    expect(saved.phraseId, 'p1');
+    expect(takes.map((take) => take.id), contains('first'));
+    expect(takes.map((take) => take.id), isNot(contains('last-before')));
+    expect(await harness.store.list(), hasLength(2));
+    expect(harness.service.isRecording, isFalse);
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
   });

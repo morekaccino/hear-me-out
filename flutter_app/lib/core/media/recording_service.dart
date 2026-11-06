@@ -366,6 +366,9 @@ class RecordingService {
   /// microphone is never left running behind the Practice screen. A take that
   /// is already being saved is left alone; [stop] owns that path.
   Future<void> cancel() async {
+    // A save in flight is owned by stop(). Do not clear the take's piece or
+    // phrase ids while _storeTake is still reading them.
+    if (_finishing) return;
     _generation++;
     _timer?.cancel();
     _timer = null;

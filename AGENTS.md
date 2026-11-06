@@ -333,10 +333,14 @@ Then open <http://127.0.0.1:8080/>.
 - **Recording pipeline:** one live take at a time, never a second
   `AudioRecorder`. The recordings controller is auto-disposed with the route and
   stops/discards a live take on exit; the microphone must never stay on behind
-  Practice. 60 s per take, 20 takes, 200 MB, first and last take per piece. The
-  screen's optional launch-piece selector is the production path that supplies
-  a `pieceId` for retention. WAV storage goes through `RecordingEncoder` (V1 is
-  WAV, not AAC; see decision 0009). The manifest is the versioned
+  Practice. A save already in flight belongs to `stop()`: `cancel()` must return
+  early while `_finishing`, and a disposed controller must not read its Ref. A
+  take saved after the route closes keeps its piece/phrase ids and retention;
+  the retention/quest hooks are skipped on that narrow path. 60 s per take, 20
+  takes, 200 MB, first and last take per piece. The screen's optional
+  launch-piece selector is the production path that supplies a `pieceId` for
+  retention. WAV storage goes through `RecordingEncoder` (V1 is WAV, not AAC;
+  see decision 0009). The manifest is the versioned
   `hear_me_out_recordings_v1` document, never `ProgressState`. Commit the new
   manifest before deleting retention victims; a failed manifest write must leave
   every older take intact. Permission, quota, and storage failures are typed and
@@ -365,7 +369,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 952 tests passing
+- `flutter test` - 983 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)

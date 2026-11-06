@@ -451,16 +451,20 @@ second `AudioRecorder` and no simultaneous record and stream.
   `package:web` to download the WAV. There is no share or cloud package.
 - `state/recording_controller.dart` is auto-disposed with the recordings route.
   Its dispose stops and discards a live take, so the microphone never remains
-  open behind Practice. It exposes capture, list, delete, export, clear-all,
-  and reconcile state. It records `first_recording` through `RetentionController`
-  only after a take is saved, and calls the weekly `recordRecordingMade` quest
-  counter once per saved take. `features/recordings/` renders the record/stop
-  controls, an optional launch-piece selector, the take list with local
-  play/export/delete, usage and cap, an empty state, and `MediaPrivacyCard`.
-  The piece selector is the production path that makes first/last retention
-  reachable. `PracticeScreen` opens the screen after stopping the tuner. The
-  screen has no hearts, gems, XP, or streak, and it does not implement T4.3 A/B
-  playback or the T4.4 before/after card.
+  open behind Practice. A save already in flight is owned by `stop()`: `cancel`
+  returns early while finishing, and a disposed controller does not read its
+  Ref. A take saved after the route closes keeps its piece/phrase ids and
+  retention; the retention/quest hooks are skipped on that narrow path. The
+  controller exposes capture, list, delete, export, clear-all, and reconcile
+  state. It records `first_recording` through `RetentionController` only after a
+  take is saved, and calls the weekly `recordRecordingMade` quest counter once
+  per saved take. `features/recordings/` renders the record/stop controls, an
+  optional launch-piece selector, the take list with local play/export/delete,
+  usage and cap, an empty state, and `MediaPrivacyCard`. The piece selector is
+  the production path that makes first/last retention reachable.
+  `PracticeScreen` opens the screen after stopping the tuner. The screen has no
+  hearts, gems, XP, or streak, and it does not implement T4.3 A/B playback or the
+  T4.4 before/after card.
 - Backup exclusion remains decision [`0002`](decisions/0002-backup-exclusion-no-opt-in.md):
   the screen shows the conditional `MediaPrivacyCard` copy and never claims
   exclusion when the platform did not confirm it.
@@ -473,7 +477,8 @@ both reconciliation directions, and adoption of a partially malformed index.
 `test/recording_index_store_test.dart`, `test/recording_exporter_test.dart`, and
 `test/recordings_screen_test.dart` cover the versioned index, IO exports, the
 390x844 / 1200 px screen with conditional privacy copy, route-exit microphone
-shutdown, and the piece-scoped retention path.
+shutdown, pop-while-saving with a gated store, and the piece-scoped retention
+path.
 
 ## Retention instrumentation
 

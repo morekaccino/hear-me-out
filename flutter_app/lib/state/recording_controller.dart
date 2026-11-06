@@ -240,7 +240,18 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   }
 
   Future<void> _applyStop(RecordingStopResult result) async {
-    final current = state.asData?.value ?? await future;
+    // A save that finishes after the route closed is already durable in the
+    // service. There is no screen left to update, and its retention/quest hooks
+    // are intentionally skipped rather than touching a disposed Ref.
+    if (_disposed) return;
+    final RecordingScreenState current;
+    try {
+      current = state.asData?.value ?? await future;
+    } catch (_) {
+      // The route was disposed while the save was in flight.
+      return;
+    }
+    if (_disposed) return;
     if (!result.saved) {
       state = AsyncData(
         current.copyWith(
