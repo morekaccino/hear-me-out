@@ -25,6 +25,8 @@ flutter build web --release
   Plane workflow, and current verification state
 - [`docs/PLANE.md`](docs/PLANE.md) — Plane project manual, MCP access, read
   order, and ticket update protocol
+- [`docs/AI_HANDOFF_PROTOCOL.md`](docs/AI_HANDOFF_PROTOCOL.md) — read order,
+  roles, branch/PR/review flow, evidence rules, and resume procedure
 - [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md) —
   approved v3.1 transformation plan
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style design language,
@@ -53,6 +55,11 @@ relations. Move it to **In Progress**. After coding, comment with files,
 commands, results, and device/mic evidence; move it to **Done** only when the
 criteria are met. If the work changes a decision or risk, update `T9.2` or
 `T9.1`.
+
+Agents follow the [AI handoff protocol](docs/AI_HANDOFF_PROTOCOL.md): one ticket
+per branch, the implementation agent opens the PR but never merges it, and an
+independent reviewer never edits the author's branch. When the handoff assigns a
+manager, report status with `hc send` and keep `.ticket-report.md` uncommitted.
 
 The current code is still the 240-lesson notation course. The approved
 transformation is planned but not implemented; do not describe planned features

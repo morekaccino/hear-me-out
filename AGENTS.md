@@ -29,6 +29,8 @@ status live in Plane:
 - **START HERE:** `D0.1` —
   <https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/3bc42073-d36c-48df-b7bc-27ad89338ac7>
 - **Operating manual:** [`docs/PLANE.md`](docs/PLANE.md)
+- **AI handoff protocol:**
+  [`docs/AI_HANDOFF_PROTOCOL.md`](docs/AI_HANDOFF_PROTOCOL.md)
 - **Approved plan:** [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md)
 
 A project-scoped MCP server named `plane` is configured for OpenCode
@@ -43,7 +45,7 @@ committed on purpose. Verify with `opencode mcp list`; it must show
 
 **Before changing code:**
 
-1. Read `docs/PLANE.md`.
+1. Read `docs/PLANE.md` and `docs/AI_HANDOFF_PROTOCOL.md`.
 2. Open `D0.1 — START HERE`; read `D0.2`–`D0.5`.
 3. Open the ticket for your task and read its acceptance criteria.
 4. Check `blocked_by`; do not start blocked work. Move the ticket to
