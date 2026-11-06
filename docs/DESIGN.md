@@ -588,6 +588,40 @@ reachable for a real new install; leaving it off records nothing. See
 [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) and decision
 [`0006`](decisions/0006-local-retention-instrumentation.md).
 
+### Placement check
+
+A skippable three-screen check for returners, reached from the onboarding piece
+screen, the Path card, or Profile. It is never auto-launched, so the normal
+**Continue** button and the first phrase stay ahead of it. The placement card
+sits below the Reading Lab/Today card, so the Reading Lab entry stays first on
+the Path. The Path card is a
+compact blue **Not sure where to start? A short check can place you.** panel
+with **START SHORT CHECK** and **SKIP FOR NOW**; the Profile card always shows
+**Starting point** and **CHANGE STARTING POINT** for the manual override.
+
+The flow uses a centered `PageFrame` (600 px), a three-segment progress bar, a
+persistent **SKIP FOR NOW** in the header, and a fixed footer action so a phone
+never depends on a long scroll to continue. Screen 1 shows three short reading
+items in a `SectionCard` (staff placement and a rhythm question). Screen 2 shows
+one written note and a **CHECK MY PLAYING** button; the microphone is live only
+while that button is active, and the learner can skip without one. Screen 3 is
+a three-item technique self-check with **YES** / **NOT YET** choices and a
+neutral pain/numbness/tingling warning. Copy says the check is not a test, not
+a grade, and not a hand-position judgement.
+
+The result shows **STAGE n**, the stage name, a Foundation/Returner badge, the
+stage focus, six editable stage chips, and three real starter pieces. When the
+check points at stage 6-8, the result says the stage is **Phase 2** and that the
+learner will start at the nearest V1 stage, 5 or 9. The required copy **You can
+change this anytime.** stays visible. The result is not saved until **SAVE THIS
+STARTING POINT**; **NOT NOW** returns without writing anything. No hearts,
+gems, XP, accuracy score, or diagnosis claim appears in the flow.
+
+A neutral re-test card appears about five weeks later: **Time for a short
+check-in? Your starting point can be updated.** with **START CHECK** and
+**NOT NOW**. Dismissing it snoozes the prompt for two weeks and keeps the saved
+placement.
+
 ## Gamification rules
 
 - **Neither hearts nor loss loops.** There is no heart pool, regeneration timer,

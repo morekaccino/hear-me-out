@@ -295,6 +295,48 @@ absence of heart/gem/XP/streak gating; cover the header back control and the
 running-session pause; check that the header aligns with the path at 1200 px;
 and render at 390x844 and 1200x900 without overflow.
 
+## Placement check (T2.8)
+
+The placement check is a skippable, three-screen diagnostic for returners. It
+never replaces the first lesson or phrase: onboarding still lands on the normal
+path, and the Path keeps its **Continue** button above the optional placement
+card. The placement entry sits below the Today/Reading Lab card; it never
+replaces the Reading Lab entry.
+
+- `features/placement/` owns the flow. Screen 1 is a three-item reading check
+  built from existing `StaffTapPrompt` and `ChoicePrompt` data and rendered by
+  `PromptView`. Screen 2 is one written note played into the existing
+  `PitchSource`/`NoteMatcher` path. Screen 3 is a three-item technique
+  self-check. Every screen has a skip action, and the header keeps **Skip for
+  now** visible. The result is editable before it is saved.
+- `core/learning/placement.dart` owns `PlacementRecord`,
+  `inferPlacementStage`, `resolvePlacementStage`, `phase2StageFor`, the 35-day
+  re-test interval, and the 14-day dismissal snooze. The inference starts from
+  the onboarding `readingLevel` (note names 1, slow reader 2, comfortable 5),
+  then nudges from the reading score, one played note, and the self-checks. It
+  is clamped to stages 1-10 and only ever saved at a V1 stage.
+- `content/pieces/placement_starters.dart` picks exactly three real launch
+  pieces: the placed stage first, then the same tier by distance, then the
+  other tier. It calls `launchPiecesByStage` / `piecesForStage` rather than
+  keeping a second stage table. A Phase 2 suggestion is mapped to the nearest
+  V1 stage (a tie goes lower); stages 6-8 land on 5 or 9 and the result copy
+  labels the skipped stage **Phase 2**.
+- `core/storage/placement_store.dart` stores one versioned document under
+  `hear_me_out_placement_v1` (`schemaVersion` 1). Corrupt or future data is
+  ignored. The store is deliberately separate from
+  `hear_me_out_progress_v1`: saving placement never writes `ProgressState`, so
+  completed lessons, note boxes, XP, minutes, streak, and phrase evidence
+  survive.
+- `state/placement_controller.dart` loads and saves the record and owns the
+  re-test dismissal. The next re-test is 35 days (five weeks) after the save;
+  dismissing the neutral prompt snoozes it for 14 days. Nothing is forced.
+- Entry points are the onboarding piece screen link, a Path card when no
+  placement exists or a re-test is due, and the Profile **Starting point**
+  card. The Profile card is the manual override.
+- `phraseLoopEnabled` is not read by the flow. With the gate off, placement
+  uses the existing single-note/read-along checks and never mounts the phrase
+  player or records a phrase take.
+
 ## Media storage
 
 Media is a separate storage domain from progress. `ProgressState` holds no
@@ -821,6 +863,7 @@ fresh profile; an unreadable document is quarantined first.
 | `test/topics_test.dart` | Template rotation, theory/chord/rhythm prompts, verifiers |
 | `test/prompt_view_test.dart` | Staff tap, fret tap, chord diagram, rhythm view at 390 px |
 | `test/placement_flow_test.dart` | A placed note grades, shows feedback, and advances |
+| `test/placement_diagnostic_test.dart` | Three skippable screens, stage inference and 6-8 mapping, starter set, manual override, re-test dismissal, progress survival, no phrase loop, 390/1200 layout |
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |

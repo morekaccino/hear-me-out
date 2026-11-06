@@ -19,6 +19,7 @@ import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../../state/retention_controller.dart';
+import '../placement/placement_navigation.dart';
 import 'onboarding_pieces.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -279,6 +280,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     unawaited(_finish());
   }
 
+  Future<void> _openPlacement() async {
+    await _stopPreview();
+    if (!mounted) return;
+    await openPlacementFlow(
+      context,
+      ref,
+      readingLevel: _readingLevel,
+      hasGuitar: _hasGuitar,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final retention = ref.watch(retentionControllerProvider).asData?.value;
@@ -320,6 +332,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                       onSelected: _selectPiece,
                       onPreview: _playPreview,
                       onChooseLater: _chooseLater,
+                      onPlacement: _openPlacement,
                     ),
                   ],
                 ),
@@ -815,6 +828,7 @@ class _PiecePage extends StatelessWidget {
     required this.onSelected,
     required this.onPreview,
     required this.onChooseLater,
+    required this.onPlacement,
   });
 
   final String? selectedId;
@@ -822,6 +836,7 @@ class _PiecePage extends StatelessWidget {
   final ValueChanged<String> onSelected;
   final ValueChanged<OnboardingPiece> onPreview;
   final VoidCallback onChooseLater;
+  final VoidCallback onPlacement;
 
   @override
   Widget build(BuildContext context) {
@@ -864,6 +879,20 @@ class _PiecePage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
+                color: AppColors.blueDark,
+              ),
+            ),
+          ),
+          TextButton(
+            key: const ValueKey('onboarding-placement'),
+            onPressed: onPlacement,
+            style: TextButton.styleFrom(minimumSize: const Size(0, 44)),
+            child: Text(
+              'Not sure where to start? A short check can place you.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
                 color: AppColors.blueDark,
               ),
             ),
