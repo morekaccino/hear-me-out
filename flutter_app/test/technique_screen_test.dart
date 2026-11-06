@@ -7,6 +7,7 @@ import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/features/technique/technique_screen.dart';
+import 'package:hear_me_out/shared/audio/sound_service.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
 import 'package:hear_me_out/state/providers.dart';
 
@@ -20,8 +21,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
   }
 
-  Future<void> reveal(WidgetTester tester, Finder finder) async {
-    await tester.scrollUntilVisible(finder, 300);
+  Future<void> reveal(
+    WidgetTester tester,
+    Finder finder, {
+    double delta = 300,
+  }) async {
+    await tester.scrollUntilVisible(finder, delta);
     await tester.ensureVisible(finder);
     await tester.pumpAndSettle();
   }
@@ -37,7 +42,8 @@ void main() {
     );
   }
 
-  Widget buildApp() {
+  Widget buildApp({FakePitchSourceFactory? factory, FakeSoundService? sounds}) {
+    final sources = factory ?? FakePitchSourceFactory();
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(
@@ -52,10 +58,8 @@ void main() {
         ),
         onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
         audioEngineProvider.overrideWithValue(FakeAudioEngine()),
-        pitchSourceFactoryProvider.overrideWithValue(
-          FakePitchSourceFactory().call,
-        ),
-        soundServiceProvider.overrideWithValue(FakeSoundService()),
+        pitchSourceFactoryProvider.overrideWithValue(sources.call),
+        soundServiceProvider.overrideWithValue(sounds ?? FakeSoundService()),
       ],
       child: const HearMeOutApp(),
     );
@@ -71,12 +75,85 @@ void main() {
 
     await reveal(tester, find.text('Technique check'));
     await tester.tap(find.text('Technique check'));
+    await tester.pump(const Duration(milliseconds: 50));
     await tester.pumpAndSettle();
 
     expect(find.text('Technique'), findsOneWidget);
     expect(find.text('Stop if it hurts'), findsOneWidget);
     expect(find.textContaining('pain, numbness, or tingling'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('opening Technique stops the tuner before any sound plays', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    final factory = FakePitchSourceFactory();
+    final sounds = FakeSoundService();
+    await tester.pumpWidget(buildApp(factory: factory, sounds: sounds));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Practice'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('START TUNER'));
+    await tester.pumpAndSettle();
+    expect(factory.created, hasLength(1));
+    final source = factory.created.single;
+    expect(source.started, isTrue);
+    expect(find.text('STOP TUNER'), findsOneWidget);
+
+    // The tuner is now listening. Opening Technique must tear it down before
+    // the new route can play tap sounds.
+    sounds.played.clear();
+    await reveal(tester, find.text('Technique check'));
+    await tester.tap(find.text('Technique check'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TechniqueScreen), findsOneWidget);
+    expect(source.started, isFalse);
+    expect(source.disposed, isTrue);
+    expect(sounds.played, isEmpty);
+    expect(find.text('Technique'), findsOneWidget);
+
+    await reveal(tester, find.byKey(const ValueKey('technique-drill-toggle')));
+    await tester.tap(find.byKey(const ValueKey('technique-drill-toggle')));
+    await tester.pump();
+    expect(sounds.played, contains(Sfx.uiTapPrimary));
+  });
+
+  testWidgets('checklist state is dropped when the screen closes', (
+    tester,
+  ) async {
+    setSize(tester, const Size(390, 844));
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Practice'));
+    await tester.pumpAndSettle();
+    await reveal(tester, find.text('Technique check'));
+    await tester.tap(find.text('Technique check'));
+    await tester.pumpAndSettle();
+
+    await reveal(tester, find.byKey(const ValueKey('technique-item-1-0')));
+    await tester.tap(find.byKey(const ValueKey('technique-item-1-0')));
+    await tester.pump();
+    expect(find.text('1/3 checked'), findsOneWidget);
+
+    await reveal(
+      tester,
+      find.byKey(const ValueKey('technique-back')),
+      delta: -300,
+    );
+    await tester.tap(find.byKey(const ValueKey('technique-back')));
+    await tester.pumpAndSettle();
+    expect(find.text('Practice'), findsWidgets);
+
+    await reveal(tester, find.text('Technique check'));
+    await tester.tap(find.text('Technique check'));
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.pumpAndSettle();
+    expect(find.text('0/3 checked'), findsOneWidget);
   });
 
   testWidgets('checks items and rates the rubric for the session only', (
@@ -107,6 +184,10 @@ void main() {
     expect(find.text('0/3 checked'), findsOneWidget);
 
     await reveal(tester, find.text('Self-rating'));
+    expect(
+      tester.getSize(find.byKey(const ValueKey('technique-rating-1-0-3'))),
+      const Size(44, 44),
+    );
     await tester.tap(find.byKey(const ValueKey('technique-rating-1-0-3')));
     await tester.pump();
     expect(tester.takeException(), isNull);

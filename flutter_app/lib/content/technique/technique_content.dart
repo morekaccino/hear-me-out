@@ -222,7 +222,7 @@ const List<TechniqueChecklist> allTechniqueChecklists = [
   TechniqueChecklist(
     stage: 11,
     title: 'Exam-style run-through',
-    area: TechniqueArea.setup,
+    area: TechniqueArea.performance,
     items: [
       'Tune, warm up, and check posture before the first run-through.',
       'Play the prepared scale and sight-reading example slowly, then at tempo.',
@@ -258,7 +258,7 @@ const List<TechniqueChecklist> allTechniqueChecklists = [
   TechniqueChecklist(
     stage: 12,
     title: 'Performance and recording',
-    area: TechniqueArea.setup,
+    area: TechniqueArea.performance,
     items: [
       'Warm up for two minutes before the first take.',
       'Set the recording level and record one silent test take.',

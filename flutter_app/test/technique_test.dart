@@ -41,6 +41,8 @@ void main() {
     expect(techniqueForStage(5)!.area, TechniqueArea.damping);
     expect(techniqueForStage(9)!.area, TechniqueArea.shifts);
     expect(techniqueForStage(10)!.area, TechniqueArea.slurs);
+    expect(techniqueForStage(11)!.area, TechniqueArea.performance);
+    expect(techniqueForStage(12)!.area, TechniqueArea.performance);
   });
 
   test('every drill lasts 60 seconds and names a tempo and repetitions', () {

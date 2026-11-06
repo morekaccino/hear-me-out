@@ -27,15 +27,19 @@ class _TechniqueScreenState extends State<TechniqueScreen> {
   bool _drillComplete = false;
   Timer? _drillTimer;
 
-  final Map<int, Set<int>> _checked = {};
-  final Map<int, List<int>> _ratings = {};
+  final Map<int, Set<int>> _checked = {
+    for (final checklist in allTechniqueChecklists) checklist.stage: <int>{},
+  };
+  final Map<int, List<int>> _ratings = {
+    for (final checklist in allTechniqueChecklists)
+      checklist.stage: List<int>.filled(3, 0),
+  };
 
   TechniqueChecklist get _checklist => techniqueForStage(_stage)!;
 
-  Set<int> get _checkedForStage => _checked.putIfAbsent(_stage, () => <int>{});
+  Set<int> get _checkedForStage => _checked[_stage]!;
 
-  List<int> get _ratingsForStage =>
-      _ratings.putIfAbsent(_stage, () => List<int>.filled(3, 0));
+  List<int> get _ratingsForStage => _ratings[_stage]!;
 
   @override
   void dispose() {
@@ -601,34 +605,40 @@ class _RubricRow extends StatelessWidget {
                 key: ValueKey('technique-rating-$stage-$index-$value'),
                 onTap: () => onRate(value),
                 child: Semantics(
-                  label: 'Rate row ${index + 1} as $value of 3',
+                  label: 'Rate "$text" as $value of 3',
                   selected: rating == value,
                   button: true,
                   excludeSemantics: true,
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: rating == value
-                          ? AppColors.teal
-                          : AppColors.background,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: rating == value
-                            ? AppColors.tealDark
-                            : AppColors.borderStrong,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Text(
-                      '$value',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        color: rating == value
-                            ? Colors.white
-                            : AppColors.textMuted,
+                  child: SizedBox(
+                    width: 44,
+                    height: 44,
+                    child: Center(
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: rating == value
+                              ? AppColors.teal
+                              : AppColors.background,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: rating == value
+                                ? AppColors.tealDark
+                                : AppColors.borderStrong,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Text(
+                          '$value',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: rating == value
+                                ? Colors.white
+                                : AppColors.textMuted,
+                          ),
+                        ),
                       ),
                     ),
                   ),

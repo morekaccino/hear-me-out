@@ -3,7 +3,15 @@
 /// The microphone can hear notes; it cannot see a thumb, a wrist, or a shift.
 /// These models therefore describe what the learner should observe and rate,
 /// and they never feed the FSRS scheduler or claim automated hand assessment.
-enum TechniqueArea { setup, leftHand, rightHand, damping, shifts, slurs }
+enum TechniqueArea {
+  setup,
+  leftHand,
+  rightHand,
+  damping,
+  shifts,
+  slurs,
+  performance,
+}
 
 extension TechniqueAreaLabel on TechniqueArea {
   String get label => switch (this) {
@@ -13,6 +21,7 @@ extension TechniqueAreaLabel on TechniqueArea {
     TechniqueArea.damping => 'Damping',
     TechniqueArea.shifts => 'Shifts',
     TechniqueArea.slurs => 'Slurs',
+    TechniqueArea.performance => 'Performance',
   };
 }
 
