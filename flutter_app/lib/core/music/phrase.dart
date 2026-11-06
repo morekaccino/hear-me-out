@@ -22,6 +22,7 @@ class Phrase {
     this.difficulty = 1,
     this.startBar = 1,
     this.pickupBeats = 0,
+    this.contentVersion = 1,
   });
 
   /// V1 upper bound for [bars]. It keeps validator work bounded when a
@@ -49,6 +50,15 @@ class Phrase {
 
   /// Length of the incomplete first bar, in beats. Zero means no pickup.
   final double pickupBeats;
+
+  /// Revision of this phrase's musical content.
+  ///
+  /// Bump this when the events, tempo, time signature, bars, pickup, or
+  /// fingering change. Title and skill-label edits do not invalidate evidence.
+  /// Progress stays keyed by [id]; this value records whether the learner's
+  /// stored evidence predates the current arrangement. No UI consumes it yet;
+  /// the phrase UI stays behind the T1.7 switch.
+  final int contentVersion;
 
   List<NoteEvent> get notes => <NoteEvent>[
     for (final event in events)
@@ -89,6 +99,7 @@ class Phrase {
     int? difficulty,
     int? startBar,
     double? pickupBeats,
+    int? contentVersion,
   }) {
     return Phrase(
       id: id ?? this.id,
@@ -101,6 +112,7 @@ class Phrase {
       difficulty: difficulty ?? this.difficulty,
       startBar: startBar ?? this.startBar,
       pickupBeats: pickupBeats ?? this.pickupBeats,
+      contentVersion: contentVersion ?? this.contentVersion,
     );
   }
 
@@ -117,6 +129,7 @@ class Phrase {
       'difficulty': difficulty,
       'startBar': startBar,
       'pickupBeats': pickupBeats,
+      'contentVersion': contentVersion,
     };
     if (title != null) json['title'] = title;
     return json;
@@ -154,6 +167,7 @@ class Phrase {
       difficulty: readOptionalJsonInt(json, 'difficulty', path) ?? 1,
       startBar: readOptionalJsonInt(json, 'startBar', path) ?? 1,
       pickupBeats: readOptionalJsonDouble(json, 'pickupBeats', path) ?? 0,
+      contentVersion: readOptionalJsonInt(json, 'contentVersion', path) ?? 1,
     );
   }
 }

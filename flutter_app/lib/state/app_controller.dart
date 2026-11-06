@@ -344,14 +344,16 @@ class AppController extends AsyncNotifier<AppData> {
   ///
   /// [PhraseResult.outcome] is the source of truth. A low-confidence,
   /// incomplete, or otherwise indeterminate take records nothing. A
-  /// determinate take updates only the phrase's own progress; per-note skills
-  /// are recorded separately and are never derived from a phrase attempt, so
-  /// the same take cannot count twice.
+  /// determinate take updates the phrase's raw progress and the phrase's own
+  /// repertoire skill. Per-note skills are recorded separately and are never
+  /// derived from a phrase attempt, so the same take cannot count twice.
   Future<bool> recordPhraseResult({
     required String phraseId,
     required PhraseResult result,
     required int tempoBpm,
     DateTime? now,
+    String? pieceId,
+    int? contentVersion,
   }) async {
     if (!result.complete || result.outcome == AttemptOutcome.indeterminate) {
       return false;
@@ -364,6 +366,8 @@ class AppController extends AsyncNotifier<AppData> {
         now: now ?? DateTime.now(),
         accuracy: result.noteAccuracy,
         tempoBpm: tempoBpm,
+        pieceId: pieceId,
+        contentVersion: contentVersion,
       ),
     );
     state = AsyncData(data.copyWith(progress: data.progress));

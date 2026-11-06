@@ -12,6 +12,8 @@ class PhraseAttempt {
     required this.now,
     this.accuracy = 0,
     this.tempoBpm,
+    this.pieceId,
+    this.contentVersion,
   });
 
   final String phraseId;
@@ -23,6 +25,14 @@ class PhraseAttempt {
 
   /// Tempo the phrase was played at, when known.
   final int? tempoBpm;
+
+  /// Piece that owns [phraseId], when the caller knows it. The phrase skill
+  /// uses the canonical `phrase:<pieceId>:<phraseId>` id when present and the
+  /// legacy `phrase:<phraseId>` id otherwise.
+  final String? pieceId;
+
+  /// Content version the learner practiced against, when known.
+  final int? contentVersion;
 }
 
 /// Persisted performance progress for one phrase.
@@ -45,6 +55,7 @@ class PhraseProgress {
     this.lastPerformanceAt,
     this.bestTempoBpm,
     this.bestAccuracy,
+    this.contentVersion = 1,
   }) : correctDays = correctDays ?? <String>{},
        performanceDays = performanceDays ?? <String>{};
 
@@ -75,7 +86,20 @@ class PhraseProgress {
   /// pass/mastery signal.
   double? bestAccuracy;
 
+  /// The phrase content version this evidence was last practiced against.
+  ///
+  /// Progress is keyed by [phraseId], so a content edit never moves or resets
+  /// it. The intended phrase UI compares this value with the current
+  /// `Phrase.contentVersion` and asks for a re-test instead of claiming mastery
+  /// of unseen notes. No UI consumes [needsRetestFor] yet; the phrase UI stays
+  /// behind the T1.7 switch.
+  int contentVersion;
+
   int get attempts => correct + incorrect;
+
+  /// True when the current arrangement differs from the evidence's version.
+  bool needsRetestFor(int currentContentVersion) =>
+      contentVersion != currentContentVersion;
 
   double get accuracy => attempts == 0 ? 0 : correct / attempts;
 
@@ -143,6 +167,7 @@ class PhraseProgress {
     lastPerformanceAt: lastPerformanceAt,
     bestTempoBpm: bestTempoBpm,
     bestAccuracy: bestAccuracy,
+    contentVersion: contentVersion,
   );
 
   Map<String, dynamic> toJson() => {
@@ -160,6 +185,7 @@ class PhraseProgress {
     'lastPerformanceAt': lastPerformanceAt?.toIso8601String(),
     'bestTempoBpm': bestTempoBpm,
     'bestAccuracy': bestAccuracy,
+    'contentVersion': contentVersion,
   };
 
   factory PhraseProgress.fromJson(
@@ -193,6 +219,7 @@ class PhraseProgress {
       ),
       bestTempoBpm: _readOptionalInt(json['bestTempoBpm'], 'bestTempoBpm'),
       bestAccuracy: _readOptionalDouble(json['bestAccuracy'], 'bestAccuracy'),
+      contentVersion: _readContentVersion(json),
     );
   }
 }
@@ -231,6 +258,16 @@ Set<String> _readDays(Object? value, String key) {
     days.add(item);
   }
   return days;
+}
+
+int _readContentVersion(Map<String, dynamic> json) {
+  final value = _readInt(json, 'contentVersion', 1);
+  if (value < 1) {
+    throw const FormatException(
+      'phraseProgress.contentVersion must be at least 1',
+    );
+  }
+  return value;
 }
 
 int _readInt(Map<String, dynamic> json, String key, int fallback) {

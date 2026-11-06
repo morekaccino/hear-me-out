@@ -73,6 +73,7 @@ E2 A2 D3 G3 B3 E4.
 | `difficulty` | integer | no | 1 (easiest) through 5 (hardest). Default `1`. |
 | `startBar` | integer | no | Bar number in the piece where the phrase starts. Default `1`. |
 | `pickupBeats` | number | no | Length of an incomplete first bar, in beats. Default `0`. |
+| `contentVersion` | integer | no | Revision of this phrase's musical content. Default `1`. Bump it on a musical edit; see section 13. |
 | `events` | array | yes | Notes and rests in performance order. |
 
 `pickupBeats` must be at least `0` and shorter than one bar. When it is
@@ -511,6 +512,8 @@ a `license` string alone. When in doubt, do not use the material.
   must be a new authoring schema version, not an implicit change.
 - Adding an optional metadata field is backward compatible. Removing or
   renaming a required field is not.
+- `contentVersion` is content revision data, not the authoring schema. It is
+  optional and defaults to `1`, so adding it does not bump `schemaVersion`.
 
 ## 12. Fixtures and tests
 
@@ -536,3 +539,39 @@ flutter test test/authoring_test.dart
 
 CI validates `valid_piece.json` and asserts `invalid_chord.json` fails. The
 validator is content tooling only; the app never imports `dart:io` or the CLI.
+
+## 13. Phrase content versions and progress
+
+A phrase id is stable for the life of the phrase. Progress is stored under that
+id in `ProgressState.phraseProgress`, never under the arrangement's file name or
+a content revision. Replacing the arrangement must not rename the phrase id.
+
+`Phrase.contentVersion` records the revision of the musical content:
+
+- Bump it when the events, tempo, time signature, bar count, pickup, or
+  fingering change.
+- Do not bump it for a title, skill-label, or other non-musical metadata edit.
+- Start new phrases at `1`.
+
+The version the learner practiced against is stored in
+`PhraseProgress.contentVersion`. A content edit keeps the old evidence:
+counters, correct days, performance days, best tempo, and best accuracy stay
+under the same phrase id. The intended phrase UI compares the two versions and
+asks for a re-test instead of claiming mastery of notes the learner has not
+seen. No UI consumes the flag yet; the phrase UI stays behind the T1.7 switch.
+Old evidence remains part of the phrase's history; it is not silently
+relabelled as evidence for the new arrangement.
+
+The runtime resolver lives in `lib/content/pieces/phrase_objectives.dart`.
+`PhraseObjectiveRegistry.registerScore` registers every phrase in a parsed
+score. It assigns the stable objective id
+`phrase:<pieceId>:<phraseId>` and carries the piece id, phrase id, content
+version, practiced version, stage, and display metadata in the objective data.
+The interface itself is `PhraseObjectiveResolver` in
+`lib/core/learning/phrase_objective.dart`, so `lib/core/` does not import
+content. A registered phrase resolves even when it is absent from the static
+`objectiveCatalog`; an unknown id returns null and practice skips it.
+
+The app does not read authoring JSON at startup yet. The registry is populated
+by a future content loader. The phrase performance UI is not live until T1.7
+passes; this section describes infrastructure only.

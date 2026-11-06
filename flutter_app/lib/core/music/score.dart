@@ -270,6 +270,15 @@ class MonophonicValidator {
         phraseId: phraseId,
       );
     }
+    if (phrase.contentVersion < 1) {
+      _error(
+        issues,
+        'phrase.invalidContentVersion',
+        'Content version must be at least 1.',
+        '$path.contentVersion',
+        phraseId: phraseId,
+      );
+    }
     if (phrase.startBar < 1) {
       _error(
         issues,

@@ -90,10 +90,10 @@ T4.1. The phrase UI remains unreachable from main navigation until T1.7 passes
   the sounding value with `Guitar.soundingMidiForWritten`. A note may carry an
   optional string/fret; rests may not carry pitch, position, or a tie.
 - `core/music/phrase.dart` — `Phrase` holds bars, time signature, events,
-  target tempo, skills, difficulty, start bar, and an explicit `pickupBeats`
-  value. V1 caps a phrase at 64 bars. `totalBeats` comes from the events;
-  `expectedTotalBeats` comes from the bars and pickup. The validator compares
-  them instead of rounding.
+  target tempo, skills, difficulty, start bar, an explicit `pickupBeats`
+  value, and a `contentVersion` revision. V1 caps a phrase at 64 bars.
+  `totalBeats` comes from the events; `expectedTotalBeats` comes from the bars
+  and pickup. The validator compares them instead of rounding.
 - `core/music/piece.dart` — `Piece`, `Tuning`, `TimeSignature`, and
   `LicenseStatus`. V1 is standard tuning (E2 A2 D3 G3 B3 E4), capo 0, and
   public-domain or original material. Nonzero capo is rejected with
@@ -206,9 +206,10 @@ surface only.
   correct/incorrect, correct-day set, production/transfer evidence, response
   time, level, fragile flag, cent samples
 - per-phrase `PhraseProgress`: raw phrase-attempt evidence — memory state,
-  correct and performance days, best tempo, and best accuracy. It has no
-  storage-level mastery flag; T2.5 decides performance mastery from
-  determinacy, clean takes, timing, transfer, and checkpoint evidence.
+  correct and performance days, best tempo, best accuracy, and the phrase
+  `contentVersion` the evidence was practiced against. It has no storage-level
+  mastery flag; T2.5 decides performance mastery from determinacy, clean takes,
+  timing, transfer, and checkpoint evidence.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
 - XP, streak, daily XP
@@ -229,10 +230,22 @@ days, one production success, one transfer success, and a passed checkpoint.
 `ProgressState.recordAnswer` return without changing anything for
 `indeterminate`: no FSRS state, XP, streak, heart, daily counter, combo, quest,
 or mistake queue. A phrase take with any indeterminate note is incomplete and
-records nothing, even if another note was confidently wrong. Phrase attempts
-record only `PhraseProgress` through `ProgressState.recordPhraseAttempt`;
-per-note skills record only from determinate note evidence, so one take cannot
-count twice.
+records nothing, even if another note was confidently wrong. A determinate
+phrase attempt records `PhraseProgress` and the phrase's own `repertoire` skill
+through `ProgressState.recordPhraseAttempt`; per-note skills record only from
+determinate note evidence, so one take cannot count twice. The phrase skill uses
+the canonical `phrase:<pieceId>:<phraseId>` id when the caller knows the piece
+and the legacy `phrase:<phraseId>` id otherwise. It schedules practice; it makes
+no phrase-mastery claim, which remains T2.5 work.
+
+Phrase evidence is keyed by the stable `Phrase.id`. `Phrase.contentVersion`
+records the arrangement revision, and `PhraseProgress.contentVersion` records
+the revision the evidence was earned against. A content edit replaces the
+registered record but keeps the id and every stored counter. The intended
+phrase UI compares the versions and asks for a re-test instead of treating old
+evidence as proof of the unseen arrangement. No UI consumes `needsRetest` yet;
+the phrase UI stays behind the T1.7 switch, and progress is never reset
+silently.
 
 A wrong answer is not just a box change: it queues a same-session repair, a
 next-day repair card, and a 3-day recheck. Two lapses marks the skill fragile;
@@ -273,6 +286,27 @@ unscored teach card. Mode policy:
 are new, which are due or weak) and hand objective refs to the composer.
 `buildPracticeExercises` draws from due notes, weak notes, or all learned notes,
 and falls back to the first lesson so practice never opens empty.
+
+### Phrase objectives
+
+`core/learning/phrase_objective.dart` defines the runtime contract
+`PhraseObjectiveResolver`. `content/pieces/phrase_objectives.dart` implements it
+with a mutable `PhraseObjectiveRegistry`. The app does not read authoring JSON
+at startup, so the registry starts empty; a content loader registers parsed
+`Score`s with `registerScore`. The session factory accepts an optional resolver
+for tests and otherwise uses `phraseObjectiveResolver`.
+
+A registered phrase gets the stable id `phrase:<pieceId>:<phraseId>` and the
+`repertoire` family. Its objective data carries the piece id, phrase id,
+current content version, practiced content version, re-test flag, stage,
+difficulty, title, and the multiple-choice recognition surface the current
+repertoire template renders. `_refsForSkills` resolves `phrase:` skill ids
+through the registry, keeps the stored skill id (including legacy
+`phrase:<phraseId>` ids) so scheduling never moves, and skips unknown ids. A
+newer practiced version than the build contains also resolves to null rather
+than substituting older notes. Note ids and static catalog ids take the
+unchanged path. The phrase performance UI remains unreachable until T1.7
+passes; this is practice-pool infrastructure.
 
 `LessonRun` holds the mutable session state: index, hearts snapshot, correct/
 wrong, combo, result feedback, and `isPractice`. A wrong answer spends a shared
@@ -511,9 +545,9 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which runs the pure migration
-pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 5.
+pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 6.
 
-### Schema v5 migration pipeline
+### Schema v6 migration pipeline
 
 `migrateProgress` takes a decoded map and returns a `MigrationSuccess` with a
 new map or a `MigrationFailure` with a reason. It has no IO, clock, or random
@@ -525,8 +559,9 @@ input, and it never mutates its argument. The steps are explicit:
 | v2 → v3 | System appearance and the remaining `AppSettings` defaults |
 | v3 → v4 | skill cards rebuilt from legacy note boxes when no skills exist |
 | v4 → v5 | `contentVersion` (default 1), an empty `phraseProgress` map, re-applied `AppSettings` defaults, and a defensive skill rebuild when `skills` is empty |
+| v5 → v6 | per-phrase `contentVersion` (default 1) for existing evidence; every phrase id and counter is preserved |
 
-A v5 document is returned as an equivalent new map, not migrated again.
+A v6 document is returned as an equivalent new map, not migrated again.
 Unknown top-level fields are copied through and re-emitted by
 `ProgressState.toJson`, so a newer build can add fields without an older build
 deleting them. A known field always wins over an unknown field with the same
@@ -573,7 +608,8 @@ fresh profile; an unreadable document is quarantined first.
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
-| `test/progress_migration_test.dart` | v1–v5 fixtures, version rejection, phrase evidence, quarantine/rollback |
+| `test/progress_migration_test.dart` | v1–v6 fixtures, version rejection, phrase evidence and content versions, quarantine/rollback |
+| `test/phrase_objective_test.dart` | Runtime phrase resolver, due phrase practice, unknown ids, edited content and re-test |
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |

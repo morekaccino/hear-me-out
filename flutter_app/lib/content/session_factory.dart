@@ -3,6 +3,7 @@ import 'dart:math';
 import '../core/learning/composer.dart';
 import '../core/learning/lesson_run.dart';
 import '../core/learning/objective.dart';
+import '../core/learning/phrase_objective.dart';
 import '../core/learning/progress.dart';
 import '../core/learning/prompt.dart';
 import '../core/learning/session_shape.dart';
@@ -136,10 +137,11 @@ List<Prompt> buildSkillPracticeExercises({
   AnswerMode mode = AnswerMode.mixed,
   int total = exercisesPerLesson,
   Random? random,
+  PhraseObjectiveResolver? phraseResolver,
 }) {
   final rng = random ?? Random(now.millisecondsSinceEpoch);
   final skills = _skillPool(kind, progress, now);
-  final refs = _refsForSkills(skills);
+  final refs = _refsForSkills(skills, progress, phraseResolver);
   if (refs.isEmpty) {
     return buildPracticeExercises(
       kind: kind,
@@ -186,10 +188,18 @@ List<SkillProgress> _skillPool(
   ].take(24).toList();
 }
 
-List<ObjectiveRef> _refsForSkills(List<SkillProgress> skills) {
+List<ObjectiveRef> _refsForSkills(
+  List<SkillProgress> skills,
+  ProgressState progress,
+  PhraseObjectiveResolver? phraseResolver,
+) {
   final refs = <ObjectiveRef>[];
   for (final skill in skills) {
-    final ref = objectiveRefForSkill(skill);
+    final ref = objectiveRefForSkill(
+      skill,
+      progress: progress,
+      phraseResolver: phraseResolver,
+    );
     if (ref != null) refs.add(ref);
   }
   return refs;

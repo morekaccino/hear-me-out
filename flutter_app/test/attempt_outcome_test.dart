@@ -545,7 +545,15 @@ void main() {
       expect(phrase.performanceDays, contains('2026-11-06'));
       expect(phrase.bestTempoBpm, 60);
       expect(phrase.bestAccuracy, 1);
-      expect(progress.skills, isEmpty);
+      expect(
+        progress.skills.keys.where((id) => id.startsWith('note:')),
+        isEmpty,
+      );
+      expect(progress.skills.keys, contains('phrase:twinkle.a'));
+      expect(
+        progress.skills['phrase:twinkle.a']!.family,
+        SkillFamily.repertoire,
+      );
       expect(progress.notes, isEmpty);
       expect(progress.xp, 0);
       expect(progress.streak, 0);
