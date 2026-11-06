@@ -475,12 +475,21 @@ class EtudeGenerator {
           break;
         }
         if (!changed) {
-          for (final option in options) {
-            if (scale[option] != scale[current]) {
-              indices[targetIndex] = option;
-              changed = true;
-              break;
+          for (var option = 0; option < scale.length; option++) {
+            if (scale[option] == scale[current]) continue;
+            if (targetIndex > 0 &&
+                (scale[option] - scale[indices[targetIndex - 1]]).abs() >
+                    spec.maxIntervalSemitones) {
+              continue;
             }
+            if (targetIndex + 1 < indices.length &&
+                (scale[option] - scale[indices[targetIndex + 1]]).abs() >
+                    spec.maxIntervalSemitones) {
+              continue;
+            }
+            indices[targetIndex] = option;
+            changed = true;
+            break;
           }
         }
         index = end + 1;
@@ -543,9 +552,23 @@ class EtudeGenerator {
           changed = true;
           break;
         }
-        if (!changed && options.isNotEmpty) {
-          result[target] = options.first;
-          changed = true;
+        if (!changed) {
+          for (final option in scale) {
+            if (option == current) continue;
+            if (target > 0 &&
+                (option - result[target - 1]).abs() >
+                    spec.maxIntervalSemitones) {
+              continue;
+            }
+            if (target + 1 < result.length &&
+                (option - result[target + 1]).abs() >
+                    spec.maxIntervalSemitones) {
+              continue;
+            }
+            result[target] = option;
+            changed = true;
+            break;
+          }
         }
         index = end + 1;
       }
@@ -561,7 +584,7 @@ class EtudeGenerator {
     required EtudeKey key,
     required EtudePosition position,
   }) {
-    if (pitches.length < 5) return pitches;
+    if (pitches.length < 3) return pitches;
 
     if (key.isMinor) {
       // The natural seventh becomes the raised leading tone at the cadence.
@@ -644,30 +667,68 @@ class EtudeGenerator {
     return pitches;
   }
 
-  /// Adds one chromatic neighbour to a stepwise pair.
+  /// Adds one chromatic neighbour to the phrase.
   ///
-  /// The replacement stays inside the level interval limit, so the phrase
-  /// keeps its shape. It is the fallback when a leading tone is not playable
-  /// in the phrase's position window.
+  /// The scan is exhaustive: every interior note is tested against every
+  /// playable chromatic pitch in the position window, and the first note is a
+  /// last resort. A replacement must stay inside the level interval limit, must
+  /// not create a third repeated note, and must leave a first-position phrase
+  /// with a fret 0-1 note. If no replacement exists, the phrase is returned
+  /// unchanged and the playability accidental rule rejects the candidate.
   List<int> _addChromaticNeighbour({
     required List<int> pitches,
     required EtudeKey key,
     required EtudePosition position,
   }) {
-    for (var index = 1; index < pitches.length - 2; index++) {
-      final current = pitches[index];
-      final next = pitches[index + 1];
-      if (current == next) continue;
-      final candidate = current < next ? next - 1 : next + 1;
-      if (candidate == current) continue;
-      if (key.containsPitchClass(candidate % 12)) continue;
-      if (!_isPlayable(candidate, position)) continue;
-      if ((candidate - pitches[index - 1]).abs() > spec.maxIntervalSemitones) {
-        continue;
+    if (pitches.length < 3) return pitches;
+    final existingPitchClasses = <int>{for (final pitch in pitches) pitch % 12};
+    final candidates =
+        _allPitchesInPosition(position)
+            .where((pitch) => !key.containsPitchClass(pitch % 12))
+            .where((pitch) => !existingPitchClasses.contains(pitch % 12))
+            .toSet()
+            .toList()
+          ..sort();
+    if (candidates.isEmpty) return pitches;
+
+    final order = <int>[
+      for (var index = 1; index < pitches.length - 2; index++) index,
+      0,
+    ];
+    for (final index in order) {
+      for (final candidate in candidates) {
+        if (index > 0 &&
+            (candidate - pitches[index - 1]).abs() >
+                spec.maxIntervalSemitones) {
+          continue;
+        }
+        if (index + 1 < pitches.length &&
+            (candidate - pitches[index + 1]).abs() >
+                spec.maxIntervalSemitones) {
+          continue;
+        }
+        if (index >= 2 &&
+            pitches[index - 1] == candidate &&
+            pitches[index - 2] == candidate) {
+          continue;
+        }
+        if (index + 2 < pitches.length &&
+            pitches[index + 1] == candidate &&
+            pitches[index + 2] == candidate) {
+          continue;
+        }
+        if (position == EtudePosition.first) {
+          final replaced = List<int>.from(pitches)..[index] = candidate;
+          final keepsFirstPosition = replaced.any(
+            (pitch) =>
+                _optionsFor(pitch, position).any((option) => option.fret <= 1),
+          );
+          if (!keepsFirstPosition) continue;
+        }
+        final result = List<int>.from(pitches);
+        result[index] = candidate;
+        return result;
       }
-      final result = List<int>.from(pitches);
-      result[index] = candidate;
-      return result;
     }
     return pitches;
   }
@@ -798,7 +859,7 @@ class EtudeGenerator {
     return options;
   }
 
-  List<int> _playablePitches(EtudePosition position, EtudeKey key) {
+  List<int> _allPitchesInPosition(EtudePosition position) {
     final low = position == EtudePosition.first
         ? spec.firstPositionLow
         : spec.secondPositionLow;
@@ -810,14 +871,17 @@ class EtudeGenerator {
       final open = _openStringMidi[string];
       if (open == null) continue;
       for (var fret = low; fret <= high; fret++) {
-        final soundingMidi = open + fret;
-        if (key.containsPitchClass(soundingMidi % 12)) {
-          pitches.add(soundingMidi);
-        }
+        pitches.add(open + fret);
       }
     }
     final sorted = pitches.toList()..sort();
     return sorted;
+  }
+
+  List<int> _playablePitches(EtudePosition position, EtudeKey key) {
+    return _allPitchesInPosition(position)
+        .where((pitch) => key.containsPitchClass(pitch % 12))
+        .toList();
   }
 
   int _chooseHome(List<int> playable, EtudeKey key, SeededRandom rng) {

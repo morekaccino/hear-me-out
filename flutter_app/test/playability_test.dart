@@ -414,5 +414,109 @@ void main() {
         expect(report.isValid, isFalse);
       },
     );
+
+    test('the level accidental count is enforced', () {
+      final events = <NoteEvent>[
+        _note(0, 1, 60, 2, 1), // C4
+        _note(1, 1, 66, 1, 2), // F#4, one accidental
+        _note(2, 1, 59, 2, 0), // B3
+        _note(3, 1, 60, 2, 1), // C4
+      ];
+      final score = _score(events);
+      final allowed = PlayabilityValidator(
+        score,
+        limits: const PlayabilityLimits(minAccidentals: 1, maxAccidentals: 1),
+      ).validate();
+      expect(allowed, isEmpty);
+
+      final tooMany = PlayabilityValidator(
+        score,
+        limits: const PlayabilityLimits(minAccidentals: 0, maxAccidentals: 0),
+      ).validate();
+      expect(
+        tooMany.map((issue) => issue.code),
+        contains('playability.accidentalCount'),
+      );
+
+      final issue = tooMany.firstWhere(
+        (entry) => entry.code == 'playability.accidentalCount',
+      );
+      expect(issue.severity, PlayabilitySeverity.error);
+      expect(issue.phraseId, 'test-etude-p1');
+      expect(issue.bar, 1);
+
+      final tooFew = PlayabilityValidator(
+        score,
+        limits: const PlayabilityLimits(minAccidentals: 2, maxAccidentals: 2),
+      ).validate();
+      expect(
+        tooFew.map((issue) => issue.code),
+        contains('playability.accidentalCount'),
+      );
+    });
+
+    test('a fretted shift wider than the limit is reported', () {
+      final events = <NoteEvent>[
+        _note(0, 1, 60, 2, 1), // C4, fret 1
+        _note(1, 1, 76, 1, 12), // E5, fret 12
+        _note(2, 1, 60, 2, 1),
+        _note(3, 1, 60, 2, 1),
+      ];
+      final issues = PlayabilityValidator(
+        _score(events),
+        limits: const PlayabilityLimits(maxShiftDistance: 7),
+      ).validate();
+      expect(
+        issues.map((issue) => issue.code),
+        contains('playability.shiftTooFar'),
+      );
+    });
+
+    test('an unparseable key is a warning, not an error', () {
+      final issues = PlayabilityValidator(
+        _score(_validEvents(), key: 'H major'),
+      ).validate();
+      final unknownKey = issues.firstWhere(
+        (issue) => issue.code == 'playability.unknownKey',
+      );
+      expect(unknownKey.isWarning, isTrue);
+      expect(unknownKey.isError, isFalse);
+    });
+
+    test('an empty final phrase does not throw', () {
+      final score = Score(
+        piece: Piece(
+          id: 'empty',
+          title: 'Empty',
+          composer: 'Hear Me Out',
+          license: 'original',
+          tuning: Tuning.standard,
+          timeSignature: const TimeSignature(4, 4),
+          key: 'C major',
+        ),
+        phrases: <Phrase>[
+          Phrase(
+            id: 'empty-p1',
+            bars: 1,
+            timeSignature: const TimeSignature(4, 4),
+            events: const <NoteEvent>[],
+            targetTempoBpm: 72,
+          ),
+        ],
+      );
+      final report = validateCandidateScore(score);
+      expect(
+        report.scoreIssues.map((issue) => issue.code),
+        contains('phrase.emptyEvents'),
+      );
+    });
+
+    test('a negative shift budget does not throw on an empty shift list', () {
+      final issues = PlayabilityValidator(
+        _score(_validEvents()),
+        limits: const PlayabilityLimits(maxShifts: -1),
+      ).validate();
+      expect(issues, isEmpty);
+    });
   });
 }

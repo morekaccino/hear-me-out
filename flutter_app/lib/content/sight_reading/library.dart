@@ -1,6 +1,7 @@
 import '../../core/music/playability.dart';
 import '../score/authoring.dart';
 import 'etude_generator.dart';
+import 'level_validation.dart';
 
 /// Review state of a generated etude candidate.
 ///
@@ -67,7 +68,8 @@ class GeneratedEtudeCandidate {
   ///
   /// Throws [ArgumentError] when the reviewer or date is blank, and
   /// [StateError] when the score fails `Score.validate()`, the T3.2 authoring
-  /// validator, or the T3.7 playability validator.
+  /// validator, the T3.7 playability validator, or the level grammar check.
+  /// An error or a warning blocks approval, matching the CLI policy.
   GeneratedEtudeCandidate approve({
     required String reviewer,
     required String reviewedOn,
@@ -95,13 +97,15 @@ class GeneratedEtudeCandidate {
       limits: etude.spec.playabilityLimits,
     );
     final authoringIssues = AuthoringValidator(etude.score).validate();
+    final grammarIssues = validateLevelGrammar(etude);
     final blocking = <String>[
       for (final issue in report.scoreIssues)
-        if (issue.isError) issue.toString(),
+        if (issue.isError || issue.isWarning) issue.toString(),
       for (final issue in report.playabilityIssues)
-        if (issue.isError) issue.toString(),
+        if (issue.isError || issue.isWarning) issue.toString(),
       for (final issue in authoringIssues)
-        if (issue.isError) issue.toString(),
+        if (issue.isError || issue.isWarning) issue.toString(),
+      for (final issue in grammarIssues) issue.toString(),
     ];
     if (blocking.isNotEmpty) {
       throw StateError(

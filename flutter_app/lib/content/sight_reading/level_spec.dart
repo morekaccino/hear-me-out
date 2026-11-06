@@ -177,6 +177,8 @@ class EtudeLevelSpec {
       allowedDurations: rhythmCells,
       requireTonicCadence: true,
       maxCadenceApproachSemitones: 2,
+      minAccidentals: minAccidentals,
+      maxAccidentals: maxAccidentals,
     );
   }
 

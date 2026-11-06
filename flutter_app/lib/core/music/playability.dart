@@ -113,6 +113,8 @@ class PlayabilityLimits {
     this.allowedDurations = const <double>[0.5, 1.0, 1.5, 2.0, 3.0],
     this.requireTonicCadence = true,
     this.maxCadenceApproachSemitones = 2,
+    this.minAccidentals,
+    this.maxAccidentals,
     this.tonicPitchClass,
   });
 
@@ -154,6 +156,14 @@ class PlayabilityLimits {
 
   /// Largest semitone interval allowed into the final tonic.
   final int maxCadenceApproachSemitones;
+
+  /// Inclusive lower bound on distinct accidental pitch classes. Null means
+  /// the level does not enforce a lower bound.
+  final int? minAccidentals;
+
+  /// Inclusive upper bound on distinct accidental pitch classes. Null means
+  /// the level does not enforce an upper bound.
+  final int? maxAccidentals;
 
   /// Optional tonic override. When null, the key name is parsed.
   final int? tonicPitchClass;
@@ -213,6 +223,7 @@ class PlayabilityValidator {
     _validateOpenStrings(issues);
     _validateShifts(issues);
     _validateCadence(issues);
+    _validateAccidentals(issues);
     return issues;
   }
 
@@ -310,6 +321,24 @@ class PlayabilityValidator {
     if (match == null) return null;
     final name = '${match.group(1)!.toLowerCase()}${match.group(2) ?? ''}';
     return _pitchClasses[name];
+  }
+
+  /// Pitch classes in the key signature for a key name such as `D major` or
+  /// `A minor`. Returns null when the key cannot be parsed.
+  ///
+  /// The keys are spelled as a tonic plus `major` or `minor`. A name without a
+  /// mode defaults to major.
+  static Set<int>? keyPitchClassesForKey(String key) {
+    final match = RegExp(r'^([A-Ga-g])([#b]?)').firstMatch(key.trim());
+    if (match == null) return null;
+    final name = '${match.group(1)!.toLowerCase()}${match.group(2) ?? ''}';
+    final tonic = _pitchClasses[name];
+    if (tonic == null) return null;
+    final isMinor = key.toLowerCase().contains('minor');
+    final intervals = isMinor
+        ? const <int>[0, 2, 3, 5, 7, 8, 10]
+        : const <int>[0, 2, 4, 5, 7, 9, 11];
+    return <int>{for (final interval in intervals) (tonic + interval) % 12};
   }
 
   static const Map<String, int> _pitchClasses = <String, int>{
@@ -523,8 +552,10 @@ class PlayabilityValidator {
 
   void _validateShifts(List<PlayabilityIssue> issues) {
     final shifts = findShifts();
-    if (shifts.length > limits.maxShifts) {
-      final excess = shifts[limits.maxShifts < 0 ? 0 : limits.maxShifts];
+    if (shifts.isEmpty) return;
+    final allowed = limits.maxShifts < 0 ? 0 : limits.maxShifts;
+    if (shifts.length > allowed) {
+      final excess = shifts[allowed];
       _add(
         issues,
         code: 'playability.tooManyShifts',
@@ -559,6 +590,7 @@ class PlayabilityValidator {
     if (score.phrases.isEmpty) return;
     final phrase = score.phrases.last;
     final phraseIndex = score.phrases.length - 1;
+    if (phrase.events.isEmpty) return;
     final notes = phrase.notes;
     if (notes.isEmpty || !phrase.events.last.isNote) {
       _add(
@@ -635,6 +667,77 @@ class PlayabilityValidator {
         phraseIndex: phraseIndex,
         bar: _barFor(phrase, last.startBeat),
         eventIndex: phrase.events.indexOf(last),
+      );
+    }
+  }
+
+  void _validateAccidentals(List<PlayabilityIssue> issues) {
+    if (limits.minAccidentals == null && limits.maxAccidentals == null) return;
+    final keyClasses = keyPitchClassesForKey(score.piece.key);
+    if (keyClasses == null) return;
+    final accidentalClasses = <int>{};
+    int? firstPhraseIndex;
+    String? firstPhraseId;
+    int? firstBar;
+    int? firstEventIndex;
+    for (
+      var phraseIndex = 0;
+      phraseIndex < score.phrases.length;
+      phraseIndex++
+    ) {
+      final phrase = score.phrases[phraseIndex];
+      for (
+        var eventIndex = 0;
+        eventIndex < phrase.events.length;
+        eventIndex++
+      ) {
+        final event = phrase.events[eventIndex];
+        final written = event.writtenNote;
+        if (!event.isNote || written == null) continue;
+        final pitchClass = written.midi % 12;
+        if (keyClasses.contains(pitchClass)) continue;
+        accidentalClasses.add(pitchClass);
+        if (firstPhraseIndex == null) {
+          firstPhraseIndex = phraseIndex;
+          firstPhraseId = phrase.id.isEmpty ? null : phrase.id;
+          firstBar = _barFor(phrase, event.startBeat);
+          firstEventIndex = eventIndex;
+        }
+      }
+    }
+
+    final count = accidentalClasses.length;
+    final minimum = limits.minAccidentals ?? 0;
+    if (count < minimum) {
+      final phrase = score.phrases.isEmpty ? null : score.phrases.first;
+      issues.add(
+        PlayabilityIssue(
+          code: 'playability.accidentalCount',
+          message:
+              'This level requires at least $minimum accidental pitch '
+              'class(es); the score has $count.',
+          phraseIndex: phrase == null ? null : 0,
+          phraseId: phrase?.id,
+          bar: phrase == null ? null : 1,
+          eventIndex: phrase == null ? null : 0,
+        ),
+      );
+      return;
+    }
+
+    final maximum = limits.maxAccidentals;
+    if (maximum != null && count > maximum) {
+      issues.add(
+        PlayabilityIssue(
+          code: 'playability.accidentalCount',
+          message:
+              'This level allows at most $maximum accidental pitch '
+              'class(es); the score has $count.',
+          phraseIndex: firstPhraseIndex,
+          phraseId: firstPhraseId,
+          bar: firstBar,
+          eventIndex: firstEventIndex,
+        ),
       );
     }
   }

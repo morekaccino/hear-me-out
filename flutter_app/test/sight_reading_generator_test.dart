@@ -5,7 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/content/score/authoring.dart';
 import 'package:hear_me_out/content/sight_reading/etude_generator.dart';
 import 'package:hear_me_out/content/sight_reading/level_spec.dart';
+import 'package:hear_me_out/content/sight_reading/level_validation.dart';
 import 'package:hear_me_out/content/sight_reading/library.dart';
+import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/music/note_event.dart';
 import 'package:hear_me_out/core/music/phrase.dart';
 import 'package:hear_me_out/core/music/playability.dart';
@@ -94,6 +96,52 @@ String _rhythmSignature(Phrase phrase) => phrase.events
     .map((event) => '${event.durationBeats}:${event.kind.name}')
     .join(',');
 
+/// Lowers the first accidental by a semitone so the score has none left.
+///
+/// Used to prove that the approval gate rejects a candidate which violates the
+/// level's accidental rule even when the rest of the score is structurally
+/// valid.
+GeneratedEtude _withoutAccidentals(GeneratedEtude etude) {
+  final keyClasses = PlayabilityValidator.keyPitchClassesForKey(
+    etude.score.piece.key,
+  )!;
+  final phrases = <Phrase>[];
+  var removed = false;
+  for (final phrase in etude.score.phrases) {
+    final events = <NoteEvent>[];
+    for (final event in phrase.events) {
+      final written = event.writtenNote;
+      final fret = event.fret;
+      if (!removed &&
+          event.isNote &&
+          written != null &&
+          fret != null &&
+          fret > 0 &&
+          !keyClasses.contains(written.midi % 12)) {
+        events.add(
+          event.copyWith(
+            writtenNote: Note.fromMidi(written.midi - 1),
+            soundingMidi: event.soundingMidi! - 1,
+            fret: fret - 1,
+          ),
+        );
+        removed = true;
+        continue;
+      }
+      events.add(event);
+    }
+    phrases.add(phrase.copyWith(events: events));
+  }
+  expect(removed, isTrue, reason: 'the candidate had no removable accidental');
+  return GeneratedEtude(
+    level: etude.level,
+    seed: etude.seed,
+    spec: etude.spec,
+    key: etude.key,
+    score: Score(piece: etude.score.piece, phrases: phrases),
+  );
+}
+
 void _expectValidCandidate(GeneratedEtude etude, String reason) {
   final report = validateCandidateScore(
     etude.score,
@@ -113,6 +161,9 @@ void _expectValidCandidate(GeneratedEtude etude, String reason) {
   final authoring = AuthoringValidator(etude.score).validate();
   expect(authoring, isEmpty, reason: '$reason\n${authoring.join('\n')}');
 
+  final grammar = validateLevelGrammar(etude);
+  expect(grammar, isEmpty, reason: '$reason\n${grammar.join('\n')}');
+
   final json = etude.toAuthoringJson();
   final parsed = parseAuthoringDocument(json);
   expect(
@@ -124,7 +175,7 @@ void _expectValidCandidate(GeneratedEtude etude, String reason) {
 
 void main() {
   const levels = <int>[1, 2, 3, 4, 5];
-  const matrixSeeds = <int>[0, 1, 2, 3, 7, 11, 42, 99, 123, 2024];
+  const matrixSeeds = <int>[0, 1, 2, 3, 7, 11, 15, 42, 43, 99, 123, 2024];
 
   test('the same level and seed produce the same etude', () {
     for (final level in levels) {
@@ -337,6 +388,55 @@ void main() {
     }
   });
 
+  test('level 3 always adds exactly one accidental over seeds 0-2000', () {
+    // The independent review found these seeds emitting zero accidentals
+    // before the exhaustive injection. Keep the full list as a regression
+    // set and run the count over the whole sweep.
+    const formerlyFailing = <int>[
+      15,
+      29,
+      43,
+      230,
+      360,
+      382,
+      422,
+      463,
+      466,
+      530,
+      713,
+      734,
+      786,
+      815,
+      824,
+      955,
+      999,
+      1004,
+      1241,
+      1416,
+      1586,
+      1589,
+      1623,
+      1624,
+      1638,
+      1645,
+      1675,
+      1775,
+      1795,
+    ];
+    for (var seed = 0; seed <= 2000; seed++) {
+      final etude = EtudeGenerator(level: 3, seed: seed).generate();
+      expect(
+        _accidentalPitchClasses(etude.score),
+        hasLength(1),
+        reason: 'level 3 seed $seed must have exactly one accidental',
+      );
+    }
+    for (final seed in formerlyFailing) {
+      final etude = EtudeGenerator(level: 3, seed: seed).generate();
+      _expectValidCandidate(etude, 'formerly failing level 3 seed $seed');
+    }
+  });
+
   test('invalid levels and seeds are rejected explicitly', () {
     for (final level in <int>[-1, 0, 6, 99]) {
       expect(
@@ -443,6 +543,54 @@ void main() {
     expect(candidate.isApproved, isFalse);
   });
 
+  test('a level-mismatched candidate is rejected by the approval gate', () {
+    final generated = EtudeGenerator(level: 3, seed: 43).generate();
+    final mismatched = GeneratedEtude(
+      level: 1,
+      seed: generated.seed,
+      spec: generated.spec,
+      key: generated.key,
+      score: generated.score,
+    );
+    final issues = validateLevelGrammar(mismatched);
+    expect(
+      issues.map((issue) => issue.code),
+      contains('grammar.levelMismatch'),
+    );
+    final candidate = GeneratedEtudeCandidate(etude: mismatched);
+    expect(
+      () => candidate.approve(reviewer: 'Pedagogue', reviewedOn: '2026-11-06'),
+      throwsStateError,
+    );
+    expect(candidate.isApproved, isFalse);
+  });
+
+  test('a level-3 candidate without its accidental is rejected', () {
+    final generated = EtudeGenerator(level: 3, seed: 43).generate();
+    final withoutAccidentals = _withoutAccidentals(generated);
+    final report = validateCandidateScore(
+      withoutAccidentals.score,
+      limits: withoutAccidentals.spec.playabilityLimits,
+    );
+    expect(
+      report.playabilityIssues.map((issue) => issue.code),
+      contains('playability.accidentalCount'),
+    );
+    expect(
+      validateLevelGrammar(withoutAccidentals).map((issue) => issue.code),
+      contains('grammar.accidentalCount'),
+    );
+    final candidate = GeneratedEtudeCandidate(etude: withoutAccidentals);
+    expect(
+      () => candidate.approve(reviewer: 'Pedagogue', reviewedOn: '2026-11-06'),
+      throwsA(
+        predicate<Object>(
+          (error) => error.toString().contains('accidentalCount'),
+        ),
+      ),
+    );
+  });
+
   test('the CLI writes a validated candidate to a scratch folder only', () {
     final assetDirectory = Directory('assets/content/etudes');
     final assetFilesBefore = assetDirectory
@@ -496,6 +644,25 @@ void main() {
     );
     expect(secondFile.readAsStringSync(), file.readAsStringSync());
 
+    final seed43Out = Directory('${temporary.path}/seed43');
+    final seed43Err = StringBuffer();
+    expect(
+      runCli(
+        <String>['--level', '3', '--seed', '43', '--out', seed43Out.path],
+        out: StringBuffer(),
+        err: seed43Err,
+      ),
+      0,
+      reason: seed43Err.toString(),
+    );
+    expect(
+      File(
+        '${seed43Out.path}${Platform.pathSeparator}'
+        'etude-candidate-l3-s43.json',
+      ).existsSync(),
+      isTrue,
+    );
+
     expect(
       assetDirectory.listSync(recursive: true).whereType<File>().length,
       assetFilesBefore,
@@ -542,10 +709,27 @@ void main() {
     );
   });
 
+  test('the CLI rejects a level-mismatched candidate', () {
+    final temporary = Directory.systemTemp.createTempSync('t3_7_cli_mismatch_');
+    addTearDown(() => temporary.deleteSync(recursive: true));
+    final err = StringBuffer();
+    final code = runCli(
+      <String>['--level', '1', '--seed', '43', '--out', temporary.path],
+      out: StringBuffer(),
+      err: err,
+      generateCandidate: (level, seed) =>
+          EtudeGenerator(level: 3, seed: 43).generate(),
+    );
+    expect(code, 1);
+    expect(err.toString(), contains('level'));
+    expect(temporary.listSync(), isEmpty);
+  });
+
   test('no unlimited claim appears in the generator or its docs', () {
     final files = <String>[
       'lib/content/sight_reading/etude_generator.dart',
       'lib/content/sight_reading/level_spec.dart',
+      'lib/content/sight_reading/level_validation.dart',
       'lib/content/sight_reading/library.dart',
       'lib/core/music/playability.dart',
       'tool/content/generate_etude.dart',

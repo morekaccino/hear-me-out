@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:hear_me_out/content/score/authoring.dart';
 import 'package:hear_me_out/content/sight_reading/etude_generator.dart';
+import 'package:hear_me_out/content/sight_reading/level_validation.dart';
 import 'package:hear_me_out/core/music/playability.dart';
 
 const String usage = '''
@@ -39,6 +40,7 @@ int runCli(
   StringSink? out,
   StringSink? err,
   String? workingDirectory,
+  GeneratedEtude Function(int level, int seed)? generateCandidate,
 }) {
   final sink = out ?? stdout;
   final errorSink = err ?? stderr;
@@ -118,9 +120,18 @@ int runCli(
 
   final GeneratedEtude etude;
   try {
-    etude = generator.generate();
+    etude = generateCandidate?.call(level, seed) ?? generator.generate();
   } on StateError catch (error) {
     errorSink.writeln('Generation failed: ${error.message}');
+    return 1;
+  }
+
+  if (etude.level != level || etude.spec.level != level) {
+    errorSink.writeln(
+      'Candidate ${etude.candidateId} is level ${etude.level} with grammar '
+      'level ${etude.spec.level}; the requested level is $level.',
+    );
+    errorSink.writeln('Nothing was written.');
     return 1;
   }
 
@@ -134,6 +145,7 @@ int runCli(
       limits: etude.spec.playabilityLimits,
     ).validate())
       if (issue.isError || issue.isWarning) issue.toString(),
+    for (final issue in validateLevelGrammar(etude)) issue.toString(),
   ];
   if (issues.isNotEmpty) {
     errorSink.writeln('Candidate ${etude.candidateId} failed validation:');

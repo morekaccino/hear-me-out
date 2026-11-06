@@ -21,6 +21,7 @@ generated musical quality, beginner playability, or coverage.
 | Deterministic generator | `flutter_app/lib/content/sight_reading/etude_generator.dart` | Beta tooling |
 | Level grammar | `flutter_app/lib/content/sight_reading/level_spec.dart` | Beta tooling |
 | Seeded RNG | `flutter_app/lib/content/sight_reading/seeded_random.dart` | Stable for this beta |
+| Level grammar check | `flutter_app/lib/content/sight_reading/level_validation.dart` | Candidate gate |
 | Approval gate | `flutter_app/lib/content/sight_reading/library.dart` | Pending-human default |
 | Playability validator | `flutter_app/lib/core/music/playability.dart` | Pure Dart |
 | Candidate CLI | `flutter_app/tool/content/generate_etude.dart` | Scratch output only |
@@ -65,7 +66,10 @@ Grammar rules enforced by the generator:
   tonic cadence.
 - **Accidentals:** level 3 adds exactly one chromatic note in its answer phrase:
   a chromatic neighbour to a stepwise pair in major, or a raised leading tone
-  at the cadence in minor. Other levels stay in the key.
+  at the cadence in minor. The injection scans every playable chromatic pitch
+  in the phrase window; if none satisfies the interval and position rules, the
+  candidate fails validation instead of being written. Other levels stay in the
+  key. The playability validator enforces the level's accidental count.
 - **Texture:** strictly monophonic. No chords, double stops, overlaps, slurs,
   or ties.
 - **Pitch:** written pitch is one octave above sounding pitch. The generator
@@ -117,6 +121,7 @@ T3.2 authoring checks too.
 | `playability.stringRange` | String inside the level envelope. |
 | `playability.fretRange` | Fret inside the level envelope. |
 | `playability.rhythmCell` | Every event duration is an allowed level cell. |
+| `playability.accidentalCount` | Distinct written pitch classes outside the key signature stay inside the level range. Level 3 requires exactly one. |
 | `playability.stretch` | Fretted notes in one phrase fit one hand position (`maxStretch`, default 4 frets). |
 | `playability.stringCrossing` | Consecutive notes skip at most `maxStringSkip` strings. |
 | `playability.repeatedNote` | No more than `maxConsecutiveRepeatedNotes` identical pitches in a row. The default is 4 so the reviewed T3.6 set passes; generated candidates use 2. |
@@ -158,8 +163,9 @@ authoring envelope, with `authoring.kind: etude` and
 `authoring.reviewedBy: Pending human pedagogue review`.
 
 The CLI validates the candidate with `Score.validate()`, `AuthoringValidator`,
-and the level playability limits before writing. A failed candidate is not
-written.
+the level playability limits, and the level grammar check before writing. A
+failed candidate is not written. A candidate whose declared level or grammar
+does not match `--level` exits 1.
 
 Exit codes:
 
@@ -185,10 +191,11 @@ the written path.
    feels right. This is the T3.8 review surface.
 4. **Record the decision.** `GeneratedEtudeLibrary.register` always creates a
    `pending-human` record. `approve` requires a reviewer and a date, re-runs
-   both validators, and refuses an invalid candidate. `reject` records a
-   rejection without changing the score. `approved` and `approvedEtudes`
-   expose only approved records; `pendingHuman` is a review queue, not a
-   library view.
+   the score, authoring, playability, and level-grammar checks, and refuses a
+   candidate with any error or warning. The CLI uses the same clean-candidate
+   policy. `reject` records a rejection without changing the score. `approved`
+   and `approvedEtudes` expose only approved records; `pendingHuman` is a
+   review queue, not a library view.
 5. **Promote by hand.** To enter the shipped library, a human copies the
    approved file into `assets/content/etudes/level_<n>/`, gives it a stable
    `etude-l<n>-<nn>` id and phrase ids, updates
@@ -249,9 +256,10 @@ flutter build web --release
 ```
 
 The tests cover deterministic generation, a level/seed validation matrix,
-level-limit enforcement, invalid grammar rejection, the 60-etude playability
-pass and content hashes, the approval gate, the CLI's scratch-only output,
-and the no-unlimited-claim check.
+level-limit enforcement, the 0-2000 level-3 accidental sweep, invalid grammar
+rejection, the 60-etude playability pass and content hashes, the approval gate
+and its level-mismatch rejection, the CLI's scratch-only output and
+level-mismatch rejection, and the no-unlimited-claim check.
 
 ## 10. Related documents
 
