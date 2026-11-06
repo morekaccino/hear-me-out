@@ -331,14 +331,20 @@ Then open <http://127.0.0.1:8080/>.
 - **Mic lifecycle:** every screen that owns a source uses a generation token
   and disposes stale starts. Do not remove those guards.
 - **Recording pipeline:** one live take at a time, never a second
-  `AudioRecorder`. 60 s per take, 20 takes, 200 MB, first and last take per
-  piece. WAV storage goes through `RecordingEncoder` (V1 is WAV, not AAC; see
-  decision 0009). The manifest is the versioned `hear_me_out_recordings_v1`
-  document, never `ProgressState`. Permission, quota, and storage failures are
-  typed and shown, not thrown into the UI. Reconcile removes unreferenced blobs
-  and missing index entries but adopts media when the index is unreadable.
-  Export copies bytes without deleting or changing the take. The screen shows
-  the conditional backup copy; no A/B or before/after claim ships in T4.2.
+  `AudioRecorder`. The recordings controller is auto-disposed with the route and
+  stops/discards a live take on exit; the microphone must never stay on behind
+  Practice. 60 s per take, 20 takes, 200 MB, first and last take per piece. The
+  screen's optional launch-piece selector is the production path that supplies
+  a `pieceId` for retention. WAV storage goes through `RecordingEncoder` (V1 is
+  WAV, not AAC; see decision 0009). The manifest is the versioned
+  `hear_me_out_recordings_v1` document, never `ProgressState`. Commit the new
+  manifest before deleting retention victims; a failed manifest write must leave
+  every older take intact. Permission, quota, and storage failures are typed and
+  shown, not thrown into the UI. Reconcile removes unreferenced blobs and
+  missing index entries but adopts media when the index is missing, unreadable,
+  or partially malformed. Export copies bytes without deleting or changing the
+  take. The screen shows the conditional backup copy; no A/B or before/after
+  claim ships in T4.2.
 
 ## Testing notes
 

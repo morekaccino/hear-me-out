@@ -162,9 +162,9 @@ run the app on a physical phone with a guitar and check:
    pitch (not ~8.8% high). Synthetic tests cover the decode/resample path, but
    this checklist item is not yet verified on hardware.
 7. Killing and reopening the app restores XP, streak, skills, and note boxes.
-8. **Pending — needs physical-device evidence.** After T4.2 adds recording,
-   record a take, run an Android Auto Backup, an Android device-transfer target,
-   and an iCloud backup, and confirm the `media/` directory is absent from each.
+8. **Pending - needs physical-device evidence.** After recording a take, run an
+   Android Auto Backup, an Android device-transfer target, and an iCloud backup,
+   and confirm the `media/` directory is absent from each.
    Source tests prove the rules and resource-value call exist; only a device
    backup proves the OS honored them.
 
@@ -218,16 +218,18 @@ session rules.
 - The microphone is active only during a lesson, practice, tuner, or recording
   session. Audio is analyzed on the device for feedback and is never uploaded.
 - Progress is stored in `shared_preferences` on the device.
-- Recording follows a local-only model (the recording UI arrives in T4.2). When
-  you record a take, the audio is stored only on the device. Android Auto Backup
-  and device transfer exclude the recording directory through manifest rules.
-  On iOS the app asks iOS to exclude the directory from iCloud backup; the
-  profile card says when iOS could not confirm that, so a take may then be
-  included in device backup. The app never claims exclusion without that
-  confirmation.
-- T4.2 adds the recording, delete, and export controls. When it lands, a take
-  will leave the device only through an explicit export you start, and deleting
-  a take will remove it from the device.
+- Recording follows a local-only model. When you record a take, the audio is
+  stored only on the device as a bounded PCM16 WAV file. Android Auto Backup and
+  device transfer exclude the recording directory through manifest rules. On iOS
+  the app asks iOS to exclude the directory from iCloud backup; the profile card
+  says when iOS could not confirm that, so a take may then be included in device
+  backup. The app never claims exclusion without that confirmation.
+- Takes are capped at 60 seconds, 20 takes, and 200 MB locally. V1 stores WAV,
+  not AAC, and recording quality is not validated on every device. The Practice
+  **Recordings** screen owns record, play, delete, clear-all, and export.
+- A take leaves the device only through an explicit export you start, and
+  deleting a take removes it from the device. An exported copy is a normal file
+  outside the `media/` backup exclusion.
 - There is no Firebase, no Firestore, no auth, no remote analytics or
   third-party trackers, no account, no cloud sync, and no network persistence
   layer. The only usage log is local, opt-in, bounded, and eraseable; see

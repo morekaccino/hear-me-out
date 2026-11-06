@@ -531,11 +531,15 @@ a life.
 
 A local take recorder reached from Practice; the tuner stops before the route
 opens because the platform recorder is shared. Record/stop stays in one card,
-with the 60-second limit visible. The take list shows date, piece or phrase,
-duration, and size, and offers play, export, and delete. Usage is shown as
-“takes used / 20” and bytes used / 200 MB. A full quota or a storage failure
-shows a specific message and a delete action; it never silently overwrites a
-take. **Clear all** requires confirmation.
+with the 60-second limit visible and an optional launch-piece selector. Choosing
+a piece gives the take a stable `pieceId`, which is what makes the first/last
+per-piece retention rule reachable. Leaving the screen stops and discards a live
+take; the microphone never stays on behind Practice.
+
+The take list shows date, piece or phrase, duration, and size, and offers play,
+export, and delete. Usage is shown as “takes used / 20” and bytes used / 200 MB.
+A full quota or a storage failure shows a specific message and a delete action;
+it never silently overwrites a take. **Clear all** requires confirmation.
 
 The privacy card sits above the record control and uses the conditional
 `MediaPrivacyCard` copy. Never claim backup exclusion unless the platform

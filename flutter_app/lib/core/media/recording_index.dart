@@ -160,7 +160,7 @@ class RecordingTake {
 /// schema versions are rejected instead of guessed, matching the backup and
 /// media-index rules.
 class RecordingIndex {
-  RecordingIndex(Iterable<RecordingTake> takes)
+  RecordingIndex(Iterable<RecordingTake> takes, {this.skippedEntries = 0})
     : takes = List<RecordingTake>.unmodifiable(_sorted(takes));
 
   /// Version of the index document written by this build.
@@ -170,7 +170,14 @@ class RecordingIndex {
 
   final List<RecordingTake> takes;
 
+  /// Number of rows dropped by [RecordingIndex.fromJson] because they could
+  /// not be parsed. A non-zero value means the index is partially corrupt; the
+  /// service adopts unreferenced blobs instead of deleting them.
+  final int skippedEntries;
+
   bool get isEmpty => takes.isEmpty;
+
+  bool get isNotEmpty => takes.isNotEmpty;
 
   int get length => takes.length;
 
@@ -188,10 +195,12 @@ class RecordingIndex {
     for (final existing in takes)
       if (existing.id != take.id) existing,
     take,
-  ]);
+  ], skippedEntries: skippedEntries);
 
-  RecordingIndex remove(String id) =>
-      RecordingIndex(takes.where((take) => take.id != id));
+  RecordingIndex remove(String id) => RecordingIndex(
+    takes.where((take) => take.id != id),
+    skippedEntries: skippedEntries,
+  );
 
   /// Takes for [pieceId] in chronological order. A null piece id returns every
   /// free take.
@@ -219,11 +228,16 @@ class RecordingIndex {
       throw const FormatException('Recording index must contain a takes list.');
     }
     final parsed = <RecordingTake>[];
+    var skipped = 0;
     for (final raw in rawTakes) {
       final take = RecordingTake.tryFromJson(raw);
-      if (take != null) parsed.add(take);
+      if (take != null) {
+        parsed.add(take);
+      } else {
+        skipped++;
+      }
     }
-    return RecordingIndex(parsed);
+    return RecordingIndex(parsed, skippedEntries: skipped);
   }
 
   static List<RecordingTake> _sorted(Iterable<RecordingTake> takes) {

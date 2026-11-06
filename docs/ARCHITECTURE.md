@@ -431,41 +431,49 @@ second `AudioRecorder` and no simultaneous record and stream.
 - Quota and retention: 60 seconds per take, 20 takes globally, and a 200 MB
   global byte cap. The first and last take per piece are protected
   (`pieceTakeLimit` is 2). A new take for a piece deletes only middle takes;
-  it never deletes the first take or the take just saved. A full global quota
-  is a typed `RecordingFailureKind.quota` failure with a UI message and a
-  delete action; the service never overwrites user data. A store failure leaves
-  existing takes readable and indexes nothing new.
+  it never deletes the first take or the take just saved. The new manifest is
+  committed **before** any retention victim is deleted, so a failed manifest
+  write removes only the new blob and leaves every older take intact. A full
+  global quota is a typed `RecordingFailureKind.quota` failure with a UI
+  message and a delete action; the service never overwrites user data. A store
+  failure leaves existing takes readable and indexes nothing new.
 - `core/media/recording_index.dart` is a versioned document stored under
   `hear_me_out_recordings_v1` by `SharedPreferencesRecordingIndexStore`. It is
   separate from `ProgressState` and is not part of the progress backup.
   `reconcile` removes index entries whose blob is missing and deletes blobs the
-  index does not reference. If the index is missing or unreadable, the service
-  adopts the existing blobs instead of deleting them. An unreadable document is
-  copied to `hear_me_out_recordings_unreadable` before a recovered index can
-  replace it. The recordings screen reconciles when it opens and has a manual
-  **Check storage** action.
+  index does not reference. If the index is missing, unreadable, or partially
+  malformed, the service adopts the existing blobs instead of deleting them.
+  An unreadable document is copied to `hear_me_out_recordings_unreadable`
+  before a recovered index can replace it. The recordings screen reconciles
+  when it opens and has a manual **Check storage** action.
 - `core/media/recording_exporter.dart` copies bytes without changing the stored
   take. IO writes under the app support `exports/` directory; web uses
   `package:web` to download the WAV. There is no share or cloud package.
-- `state/recording_controller.dart` exposes capture, list, delete, export,
-  clear-all, and reconcile state. It records `first_recording` through
-  `RetentionController` only after a take is saved, and calls the weekly
-  `recordRecordingMade` quest counter once per saved take. `features/recordings/`
-  renders the record/stop controls, the take list with local play/export/delete,
-  usage and cap, an empty state, and `MediaPrivacyCard`. `PracticeScreen` opens
-  it after stopping the tuner. The screen has no hearts, gems, XP, or streak, and
-  it does not implement T4.3 A/B playback or the T4.4 before/after card.
+- `state/recording_controller.dart` is auto-disposed with the recordings route.
+  Its dispose stops and discards a live take, so the microphone never remains
+  open behind Practice. It exposes capture, list, delete, export, clear-all,
+  and reconcile state. It records `first_recording` through `RetentionController`
+  only after a take is saved, and calls the weekly `recordRecordingMade` quest
+  counter once per saved take. `features/recordings/` renders the record/stop
+  controls, an optional launch-piece selector, the take list with local
+  play/export/delete, usage and cap, an empty state, and `MediaPrivacyCard`.
+  The piece selector is the production path that makes first/last retention
+  reachable. `PracticeScreen` opens the screen after stopping the tuner. The
+  screen has no hearts, gems, XP, or streak, and it does not implement T4.3 A/B
+  playback or the T4.4 before/after card.
 - Backup exclusion remains decision [`0002`](decisions/0002-backup-exclusion-no-opt-in.md):
   the screen shows the conditional `MediaPrivacyCard` copy and never claims
   exclusion when the platform did not confirm it.
 
 Tests: `test/recording_service_test.dart` covers permission denial, the
 60-second auto-stop and truncation, busy/no-second-capture, global and byte
-quotas, disk failure with existing takes, delete/clear, export without
-mutation, first/last retention, and both reconciliation directions.
+quotas, disk failure with existing takes, a failed manifest write that keeps the
+previous last take, delete/clear, export without mutation, first/last retention,
+both reconciliation directions, and adoption of a partially malformed index.
 `test/recording_index_store_test.dart`, `test/recording_exporter_test.dart`, and
-`test/recordings_screen_test.dart` cover the versioned index, IO exports, and
-the 390x844 / 1200 px screen with conditional privacy copy.
+`test/recordings_screen_test.dart` cover the versioned index, IO exports, the
+390x844 / 1200 px screen with conditional privacy copy, route-exit microphone
+shutdown, and the piece-scoped retention path.
 
 ## Retention instrumentation
 

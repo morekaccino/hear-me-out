@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/media/recording_index.dart';
 import '../../core/media/recording_service.dart';
+import '../../content/pieces/launch_pieces.dart';
 import '../../shared/audio/take_player.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/duo_button.dart';
@@ -28,6 +29,7 @@ class RecordingsScreen extends ConsumerStatefulWidget {
 
 class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
   late final TakePlayer _player;
+  String? _selectedPieceId;
 
   @override
   void initState() {
@@ -226,6 +228,50 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
             ],
           ),
           const SizedBox(height: DuoSpacing.xxs),
+          Text(
+            'Link this take to a piece (optional)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: DuoSpacing.xxs),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border, width: 1.5),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String?>(
+                key: const ValueKey('recording-piece'),
+                value: _selectedPieceId,
+                isExpanded: true,
+                hint: const Text('Free take'),
+                items: <DropdownMenuItem<String?>>[
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('Free take'),
+                  ),
+                  for (final piece in launchPieces)
+                    DropdownMenuItem<String?>(
+                      value: piece.piece.id,
+                      child: Text(
+                        piece.piece.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: state.starting || state.recording || state.busy
+                    ? null
+                    : (value) => setState(() => _selectedPieceId = value),
+              ),
+            ),
+          ),
+          const SizedBox(height: DuoSpacing.xs),
           Text(
             status,
             style: TextStyle(
@@ -564,7 +610,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     // Never play a stored take into a live microphone.
     await _player.stop();
     if (!mounted) return;
-    await controller.startTake();
+    await controller.startTake(pieceId: _selectedPieceId);
   }
 
   Future<void> _play(RecordingTake take) async {
@@ -702,10 +748,17 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
 
 String _takeLabel(RecordingTake take) {
   final parts = <String>[
-    if (take.pieceId != null) _pretty(take.pieceId!),
+    if (take.pieceId != null) _pieceTitle(take.pieceId!),
     if (take.phraseId != null) _pretty(take.phraseId!),
   ];
   return parts.isEmpty ? 'Free take' : parts.join(' · ');
+}
+
+String _pieceTitle(String pieceId) {
+  for (final piece in launchPieces) {
+    if (piece.piece.id == pieceId) return piece.piece.title;
+  }
+  return _pretty(pieceId);
 }
 
 String _pretty(String value) {

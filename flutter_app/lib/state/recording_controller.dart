@@ -81,6 +81,9 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
     ref.onDispose(() {
       _disposed = true;
       unawaited(_autoStops?.cancel());
+      // The route is gone. Stop and discard a live take so the microphone is
+      // never left running behind Practice.
+      unawaited(_service.cancel());
     });
 
     final report = await service.reconcile();
@@ -289,6 +292,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
 }
 
 final recordingControllerProvider =
-    AsyncNotifierProvider<RecordingController, RecordingScreenState>(
-      RecordingController.new,
-    );
+    AsyncNotifierProvider.autoDispose<
+      RecordingController,
+      RecordingScreenState
+    >(RecordingController.new);

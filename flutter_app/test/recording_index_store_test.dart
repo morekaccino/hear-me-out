@@ -86,6 +86,7 @@ void main() {
     });
 
     expect(index.takes.single.id, 'good');
+    expect(index.skippedEntries, 1);
   });
 
   test('clear removes the document', () async {

@@ -14,6 +14,7 @@ import 'package:hear_me_out/core/media/recording_service.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/core/storage/retention_store.dart';
+import 'package:hear_me_out/content/pieces/launch_pieces.dart';
 import 'package:hear_me_out/features/recordings/recordings_screen.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
 import 'package:hear_me_out/state/providers.dart';
@@ -77,6 +78,29 @@ Widget _build(
   _Harness harness, {
   BackupExclusionResult backup = const BackupExclusionResult.failed('denied'),
 }) {
+  return _shell(harness, const RecordingsScreen(), backup);
+}
+
+Widget _buildNavigated(_Harness harness) {
+  return _shell(
+    harness,
+    Builder(
+      builder: (context) => Scaffold(
+        body: Center(
+          child: TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RecordingsScreen()),
+            ),
+            child: const Text('Open recordings'),
+          ),
+        ),
+      ),
+    ),
+    const BackupExclusionResult.failed('denied'),
+  );
+}
+
+Widget _shell(_Harness harness, Widget home, BackupExclusionResult backup) {
   return ProviderScope(
     overrides: [
       recordingServiceProvider.overrideWithValue(AsyncData(harness.service)),
@@ -86,7 +110,7 @@ Widget _build(
       retentionStoreProvider.overrideWithValue(harness.retention),
       progressStoreProvider.overrideWithValue(harness.progressStore),
     ],
-    child: MaterialApp(theme: AppTheme.light, home: const RecordingsScreen()),
+    child: MaterialApp(theme: AppTheme.light, home: home),
   );
 }
 
@@ -161,10 +185,9 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('record-button')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Free take'), findsOneWidget);
+    expect(find.text('Free take'), findsWidgets);
     expect(find.text('0:01'), findsOneWidget);
-    expect(find.byKey(const ValueKey('recording-usage-count')), findsOneWidget);
-    expect(find.text('1 / 20 takes'), findsOneWidget);
+    expect(find.text('1 of 20 takes stored'), findsOneWidget);
     expect(find.text('Take saved on this device.'), findsOneWidget);
     expect(await harness.store.list(), hasLength(1));
     expect(
@@ -261,7 +284,7 @@ void main() {
 
     await tester.pumpWidget(_build(harness));
     await tester.pumpAndSettle();
-    expect(find.text('Free take'), findsOneWidget);
+    expect(find.text('Free take'), findsWidgets);
 
     await tester.drag(
       find.byKey(const ValueKey('recordings-list')),
@@ -306,6 +329,77 @@ void main() {
     expect(find.text('STOP'), findsNothing);
     expect(find.text('RECORD'), findsOneWidget);
     expect(find.text('Stopped at 60 s'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('leaving the screen stops and discards a live take', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await tester.pumpWidget(_buildNavigated(harness));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Open recordings'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(harness.service.isRecording, isTrue);
+
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Open recordings'), findsOneWidget);
+    expect(harness.service.isRecording, isFalse);
+    expect(harness.capture.stopCalls, greaterThanOrEqualTo(1));
+    expect(await harness.store.list(), isEmpty);
+
+    // The recorder is free again, so Practice can open its tuner or start a
+    // new take without a second capture.
+    final restart = await harness.service.start();
+    expect(restart.started, isTrue);
+    expect(harness.capture.startCalls, 2);
+    await tester.pump(const Duration(milliseconds: 100));
+    await harness.service.cancel();
+    await harness.service.dispose();
+  });
+
+  testWidgets('a selected piece makes per-piece retention reachable', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    final piece = launchPieces.first.piece;
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('recording-piece')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(piece.title).last);
+    await tester.pumpAndSettle();
+
+    Future<void> recordOnce() async {
+      await tester.tap(find.byKey(const ValueKey('record-button')));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.tap(find.byKey(const ValueKey('record-button')));
+      await tester.pumpAndSettle();
+    }
+
+    await recordOnce();
+    await recordOnce();
+    await recordOnce();
+
+    final takes = await harness.service.listTakes();
+    expect(takes, hasLength(2));
+    expect(takes.every((take) => take.pieceId == piece.id), isTrue);
+    expect(await harness.store.list(), hasLength(2));
+    expect(find.text(piece.title), findsWidgets);
+    expect(find.text('2 of 20 takes stored'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
   });

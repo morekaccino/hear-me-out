@@ -192,6 +192,7 @@ class RecordingService {
   bool _starting = false;
   bool _finishing = false;
   bool _disposed = false;
+  int _generation = 0;
 
   bool get isRecording => _recording;
 
@@ -215,12 +216,19 @@ class RecordingService {
     }
 
     _starting = true;
+    final generation = ++_generation;
     try {
       final index = await _loadIndex();
+      if (generation != _generation) {
+        return _startFailed(_cancelledFailure());
+      }
       if (index.length >= takeLimit) {
         return _startFailed(_quotaFailure());
       }
       final usage = await _store.usageBytes();
+      if (generation != _generation) {
+        return _startFailed(_cancelledFailure());
+      }
       if (usage >= byteLimit) {
         return _startFailed(_byteQuotaFailure());
       }
@@ -229,6 +237,10 @@ class RecordingService {
       try {
         recorder = _recorderFactory();
         final started = await recorder.start();
+        if (generation != _generation) {
+          await recorder.dispose();
+          return _startFailed(_cancelledFailure());
+        }
         if (!started) {
           await recorder.dispose();
           return _startFailed(
@@ -249,6 +261,11 @@ class RecordingService {
         );
       }
 
+      if (generation != _generation) {
+        await recorder.dispose();
+        return _startFailed(_cancelledFailure());
+      }
+
       _pieceId = pieceId;
       _phraseId = phraseId;
       final RecordingTimer timer;
@@ -265,6 +282,11 @@ class RecordingService {
             cause: error,
           ),
         );
+      }
+      if (generation != _generation) {
+        timer.cancel();
+        await recorder.dispose();
+        return _startFailed(_cancelledFailure());
       }
       _recorder = recorder;
       _recording = true;
@@ -335,6 +357,28 @@ class RecordingService {
       _pieceId = null;
       _phraseId = null;
       _finishing = false;
+    }
+  }
+
+  /// Stops a live take and discards it without saving.
+  ///
+  /// The recordings screen calls this when its route is popped so the platform
+  /// microphone is never left running behind the Practice screen. A take that
+  /// is already being saved is left alone; [stop] owns that path.
+  Future<void> cancel() async {
+    _generation++;
+    _timer?.cancel();
+    _timer = null;
+    _recording = false;
+    final recorder = _recorder;
+    _recorder = null;
+    _pieceId = null;
+    _phraseId = null;
+    if (recorder == null) return;
+    try {
+      await recorder.dispose();
+    } catch (_) {
+      // The platform recorder may already be released.
     }
   }
 
@@ -451,31 +495,19 @@ class RecordingService {
   Future<RecordingReconcileReport> reconcile() async {
     try {
       final refs = await _store.list();
-      final refIds = <String>{for (final ref in refs) ref.id};
-
-      RecordingIndex? index;
-      var recovered = false;
-      try {
-        index = await _indexStore.load();
-      } catch (_) {
-        recovered = true;
-        index = null;
-      }
-
-      if (index == null) {
-        // No usable index. Adopt every blob rather than treat it as garbage.
-        final adopted = RecordingIndex(<RecordingTake>[
-          for (final ref in refs) RecordingTake.fromMediaRef(ref),
-        ]);
-        if (!adopted.isEmpty || recovered) {
-          await _indexStore.save(adopted);
-        }
+      final loaded = await _loadIndexWithStatus();
+      if (loaded.repaired) {
+        // A missing, unreadable, or partially corrupt index is adopted. Do not
+        // delete any blob on this run: a row the parser could not read may own
+        // it, and the bytes are still a valid take.
         return RecordingReconcileReport(
-          adoptedBlobs: adopted.length,
-          recovered: recovered,
+          adoptedBlobs: loaded.adopted,
+          recovered: true,
         );
       }
 
+      final index = loaded.index;
+      final refIds = <String>{for (final ref in refs) ref.id};
       final kept = <RecordingTake>[];
       var removedEntries = 0;
       for (final take in index.takes) {
@@ -486,8 +518,6 @@ class RecordingService {
         }
       }
 
-      // If the index load did not throw but the document was clearly not
-      // usable, the fallback above already handled it.
       final keptIds = <String>{for (final take in kept) take.id};
       var deletedOrphans = 0;
       for (final ref in refs) {
@@ -523,6 +553,7 @@ class RecordingService {
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
+    _generation++;
     _timer?.cancel();
     _timer = null;
     _recording = false;
@@ -606,15 +637,13 @@ class RecordingService {
         capped: wasCapped,
       );
       final withTake = index.add(recording);
-      final retained = await _enforcePieceRetention(
-        withTake,
-        protectedId: recording.id,
-      );
+      final plan = _planRetention(withTake, protectedId: recording.id);
       try {
-        await _indexStore.save(retained);
+        // Commit the new manifest before deleting any retention victim. If this
+        // write fails, only the new blob is removed and every older take stays
+        // exactly as it was.
+        await _indexStore.save(plan.index);
       } catch (error) {
-        // The bytes are unindexed. Remove them so a failure cannot look like a
-        // saved take; ignore a cleanup failure and let reconcile remove it.
         try {
           await _store.delete(recording.id);
         } catch (_) {}
@@ -625,6 +654,14 @@ class RecordingService {
             cause: error,
           ),
         );
+      }
+      for (final victim in plan.victims) {
+        try {
+          await _store.delete(victim.id);
+        } catch (_) {
+          // The committed index no longer references the victim, so a later
+          // reconcile can retry the blob deletion.
+        }
       }
       return RecordingStopResult.saved(take: recording, capped: wasCapped);
     } catch (error) {
@@ -638,12 +675,14 @@ class RecordingService {
     }
   }
 
-  /// Never deletes the first take for a piece or the just-saved take.
-  Future<RecordingIndex> _enforcePieceRetention(
+  /// Plans which takes the per-piece rule will evict. It never evicts the first
+  /// take for a piece or the take that was just saved.
+  _RetentionPlan _planRetention(
     RecordingIndex index, {
     required String protectedId,
-  }) async {
+  }) {
     var current = index;
+    final victims = <RecordingTake>[];
     final pieces = <String>{
       for (final take in current.takes)
         if (take.pieceId != null) take.pieceId!,
@@ -655,23 +694,62 @@ class RecordingService {
       for (final take in group) {
         if (group.length <= pieceTakeLimit) break;
         if (take.id == firstId || take.id == protectedId) continue;
-        try {
-          await _store.delete(take.id);
-        } catch (_) {
-          // Keep the entry if the blob could not be deleted. Reconcile or a
-          // later take can retry.
-          continue;
-        }
+        victims.add(take);
         current = current.remove(take.id);
         group = current.takesForPiece(piece);
       }
     }
-    return current;
+    return _RetentionPlan(index: current, victims: victims);
   }
 
-  Future<RecordingIndex> _loadIndex() async {
+  Future<RecordingIndex> _loadIndex() async =>
+      (await _loadIndexWithStatus()).index;
+
+  /// Loads the manifest and repairs partial corruption by adopting blobs that
+  /// no parsed row references. [repaired] tells reconcile not to delete
+  /// unreferenced media on this run.
+  Future<({RecordingIndex index, bool repaired, int adopted})>
+  _loadIndexWithStatus() async {
     try {
-      return await _indexStore.load() ?? RecordingIndex.empty;
+      final loaded = await _indexStore.load();
+      if (loaded == null) {
+        final refs = await _store.list();
+        final adopted = RecordingIndex(<RecordingTake>[
+          for (final ref in refs) RecordingTake.fromMediaRef(ref),
+        ]);
+        if (adopted.isNotEmpty) {
+          try {
+            await _indexStore.save(adopted);
+          } catch (_) {
+            // Keep the in-memory recovery; the next write can retry.
+          }
+        }
+        return (
+          index: adopted,
+          repaired: adopted.isNotEmpty,
+          adopted: adopted.length,
+        );
+      }
+      if (loaded.skippedEntries == 0) {
+        return (index: loaded, repaired: false, adopted: 0);
+      }
+
+      final refs = await _store.list();
+      final known = <String>{for (final take in loaded.takes) take.id};
+      final extras = <RecordingTake>[
+        for (final ref in refs)
+          if (!known.contains(ref.id)) RecordingTake.fromMediaRef(ref),
+      ];
+      final merged = RecordingIndex(<RecordingTake>[
+        ...loaded.takes,
+        ...extras,
+      ]);
+      try {
+        await _indexStore.save(merged);
+      } catch (_) {
+        // The merged in-memory index is still safer than deleting the blobs.
+      }
+      return (index: merged, repaired: true, adopted: extras.length);
     } catch (_) {
       final refs = await _store.list();
       final recovered = RecordingIndex(<RecordingTake>[
@@ -682,7 +760,11 @@ class RecordingService {
       } catch (_) {
         // Keep the in-memory recovery; the next write can retry.
       }
-      return recovered;
+      return (
+        index: recovered,
+        repaired: recovered.isNotEmpty,
+        adopted: recovered.length,
+      );
     }
   }
 
@@ -695,6 +777,11 @@ class RecordingService {
 
   RecordingStartResult _startFailed(RecordingFailure failure) =>
       RecordingStartResult.failed(failure);
+
+  RecordingFailure _cancelledFailure() => const RecordingFailure(
+    RecordingFailureKind.notRecording,
+    'Recording was cancelled.',
+  );
 
   RecordingFailure _quotaFailure() => RecordingFailure(
     RecordingFailureKind.quota,
@@ -713,4 +800,11 @@ class RecordingService {
 
   /// MIME type used for the V1 stored takes.
   static const String wavMimeType = 'audio/wav';
+}
+
+class _RetentionPlan {
+  const _RetentionPlan({required this.index, required this.victims});
+
+  final RecordingIndex index;
+  final List<RecordingTake> victims;
 }

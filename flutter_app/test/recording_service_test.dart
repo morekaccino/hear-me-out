@@ -92,6 +92,25 @@ class _FixedEncoder implements RecordingEncoder {
       Uint8List.fromList(<int>[1, 2, 3, 4]);
 }
 
+class _FailingIndexStore implements RecordingIndexStore {
+  _FailingIndexStore(this.inner);
+
+  final MemoryRecordingIndexStore inner;
+  bool failSaves = false;
+
+  @override
+  Future<RecordingIndex?> load() => inner.load();
+
+  @override
+  Future<void> save(RecordingIndex index) async {
+    if (failSaves) throw StateError('Manifest storage is full');
+    await inner.save(index);
+  }
+
+  @override
+  Future<void> clear() => inner.clear();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -352,6 +371,87 @@ void main() {
       await harness.service.dispose();
     },
   );
+
+  test('a failed manifest save keeps the previous last take', () async {
+    final store = MemoryMediaStore();
+    final innerIndex = MemoryRecordingIndexStore();
+    final indexStore = _FailingIndexStore(innerIndex);
+    final capture = FakePcmCapture(
+      chunks: <Uint8List>[_tone(8000)],
+      config: const PcmCaptureConfig(sampleRate: 8000, channels: 1),
+    );
+    var now = DateTime.utc(2026, 1, 1, 12);
+    final service = RecordingService(
+      store: store,
+      indexStore: indexStore,
+      exporter: FakeRecordingExporter(),
+      clock: () {
+        final value = now;
+        now = now.add(const Duration(seconds: 1));
+        return value;
+      },
+      recorderFactory: () => PhraseRecorder(
+        capture: capture,
+        requestedSampleRate: 8000,
+        outputSampleRate: 8000,
+      ),
+    );
+    Future<RecordingStopResult> record() async {
+      final start = await service.start(pieceId: 'ode-to-joy');
+      expect(start.started, isTrue);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      return service.stop();
+    }
+
+    final first = await record();
+    final second = await record();
+    final third = await record();
+    expect(second.saved, isTrue);
+    expect((await service.listTakes()).length, 2);
+
+    indexStore.failSaves = true;
+    final fourth = await record();
+
+    expect(fourth.saved, isFalse);
+    expect(fourth.failure!.kind, RecordingFailureKind.storage);
+    final after = await service.listTakes();
+    expect(
+      after.map((take) => take.id),
+      containsAll(<String>[first.take!.id, third.take!.id]),
+    );
+    expect(after.length, 2);
+    expect(await store.list(), hasLength(2));
+    expect(innerIndex.value!.length, 2);
+    await service.dispose();
+  });
+
+  test('a malformed index row is adopted, not deleted as an orphan', () async {
+    final harness = _Harness();
+    final good = await harness.store.put(
+      Uint8List.fromList(<int>[1, 2, 3]),
+      mimeType: RecordingService.wavMimeType,
+      id: 'good',
+      durationMs: 1000,
+    );
+    await harness.store.put(
+      Uint8List.fromList(<int>[4, 5, 6]),
+      mimeType: RecordingService.wavMimeType,
+      id: 'bad',
+      durationMs: 1000,
+    );
+    harness.indexStore.value = RecordingIndex(<RecordingTake>[
+      RecordingTake.fromMediaRef(good),
+    ], skippedEntries: 1);
+
+    final report = await harness.service.reconcile();
+
+    expect(report.deletedOrphans, 0);
+    expect(report.adoptedBlobs, 1);
+    expect(await harness.store.get('bad'), isNotNull);
+    expect(await harness.service.listTakes(), hasLength(2));
+    await harness.service.dispose();
+  });
 
   test(
     'an unreadable index is rebuilt from existing blobs instead of deleted',
