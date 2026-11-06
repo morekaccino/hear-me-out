@@ -24,11 +24,51 @@ import 'learn_rail.dart';
 import 'path_layout.dart';
 import 'path_node.dart';
 
+/// The horizontal geometry of the path column and the optional quest rail.
+///
+/// The Reading Lab header uses the same values so its title lines up with the
+/// path card instead of floating in a separate centered column.
+({double left, double pathWidth, double railWidth}) pathColumnsFor(
+  double width,
+) {
+  if (width >= 960) {
+    final railWidth = width >= 1180 ? 372.0 : 320.0;
+    final pathWidth = math.min(600.0, width - railWidth - 22 - 24);
+    return (
+      left: (width - (pathWidth + 22 + railWidth)) / 2,
+      pathWidth: pathWidth,
+      railWidth: railWidth,
+    );
+  }
+  final pathWidth = math.min(600.0, width);
+  return (left: (width - pathWidth) / 2, pathWidth: pathWidth, railWidth: 0);
+}
+
+/// The card-content column inside the path at [width]. This is the left edge
+/// of the text inside the path's top card, so a header that uses it lines up
+/// with the card rather than with the card's outer edge.
+({double left, double width}) pathContentColumnFor(double width) {
+  final columns = pathColumnsFor(width);
+  return (
+    left: columns.left + DuoSpacing.md * 2,
+    width: math.max(0.0, columns.pathWidth - DuoSpacing.md * 4),
+  );
+}
+
 class PathScreen extends ConsumerWidget {
-  const PathScreen({super.key, this.onOpenQuests, this.onOpenPractice});
+  const PathScreen({
+    super.key,
+    this.onOpenQuests,
+    this.onOpenPractice,
+    this.showReadingLabLabel = true,
+  });
 
   final VoidCallback? onOpenQuests;
   final VoidCallback? onOpenPractice;
+
+  /// The path's top card names the optional Reading Lab. The lab route hides
+  /// that label because its own header already names the course.
+  final bool showReadingLabLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -50,12 +90,10 @@ class PathScreen extends ConsumerWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final showRail = constraints.maxWidth >= 960;
+            final columns = pathColumnsFor(constraints.maxWidth);
             final showCounters = !showRail && progress.settings.streakEnabled;
-            final railWidth = constraints.maxWidth >= 1180 ? 372.0 : 320.0;
-            final pathWidth = math.min(
-              600.0,
-              constraints.maxWidth - railWidth - 22 - 24,
-            );
+            final railWidth = columns.railWidth;
+            final pathWidth = columns.pathWidth;
             final bannerOffsets = _bannerOffsets(
               currentLesson: currentLesson,
               showCounters: showCounters,
@@ -93,6 +131,7 @@ class PathScreen extends ConsumerWidget {
                   child: _TodayCard(
                     progress: progress,
                     currentLesson: currentLesson,
+                    showLabel: showReadingLabLabel,
                     onContinue: currentLesson == null
                         ? null
                         : () => _launchLesson(context, ref, currentLesson),
@@ -1443,6 +1482,7 @@ class _TodayCard extends StatelessWidget {
   const _TodayCard({
     required this.progress,
     required this.currentLesson,
+    required this.showLabel,
     this.onContinue,
     this.onReview,
     this.onCourseMap,
@@ -1450,6 +1490,7 @@ class _TodayCard extends StatelessWidget {
 
   final ProgressState progress;
   final LessonDefinition? currentLesson;
+  final bool showLabel;
   final VoidCallback? onContinue;
   final VoidCallback? onReview;
   final VoidCallback? onCourseMap;
@@ -1472,34 +1513,36 @@ class _TodayCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              const Text(
-                'READING LAB',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                  color: AppColors.greenDark,
-                ),
-              ),
-              const SizedBox(width: DuoSpacing.xs),
-              Expanded(
-                child: Text(
-                  'Optional · Lesson $lessonNumber of ${allLessons.length}',
-                  textAlign: TextAlign.end,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          if (showLabel) ...[
+            Row(
+              children: [
+                const Text(
+                  'READING LAB',
                   style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textMuted,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                    color: AppColors.greenDark,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
+                const SizedBox(width: DuoSpacing.xs),
+                Expanded(
+                  child: Text(
+                    'Optional · Lesson $lessonNumber of ${allLessons.length}',
+                    textAlign: TextAlign.end,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+          ],
           Text(
             currentLesson == null
                 ? 'Course complete'

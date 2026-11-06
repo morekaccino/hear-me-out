@@ -421,15 +421,21 @@ on the Today surface; it never becomes a fifth tab.
 
 - **Profile card:** a `blueSoft` `SectionCard` with a book icon, the title
   `Reading Lab`, the line `Structured reading practice, optional`, a real
-  `n of 240 lessons` count, and an outline `OPEN READING LAB` button.
+  `n of 240 lessons` count, and an outline `OPEN READING LAB` button. The body
+  names the original 240-lesson course and adds the 5-minute Today complement
+  only when the Today gate is open; otherwise it says optional, self-paced
+  practice.
 - **Today entry:** a compact `blueSoft` strip with the same title and line, the
   real count, and a chevron. It sits below the Today session plan and stays
-  secondary to it.
+  secondary to it. The Acquire block's fallback `OPEN READING LAB` control opens
+  the same route, never the Practice tab. Opening the lab from either control
+  pauses a running Today clock, and Back returns to Today.
 - **Reading Lab screen:** a 44 px back control, the `READING LAB` eyebrow, the
-  title `Structured reading practice, optional`, the copy “The original
-  240-lesson notation and theory course. It complements the 5-minute Today
-  loop.”, and the real completed count. The existing path renders below it with
-  the same unit banners, course map, guidebooks, jump test, and lesson nodes.
+  title `Structured reading practice, optional`, the gate-aware body, and the
+  real completed count. The header aligns to the path card's content column,
+  and the path card omits its duplicate `READING LAB` label inside the route.
+  The existing path renders below it with the same unit banners, course map,
+  guidebooks, jump test, and lesson nodes.
 - **With the Today gate closed:** the first tab stays `Learn` and is the path;
   the path's top card is labelled `READING LAB` and `Optional · Lesson n of
   240`. The course never looks removed.
@@ -437,8 +443,9 @@ on the Today surface; it never becomes a fifth tab.
   gates. The existing one-lesson-at-a-time order and the jump-ahead test are
   content progression and stay.
 - **Responsive:** the entry and screen fit 390x844 and 1200 px. Wide screens
-  keep the shell side rail; the lab's path keeps its own 320–372 px quest rail
-  when the route is at least 960 px wide.
+  keep the shell side rail; the header aligns with the path card's content
+  column, and the lab's path keeps its own 320–372 px quest rail when the route
+  is at least 960 px wide.
 
 ### Lesson
 
@@ -544,8 +551,8 @@ available.
 A transparent record of real work: notes with box progress, accuracy, completed
 lessons, weekly minutes, the optional streak, XP, settings, backup/restore,
 reset. No vanity metrics. It also carries the optional **Reading Lab** card,
-which states that the original 240-lesson course is structured reading
-practice, optional, and complementary to the 5-minute Today loop. Privacy
+which states that the original 240-lesson course is optional structured reading
+practice. It names the 5-minute Today loop only when that gate is open. Privacy
 copy is part of the design, not a footer afterthought. It must say that
 recordings stay on the device, are never uploaded, and that the microphone is
 active only during a lesson, practice, tuner, or recording session. It may claim

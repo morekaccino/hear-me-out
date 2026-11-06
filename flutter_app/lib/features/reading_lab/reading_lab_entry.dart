@@ -5,12 +5,20 @@ import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../shared/widgets/tappable.dart';
+import '../today/today_gate.dart';
 
 /// The optional 240-lesson notation and theory course. It is the original
 /// course, kept as a bridge for current learners, not the core Today loop.
-const String readingLabCopy =
-    'The original 240-lesson notation and theory course. It complements the '
-    '5-minute Today loop.';
+///
+/// The Today-loop sentence appears only where that loop actually exists. With
+/// decision 0001's gate closed, the copy does not promise an unreachable
+/// surface.
+String readingLabCopy({bool todayLoopAvailable = todayEnabled}) =>
+    todayLoopAvailable
+    ? 'The original 240-lesson notation and theory course. It complements the '
+          '5-minute Today loop.'
+    : 'The original 240-lesson notation and theory course. Optional, '
+          'self-paced reading practice.';
 
 /// Full entry shown in Profile. It explains the course and opens the existing
 /// path under a Reading Lab header.
@@ -19,10 +27,12 @@ class ReadingLabCard extends StatelessWidget {
     super.key,
     required this.completedLessons,
     required this.onOpen,
+    this.todayLoopAvailable = todayEnabled,
   });
 
   final int completedLessons;
   final VoidCallback onOpen;
+  final bool todayLoopAvailable;
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +97,7 @@ class ReadingLabCard extends StatelessWidget {
           ),
           const SizedBox(height: DuoSpacing.sm),
           Text(
-            readingLabCopy,
+            readingLabCopy(todayLoopAvailable: todayLoopAvailable),
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,

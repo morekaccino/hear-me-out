@@ -33,6 +33,7 @@ class ReadingLabScreen extends ConsumerWidget {
       key: const ValueKey('reading-lab-screen'),
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             _ReadingLabHeader(
               completedLessons: completed,
@@ -43,7 +44,7 @@ class ReadingLabScreen extends ConsumerWidget {
                 Navigator.of(context).maybePop();
               },
             ),
-            const Expanded(child: PathScreen()),
+            const Expanded(child: PathScreen(showReadingLabLabel: false)),
           ],
         ),
       ),
@@ -64,98 +65,94 @@ class _ReadingLabHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final total = allLessons.length;
     final done = completedLessons.clamp(0, total);
+    final column = pathContentColumnFor(MediaQuery.sizeOf(context).width);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border(bottom: BorderSide(color: AppColors.border, width: 2)),
       ),
-      padding: const EdgeInsets.fromLTRB(
-        DuoSpacing.md,
-        DuoSpacing.xs,
-        DuoSpacing.md,
-        DuoSpacing.sm,
+      padding: EdgeInsets.only(
+        left: column.left,
+        top: DuoSpacing.xs,
+        bottom: DuoSpacing.sm,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Semantics(
-                    button: true,
-                    label: 'Back',
-                    child: DuoTappable(
-                      onTap: onClose,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.border,
-                            width: 2,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.arrow_back_rounded,
-                          size: 22,
-                          color: AppColors.text,
-                        ),
+      child: SizedBox(
+        width: column.width,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Semantics(
+                  button: true,
+                  label: 'Back',
+                  child: DuoTappable(
+                    onTap: onClose,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border, width: 2),
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        size: 22,
+                        color: AppColors.text,
                       ),
                     ),
                   ),
-                  const SizedBox(width: DuoSpacing.sm),
-                  Expanded(
-                    child: Text(
-                      'READING LAB',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                        color: AppColors.blueDark,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: DuoSpacing.xs,
-                      vertical: DuoSpacing.xxs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.blueSoft,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '$done / $total lessons',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.blueDark,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: DuoSpacing.xs),
-              const Text(
-                'Structured reading practice, optional',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                readingLabCopy,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  height: 1.35,
-                  color: AppColors.textMuted,
                 ),
+                const SizedBox(width: DuoSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'READING LAB',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                      color: AppColors.blueDark,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DuoSpacing.xs,
+                    vertical: DuoSpacing.xxs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.blueSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '$done / $total lessons',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.blueDark,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: DuoSpacing.xs),
+            const Text(
+              'Structured reading practice, optional',
+              key: ValueKey('reading-lab-header-title'),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              readingLabCopy(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+                color: AppColors.textMuted,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

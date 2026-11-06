@@ -262,11 +262,20 @@ a bridge for current learners, not the core Today loop.
 - `features/reading_lab/reading_lab_entry.dart` holds `ReadingLabCard` (the
   Profile entry) and `ReadingLabEntry` (the compact Today entry). Both show the
   real `completedLessons.length` out of 240. The copy says "Structured reading
-  practice, optional" and that the course complements the 5-minute Today loop.
+  practice, optional". The body adds the 5-minute Today complement only when
+  decision 0001's gate is open; with the gate closed it says optional,
+  self-paced practice instead of promising an unreachable loop.
 - `features/reading_lab/reading_lab_screen.dart` pushes `readingLabRoute()` and
   hosts the existing `PathScreen` under a Reading Lab header. No lesson,
   curriculum, or progress object is copied. The path launches the same
-  `LessonRun` and writes the same `ProgressState`.
+  `LessonRun` and writes the same `ProgressState`. The header uses
+  `pathContentColumnFor` from `path_screen.dart` so its title aligns with the
+  path card, and the path runs with `showReadingLabLabel: false` so the screen
+  does not repeat the label.
+- Both the Today strip and the Acquire block's fallback `OPEN READING LAB`
+  control open `readingLabRoute()`. The fallback is no longer wired to the
+  Practice tab, so identical labels never open different destinations. Opening
+  the lab pauses a running Today clock, and Back returns to the same surface.
 - `HomeShell` keeps four tabs. When the gate is off, the first tab is `Learn`
   and is the path; its top card is labelled `READING LAB` so the course is not
   mistaken for the Today loop or for removed content. When the gate is on, the
@@ -279,10 +288,12 @@ a bridge for current learners, not the core Today loop.
 - `curriculum.dart`, lesson ids, storage, and migrations are untouched.
 
 Tests live in `test/reading_lab_test.dart`. They pin the 240 lesson ids and the
-40 unit ids, open the lab from Profile and from a gated Today surface, assert
-that progress survives, browse a later unit without completing earlier
-lessons, assert the absence of heart/gem/XP/streak gating, and render at
-390x844 and 1200x900 without overflow.
+40 unit ids; open the lab from Profile, the Today entry, and the in-plan Acquire
+control; assert that completed lessons, XP, skill boxes, and weekly minutes
+survive; browse a later unit without completing earlier lessons; assert the
+absence of heart/gem/XP/streak gating; cover the header back control and the
+running-session pause; check that the header aligns with the path at 1200 px;
+and render at 390x844 and 1200x900 without overflow.
 
 ## Media storage
 

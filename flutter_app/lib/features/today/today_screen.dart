@@ -159,6 +159,13 @@ class _TodayBody extends ConsumerWidget {
             .length ??
         0;
 
+    void openReadingLab() {
+      // Leaving Today for the lab must not charge the gap as guitar time; the
+      // learner can resume the session on return.
+      if (state.session.isRunning) controller.pause();
+      unawaited(Navigator.of(context).push(readingLabRoute()));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -188,17 +195,13 @@ class _TodayBody extends ConsumerWidget {
               index: index,
               registry: registry,
               onOpenPractice: onOpenPractice,
+              onOpenReadingLab: openReadingLab,
             ),
           ),
         const SizedBox(height: DuoSpacing.xs),
         ReadingLabEntry(
           completedLessons: completedLessons,
-          onOpen: () {
-            // Leaving Today for the lab must not charge the gap as guitar
-            // time; the learner can resume the session on return.
-            if (state.session.isRunning) controller.pause();
-            unawaited(Navigator.of(context).push(readingLabRoute()));
-          },
+          onOpen: openReadingLab,
         ),
         const SizedBox(height: DuoSpacing.sm),
         _PreviewFooter(),
@@ -770,12 +773,14 @@ class _BlockCard extends ConsumerWidget {
     required this.index,
     required this.registry,
     this.onOpenPractice,
+    this.onOpenReadingLab,
   });
 
   final TodayState state;
   final int index;
   final PhraseObjectiveRegistry registry;
   final VoidCallback? onOpenPractice;
+  final VoidCallback? onOpenReadingLab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -886,6 +891,7 @@ class _BlockCard extends ConsumerWidget {
               target: blockTarget,
               registry: registry,
               onOpenPractice: onOpenPractice,
+              onOpenReadingLab: onOpenReadingLab,
             ),
           ],
         ],
@@ -902,6 +908,7 @@ class _BlockBody extends ConsumerWidget {
     required this.target,
     required this.registry,
     this.onOpenPractice,
+    this.onOpenReadingLab,
   });
 
   final TodayState state;
@@ -910,6 +917,7 @@ class _BlockBody extends ConsumerWidget {
   final TodayTargetView target;
   final PhraseObjectiveRegistry registry;
   final VoidCallback? onOpenPractice;
+  final VoidCallback? onOpenReadingLab;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1186,12 +1194,12 @@ class _BlockBody extends ConsumerWidget {
             },
             color: AppColors.purpleDark,
           ),
-        ] else if (!earlier && onOpenPractice != null) ...[
+        ] else if (!earlier && onOpenReadingLab != null) ...[
           const SizedBox(height: DuoSpacing.xs),
           OutlineDuoButton(
             label: 'OPEN READING LAB',
             icon: Icons.menu_book_rounded,
-            onPressed: onOpenPractice,
+            onPressed: onOpenReadingLab,
             color: AppColors.blue,
           ),
         ],
