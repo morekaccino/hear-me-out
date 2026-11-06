@@ -1,5 +1,13 @@
 import 'dart:typed_data';
 
+/// Name of the directory, relative to the app support directory, that holds
+/// recordings and other media on IO platforms.
+///
+/// Android backup rules exclude `filesDir/media`, and the iOS backup exclusion
+/// receives a path ending in this name. Change this constant only together
+/// with both platform rules.
+const String mediaDirectoryName = 'media';
+
 /// Metadata for one stored recording or other media blob.
 ///
 /// [id] is opaque and stable for the lifetime of the item. [createdAt] is

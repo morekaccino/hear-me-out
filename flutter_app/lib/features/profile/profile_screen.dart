@@ -393,7 +393,7 @@ class ProfileScreen extends ConsumerWidget {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'No account. No cloud. Your progress, streak, and settings stay on this device. Audio is analyzed live and never recorded.',
+                        'No account. No cloud. Your progress, streak, and settings stay on this device. Audio is analyzed on this device. When you record a take, it stays here too and is excluded from cloud backup by default.',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,

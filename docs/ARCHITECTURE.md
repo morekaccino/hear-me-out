@@ -160,10 +160,33 @@ is overridable in tests with `MemoryMediaStore`. It does not start a recorder.
 The VM test runner cannot exercise IndexedDB, so
 `test/web_media_store_test.dart` is browser-only and runs with
 `dart test -p chrome test/web_media_store_test.dart` (also part of CI).
-The IO directory is **not yet excluded from Android Auto Backup or iCloud**;
-T4.5 owns that work and T4.2 is blocked by T4.5, so recordings must not ship
-before it lands. Quota enforcement, delete/export UI, retention, and recording
-itself arrive in T4.2 and later; this ticket provides storage only.
+
+The IO media directory is excluded from cloud backup by default:
+
+- **Android:** `android/app/src/main/res/xml/backup_rules.xml` (Auto Backup on
+  Android 11 and lower) and `data_extraction_rules.xml` (cloud backup and
+  device transfer on Android 12 and higher) exclude `domain="file"` with
+  `path="media/"`. `AndroidManifest.xml` wires them with
+  `android:fullBackupContent` and `android:dataExtractionRules`.
+  `path_provider` resolves `getApplicationSupportDirectory()` to `filesDir` on
+  Android, and `mediaStoreProvider` appends `mediaDirectoryName` (`media`), so
+  the rules cover `filesDir/media`. The shared constant and both rule files are
+  checked by `test/platform_backup_config_test.dart`; the provider and channel
+  wiring are checked by `test/backup_exclusion_test.dart`.
+- **iOS:** `mediaStoreProvider` calls `MediaBackupExclusion` before creating the
+  store. `PlatformMediaBackupExclusion` invokes the
+  `hear_me_out/media_backup_exclusion` channel; `ios/Runner/AppDelegate.swift`
+  creates the directory if needed, sets `NSURLIsExcludedFromBackupKey`, reads
+  the resource value back, and returns true only when it is set. A failure is
+  logged and the store is still created, but the app must not claim the
+  directory is excluded. There is no opt-in UI in V1; recordings are excluded
+  by default. A real iOS device check of the repository's resource value
+  remains human-owned; the automated test only reads the source files.
+- **Web:** IndexedDB has no app-managed OS backup exclusion; storage is
+  controlled by the browser.
+
+Quota enforcement, delete/export UI, retention, and recording itself arrive in
+T4.2 and later; this ticket provides storage and backup exclusion only.
 
 ## Progress and scheduling
 

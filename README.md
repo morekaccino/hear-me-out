@@ -200,13 +200,19 @@ session rules.
 
 ## Privacy
 
-- Audio is analyzed in memory and discarded. Nothing is recorded or uploaded.
+- The microphone is active only during a practice, tuner, or recording session.
+  Audio is analyzed on the device for feedback and is never uploaded.
 - Progress is stored in `shared_preferences` on the device.
-- There is no Firebase, no Firestore, no auth, no analytics, and no network
-  persistence layer.
+- Recording follows a local-only model (the recording UI arrives in T4.2). When
+  you record a take, the audio is stored only on the device. Recordings are
+  excluded from Android Auto Backup, Android device transfer, and iCloud backup
+  by default. A take leaves the device only through an explicit export you
+  start, and deleting a take removes it from the device.
+- There is no Firebase, no Firestore, no auth, no analytics, no account, no
+  cloud sync, and no network persistence layer.
 - The shop is a closed gem economy. It takes no money and has no subscriptions
   or ads.
-- The only way data leaves the app is if you copy a backup JSON to your
+- The only way progress leaves the app is if you copy a backup JSON to your
   clipboard.
 
 ## Limitations
