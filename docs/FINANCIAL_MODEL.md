@@ -264,6 +264,10 @@ they are collapsed below.
 | **Cash profit** | **−$90,666** | **−$47,560** | **−$23,114** |
 | **Cumulative cash** | **−$90,666** | **−$138,226** | **−$161,340** |
 
+The old plan's downside net revenue differs by $2–$14/year because it rounds to
+whole subscribers; the model uses exact cohort values. The difference is
+immaterial to the cash need.
+
 What the table means:
 
 - **Year 1 is worse than the base by $4,178** because conversion is 2% instead
