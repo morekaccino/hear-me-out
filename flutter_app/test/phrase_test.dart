@@ -108,6 +108,16 @@ void main() {
       expect(phrase.difficulty, 1);
       expect(phrase.startBar, 1);
       expect(phrase.pickupBeats, 0);
+      expect(phrase.contentVersion, 1);
+    });
+
+    test('contentVersion roundtrips and copyWith can bump it', () {
+      final changed = _phrase.copyWith(contentVersion: 3);
+      expect(changed.contentVersion, 3);
+      expect(Phrase.fromJson(changed.toJson()).contentVersion, 3);
+
+      final legacy = _phrase.toJson()..remove('contentVersion');
+      expect(Phrase.fromJson(legacy).contentVersion, 1);
     });
 
     test('fromJson reports a nested event path', () {

@@ -7,7 +7,7 @@
 library;
 
 /// The schema version this build reads and writes.
-const int latestProgressSchemaVersion = 5;
+const int latestProgressSchemaVersion = 6;
 
 /// The oldest schema version the pipeline can migrate.
 const int oldestProgressSchemaVersion = 1;
@@ -72,6 +72,7 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
     if (version <= 2) migrated = _v2ToV3(migrated);
     if (version <= 3) migrated = _v3ToV4(migrated);
     if (version <= 4) migrated = _v4ToV5(migrated);
+    if (version <= 5) migrated = _v5ToV6(migrated);
     _validateCurrent(migrated);
   } on FormatException catch (error) {
     return MigrationFailure(error.message);
@@ -150,6 +151,36 @@ Map<String, dynamic> _v4ToV5(Map<String, dynamic> json) {
   // progress is stranded.
   _migrateNoteSkills(out);
   out['schemaVersion'] = 5;
+  return out;
+}
+
+/// v5 → v6: record which phrase content version each evidence set belongs to.
+///
+/// v5 had no per-phrase version. Its phrase evidence was earned against the
+/// first published arrangement, so every existing entry starts at version 1.
+/// The map key and every counter are preserved exactly.
+Map<String, dynamic> _v5ToV6(Map<String, dynamic> json) {
+  final out = _copyMap(json);
+  final phrases = out['phraseProgress'] == null
+      ? <String, dynamic>{}
+      : _readStringMap(out['phraseProgress'], 'progress.phraseProgress');
+  for (final entry in phrases.entries) {
+    final path = 'progress.phraseProgress.${entry.key}';
+    final phrase = _readStringMap(entry.value, path);
+    final version = _readInt(
+      phrase,
+      'contentVersion',
+      1,
+      path: '$path.contentVersion',
+    );
+    if (version < 1) {
+      throw FormatException('$path.contentVersion must be at least 1');
+    }
+    phrase['contentVersion'] = version;
+    phrases[entry.key] = phrase;
+  }
+  out['phraseProgress'] = phrases;
+  out['schemaVersion'] = 6;
   return out;
 }
 
@@ -390,6 +421,15 @@ void _validatePhraseProgress(Object? value) {
     _readInt(phrase, 'incorrect', 0, path: '$path.incorrect');
     _readDouble(phrase, 'stabilityDays', 0, path: '$path.stabilityDays');
     _readDouble(phrase, 'difficulty', 0, path: '$path.difficulty');
+    final contentVersion = _readInt(
+      phrase,
+      'contentVersion',
+      0,
+      path: '$path.contentVersion',
+    );
+    if (contentVersion < 1) {
+      throw FormatException('$path.contentVersion must be at least 1');
+    }
     _readDayList(phrase['correctDays'], '$path.correctDays');
     _readDayList(phrase['performanceDays'], '$path.performanceDays');
     if (phrase['bestTempoBpm'] != null) {

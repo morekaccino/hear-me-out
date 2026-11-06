@@ -4,6 +4,7 @@ import '../music/curriculum.dart';
 import '../music/note.dart';
 import '../storage/progress_migrations.dart';
 import 'note_objective.dart';
+import 'phrase_objective.dart';
 import 'phrase_progress.dart';
 import 'prompt.dart';
 import 'skill.dart';
@@ -656,18 +657,53 @@ class ProgressState {
     }
   }
 
-  /// Records phrase-level evidence only.
+  /// Records one determinate phrase attempt and the phrase's practice skill.
   ///
-  /// Per-note skills are recorded separately from determinate note evidence;
-  /// this method never touches [skills] or [notes], so one take cannot count
-  /// as both phrase and note evidence. An indeterminate phrase is a no-op.
+  /// Raw phrase evidence goes into [PhraseProgress]. The phrase's own
+  /// `repertoire` skill is scheduled under the canonical
+  /// `phrase:<pieceId>:<phraseId>` id when [PhraseAttempt.pieceId] is known,
+  /// or the legacy `phrase:<phraseId>` id otherwise, so a due phrase can return
+  /// in practice. Per-note skills are recorded separately from determinate note
+  /// evidence, so one take cannot count twice. An indeterminate phrase is a
+  /// no-op.
+  ///
+  /// This makes no mastery claim; the phrase-specific scheduler and mastery
+  /// rules remain T2.5 work.
   void recordPhraseAttempt(PhraseAttempt attempt) {
     if (attempt.outcome == AttemptOutcome.indeterminate) return;
+
     final phrase = phraseProgress.putIfAbsent(
       attempt.phraseId,
       () => PhraseProgress(phraseId: attempt.phraseId),
     );
     phrase.recordAttempt(attempt);
+
+    final version = attempt.contentVersion;
+    if (version != null) {
+      if (version < 1) {
+        throw ArgumentError.value(
+          version,
+          'contentVersion',
+          'Phrase content version must be at least 1',
+        );
+      }
+      phrase.contentVersion = version;
+    }
+
+    final pieceId = attempt.pieceId;
+    final objectiveId = pieceId == null || pieceId.trim().isEmpty
+        ? '$phraseObjectivePrefix${attempt.phraseId}'
+        : phraseObjectiveId(pieceId: pieceId, phraseId: attempt.phraseId);
+    final skill = skillFor(objectiveId, SkillFamily.repertoire);
+    skill.recordAnswer(
+      SkillAnswer(
+        objectiveId: objectiveId,
+        family: SkillFamily.repertoire,
+        outcome: attempt.outcome,
+        now: attempt.now,
+      ),
+    );
+    phrase.dueAt = skill.dueAt;
   }
 
   void recordAnswer({

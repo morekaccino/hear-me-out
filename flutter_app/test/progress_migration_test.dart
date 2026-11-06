@@ -21,16 +21,16 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Progress migration pipeline', () {
-    test('every fixture migrates to v5 without losing progress', () {
-      for (final name in <String>['v1', 'v2', 'v3', 'v4', 'v5']) {
+    test('every fixture migrates to v6 without losing progress', () {
+      for (final name in <String>['v1', 'v2', 'v3', 'v4', 'v5', 'v6']) {
         final fixture = _loadFixture(name);
         final migrated = _migrate(fixture);
-        expect(migrated['schemaVersion'], 5, reason: name);
+        expect(migrated['schemaVersion'], 6, reason: name);
 
         final progress = importProgress(jsonEncode(fixture));
         expect(progress, isNotNull, reason: name);
         final restored = progress!;
-        expect(restored.schemaVersion, 5, reason: name);
+        expect(restored.schemaVersion, 6, reason: name);
         expect(
           restored.curriculumVersion,
           ProgressState.currentCurriculumVersion,
@@ -67,14 +67,32 @@ void main() {
               : AppThemeMode.dark,
           reason: name,
         );
-        expect(restored.contentVersion, name == 'v5' ? 3 : 1, reason: name);
-        if (name == 'v5') {
+        expect(
+          restored.contentVersion,
+          name == 'v5' || name == 'v6' ? 3 : 1,
+          reason: name,
+        );
+        if (name == 'v5' || name == 'v6') {
           expect(
             restored.phraseProgress.keys,
             containsAll(<String>['twinkle.a', 'twinkle.b']),
           );
         } else {
           expect(restored.phraseProgress, isEmpty, reason: name);
+        }
+        if (name == 'v5') {
+          expect(
+            restored.phraseProgressFor('twinkle.a')!.contentVersion,
+            1,
+            reason: 'v5 evidence predates per-phrase versions',
+          );
+        } else if (name == 'v6') {
+          expect(
+            restored.phraseProgressFor('twinkle.a')!.contentVersion,
+            2,
+            reason: name,
+          );
+          expect(restored.phraseProgressFor('twinkle.b')!.contentVersion, 1);
         }
       }
     });
@@ -168,6 +186,37 @@ void main() {
       expect(restored.skills['note:G4']!.productionCorrect, 2);
     });
 
+    test('v5 gets a per-phrase content version without resetting evidence', () {
+      final fixture = _loadFixture('v5');
+      final before =
+          (fixture['phraseProgress'] as Map<String, dynamic>)['twinkle.a']
+              as Map<String, dynamic>;
+      expect(before.containsKey('contentVersion'), isFalse);
+
+      final migrated = _migrate(fixture);
+      final phrase =
+          (migrated['phraseProgress'] as Map<String, dynamic>)['twinkle.a']
+              as Map<String, dynamic>;
+      expect(phrase['contentVersion'], 1);
+      expect(phrase['reps'], 5);
+      expect(phrase['correct'], 6);
+      expect(phrase['performanceDays'], before['performanceDays']);
+      expect(migrated['contentVersion'], 3);
+
+      final restored = importProgress(jsonEncode(fixture))!;
+      expect(restored.phraseProgressFor('twinkle.a')!.contentVersion, 1);
+      expect(restored.phraseProgressFor('twinkle.a')!.reps, 5);
+      expect(restored.contentVersion, 3);
+    });
+
+    test('v6 keeps an explicit phrase content version', () {
+      final fixture = _loadFixture('v6');
+      final restored = importProgress(jsonEncode(fixture))!;
+      expect(restored.phraseProgressFor('twinkle.a')!.contentVersion, 2);
+      expect(restored.phraseProgressFor('twinkle.b')!.contentVersion, 1);
+      expect(restored.phraseProgressFor('twinkle.a')!.reps, 5);
+    });
+
     test('v4 with empty skills rebuilds note skills from boxes', () {
       final fixture = _loadFixture('v4')..['skills'] = <String, dynamic>{};
       expect(fixture['skills'], isEmpty);
@@ -185,8 +234,8 @@ void main() {
       expect(importProgress(jsonEncode(fixture)), isNull);
     });
 
-    test('v5 is idempotent and keeps raw phrase evidence', () {
-      final fixture = _loadFixture('v5');
+    test('v6 is idempotent and keeps raw phrase evidence', () {
+      final fixture = _loadFixture('v6');
       final once = _migrate(fixture);
       expect(once, equals(fixture));
       expect(identical(once, fixture), isFalse);
@@ -198,6 +247,7 @@ void main() {
       final restored = importProgress(jsonEncode(fixture))!;
       expect(restored.contentVersion, 3);
       final phrase = restored.phraseProgressFor('twinkle.a')!;
+      expect(phrase.contentVersion, 2);
       expect(phrase.reps, 5);
       expect(phrase.correct, 6);
       expect(phrase.correctDays, hasLength(3));
@@ -251,7 +301,7 @@ void main() {
     });
 
     test('future, old, and invalid schema versions are rejected', () {
-      for (final version in <Object>[0, -1, 6, 999]) {
+      for (final version in <Object>[0, -1, 7, 999]) {
         final result = migrateProgress(<String, dynamic>{
           'schemaVersion': version,
         });
@@ -265,11 +315,11 @@ void main() {
         );
       }
       expect(
-        migrateProgress(<String, dynamic>{'schemaVersion': '5'}),
+        migrateProgress(<String, dynamic>{'schemaVersion': '6'}),
         isA<MigrationFailure>(),
       );
       expect(migrateProgress(<String, dynamic>{}), isA<MigrationFailure>());
-      expect(importProgress('{"schemaVersion": 6}'), isNull);
+      expect(importProgress('{"schemaVersion": 7}'), isNull);
     });
 
     test('malformed fields fail cleanly', () {
@@ -292,6 +342,9 @@ void main() {
           'firstPerformanceDay': 'not-a-day',
         }),
         'phrase due date': _v5Phrase(<String, dynamic>{'dueAt': 'not-a-date'}),
+        'phrase content version': _v6Phrase(<String, dynamic>{
+          'contentVersion': 0,
+        }),
       };
 
       for (final entry in cases.entries) {
@@ -314,17 +367,17 @@ void main() {
       'malformed known fields fail with FormatException, not a type error',
       () {
         final cases = <Map<String, dynamic>>[
-          <String, dynamic>{'schemaVersion': 5, 'daily': <dynamic>[]},
+          <String, dynamic>{'schemaVersion': 6, 'daily': <dynamic>[]},
           <String, dynamic>{
-            'schemaVersion': 5,
+            'schemaVersion': 6,
             'bestLessonAccuracy': <dynamic>[],
           },
-          <String, dynamic>{'schemaVersion': 5, 'completedLessons': 'nope'},
+          <String, dynamic>{'schemaVersion': 6, 'completedLessons': 'nope'},
           <String, dynamic>{
-            'schemaVersion': 5,
+            'schemaVersion': 6,
             'recentSessions': <dynamic>[1],
           },
-          <String, dynamic>{'schemaVersion': 5, 'xp': 'many'},
+          <String, dynamic>{'schemaVersion': 6, 'xp': 'many'},
         ];
         for (final json in cases) {
           expect(migrateProgress(json), isA<MigrationFailure>());
@@ -352,6 +405,7 @@ void main() {
         lastPerformanceAt: DateTime(2026, 11, 3, 9, 5),
         bestTempoBpm: 84,
         bestAccuracy: 0.92,
+        contentVersion: 3,
       );
 
       final restored = PhraseProgress.fromJson(original.toJson());
@@ -369,6 +423,9 @@ void main() {
       expect(restored.lastPerformanceAt, DateTime(2026, 11, 3, 9, 5));
       expect(restored.bestTempoBpm, 84);
       expect(restored.bestAccuracy, 0.92);
+      expect(restored.contentVersion, 3);
+      expect(restored.needsRetestFor(3), isFalse);
+      expect(restored.needsRetestFor(4), isTrue);
       expect(restored.performanceSpanDays, 14);
       expect(restored.accuracy, closeTo(5 / 6, 1e-9));
     });
@@ -441,7 +498,7 @@ void main() {
       'a future document is quarantined and survives a fresh save',
       () async {
         final future = jsonEncode(<String, dynamic>{
-          'schemaVersion': 6,
+          'schemaVersion': 7,
           'xp': 999,
         });
         SharedPreferences.setMockInitialValues({
@@ -455,7 +512,7 @@ void main() {
         final prefs = await SharedPreferences.getInstance();
         expect(
           prefs.getString(SharedPreferencesProgressStore.storageKey),
-          contains('"schemaVersion":5'),
+          contains('"schemaVersion":6'),
         );
         expect(
           prefs.getString(SharedPreferencesProgressStore.unreadableKey),
@@ -468,7 +525,7 @@ void main() {
       'the controller fallback preserves a future document across a save',
       () async {
         final future = jsonEncode(<String, dynamic>{
-          'schemaVersion': 6,
+          'schemaVersion': 7,
           'xp': 999,
         });
         SharedPreferences.setMockInitialValues({
@@ -491,12 +548,12 @@ void main() {
         );
         expect(
           prefs.getString(SharedPreferencesProgressStore.storageKey),
-          contains('"schemaVersion":5'),
+          contains('"schemaVersion":6'),
         );
       },
     );
 
-    test('v5 progress saves and reloads phrase progress', () async {
+    test('v6 progress saves and reloads phrase content version', () async {
       final store = SharedPreferencesProgressStore();
       final progress = ProgressState.fresh();
       progress.contentVersion = 2;
@@ -507,6 +564,7 @@ void main() {
         correctDays: <String>{'2026-10-20', '2026-10-27'},
         performanceDays: <String>{'2026-10-20', '2026-10-27', '2026-11-03'},
         firstPerformanceDay: '2026-10-20',
+        contentVersion: 3,
       );
 
       await store.save(progress);
@@ -517,6 +575,7 @@ void main() {
       expect(phrase.reps, 4);
       expect(phrase.correctDays, hasLength(2));
       expect(phrase.performanceSpanDays, 14);
+      expect(phrase.contentVersion, 3);
     });
   });
 }
@@ -539,5 +598,11 @@ Map<String, dynamic> _migrate(Map<String, dynamic> json) {
 Map<String, dynamic> _v5Phrase(Map<String, dynamic> phrase) =>
     <String, dynamic>{
       'schemaVersion': 5,
+      'phraseProgress': <String, dynamic>{'p': phrase},
+    };
+
+Map<String, dynamic> _v6Phrase(Map<String, dynamic> phrase) =>
+    <String, dynamic>{
+      'schemaVersion': 6,
       'phraseProgress': <String, dynamic>{'p': phrase},
     };

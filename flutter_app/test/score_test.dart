@@ -170,6 +170,7 @@ void main() {
             timeSignature: const TimeSignature(4, 4),
             targetTempoBpm: 20,
             difficulty: 9,
+            contentVersion: 0,
             events: [
               NoteEvent(
                 startBeat: -1,
@@ -189,6 +190,7 @@ void main() {
         containsAll(<String>[
           'phrase.invalidTempo',
           'phrase.invalidDifficulty',
+          'phrase.invalidContentVersion',
           'event.invalidStart',
           'event.invalidDuration',
           'event.invalidVelocity',

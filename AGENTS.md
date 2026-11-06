@@ -274,6 +274,15 @@ Then open <http://127.0.0.1:8080/>.
   target section without deleting note progress.
 - **Curriculum migration:** bump `curriculumVersion` and map old lesson IDs;
   never silently drop completed lessons, XP, or note progress.
+- **Phrase content versions:** phrase progress stays keyed by the stable phrase
+  id. `Phrase.contentVersion` marks musical edits and
+  `PhraseProgress.contentVersion` records the version the evidence was earned
+  against. A content edit preserves every counter and marks the evidence for a
+  re-test; it never resets or relabels old evidence. The phrase UI that will
+  surface the re-test stays behind the T1.7 switch. A determinate phrase
+  attempt records its raw evidence and its own repertoire skill, never
+  per-note skills. `phrase:` skill ids resolve through the content registry,
+  and unknown ids are skipped rather than crashing practice.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
   practice 5; jump test 20. Double XP multiplies the award.
 - **Streak:** first completed lesson of a local calendar day; practice does not
@@ -307,10 +316,10 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Current verified state
 
-Last verified on 2026-11-04 with Flutter 3.47.9 / Dart 3.13.7:
+Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 224 tests passing
+- `flutter test` - 755 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
