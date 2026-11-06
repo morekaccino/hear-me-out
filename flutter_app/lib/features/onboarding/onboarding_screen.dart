@@ -5,18 +5,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/audio/note_matcher.dart';
 import '../../core/audio/pitch_source.dart';
-import '../../core/learning/progress.dart';
+import '../../core/learning/onboarding_choices.dart';
 import '../../core/music/note.dart';
-import '../../core/notation/staff_painter.dart';
+import '../../core/storage/onboarding_store.dart';
 import '../../shared/audio/sound_service.dart';
-import '../../state/app_controller.dart';
-import '../../state/providers.dart';
 import '../../shared/theme/app_theme.dart';
+import '../../shared/theme/motion.dart';
 import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../shared/widgets/tappable.dart';
+import '../../state/app_controller.dart';
+import '../../state/providers.dart';
+import 'onboarding_pieces.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -29,14 +31,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     with WidgetsBindingObserver {
   final _pageController = PageController();
   int _page = 0;
-  int _dailyGoal = 20;
-  int _explanationMode = 0;
+  bool? _hasGuitar;
+  ReadingLevel? _readingLevel;
+  String? _pieceId;
+  bool _finishing = false;
+  String? _playingPieceId;
 
   PitchSource? _source;
   StreamSubscription<PitchFrame>? _subscription;
   PitchReading _reading = PitchReading.silent;
   bool _checkingMic = false;
-  bool _advancing = false;
+  bool _micExpanded = false;
   int _micGeneration = 0;
   String? _micError;
 
@@ -49,7 +54,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _stopMic();
+    unawaited(_stopMic());
     _pageController.dispose();
     super.dispose();
   }
@@ -58,7 +63,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
-      _stopMic();
+      unawaited(_stopMic());
     }
   }
 
@@ -83,6 +88,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final generation = ++_micGeneration;
     setState(() {
       _checkingMic = true;
+      _micExpanded = true;
       _micError = null;
     });
     final source = ref.read(pitchSourceFactoryProvider)();
@@ -101,8 +107,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       if (!mounted || generation != _micGeneration) return;
       setState(() {
         _checkingMic = false;
-        _micError =
-            'Microphone access was denied. You can still practice by naming notes.';
+        _micError = 'Microphone access was denied. You can still practice by naming notes.';
       });
       return;
     }
@@ -128,26 +133,87 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     if (mounted) setState(() => _checkingMic = false);
   }
 
-  Future<void> _next() async {
-    if (_advancing) return;
-    _advancing = true;
-    try {
-      if (_page == 2) {
-        await _stopMic();
-      }
-      if (_page < 3) {
-        await _pageController.nextPage(
-          duration: const Duration(milliseconds: 320),
-          curve: Curves.easeOutCubic,
-        );
-        return;
-      }
-      await ref
-          .read(appControllerProvider.notifier)
-          .completeOnboarding(AppSettings(dailyGoalXp: _dailyGoal));
-    } finally {
-      _advancing = false;
+  Future<void> _goTo(int page) async {
+    if (!mounted || page == _page) return;
+    if (_page == 0 && page > 0) await _stopMic();
+    if (!mounted) return;
+    if (!_pageController.hasClients) {
+      setState(() => _page = page);
+      return;
     }
+    await _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  Future<void> _chooseGuitar(bool value) async {
+    setState(() => _hasGuitar = value);
+    await _goTo(1);
+  }
+
+  Future<void> _chooseReading(ReadingLevel level) async {
+    setState(() => _readingLevel = level);
+    await _goTo(2);
+  }
+
+  void _selectPiece(String pieceId) {
+    if (_pieceId == pieceId) return;
+    unawaited(ref.read(soundServiceProvider).play(Sfx.uiSelect));
+    setState(() => _pieceId = pieceId);
+  }
+
+  Future<void> _playPreview(OnboardingPiece piece) async {
+    final engine = ref.read(audioEngineProvider);
+    setState(() => _playingPieceId = piece.id);
+    try {
+      await engine.stop();
+      await engine.play(piece.preview);
+    } catch (_) {
+      // A platform without an audio player must not block onboarding.
+    } finally {
+      if (mounted && _playingPieceId == piece.id) {
+        setState(() => _playingPieceId = null);
+      }
+    }
+  }
+
+  Future<void> _finish() async {
+    if (_finishing) return;
+    final pieceId = _pieceId ?? onboardingPieces.first.id;
+    setState(() => _finishing = true);
+    await _stopMic();
+    try {
+      await ref.read(audioEngineProvider).stop();
+    } catch (_) {
+      // Preview audio is optional.
+    }
+
+    final choices = OnboardingChoices(
+      hasGuitar: _hasGuitar,
+      readingLevel: _readingLevel,
+      firstPieceId: pieceId,
+      completedAt: DateTime.now(),
+    );
+    try {
+      await ref.read(onboardingStoreProvider).save(choices);
+    } catch (_) {
+      // The app can still start if the optional choices cannot be saved.
+    }
+    if (!mounted) return;
+    final settings = ref
+        .read(appControllerProvider)
+        .requireValue
+        .progress
+        .settings;
+    await ref.read(appControllerProvider.notifier).completeOnboarding(settings);
+    if (mounted) setState(() => _finishing = false);
+  }
+
+  void _chooseLater() {
+    setState(() => _pieceId = onboardingPieces.first.id);
+    unawaited(_finish());
   }
 
   @override
@@ -157,25 +223,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         child: PageFrame(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
-                child: Row(
-                  children: [
-                    for (var index = 0; index < 4; index++)
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: LessonProgressBar(
-                            value: index <= _page ? 1 : 0,
-                            height: 8,
-                            color: index <= _page
-                                ? AppColors.green
-                                : AppColors.border,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+              _ProgressHeader(
+                page: _page,
+                onBack: _page == 0 ? null : () => _goTo(_page - 1),
               ),
               Expanded(
                 child: PageView(
@@ -183,47 +233,41 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   physics: const NeverScrollableScrollPhysics(),
                   onPageChanged: (page) => setState(() => _page = page),
                   children: [
-                    _WelcomePage(),
-                    _HowItWorksPage(
-                      mode: _explanationMode,
-                      onModeChanged: (mode) {
-                        if (mode == _explanationMode) return;
-                        unawaited(
-                          ref.read(soundServiceProvider).play(Sfx.uiSelect),
-                        );
-                        setState(() => _explanationMode = mode);
-                      },
-                    ),
-                    _MicCheckPage(
-                      checking: _checkingMic,
+                    _GuitarPage(
+                      selected: _hasGuitar,
+                      checkingMic: _checkingMic,
                       listening: _source != null,
+                      micExpanded: _micExpanded,
                       reading: _reading,
-                      error: _micError,
-                      onTest: _startMic,
-                      onSkip: _next,
+                      micError: _micError,
+                      onChoose: _chooseGuitar,
+                      onCheckMic: _startMic,
+                      onStopMic: _stopMic,
                     ),
-                    _GoalPage(
-                      selected: _dailyGoal,
-                      onSelected: (goal) {
-                        if (goal == _dailyGoal) return;
-                        unawaited(
-                          ref.read(soundServiceProvider).play(Sfx.uiSelect),
-                        );
-                        setState(() => _dailyGoal = goal);
-                      },
+                    _ReadingPage(
+                      selected: _readingLevel,
+                      onSelected: _chooseReading,
+                    ),
+                    _PiecePage(
+                      selectedId: _pieceId,
+                      playingId: _playingPieceId,
+                      onSelected: _selectPiece,
+                      onPreview: _playPreview,
+                      onChooseLater: _chooseLater,
                     ),
                   ],
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-                child: DuoButton(
-                  label: _page == 3 ? "LET'S PLAY" : 'CONTINUE',
-                  onPressed: _next,
-                  icon: _page == 3 ? Icons.music_note_rounded : null,
-                  sound: _page == 3 ? Sfx.rewardUnlock : Sfx.uiPage,
+              if (_page == 2)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+                  child: DuoButton(
+                    label: _finishing ? 'STARTING…' : 'START PLAYING',
+                    onPressed: _pieceId == null || _finishing ? null : _finish,
+                    icon: Icons.arrow_forward_rounded,
+                    sound: Sfx.rewardUnlock,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -232,77 +276,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 }
 
-class _WelcomePage extends StatelessWidget {
+class _ProgressHeader extends StatelessWidget {
+  const _ProgressHeader({required this.page, required this.onBack});
+
+  final int page;
+  final VoidCallback? onBack;
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-        child: Column(
-          children: [
-            const Mascot(size: 160),
-            const SizedBox(height: 16),
-            Text(
-              'Read music.\nPlay guitar.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w800,
-                height: 1.08,
-                color: AppColors.text,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 20, 0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: onBack == null
+                ? null
+                : IconButton(
+                    tooltip: 'Back',
+                    onPressed: onBack,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+          ),
+          const SizedBox(width: 8),
+          for (var index = 0; index < 3; index++) ...[
+            if (index > 0) const SizedBox(width: 6),
+            Expanded(
+              child: LessonProgressBar(
+                value: index <= page ? 1 : 0,
+                height: 8,
+                color: index <= page ? AppColors.green : AppColors.border,
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Read notation, build rhythm, learn chords and harmony, and train your ear with honest pitch feedback.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                height: 1.45,
-                color: AppColors.textMuted,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
-              children: const [
-                _FeaturePill(icon: Icons.music_note, label: '240 lessons'),
-                _FeaturePill(icon: Icons.mic, label: 'Ear training'),
-              ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _FeaturePill extends StatelessWidget {
-  const _FeaturePill({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border, width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppColors.greenDark),
-          const SizedBox(width: 8),
+          const SizedBox(width: 12),
           Text(
-            label,
-            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+            '${page + 1}/3',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMuted,
+            ),
           ),
         ],
       ),
@@ -310,329 +325,108 @@ class _FeaturePill extends StatelessWidget {
   }
 }
 
-class _HowItWorksPage extends StatelessWidget {
-  const _HowItWorksPage({required this.mode, required this.onModeChanged});
-
-  final int mode;
-  final ValueChanged<int> onModeChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final note = Note.parse('G4');
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          children: [
-            const Text(
-              'Two ways to answer',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Name it or play it. Both count toward the same skill.',
-              style: TextStyle(fontSize: 14, color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 16),
-            SectionCard(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ModeTab(
-                          label: 'NAME IT',
-                          icon: Icons.touch_app_rounded,
-                          selected: mode == 0,
-                          onTap: () => onModeChanged(0),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _ModeTab(
-                          label: 'PLAY IT',
-                          icon: Icons.mic_rounded,
-                          selected: mode == 1,
-                          onTap: () => onModeChanged(1),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    height: 190,
-                    child: StaffView(
-                      note: note,
-                      staffColor: AppColors.textLight,
-                      noteColor: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  if (mode == 0)
-                    Row(
-                      children: [
-                        for (final name in ['E4', 'G4', 'B4', 'A4'])
-                          Expanded(
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 3,
-                              ),
-                              child: Container(
-                                height: 44,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: name == 'G4'
-                                      ? AppColors.greenSoft
-                                      : AppColors.background,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: name == 'G4'
-                                        ? AppColors.green
-                                        : AppColors.border,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: Text(
-                                  name,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: name == 'G4'
-                                        ? AppColors.greenDark
-                                        : AppColors.text,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    )
-                  else
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.blueSoft,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(
-                            Icons.graphic_eq_rounded,
-                            color: AppColors.blueDark,
-                          ),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Play G on your guitar. The mic hears the pitch and tells you how close you are.',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.blueDark,
-                                height: 1.35,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No account. No cloud. Your progress stays on this device.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: AppColors.textLight),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ModeTab extends StatelessWidget {
-  const _ModeTab({
-    required this.label,
-    required this.icon,
+class _GuitarPage extends StatelessWidget {
+  const _GuitarPage({
     required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return DuoTappable(
-      onTap: onTap,
-      pressedScale: 0.96,
-      child: Container(
-        height: 44,
-        decoration: BoxDecoration(
-          color: selected ? AppColors.greenSoft : AppColors.surface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: selected ? AppColors.green : AppColors.border,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 18,
-              color: selected ? AppColors.greenDark : AppColors.textMuted,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: selected ? AppColors.greenDark : AppColors.textMuted,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MicCheckPage extends StatelessWidget {
-  const _MicCheckPage({
-    required this.checking,
+    required this.checkingMic,
     required this.listening,
+    required this.micExpanded,
     required this.reading,
-    required this.error,
-    required this.onTest,
-    required this.onSkip,
+    required this.micError,
+    required this.onChoose,
+    required this.onCheckMic,
+    required this.onStopMic,
   });
 
-  final bool checking;
+  final bool? selected;
+  final bool checkingMic;
   final bool listening;
+  final bool micExpanded;
   final PitchReading reading;
-  final String? error;
-  final VoidCallback onTest;
-  final VoidCallback onSkip;
+  final String? micError;
+  final ValueChanged<bool> onChoose;
+  final VoidCallback onCheckMic;
+  final VoidCallback onStopMic;
 
   @override
   Widget build(BuildContext context) {
-    final note = reading.note;
-    final writtenNote = note?.transposed(12);
-    final cents = reading.cents;
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          children: [
-            const Mascot(size: 100, mood: MascotMood.thinking),
-            const SizedBox(height: 8),
-            const Text(
-              'Check your microphone',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
-              textAlign: TextAlign.center,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      child: Column(
+        children: [
+          const Mascot(size: 132),
+          const SizedBox(height: 12),
+          const Text(
+            'Do you have your guitar?',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'You can start now or look around first. Nothing is locked.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+              color: AppColors.textMuted,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Play any note on your guitar. If the mic works, you will see it here.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textMuted,
-                height: 1.4,
-              ),
+          ),
+          const SizedBox(height: 24),
+          DuoButton(
+            label: 'YES, I HAVE IT',
+            onPressed: () => onChoose(true),
+            icon: Icons.music_note_rounded,
+            sound: Sfx.uiSelect,
+          ),
+          const SizedBox(height: 10),
+          OutlineDuoButton(
+            label: 'NOT NOW',
+            onPressed: () => onChoose(false),
+            color: AppColors.textMuted,
+          ),
+          const SizedBox(height: 24),
+          Divider(color: AppColors.border),
+          const SizedBox(height: 16),
+          Text(
+            'Microphone is optional',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.text,
             ),
-            const SizedBox(height: 16),
-            SectionCard(
-              child: SizedBox(
-                height: 120,
-                child: Center(
-                  child: reading.voiced && writtenNote != null
-                      ? Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              writtenNote.display,
-                              style: const TextStyle(
-                                fontSize: 46,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.greenDark,
-                              ),
-                            ),
-                            Text(
-                              'Written pitch  ·  ${reading.frequency.toStringAsFixed(1)} Hz  ·  ${cents.toStringAsFixed(0)} cents',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                          ],
-                        )
-                      : Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.mic_none_rounded,
-                              size: 38,
-                              color: AppColors.textLight,
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Waiting for a note…',
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Play exercises use the mic. Naming notes works without one.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+              color: AppColors.textMuted,
             ),
-            if (error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.redDark,
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
-            if (reading.note == null)
-              DuoButton(
-                label: checking
-                    ? 'STARTING…'
-                    : listening
-                    ? 'LISTENING…'
-                    : 'TEST MICROPHONE',
-                onPressed: checking || listening ? null : onTest,
-                color: AppColors.blue,
-                icon: Icons.mic_rounded,
-              )
-            else
-              OutlineDuoButton(
-                label: 'SKIP FOR NOW',
-                onPressed: onSkip,
-                color: AppColors.textMuted,
-              ),
-            if (reading.note == null) ...[
-              const SizedBox(height: 8),
+          ),
+          const SizedBox(height: 10),
+          OutlineDuoButton(
+            label: listening
+                ? 'LISTENING…'
+                : checkingMic
+                ? 'STARTING…'
+                : 'CHECK YOUR MIC',
+            onPressed: listening || checkingMic ? null : onCheckMic,
+            icon: Icons.mic_rounded,
+            color: AppColors.blue,
+          ),
+          if (micExpanded) ...[
+            const SizedBox(height: 12),
+            _MicReadingCard(reading: reading, error: micError),
+            if (listening)
               TextButton(
-                onPressed: onSkip,
+                onPressed: onStopMic,
                 child: Text(
-                  'Skip, I will type note names',
+                  'Stop checking',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -640,124 +434,516 @@ class _MicCheckPage extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _MicReadingCard extends StatelessWidget {
+  const _MicReadingCard({required this.reading, required this.error});
+
+  final PitchReading reading;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final writtenNote = reading.note?.transposed(12);
+    return SectionCard(
+      child: Column(
+        children: [
+          if (reading.voiced && writtenNote != null)
+            Column(
+              children: [
+                Text(
+                  writtenNote.display,
+                  style: const TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.greenDark,
+                  ),
+                ),
+                Text(
+                  'Written pitch · ${reading.frequency.toStringAsFixed(1)} Hz',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.mic_none_rounded,
+                  size: 20,
+                  color: AppColors.textLight,
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    'Play any note to check the mic.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          if (error != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.redDark,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadingPage extends StatelessWidget {
+  const _ReadingPage({required this.selected, required this.onSelected});
+
+  final ReadingLevel? selected;
+  final ValueChanged<ReadingLevel> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
+      child: Column(
+        children: [
+          const Mascot(size: 104, mood: MascotMood.thinking),
+          const SizedBox(height: 12),
+          const Text(
+            'How well do you read?',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'We will pick a starting point. You can change it later.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _ReadingCard(
+            title: 'I know the note names',
+            explanation: 'Start with short reading drills and guided hints.',
+            icon: Icons.music_note_rounded,
+            selected: selected == ReadingLevel.noteNames,
+            onTap: () => onSelected(ReadingLevel.noteNames),
+          ),
+          _ReadingCard(
+            title: "I'm a slow reader",
+            explanation: 'Start with note names and build speed step by step.',
+            icon: Icons.menu_book_rounded,
+            selected: selected == ReadingLevel.slowReader,
+            onTap: () => onSelected(ReadingLevel.slowReader),
+          ),
+          _ReadingCard(
+            title: "I'm comfortable reading",
+            explanation: 'Start with full phrases and fewer hints.',
+            icon: Icons.auto_stories_rounded,
+            selected: selected == ReadingLevel.comfortable,
+            onTap: () => onSelected(ReadingLevel.comfortable),
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => onSelected(ReadingLevel.slowReader),
+            child: Text(
+              'Not sure',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.blueDark,
+              ),
+            ),
+          ),
+          Text(
+            'We will start you as a slow reader.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadingCard extends StatelessWidget {
+  const _ReadingCard({
+    required this.title,
+    required this.explanation,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final String explanation;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: '$title. $explanation',
+        excludeSemantics: true,
+        child: DuoTappable(
+          onTap: onTap,
+          pressedScale: 0.98,
+          child: AnimatedContainer(
+            duration: DuoMotion.fast,
+            padding: const EdgeInsets.all(DuoSpacing.md),
+            decoration: BoxDecoration(
+              color: selected ? AppColors.greenSoft : AppColors.background,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: selected ? AppColors.green : AppColors.border,
+                width: 2,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: selected ? AppColors.green : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: selected ? Colors.white : AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(width: DuoSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        explanation,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.3,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (selected)
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.green,
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-class _GoalPage extends StatelessWidget {
-  const _GoalPage({required this.selected, required this.onSelected});
+class _PiecePage extends StatelessWidget {
+  const _PiecePage({
+    required this.selectedId,
+    required this.playingId,
+    required this.onSelected,
+    required this.onPreview,
+    required this.onChooseLater,
+  });
 
-  final int selected;
-  final ValueChanged<int> onSelected;
+  final String? selectedId;
+  final String? playingId;
+  final ValueChanged<String> onSelected;
+  final ValueChanged<OnboardingPiece> onPreview;
+  final VoidCallback onChooseLater;
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        child: Column(
-          children: [
-            const Mascot(size: 110, mood: MascotMood.cheer),
-            const SizedBox(height: 12),
-            const Text(
-              'Pick a daily goal',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
-              textAlign: TextAlign.center,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+      child: Column(
+        children: [
+          const Text(
+            'Pick a first piece',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Hear a short preview, then choose where to begin. You can change pieces later.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.4,
+              color: AppColors.textMuted,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Small and steady beats one long session.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          for (final piece in onboardingPieces)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _PieceCard(
+                piece: piece,
+                selected: piece.id == selectedId,
+                playing: piece.id == playingId,
+                onSelect: () => onSelected(piece.id),
+                onPreview: () => onPreview(piece),
+              ),
             ),
-            const SizedBox(height: 24),
-            for (final goal in [10, 20, 30])
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: DuoTappable(
-                  onTap: () => onSelected(goal),
-                  pressedScale: 0.98,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
-                    ),
-                    decoration: BoxDecoration(
-                      color: selected == goal
-                          ? AppColors.greenSoft
-                          : AppColors.background,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: selected == goal
-                            ? AppColors.green
-                            : AppColors.border,
-                        width: 2,
-                      ),
-                    ),
-                    child: Row(
+          TextButton(
+            onPressed: onChooseLater,
+            child: Text(
+              'Choose later',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                color: AppColors.blueDark,
+              ),
+            ),
+          ),
+          Text(
+            'We will start you with Greensleeves.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PieceCard extends StatelessWidget {
+  const _PieceCard({
+    required this.piece,
+    required this.selected,
+    required this.playing,
+    required this.onSelect,
+    required this.onPreview,
+  });
+
+  final OnboardingPiece piece;
+  final bool selected;
+  final bool playing;
+  final VoidCallback onSelect;
+  final VoidCallback onPreview;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '${piece.title}. ${piece.composer}. ${piece.stage}.',
+      excludeSemantics: true,
+      child: DuoTappable(
+        onTap: onSelect,
+        pressedScale: 0.99,
+        child: AnimatedContainer(
+          duration: DuoMotion.fast,
+          padding: const EdgeInsets.all(DuoSpacing.md),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.greenSoft : AppColors.background,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? AppColors.green : AppColors.border,
+              width: 2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: selected == goal
-                                ? AppColors.green
-                                : AppColors.surface,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Icon(
-                            goal == 10
-                                ? Icons.eco_rounded
-                                : goal == 20
-                                ? Icons.local_fire_department_rounded
-                                : Icons.bolt_rounded,
-                            color: selected == goal
-                                ? Colors.white
-                                : AppColors.textMuted,
-                            size: 22,
+                        Text(
+                          piece.title,
+                          style: const TextStyle(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                goal == 10
-                                    ? 'Casual'
-                                    : goal == 20
-                                    ? 'Regular'
-                                    : 'Serious',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              Text(
-                                '$goal XP per day',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textMuted,
-                                ),
-                              ),
-                            ],
+                        const SizedBox(height: 2),
+                        Text(
+                          piece.composer,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
                           ),
                         ),
-                        if (selected == goal)
-                          const Icon(
-                            Icons.check_circle_rounded,
-                            color: AppColors.green,
-                          ),
                       ],
                     ),
                   ),
+                  if (selected)
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.green,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _PieceBadge(
+                    label: piece.stage,
+                    background: AppColors.blueSoft,
+                    foreground: AppColors.blueDark,
+                  ),
+                  _PieceBadge(
+                    label: 'SYNTH PREVIEW',
+                    background: AppColors.purpleSoft,
+                    foreground: AppColors.purpleDark,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                piece.description,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                  color: AppColors.textMuted,
                 ),
               ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _PreviewButton(
+                  key: ValueKey('preview-${piece.id}'),
+                  playing: playing,
+                  onTap: onPreview,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PieceBadge extends StatelessWidget {
+  const _PieceBadge({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.3,
+          color: foreground,
+        ),
+      ),
+    );
+  }
+}
+
+class _PreviewButton extends StatelessWidget {
+  const _PreviewButton({super.key, required this.playing, required this.onTap});
+
+  final bool playing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return DuoTappable(
+      onTap: onTap,
+      pressedScale: 0.95,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: playing ? AppColors.blueSoft : AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderStrong, width: 1.5),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              playing ? Icons.graphic_eq_rounded : Icons.play_arrow_rounded,
+              size: 20,
+              color: AppColors.blueDark,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              playing ? 'PLAYING…' : 'PREVIEW',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: AppColors.blueDark,
+              ),
+            ),
           ],
         ),
       ),

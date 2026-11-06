@@ -9,6 +9,7 @@ import 'package:hear_me_out/core/music/curriculum.dart';
 import 'package:hear_me_out/core/music/guitar.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/notation/staff_painter.dart';
+import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/features/path/path_layout.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
@@ -31,6 +32,8 @@ void main() {
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(store),
+        onboardingStoreProvider.overrideWithValue(FakeOnboardingStore()),
+        audioEngineProvider.overrideWithValue(FakeAudioEngine()),
         pitchSourceFactoryProvider.overrideWithValue(sources.call),
         soundServiceProvider.overrideWithValue(sounds ?? FakeSoundService()),
       ],
@@ -412,20 +415,18 @@ void main() {
     await tester.pumpWidget(buildApp(ProgressState.fresh()));
     await tester.pumpAndSettle();
 
-    expect(find.text('Read music.\nPlay guitar.'), findsOneWidget);
-    await tester.tap(find.text('CONTINUE'));
+    expect(find.text('Do you have your guitar?'), findsOneWidget);
+    await tester.tap(find.text('YES, I HAVE IT'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Two ways to answer'), findsOneWidget);
-    await tester.tap(find.text('CONTINUE'));
+    expect(find.text('How well do you read?'), findsOneWidget);
+    await tester.tap(find.text("I'm a slow reader"));
     await tester.pumpAndSettle();
 
-    expect(find.text('Check your microphone'), findsOneWidget);
-    await tester.tap(find.text('Skip, I will type note names'));
+    expect(find.text('Pick a first piece'), findsOneWidget);
+    await tester.tap(find.text('Greensleeves'));
     await tester.pumpAndSettle();
-
-    expect(find.text('Pick a daily goal'), findsOneWidget);
-    await tester.tap(find.text("LET'S PLAY"));
+    await tester.tap(find.text('START PLAYING'));
     await tester.pumpAndSettle();
 
     expect(find.text('Open Strings'), findsOneWidget);

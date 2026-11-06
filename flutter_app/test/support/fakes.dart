@@ -2,8 +2,10 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:hear_me_out/core/audio/pitch_source.dart';
+import 'package:hear_me_out/core/learning/onboarding_choices.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
+import 'package:hear_me_out/core/storage/onboarding_store.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/shared/audio/audio_engine.dart';
 import 'package:hear_me_out/shared/audio/sound_service.dart';
@@ -32,6 +34,25 @@ class MemoryProgressStore implements ProgressStore {
 
   @override
   Future<void> clear() async => _value = null;
+}
+
+class FakeOnboardingStore implements OnboardingStore {
+  FakeOnboardingStore([this.value]);
+
+  OnboardingChoices? value;
+  int saveCount = 0;
+
+  @override
+  Future<OnboardingChoices?> load() async => value;
+
+  @override
+  Future<void> save(OnboardingChoices choices) async {
+    value = choices;
+    saveCount++;
+  }
+
+  @override
+  Future<void> clear() async => value = null;
 }
 
 class FakePitchSource implements PitchSource {
