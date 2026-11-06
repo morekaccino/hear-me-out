@@ -32,8 +32,8 @@ cd flutter_app
 dart run tool/content/validate_piece.dart assets/content/pieces/foundation/greensleeves.json
 ```
 
-All five files pass with **0 errors and 0 warnings**. The test also parses
-T3.1's `rangeAndPosition` and checks every note against it, so a future string
+All five files pass with **0 errors and 0 warnings**. The test parses T3.1's
+`rangeAndPosition` and checks every note against it, so a future string or fret
 deviation cannot hide behind the per-piece envelope. No runtime loader is added
 in this ticket: T2.11/T2.12 wire content into the app, and the assets are not
 listed in `pubspec.yaml` yet.
@@ -42,10 +42,10 @@ listed in `pubspec.yaml` yet.
 
 | Piece | Key | Meter | Tempo | Bars | Phrase bars | Written range | Strings / frets | Stage |
 |---|---|---|---:|---:|---|---|---|---:|
-| `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | E4-E5 | 1-4 / 0-3 | 1 |
-| `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D4-A4 | 3-4 / 0-4 | 2 |
-| `amazing-grace` | G major | 3/4 | 66 | 9 | 3 + 2 + 2 + 2 | D4-B4 | 2-4 / 0-2 | 2 |
-| `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | D4-C5 | 2-4 / 0-3 | 3 |
+| `greensleeves` | A minor | 6/8 | 60 | 9 | 3 + 2 + 2 + 2 | G4-E5 | 1-3 / 0-3 | 1 |
+| `ode-to-joy` | D major | 4/4 | 72 | 8 | 2 + 2 + 2 + 2 | D5-A5 | 1-2 / 0-5 | 2 |
+| `amazing-grace` | G major | 3/4 | 66 | 8 | 2 + 2 + 2 + 2 | G4-G5 | 1-3 / 0-3 | 2 |
+| `down-by-the-riverside` | G major | 4/4 | 76 | 12 | 4 + 4 + 2 + 2 | D4-C5 | 3-4 / 0-5 | 3 |
 | `original-study-1` | A minor | 4/4 | 60 | 12 | 3 + 3 + 3 + 3 | E3-F4 | 4-6 / 0-3 | 3 |
 
 "Written range" is staff pitch; the guitar sounds one octave lower. All notes
@@ -53,18 +53,29 @@ are inside the V1 written range E3-E6 and the sounding range E2-E5.
 
 ## Stage envelope
 
-Decision 0005 records the actual first-position envelope for each piece and
-keeps T3.1's `rangeAndPosition`, `docs/LAUNCH_PIECES.md`, and the tests in
-sync. Stage labels describe the primary teaching focus; they are not a hard
-string restriction. The monophonic and first-position rules are unchanged.
+T3.1's recorded `rangeAndPosition`, `docs/LAUNCH_PIECES.md`, and the test use the
+same envelope. Stages 1-2 use no string 4. Decision 0005 records the octave
+choices and the two first-position fret reaches that keep Ode to Joy and Down by
+the Riverside inside their recorded string spans.
 
-| Piece | T3.1 original span | Recorded strings | T3.1 original frets | Recorded max fret | Reason |
+| Piece | T3.1 strings | T3.1 max fret | Actual strings | Actual max fret | Note |
 |---|---|---|---|---|---|
-| `greensleeves` | 1-3 | 1-4 | 0-3 | 3 | E4 in P2 is string 4 fret 2. |
-| `ode-to-joy` | 1-3 | 3-4 | 0-3 | 4 | D4/E4 need string 4; F#4 needs fret 4. |
-| `amazing-grace` | 1-3 | 2-4 | 0-3 | 2 | The melody starts on D4/E4, which need string 4. |
-| `down-by-the-riverside` | 3-6 | 2-4 | 0-3 | 3 | B4/C5 need string 2; strings 5-6 are not used. |
-| `original-study-1` | 4-6 | 4-6 | 0-3 | 3 | Matches T3.1 exactly. |
+| `greensleeves` | 1-3 | 3 | 1-3 | 3 | E4 in P2 is played as E5. |
+| `ode-to-joy` | 1-2 | 5 | 1-2 | 5 | Octave up; A5 is string 1 fret 5. |
+| `amazing-grace` | 1-3 | 3 | 1-3 | 3 | Bars 3-4 are played an octave up. |
+| `down-by-the-riverside` | 3-4 | 5 | 3-4 | 5 | B4/C5 are string 3 frets 4-5. |
+| `original-study-1` | 4-6 | 3 | 4-6 | 3 | Matches T3.1 exactly. |
+
+The three stage-1/2 melodies that would dip below G4 stay on strings 1-3:
+
+- **Greensleeves:** the single low E4 in "to cast me off" is played an octave
+  higher as E5 (open high E). Every other note stays at written pitch.
+- **Ode to Joy:** the whole theme is written one octave above the first-position
+  guitar octave (D5-A5, sounding D4-A4), so it uses strings 1-2 and never string
+  4. A5 is string 1 fret 5.
+- **Amazing Grace:** the setting starts on G4 (string 3 open). Bars 3-4 are
+  played an octave higher (G5-E5-D5) because their written G4-E4-D4 would need
+  string 4; the other phrases stay in the lower octave.
 
 ## `greensleeves`
 
@@ -75,12 +86,13 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Key / meter / tempo:** A minor, 6/8, 60 BPM.
 - **Phrase map:** P1 bars 1-3 (one-eighth anacrusis plus two full bars);
   P2 bars 4-5; P3 bars 6-7; P4 bars 8-9. Total 9 bars.
-- **Position and range:** written E4-E5 (sounding E3-E4); strings 1-4, frets
-  0-3. Open G4, B4, and E5 carry the "open strings" focus; the low E4 in P2 is
-  string 4 fret 2 (Decision 0005).
+- **Position and range:** written G4-E5 (sounding G3-E4); strings 1-3, frets
+  0-3. Open G4, B4, and E5 carry the "open strings" focus. The low E4 in P2 is
+  played as E5 (open high E).
 - **Technique focus:** open strings, steady pulse, 6/8 lilt.
 - **Transposition:** none. The tune is written in the guitar's normal octave,
-  one octave above sounding pitch.
+  one octave above sounding pitch. The one low E4 is octave-displaced to E5 so
+  stage 1 never leaves strings 1-3.
 - **Editorial changes:** the sixteenth-note passing ornaments in the source are
   written as eighths and dotted quarters; the raised seventh G-sharp is kept at
   the cadence. The source is often notated in A Dorian with F-sharp; this
@@ -97,12 +109,14 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Key / meter / tempo:** D major, 4/4, 72 BPM.
 - **Phrase map:** P1 bars 1-2; P2 bars 3-4; P3 bars 5-6; P4 bars 7-8. Total
   8 bars.
-- **Position and range:** written D4-A4 (sounding D3-A3); strings 3-4, frets
-  0-4. D4 and E4 sit on string 4; F#4 needs fret 4. The melody stays in the
-  guitar's natural first-position octave.
+- **Position and range:** written D5-A5 (sounding D4-A4); strings 1-2, frets
+  0-5. The theme is one octave above the first-position guitar octave, so D5 is
+  string 2 fret 3 and the melody never needs string 4. A5 is string 1 fret 5;
+  every other note is at fret 0-3.
 - **Technique focus:** stepwise melody, quarter-note pulse, phrase endings.
-- **Transposition:** none; the theme is in D major at the written first-position
-  octave. Decision 0005 records the string-4 use.
+- **Transposition:** octave up from the written D4-A4 version; the key stays D
+  major and no note is octave-displaced inside a phrase. The high octave is
+  what keeps the stage-2 setting on strings 1-3.
 - **Editorial changes:** the theme is complete and unaltered.
 - **Legal question for T6.3:** confirm the 1824 melody and the chosen edition
   are public domain in the US, UK/EU, and Canada, and that the engraving is
@@ -113,16 +127,21 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Source melody:** New Britain (1835), the tune normally sung to "Amazing
   Grace". New single-line guitar setting after public-domain hymnal melodies.
 - **Key / meter / tempo:** G major, 3/4, 66 BPM.
-- **Phrase map:** P1 bars 1-3 (one-bar anacrusis plus two bars); P2 bars 4-5;
-  P3 bars 6-7; P4 bars 8-9. Total 9 bars.
-- **Position and range:** written D4-B4 (sounding D3-B3); strings 2-4, frets
-  0-2. D4/E4 sit on string 4; G4-A4 on string 3; B4 on string 2. The melody
-  stays in the natural first-position octave.
-- **Technique focus:** triple meter, breath-length phrases, legato changes.
+- **Phrase map:** P1 bars 1-2; P2 bars 3-4; P3 bars 5-6; P4 bars 7-8. Total
+  8 bars.
+- **Position and range:** written G4-G5 (sounding G3-G4); strings 1-3, frets
+  0-3. The melody starts on G4 (string 3 open). Bars 3-4 are an octave up
+  (G5-E5-D5) because the written G4-E4-D4 would need string 4; bars 1-2 and
+  5-8 stay in the lower octave. The final cadence is G4 tied across the bar
+  line.
+- **Technique focus:** triple meter, breath-length phrases, legato changes, one
+  register echo into the upper octave.
 - **Excerpt:** the opening four bars and the final four bars of the 16-bar
-  tune, with the one-bar anacrusis; it reads as an 8-bar melody plus pickup.
-- **Transposition:** none; the tune stays in G major. Decision 0005 records the
-  string-4 use for D4/E4.
+  tune, without the anacrusis so the piece starts on G4. The middle eight bars,
+  including the D5 climax, are omitted so the piece stays an 8-bar stage-2
+  reading task and ends on the tonic G.
+- **Transposition:** none; the tune stays in G major. The second phrase is
+  moved up an octave to avoid string 4.
 - **Legal question for T6.3:** confirm the New Britain melody is public domain
   in the US, UK/EU, and Canada; confirm the chosen melody edition is public
   domain or newly engraved; confirm no hymnal harmonization is copied.
@@ -137,15 +156,15 @@ string restriction. The monophonic and first-position rules are unchanged.
 - **Phrase map:** P1 bars 1-4 (verse, first half); P2 bars 5-8 (verse, second
   half); P3 bars 9-10 (chorus, first half); P4 bars 11-12 (chorus, final
   cadence). Total 12 bars.
-- **Position and range:** written D4-C5 (sounding D3-C4); strings 2-4, frets
-  0-3. D4-F4 sit on string 4 (frets 0-3); G4-B4 on string 3; C5 is string 2
-  fret 1. The melody never goes below D4, so strings 5-6 are not used.
+- **Position and range:** written D4-C5 (sounding D3-C4); strings 3-4, frets
+  0-5. D4-F4 sit on string 4 (frets 0-3); G4-C5 sit on string 3, with B4 and C5
+  at frets 4-5 so the upper notes stay inside the T3.1 strings 3-4 envelope.
+  The melody never goes below D4, so strings 5-6 are not used.
 - **Technique focus:** middle-string reading (string 4 for the lower melody
-  notes, strings 2-3 for the upper ones), syncopated eighths, and two chromatic
+  notes, string 3 for the upper ones), syncopated eighths, and two chromatic
   notes (A-sharp lower neighbour and F-natural flat seventh). The earlier
-  "lower-strings" tag was wrong because most notes sit on strings 2-3; the
-  arrangement stays on strings 2-4 and the skills name middle strings and
-  string crossing.
+  "lower-strings" tag was wrong because most notes sit on strings 3-4; the
+  skills name middle strings and string crossing.
 - **Transposition:** source ABC in D major, transposed up a perfect fourth to
   G major. The source's C natural becomes F natural (the flat seventh), and
   the E-sharp lower neighbour becomes A-sharp.
