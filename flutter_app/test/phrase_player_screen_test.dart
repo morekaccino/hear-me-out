@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/audio/phrase_prompt.dart';
 import 'package:hear_me_out/core/audio/phrase_recorder.dart';
+import 'package:hear_me_out/core/audio/phrase_verifier.dart';
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
@@ -31,6 +32,9 @@ void main() {
     bool headphonesConfirmed = false,
     bool clockVerified = false,
     int? contentVersion,
+    bool recordProgress = true,
+    bool practiceOnly = false,
+    Future<bool> Function(PhraseVerification verification)? onTakeCompleted,
     FakeAudioEngine? engine,
     FakePcmCapture? capture,
     PhraseRecorder Function()? recorderFactory,
@@ -57,6 +61,9 @@ void main() {
           contentVersion: contentVersion,
           headphonesConfirmed: headphonesConfirmed,
           clockVerified: clockVerified,
+          recordProgress: recordProgress,
+          practiceOnly: practiceOnly,
+          onTakeCompleted: onTakeCompleted,
         ),
       ),
     );
@@ -302,6 +309,70 @@ void main() {
     final saved = store.value!.phraseProgressFor('ode-to-joy-p1');
     expect(saved, isNotNull);
     expect(saved!.contentVersion, 3);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an external take callback receives a real correction', (
+    tester,
+  ) async {
+    useSize(tester, const Size(390, 844));
+    final store = freshStore();
+    String? correction;
+    await tester.pumpWidget(
+      buildScreen(
+        store: store,
+        headphonesConfirmed: true,
+        recordProgress: false,
+        onTakeCompleted: (verification) async {
+          correction = verification.correction;
+          return true;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await recordAndStop(tester);
+
+    expect(correction, isNotNull);
+    expect(correction, isNotEmpty);
+    expect(find.text('Saved to phrase progress.'), findsOneWidget);
+    // The player itself did not write progress; the callback owns recording.
+    expect(store.value!.phraseProgressFor('ode-to-joy-p1'), isNull);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a practice-only take never saves progress', (tester) async {
+    useSize(tester, const Size(390, 844));
+    final store = freshStore();
+    var callbackCalls = 0;
+    await tester.pumpWidget(
+      buildScreen(
+        store: store,
+        headphonesConfirmed: true,
+        recordProgress: false,
+        practiceOnly: true,
+        onTakeCompleted: (verification) async {
+          callbackCalls++;
+          return true;
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Practice take'), findsOneWidget);
+    expect(
+      find.text('This take is unscored practice. Nothing is saved.'),
+      findsOneWidget,
+    );
+
+    await recordAndStop(tester);
+
+    expect(callbackCalls, 0);
+    expect(
+      find.text('Practice only — this take was not saved.'),
+      findsOneWidget,
+    );
+    expect(store.value!.phraseProgressFor('ode-to-joy-p1'), isNull);
     expect(tester.takeException(), isNull);
   });
 

@@ -192,6 +192,18 @@ class PracticeSession {
     _lastTickAt = now;
   }
 
+  /// Re-bases the running clock at [now] without counting the interval since
+  /// the last tick.
+  ///
+  /// A UI may detach while a session is running, for example when the learner
+  /// switches tabs. The gap was not attended practice time, so the returning
+  /// screen drops it instead of charging it as instrument time. It is a no-op
+  /// when the clock is not running.
+  void resyncClock(DateTime now) {
+    if (_status != PracticeSessionStatus.running) return;
+    _lastTickAt = now;
+  }
+
   /// Accounts elapsed time and advances through any blocks whose budget has
   /// passed. The clock is always supplied by the caller.
   void tick(DateTime now) {

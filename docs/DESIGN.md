@@ -292,12 +292,70 @@ The full asset map, event map, generator, and audition tool are in
 
 ## Screen intent
 
+### Today (gated preview)
+
+Today is the Phase 1 daily session. It is built but **not shipped**: it sits
+behind decision 0001's `phraseLoopEnabled` switch, and while that switch is off
+the Learn tab keeps the Path. Do not describe it as live, and do not claim
+validated phrase accuracy.
+
+The screen answers three questions at all times: what the one target is, what
+block the learner is in, and when the session stops. It has no hearts, XP,
+streak, quests, currency, or punishment.
+
+- **Header:** the mascot, `Today’s practice`, and `One target. One correction.
+  One next step.` After the stop point, the title becomes `Today is done` and
+  the copy says the stop point was reached.
+- **Plan picker:** `5 MIN`, `10 MIN`, and `20 MIN` chips. Five is the default.
+  Twenty is labelled deep practice and adds acquisition and application time.
+  A maintenance toggle appears only when a previously learned target exists; on
+  the 5-minute plan it extends the session to 6 minutes, and on 10/20 minutes it
+  adds the maintenance block at the end without changing the selected length.
+- **Target card:** one target, its written-note position or phrase metadata, and
+  a real reason from stored progress (due now, weak, fragile, or most recently
+  practiced). There is never a second target.
+- **Clock card:** the large number is `GUITAR IN HAND` (measured instrument
+  time), with the session clock beside it and a hard stop time below. It has
+  pause, stop, resume, and end-early controls. Stopping early is calm: `You
+  stopped early. That is okay — the minutes you played still count.`
+- **Plan sequence:** setup, technique, model, acquire, apply, reflect, then the
+  maintenance block at the end when selected. Every block shows a title, role,
+  budget, `What:` copy, and `Why:` copy. The current block is expanded with its
+  own start/continue control; completed blocks get a check, future blocks read
+  `UP NEXT`.
+- **Setup:** a short tune-and-posture checklist and a hand-off to the Practice
+  tab's tuner. No score.
+- **Technique:** the existing T2.7 60-second drill, with a link to the full
+  Technique screen. Today does not duplicate the checklist, rubric, or demo.
+- **Model:** a `SYNTH PREVIEW` badge, a locally generated preview, and the line
+  `Human reference recordings are not available yet.` Never label the synth as
+  a human recording.
+- **Acquire:** a staff read-along card for a note, or the phrase player in
+  practice-only mode when its gate is open. Copy: one bar at 50–70%, 3–5
+  blocked reps, then one correction. Practice-only player takes never save.
+- **Apply:** one take at target tempo. Recording is a performance-day action,
+  not an every-session action. The default is practice only; a closed
+  scored-take gate says the take is unscored and is not saved. On a performance
+  day with the gate open, the player returns its take to Today, which records
+  it once and uses the take's correction in the reflect card.
+- **Reflect:** the 1-3 self-rating comes first. Only after the rating does the
+  learner see one real metric (last-take note accuracy or measured guitar time),
+  one correction, and one next step. Nothing is invented. If no take correction
+  exists, the label says the correction comes from the self-rating.
+- **Responsive:** a 720 px `PageFrame` column that fits 390x844 and 1200 px. Wide
+  screens keep `HomeShell`'s side rail. The plan scrolls as one column, not a
+  desktop split view.
+- **Footer:** `Practice preview. Today is behind the phrase-loop switch, and
+  phrase scoring is not validated yet.` Keep that no-claim line until T1.7
+  passes.
+
 ### Path
 
-The home screen. Show the next lesson clearly, the current section and unit,
-the weekly minutes goal, and the optional streak. The path is organized as
-sections and units, not a flat list. The desktop layout matches the Duolingo
-learn page: left nav, a 600 px path column, and a 320–372 px quest rail. The path and quest rail share
+The home screen in the current build. Show the next lesson clearly, the current
+section and unit, the weekly minutes goal, and the optional streak. The path is
+organized as sections and units, not a flat list. The desktop layout matches the
+Duolingo learn page: left nav, a 600 px path column, and a 320–372 px quest rail.
+The path and quest rail share
 one scroll view; only the left nav is fixed. The path itself has **no drawn
 road**: units follow one another with a repeated node rhythm and no connecting
 line.

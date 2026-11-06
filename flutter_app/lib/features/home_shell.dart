@@ -7,7 +7,8 @@ import '../features/path/path_screen.dart';
 import '../features/practice/practice_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/quests/quests_screen.dart';
-import 'phrase/phrase_loop_flag.dart';
+import '../features/today/today_gate.dart';
+import '../features/today/today_screen.dart';
 import '../shared/audio/sound_service.dart';
 import '../shared/theme/app_theme.dart';
 import '../state/providers.dart';
@@ -17,13 +18,17 @@ Color _accentFor(Color color) =>
     color == AppColors.yellow ? AppColors.yellowDark : color;
 
 class HomeShell extends ConsumerStatefulWidget {
-  const HomeShell({super.key, this.todayEnabled = phraseLoopEnabled});
+  const HomeShell({super.key}) : _enableToday = todayEnabled;
 
-  /// True when the phrase loop gate is open. The first destination reads
-  /// "Today" instead of "Learn"; T2.6 owns the Today body and swaps the screen
-  /// here when its surface lands. With the gate closed, Learn is the current
-  /// path and nothing else changes.
-  final bool todayEnabled;
+  /// Test-only entry point for the gated Today home.
+  ///
+  /// Production only calls [HomeShell]. This constructor exists so widget
+  /// tests can exercise the Today surface while decision 0001's compile-time
+  /// switch stays false.
+  @visibleForTesting
+  const HomeShell.withTodayForTesting({super.key}) : _enableToday = true;
+
+  final bool _enableToday;
 
   @override
   ConsumerState<HomeShell> createState() => _HomeShellState();
@@ -36,9 +41,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   Widget build(BuildContext context) {
     final destinations = [
       _TabDestination(
-        label: widget.todayEnabled ? 'Today' : 'Learn',
-        icon: widget.todayEnabled ? Icons.today_outlined : Icons.home_outlined,
-        selectedIcon: widget.todayEnabled
+        label: widget._enableToday ? 'Today' : 'Learn',
+        icon: widget._enableToday ? Icons.today_outlined : Icons.home_outlined,
+        selectedIcon: widget._enableToday
             ? Icons.today_rounded
             : Icons.home_rounded,
         color: AppColors.yellow,
@@ -63,10 +68,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       ),
     ];
     final screens = [
-      PathScreen(
-        onOpenQuests: () => _select(2),
-        onOpenPractice: () => _select(1),
-      ),
+      widget._enableToday
+          ? TodayScreen(onOpenPractice: () => _select(1))
+          : PathScreen(
+              onOpenQuests: () => _select(2),
+              onOpenPractice: () => _select(1),
+            ),
       const PracticeScreen(),
       const QuestsScreen(),
       const ProfileScreen(),

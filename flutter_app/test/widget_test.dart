@@ -56,7 +56,9 @@ void main() {
       ],
       child: MaterialApp(
         theme: AppTheme.light,
-        home: HomeShell(todayEnabled: todayEnabled),
+        home: todayEnabled
+            ? const HomeShell.withTodayForTesting()
+            : const HomeShell(),
       ),
     );
   }
