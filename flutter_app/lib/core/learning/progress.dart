@@ -3,6 +3,7 @@ import 'dart:math';
 import '../music/curriculum.dart';
 import '../music/note.dart';
 import '../storage/progress_migrations.dart';
+import 'note_objective.dart';
 import 'phrase_progress.dart';
 import 'prompt.dart';
 import 'skill.dart';
@@ -638,9 +639,8 @@ class ProgressState {
     final skill = skillFor(answer.objectiveId, answer.family);
     skill.recordAnswer(answer);
 
-    if (answer.family == SkillFamily.noteReading &&
-        answer.objectiveId.startsWith('note:')) {
-      final note = Note.tryParse(answer.objectiveId.substring(5));
+    if (answer.family == SkillFamily.noteReading) {
+      final note = noteFromObjectiveId(answer.objectiveId);
       if (note != null) {
         noteFor(note).recordAnswer(
           correctAnswer: answer.correct,
