@@ -214,14 +214,28 @@ the active START slot.
 ## Audio pipeline
 
 ```
-record plugin -> PCM16 mono 44.1 kHz -> stream chunks
-  -> little-endian sample decode (keeps odd trailing byte)
-  -> 2:1 decimate to ~22.05 kHz
-  -> 4096-sample window, 2048-sample hop (~46 ms)
+record plugin -> PCM16 stream (requests 48 kHz mono, falls back to 44.1 kHz)
+  -> setOnConfigChanged stores the effective sample rate and channel count
+  -> Pcm16StreamDecoder: little-endian decode (keeps odd trailing byte)
+  -> average all channels to mono
+  -> linear resample to a fixed 22.05 kHz analysis rate
+  -> 4096-sample analysis window, 2048-sample hop (~186 ms / ~93 ms)
   -> YIN detector
-  -> PitchFrame
+  -> PitchFrame (sampleIndex / sampleTime)
   -> NoteMatcher
 ```
+
+`PitchFrame.timestamp` is for display and debugging only. Alignment, onset
+detection, and phrase scoring use `sampleIndex` (monotonic analysis-sample
+index) and `sampleTime` (`sampleIndex / analysisSampleRate`). Never use
+wall-clock time for audio alignment.
+
+`Pcm16StreamDecoder` is pure Dart and streaming. It keeps partial samples,
+partial channel frames, and resampler history across chunks, so any chunking
+of the same bytes produces the same output. If the platform reports a
+different format after the stream starts, `RecordPitchSource` restarts the
+decoder with the effective format and drops samples decoded before the
+correction; the published sample clock never moves backwards.
 
 YIN (`core/audio/yin.dart`):
 

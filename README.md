@@ -136,6 +136,8 @@ The suite covers:
 - local WAV synthesis for notes, intervals, chords, and progressions
 - YIN pitch detection on synthetic guitar tones, harmonics, decay, silence, and
   noise
+- PCM16 decoding, 44.1/48 kHz resampling, mono/stereo downmix, and chunk
+  boundaries
 - note matching, cents tolerance, octave errors, and re-arming
 - JSON persistence, corrupt-storage fallbacks, and a simulated app restart
 - onboarding, path, lesson, quests, shop, practice, profile, and responsive-shell
@@ -154,7 +156,9 @@ run the app on a physical phone with a guitar and check:
 3. Playing the same note twice in a row works after a short mute.
 4. Ambient noise does not trigger an answer.
 5. Denying microphone permission falls back to note names without crashing.
-6. Killing and reopening the app restores XP, streak, skills, and note boxes.
+6. On a 48 kHz-only device and on a device that negotiates stereo, the tuner and
+   lessons still read the correct pitch (not ~8.8% high).
+7. Killing and reopening the app restores XP, streak, skills, and note boxes.
 
 Build an APK or app bundle with `flutter build apk` or `flutter build appbundle`
 on a machine with the Android SDK, or use `flutter run` with a connected device.
