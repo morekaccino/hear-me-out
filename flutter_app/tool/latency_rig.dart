@@ -17,26 +17,49 @@ const int _exitPass = 0;
 const int _exitGateFailure = 1;
 const int _exitBadInput = 2;
 
+StringSink? _activeOut;
+StringSink? _activeErr;
+
+StringSink get _out => _activeOut ?? stdout;
+StringSink get _err => _activeErr ?? stderr;
+
 Future<void> main(List<String> args) async {
+  final out = StringBuffer();
+  final err = StringBuffer();
+  final code = runRig(args, out, err);
+  stdout.write(out.toString());
+  stderr.write(err.toString());
+  exitCode = code;
+}
+
+/// Runs the rig without touching [stdout], [stderr], or [exitCode].
+///
+/// Returns the process exit code. This is public so CLI tests can exercise the
+/// full dispatch, JSON purity, manifest parsing, and exit codes in-process.
+int runRig(List<String> args, StringSink out, StringSink err) {
   final jsonMode = args.contains('--json');
+  _activeOut = out;
+  _activeErr = err;
   try {
-    final code = _run(args);
-    exitCode = code;
+    return _run(args);
   } on _UsageException catch (error) {
     _reportError(error.message, jsonMode);
-    exitCode = _exitBadInput;
+    return _exitBadInput;
   } on FormatException catch (error) {
     _reportError(error.message, jsonMode);
-    exitCode = _exitBadInput;
+    return _exitBadInput;
   } on ArgumentError catch (error) {
     _reportError(error.toString(), jsonMode);
-    exitCode = _exitBadInput;
+    return _exitBadInput;
   } on FileSystemException catch (error) {
     _reportError('${error.message}: ${error.path}', jsonMode);
-    exitCode = _exitBadInput;
+    return _exitBadInput;
   } on JsonUnsupportedObjectError catch (error) {
     _reportError('Invalid JSON: $error', jsonMode);
-    exitCode = _exitBadInput;
+    return _exitBadInput;
+  } finally {
+    _activeOut = null;
+    _activeErr = null;
   }
 }
 
@@ -101,43 +124,66 @@ int _runLoopback(_Options options) {
     _writeLine(_fileSummary('Reference', referencePath, reference));
     _writeLine(_fileSummary('Recorded', recordedPath, recorded));
     _writeLine(
-      'Matched clicks: ${report.matchedOnsets}/${report.expectedOnsets} '
-      '(${report.detectedOnsets} detected)',
+      report.offsetVerified
+          ? 'Matched clicks: ${report.matchedOnsets}/${report.expectedOnsets} '
+                '(${report.detectedOnsets} detected)'
+          : 'Matched clicks (diagnostic only): '
+                '${report.matchedOnsets}/${report.expectedOnsets} '
+                '(${report.detectedOnsets} detected)',
     );
     _writeLine('');
     _writeLine(_tableHeader());
     _writeLine(
       _tableRow(
         'offset',
-        '${_fmt(report.offsetMs)} ms',
+        report.offsetVerified ? '${_fmt(report.offsetMs)} ms' : 'n/a',
         '<= ${_fmt(gates.maxOffsetMs)} ms',
-        _passFail(_inside(report.offsetMs.abs(), gates.maxOffsetMs)),
+        _verifiedResult(
+          report.offsetVerified,
+          _inside(report.offsetMs.abs(), gates.maxOffsetMs),
+        ),
       ),
     );
     _writeLine(
       _tableRow(
         'drift',
-        '${_fmt(report.driftMsPer60s)} ms/60s',
+        report.driftVerified ? '${_fmt(report.driftMsPer60s)} ms/60s' : 'n/a',
         '<= ${_fmt(gates.maxDriftMsPer60s)} ms/60s',
-        _passFail(_inside(report.driftMsPer60s.abs(), gates.maxDriftMsPer60s)),
+        _verifiedResult(
+          report.driftVerified,
+          _inside(report.driftMsPer60s.abs(), gates.maxDriftMsPer60s),
+        ),
       ),
     );
     _writeLine(
       _tableRow(
         'false onsets',
-        '${_fmt(report.falseOnsetsPerMinute)} /min',
+        report.offsetVerified
+            ? '${_fmt(report.falseOnsetsPerMinute)} /min'
+            : 'n/a',
         'report only',
         '-',
       ),
     );
     _writeLine(
-      _tableRow('note recall', _fmt(report.noteRecall, 3), 'report only', '-'),
+      _tableRow(
+        'note recall',
+        report.offsetVerified ? _fmt(report.noteRecall, 3) : 'n/a',
+        'report only',
+        '-',
+      ),
     );
     _writeLine('');
     _writeLine(
       'timingUsable: ${report.timingUsable ? 'YES' : 'NO'} '
       '(offset + drift; bleed is a separate gate)',
     );
+    if (!report.offsetVerified || !report.driftVerified) {
+      _writeLine(
+        'UNVERIFIED rows are not measurements. Check the failures and the '
+        'shared time origin before recording a device result.',
+      );
+    }
     if (report.failures.isNotEmpty) {
       _writeLine('Failures:');
       for (final failure in report.failures) {
@@ -167,7 +213,7 @@ int _runRecall(_Options options) {
     recorded: recorded,
     expectedOnsetSeconds: expected,
     gates: gates,
-    matchWindowMs: options.number('match-window-ms', 50),
+    matchWindowMs: _matchWindow(options),
   );
 
   if (options.flag('json')) {
@@ -251,7 +297,7 @@ int _runBleed(_Options options) {
     headphones: headphones,
     expectedOnsetSeconds: expected,
     gates: gates,
-    matchWindowMs: options.number('match-window-ms', 50),
+    matchWindowMs: _matchWindow(options),
   );
 
   if (options.flag('json')) {
@@ -350,6 +396,12 @@ int _runGenerate(_Options options) {
   for (var time = 0.5; time < duration - 0.1; time += interval) {
     onsets.add(_round(time, 6));
     _addClick(samples, sampleRate, (time * sampleRate).round());
+  }
+  if (onsets.isEmpty) {
+    throw _UsageException(
+      'The reference would contain no clicks; increase --duration or '
+      'decrease --interval.',
+    );
   }
   final wav = WavData(sampleRate: sampleRate, channels: 1, samples: samples);
   File(outputPath).writeAsBytesSync(encodeWavPcm16(wav));
@@ -565,6 +617,14 @@ List<double> _readExpected(String path) {
   return values;
 }
 
+double _matchWindow(_Options options) {
+  final value = options.number('match-window-ms', 50);
+  if (value <= 0) {
+    throw _UsageException('--match-window-ms must be positive.');
+  }
+  return value;
+}
+
 CalibrationGates _gates(_Options options) {
   const defaults = CalibrationGates();
   final offset = options.number('max-offset-ms', defaults.maxOffsetMs);
@@ -576,6 +636,9 @@ CalibrationGates _gates(_Options options) {
   final recallDrop = options.number('max-recall-drop', defaults.maxRecallDrop);
   if (offset < 0 || drift < 0 || falseOnsets < 0 || recallDrop < 0) {
     throw _UsageException('Gate values must not be negative.');
+  }
+  if (recallDrop > 1.0) {
+    throw _UsageException('--max-recall-drop must be between 0 and 1.');
   }
   return CalibrationGates(
     maxOffsetMs: offset,
@@ -611,6 +674,9 @@ String _tableRow(String metric, String measured, String gate, String result) {
 
 String _passFail(bool pass) => pass ? 'PASS' : 'FAIL';
 
+String _verifiedResult(bool verified, bool pass) =>
+    verified ? _passFail(pass) : 'UNVERIFIED';
+
 const double _gateEpsilon = 1e-9;
 
 bool _inside(double value, double limit) => value <= limit + _gateEpsilon;
@@ -642,7 +708,8 @@ Measurement options:
   --max-offset-ms <n>    Offset gate in milliseconds (default 10).
   --max-drift-ms <n>     Drift gate in ms per 60 s (default 20).
   --max-false-onsets <n> False-onset gate per minute (default 1).
-  --max-recall-drop <n>  Allowed speaker recall drop, 0..1 (default 0.05).
+  --max-recall-drop <n>  Max recall drop (bleed) or recall-floor margin
+                         (recall), 0..1 (default 0.05).
   --match-window-ms <n>  Expected-onset match window (default 50).
 
 Generate options:
@@ -675,12 +742,12 @@ void _reportError(String message, bool jsonMode) {
   if (jsonMode) {
     _writeJson({'error': message, 'exitCode': _exitBadInput});
   } else {
-    stderr.writeln('error: $message');
+    _err.writeln('error: $message');
   }
 }
 
 void _writeLine(String line) {
-  stdout.writeln(line);
+  _out.writeln(line);
 }
 
 String _fmt(double value, [int digits = 2]) {
