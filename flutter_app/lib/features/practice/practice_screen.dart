@@ -18,6 +18,7 @@ import '../../shared/widgets/tappable.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../lesson/lesson_screen.dart';
+import '../technique/technique_screen.dart';
 
 class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({super.key});
@@ -122,6 +123,13 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
     } finally {
       await source.dispose();
     }
+  }
+
+  void _openTechnique() {
+    unawaited(
+      Navigator.of(context)
+          .push(duoLessonRoute<void>((_) => const TechniqueScreen())),
+    );
   }
 
   Future<void> _startPractice(String kind) async {
@@ -347,6 +355,19 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                     ? 'Start with the first note lesson'
                     : 'Mix every skill you have met',
                 onTap: () => _startPractice('all'),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Technique',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              _PracticeRow(
+                icon: Icons.pan_tool_alt_rounded,
+                color: AppColors.teal,
+                title: 'Technique check',
+                subtitle: 'Posture, hands, and a 60-second drill',
+                onTap: _openTechnique,
               ),
               const SizedBox(height: 16),
               Text(
