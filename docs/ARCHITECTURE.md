@@ -172,6 +172,9 @@ itself arrive in T4.2 and later; this ticket provides storage only.
 - per-skill `SkillProgress`: stability, difficulty, due time, reps, lapses,
   correct/incorrect, correct-day set, production/transfer evidence, response
   time, level, fragile flag, cent samples
+- per-phrase `PhraseProgress`: memory state, performance days, best tempo, and
+  best accuracy. This is the persisted shape only; phrase scheduling is T2.3
+  and T2.5 work, not part of the current engine.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
 - XP, streak, daily XP
@@ -438,12 +441,37 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 `hear_me_out_progress_v1`.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
-and store loading go through `_decodeProgress`, which requires a numeric
-`schemaVersion` in `[1, currentSchemaVersion]`. `currentSchemaVersion` is 4.
-Version 1 documents load with default economy values (500 gems, five hearts,
-no chests or quests); version 2 adds the System appearance; version 3 documents
-migrate note boxes into skill cards. Future versions are rejected rather than
-partially parsed.
+and store loading go through `_decodeProgress`, which runs the pure migration
+pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 5.
+
+### Schema v5 migration pipeline
+
+`migrateProgress` takes a decoded map and returns a `MigrationSuccess` with a
+new map or a `MigrationFailure` with a reason. It has no IO, clock, or random
+input, and it never mutates its argument. The steps are explicit:
+
+| Step | Adds |
+|---|---|
+| v1 → v2 | default economy: 500 gems, five hearts, no chests or quests |
+| v2 → v3 | System appearance and the remaining `AppSettings` defaults |
+| v3 → v4 | skill cards rebuilt from legacy note boxes when no skills exist |
+| v4 → v5 | `contentVersion` (default 1) and an empty `phraseProgress` map |
+
+A v5 document is returned as an equivalent new map, not migrated again.
+Unknown top-level fields are copied through and re-emitted by
+`ProgressState.toJson`, so a newer build can add fields without an older build
+deleting them. A known field always wins over an unknown field with the same
+name.
+
+Future versions are rejected, not guessed. Missing or non-integer versions,
+versions below 1, and malformed fields that a step or the current-shape
+validator cannot interpret also fail. There is no partial save: `load` returns
+null and leaves the stored JSON unchanged, `importProgress` returns null, and
+`ProgressState.fromJson` throws a `FormatException` that the storage boundary
+catches. The document stays on disk until an explicit successful save replaces
+it. `PhraseProgress.mastered` requires four reps, five correct answers on two
+days, three performance days, and at least seven days between the first and
+last performance day.
 
 Backups are copied as pretty JSON via the clipboard. Restore validates first,
 then replaces the state and saves it. Corrupt/missing storage falls back to a
@@ -473,6 +501,7 @@ fresh profile.
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
+| `test/progress_migration_test.dart` | v1–v5 fixtures, version rejection, phrase progress, rollback |
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
