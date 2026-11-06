@@ -234,7 +234,9 @@ days; the label keeps `noteAccuracy` so that stricter analysis is possible.
 - a target note is below 0.6 confidence;
 - the player false-started or stopped early;
 - the take is unreadable because of clipping, dropout, or noise;
-- the tuning offset is greater than 30 cents, so the pitch is not a fair test.
+- the tuning offset is strictly greater than 30 cents, so the pitch is not a
+  fair test. At exactly +30 cents the take is at the boundary and may be
+  `complete` if it is otherwise clear.
 
 An incomplete take is always `indeterminate`, never `incorrect`. A missed note is
 not a wrong note; it is missing evidence. The app should offer a retry, not fail
@@ -249,6 +251,10 @@ Count a target note as correct only when the sounding pitch class and octave
 match the target. A semitone error, an octave error, or a different note is
 wrong. An extra note is not in the target, so it does not change
 `noteAccuracy`; it forces `outcome: "incorrect"` under §4.5.
+
+For a complete take every target note is determinate, so this equals the plan's
+practice-pass fraction of determinate notes. For an incomplete take the value is
+diagnostic only; the outcome is `indeterminate` regardless of the number.
 
 Examples:
 
@@ -305,6 +311,12 @@ take as note-perfect.
 A take with an extra note can still have `completeness: "complete"` because all
 target notes were attempted. The extra note is an error, not missing evidence.
 Record it in `notes` as `extraNote=<written>@<onsetSeconds>`.
+
+The validator enforces the schema, the confidence rule, and the
+correct/incomplete invariants. It cannot verify an extra note or a timing
+failure from free-text `notes`; the reviewer checks those rules by listening to
+the take. If they must be machine-checked, add structured fields in schema v2
+rather than parsing `notes`.
 
 ### 4.6 Indeterminate versus incorrect
 
@@ -548,7 +560,10 @@ If the take is clipped so badly that pitch is unreadable, mark it
 `indeterminate` and `notes = "clipping"`. Do not try to reconstruct the pitch
 from a distorted waveform.
 
-### 7.7 Tuning-offset take
+### 7.7 Tuning-offset takes
+
+The rule is **strictly greater than 30 cents**. At exactly +30 cents the take is
+at the boundary and is labelled normally; above +30 cents it is indeterminate.
 
 A deliberate +50-cent take. The player plays the right notes, but the guitar is
 out of tune.
@@ -557,9 +572,10 @@ out of tune.
 - `outcome = "indeterminate"`.
 - `notes = "tuningOffsetCents=+50"`.
 
-The product should ask the learner to tune, not mark the note wrong. At +30
-cents, use the same rule: prompt tune/indeterminate. At +5 cents or better,
-label normally.
+The product should ask the learner to tune, not mark the note wrong. A
+deliberate +30-cent take is labelled normally: keep `completeness: "complete"`
+and apply the ordinary accuracy/timing rule, with `notes =
+"tuningOffsetCents=+30"`. At +5 cents or better, also label normally.
 
 ---
 
@@ -568,7 +584,8 @@ label normally.
 Before saving a label:
 
 - [ ] `takeId`, `playerId`, `device`, `platform`, `condition`, and `guitar`
-      match the manifest and the folder.
+      match the manifest and the folder. `guitar` must equal the player's
+      registered guitar, or the player must be registered as `both`.
 - [ ] `schemaVersion` is 1.
 - [ ] `sampleRate` and `channels` match the WAV header.
 - [ ] `tempoBpm` is 60–90 and matches the phrase card.
@@ -582,6 +599,8 @@ Before saving a label:
 - [ ] Every `durationSeconds` is >0.
 - [ ] No event starts before the previous event ends.
 - [ ] Every `confidence` is 0.0–1.0; below 0.6 is indeterminate.
+- [ ] Any note below 0.6 confidence forces `completeness: "incomplete"` and
+      `outcome: "indeterminate"`.
 - [ ] `expert.outcome`, `noteAccuracy`, `timingOk`, and `completeness` follow
       §4.5.
 - [ ] `expert.labeler` and `expert.reviewedBy` are different.

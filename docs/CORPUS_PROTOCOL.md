@@ -116,7 +116,10 @@ count one player twice in the mix.
 
 ### 2.3 Player IDs and key file
 
-- Assign `p01` through `p10` in recruitment order.
+- Assign `p01` through `p10` in recruitment order. The schema and validator
+  accept `p01` through `p99` so a replacement after a withdrawal can receive a
+  fresh ID without reusing a withdrawn one; a complete corpus still has 6–10
+  active players.
 - Write the name-to-ID mapping only in `corpus-keys/player-key.csv`, stored
   outside the corpus folder on the encrypted drive. The custodian is the only
   person who opens it.
@@ -166,7 +169,7 @@ between `click` and `drone`. The manifest summary groups both values under
 
 Each of the 4 device classes is crossed with each of the 3 condition buckets.
 That is 12 cells. Each cell needs **at least 20 accepted takes**, for at least
-**240 accepted takes** total.
+**240 matrix takes** total. The bleed subset in §3.4 adds 24 takes.
 
 | Device class | Quiet | Room noise | Click / drone |
 |---|---:|---:|---:|
@@ -193,9 +196,16 @@ The main matrix uses the device's built-in microphone and the device speaker
 for click/drone. This is deliberate: the corpus must show what happens when the
 click or drone leaks into the recording.
 
-Add a bleed subset of at least 24 takes total: at least 2 phrase instances per
-cell, each recorded under all three routes (8 phrase instances × 3 routes = 24).
-The three routes are:
+Add a bleed subset of at least **24 takes**: 8 phrase instances × 3 routes. The
+eight phrase instances cover the click and drone cells for every device class:
+
+- `mid-range-android/click` and `mid-range-android/drone`
+- `iphone/click` and `iphone/drone`
+- `tablet/click` and `tablet/drone`
+- `laptop-web/click` and `laptop-web/drone`
+
+These 24 takes are additional to the 240 matrix takes, for at least 264
+accepted takes in the completed corpus. The three routes are:
 
 1. **Speaker** — click/drone from the device speaker. This is the main condition.
 2. **Wired headphones** — click/drone in wired headphones; the microphone still
@@ -272,9 +282,12 @@ if needed. Record `monitor=wired-headphones` in `notes`; otherwise record
 - A baseline take must be within **±5 cents** on every string. Record the worst
   offset in `notes`, for example `tuningOffsetCents=+3`.
 - Record deliberate tuning-offset takes at **+30 cents** and **+50 cents** on
-  one device per player. Retune to baseline after them. These takes are labelled
-  `indeterminate`, not `incorrect`; the product should ask the player to tune,
-  not fail them.
+  one device per player. Detune all six strings by the target offset with the
+  tuner, play the open strings, then retune to baseline. The rule is strictly
+  **greater than 30 cents**: the +30 take is at the boundary and is labelled
+  normally; the +50 take is `indeterminate`, not `incorrect`. The product should
+  ask the player to tune, not fail them. This matches the approved plan's
+  `>30 cents` rule.
 - If a string goes out during a session, retune and note it. If the take is
   already recorded and the drift is audible, mark it `failed` and record again.
 
@@ -476,7 +489,8 @@ corpus/
 
 Rules:
 
-- `playerId`: `p01` through `p10`.
+- `playerId`: `p01` through `p10` for this recruitment; the schema accepts
+  `p01` through `p99` for replacements.
 - `device`: lowercase slug of the actual model (`pixel-6a`, `iphone-13`,
   `ipad-9`, `thinkpad-x1`).
 - `condition`: `quiet`, `room-noise`, `click`, or `drone`.
@@ -541,22 +555,22 @@ labels.
 | `schemaVersion` | integer | `1` |
 | `corpusId` | string | Lowercase slug, for example `spike-2026-11` |
 | `players` | array | 6–10 entries for a complete corpus; each entry has the fields below |
-| `players[].playerId` | string | `p01`–`p10`, unique |
+| `players[].playerId` | string | `p01`–`p10` for this recruitment (`p01`–`p99` in the schema); unique |
 | `players[].segment` | string | `returner` or `near-beginner` |
 | `players[].guitar` | string | `nylon`, `steel`, or `both` |
 | `players[].playingLevel` | integer | 1–5, self-rated |
 | `devices` | array | Each entry has `device`, `platform`, `deviceClass` |
 | `devices[].device` | string | Lowercase slug of the actual model, unique |
 | `devices[].platform` | string | `android`, `ios`, or `web` |
-| `devices[].deviceClass` | string | `mid-range-android`, `iphone`, `tablet`, or `laptop-web` |
+| `devices[].deviceClass` | string | `mid-range-android` (android), `iphone` (ios), `tablet` (ios or android), or `laptop-web` (web) |
 | `takes` | array | Each entry has the fields below |
-| `takes[].takeId` | string | Same pattern as the label; unique |
+| `takes[].takeId` | string | `<playerId>-<device>-<condition>-<NNN>`; unique |
 | `takes[].playerId` | string | Must exist in `players` |
 | `takes[].device` | string | Must exist in `devices` |
 | `takes[].platform` | string | Must match the device's platform |
 | `takes[].condition` | string | `quiet`, `room-noise`, `click`, or `drone` |
-| `takes[].labelFile` | string | Relative path ending in `.json`; no `..`, no absolute path |
-| `takes[].audioFile` | string | Relative path ending in `.wav`; no `..`, no absolute path |
+| `takes[].labelFile` | string | Exactly `<playerId>/<device>/<condition>/<takeId>.json`; relative, forward slashes, no `..` |
+| `takes[].audioFile` | string | Exactly `<playerId>/<device>/<condition>/<takeId>.wav`; relative, forward slashes, no `..` |
 | `takes[].status` | string | `accepted`, `failed`, or `excluded` |
 | `takes[].notes` | string | Optional; reason for a failed or excluded take |
 | `notes` | string | Optional free text for the corpus |
@@ -565,11 +579,16 @@ The validator treats a missing cell, fewer than 6 players, fewer than 3
 returners, fewer than 3 near-beginners, fewer than 3 playing levels, or fewer
 than 2 guitar types as **warnings**, because a manifest may be a work in
 progress. It treats unknown references, duplicate IDs, bad paths, bad enums, and
-unknown fields as **errors**.
+unknown fields as **errors**. A `takeId` that does not start with
+`<playerId>-<device>-<condition>-`, a file path that does not match the folder
+layout, or a `deviceClass`/`platform` mismatch is an error.
 
 If a label and a manifest are passed together, the label's `takeId` must appear
-in the manifest, and `playerId`, `device`, `platform`, and `condition` must
-agree. See [`../tool/corpus/README.md`](../tool/corpus/README.md).
+in the manifest, and `playerId`, `device`, `platform`, `condition`, and `guitar`
+must agree. The `guitar` check accepts either instrument when the player is
+registered as `both`. A manifest entry with `status = "failed"` requires the
+label to be `indeterminate` and `incomplete`. See
+[`../tool/corpus/README.md`](../tool/corpus/README.md).
 
 ---
 
@@ -746,8 +765,9 @@ foreach ($label in $labels) {
 ```
 
 Do not treat validator warnings as failures. Warnings mean the corpus is not yet
-complete: too few players, a missing cell, a take marked failed, or a label that
-does not follow the recommended prefix. Fix the missing data, not the warning.
+complete: too few players, a missing cell, a failed/excluded take, or a
+low-confidence note. They never excuse a schema error. Fix the missing data, not
+the warning.
 
 ---
 
@@ -831,8 +851,9 @@ Procedure:
 7. Store the DI at `corpus/reference/<takeId>-di.wav` and add `reference=di` to
    the label notes. The reference file follows the same retention clock.
 
-The full labeling procedure, including the comparison table and adjudication
-rules, is in [`CORPUS_LABELING.md`](CORPUS_LABELING.md) §8.
+The full labeling procedure, including the DI comparison and reference-subset
+acceptance rules, is in [`CORPUS_LABELING.md`](CORPUS_LABELING.md) §6.
+Inter-labeler adjudication is in §5.
 
 ---
 
@@ -844,7 +865,10 @@ Do not start the analysis until all of these are true:
       and 3 distinct playing levels.
 - [ ] All 4 device classes and all 3 condition buckets represented.
 - [ ] At least 20 accepted takes in every device/condition cell, at least 240
-      accepted takes total.
+      matrix takes.
+- [ ] At least 24 bleed-study takes across the 8 click/drone cells, recorded
+      under speaker, wired headphones, and Bluetooth; at least 264 accepted
+      takes total.
 - [ ] At least 24 takes in the MIDI/interface reference subset, including 4-, 8-,
       and 16-note phrases.
 - [ ] Every label passes `validate_labels.dart` with no errors.
