@@ -175,7 +175,8 @@ class Piece {
   /// Key name with mode, for example `G major` or `A minor`.
   final String key;
 
-  /// Capo fret. 0 means no capo.
+  /// Capo fret. V1 supports capo 0 only; nonzero capos are rejected until
+  /// capo-aware pitch semantics exist.
   final int capo;
 
   /// Optional section labels such as `A` or `Verse`.
@@ -186,7 +187,10 @@ class Piece {
 
   LicenseStatus? get licenseStatus => LicenseStatus.tryParse(license);
 
-  bool get isV1Compatible => licenseStatus?.isV1Compatible ?? false;
+  /// V1 is standard tuning with no capo and public-domain or original
+  /// material.
+  bool get isV1Compatible =>
+      capo == 0 && (licenseStatus?.isV1Compatible ?? false);
 
   Piece copyWith({
     String? id,

@@ -147,6 +147,13 @@ class MonophonicValidator {
         'Capo must be between 0 and 12.',
         '$path.capo',
       );
+    } else if (piece.capo != 0) {
+      _error(
+        issues,
+        'piece.unsupportedCapo',
+        'V1 supports capo 0 only; capo ${piece.capo} is not supported.',
+        '$path.capo',
+      );
     }
     if (!piece.timeSignature.isValid) {
       _error(
@@ -227,11 +234,11 @@ class MonophonicValidator {
       );
     }
 
-    if (phrase.bars < 1) {
+    if (phrase.bars < 1 || phrase.bars > Phrase.maxV1Bars) {
       _error(
         issues,
         'phrase.invalidBars',
-        'A phrase must have at least one bar.',
+        'A phrase must have between 1 and ${Phrase.maxV1Bars} bars.',
         '$path.bars',
         phraseId: phraseId,
       );
@@ -670,17 +677,21 @@ class MonophonicValidator {
 
       final sameSounding = next.soundingMidi == event.soundingMidi;
       final sameWritten = next.writtenNote?.id == event.writtenNote?.id;
+      final eventHasPosition = event.string != null || event.fret != null;
+      final nextHasPosition = next.string != null || next.fret != null;
       final samePosition =
-          event.string == null ||
-          event.fret == null ||
-          next.string == null ||
-          next.fret == null ||
-          (next.string == event.string && next.fret == event.fret);
+          (!eventHasPosition && !nextHasPosition) ||
+          (event.string != null &&
+              event.fret != null &&
+              next.string != null &&
+              next.fret != null &&
+              next.string == event.string &&
+              next.fret == event.fret);
       if (!sameSounding || !sameWritten || !samePosition) {
         _error(
           issues,
           'tie.mismatch',
-          'A tie must continue the same written pitch at the same string and fret.',
+          'A tie must continue the same written pitch; when either side names a position, both sides must use the same string and fret.',
           eventPath,
           phraseId: phraseId,
           eventIndex: index,
@@ -695,7 +706,11 @@ class MonophonicValidator {
     String? phraseId,
     List<ScoreIssue> issues,
   ) {
-    if (!phrase.timeSignature.isValid || phrase.bars < 1) return;
+    if (!phrase.timeSignature.isValid ||
+        phrase.bars < 1 ||
+        phrase.bars > Phrase.maxV1Bars) {
+      return;
+    }
     if (!phrase.pickupBeats.isFinite ||
         phrase.pickupBeats < 0 ||
         phrase.pickupBeats >= phrase.timeSignature.beatsPerBar) {
@@ -733,7 +748,7 @@ class MonophonicValidator {
           issues,
           'bar.durationMismatch',
           'Bar ${span.number} covers ${_format(covered)} of ${_format(length)} beats.',
-          '$phrasePath.bars[${span.number}]',
+          '$phrasePath.events',
           phraseId: phraseId,
         );
       }

@@ -24,6 +24,10 @@ class Phrase {
     this.pickupBeats = 0,
   });
 
+  /// V1 upper bound for [bars]. It keeps validator work bounded when a
+  /// malformed or imported score declares an enormous phrase.
+  static const int maxV1Bars = 64;
+
   final String id;
 
   /// Number of bars, including a pickup bar when [pickupBeats] is non-zero.
