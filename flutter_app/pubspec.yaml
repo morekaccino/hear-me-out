@@ -44,6 +44,11 @@ flutter:
   assets:
     - assets/fonts/
     - assets/audio/
+    - assets/content/etudes/level_1/
+    - assets/content/etudes/level_2/
+    - assets/content/etudes/level_3/
+    - assets/content/etudes/level_4/
+    - assets/content/etudes/level_5/
   fonts:
     - family: Nunito
       fonts:

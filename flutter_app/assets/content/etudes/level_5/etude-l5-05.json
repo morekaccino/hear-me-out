@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "etude-l5-05",
+    "title": "Sight-reading Etude L5-05",
+    "composer": "Hear Me Out",
+    "license": "original",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "key": "E minor",
+    "sections": [
+      "A",
+      "B"
+    ]
+  },
+  "phrases": [
+    {
+      "id": "etude-l5-05-p1",
+      "title": "First-position statement",
+      "bars": 2,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 80,
+      "skills": [
+        "sightreading.fluency",
+        "rhythm.rests",
+        "technique.position-shift"
+      ],
+      "difficulty": 5,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 6.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        }
+      ]
+    },
+    {
+      "id": "etude-l5-05-p2",
+      "title": "Second-position answer and cadence",
+      "bars": 2,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 80,
+      "skills": [
+        "sightreading.fluency",
+        "rhythm.rests",
+        "technique.position-shift"
+      ],
+      "difficulty": 5,
+      "startBar": 3,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 1,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 1.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 3,
+          "fret": 4
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "G4",
+          "soundingMidi": 55,
+          "string": 4,
+          "fret": 5
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 3,
+          "fret": 5
+        },
+        {
+          "startBeat": 6.5,
+          "durationBeats": 0.5,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 7.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 2,
+          "fret": 5
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
+    "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
+    "notes": "Level 5 etude in E minor: 4 bars at 80 BPM with mixed quarter, eighth, and rest cells, a compact second-position passage, and a musical cadence. This is a first-read test, not a technique study.",
+    "kind": "etude",
+    "tier": "returner",
+    "stage": 9
+  }
+}

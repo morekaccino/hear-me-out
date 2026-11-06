@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "piece": {
+    "id": "etude-l1-08",
+    "title": "Sight-reading Etude L1-08",
+    "composer": "Hear Me Out",
+    "license": "original",
+    "tuning": {
+      "name": "Standard",
+      "openStrings": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "capo": 0,
+    "timeSignature": {
+      "numerator": 4,
+      "denominator": 4
+    },
+    "key": "D major",
+    "sections": [
+      "A",
+      "B"
+    ]
+  },
+  "phrases": [
+    {
+      "id": "etude-l1-08-p1",
+      "title": "Complete four-bar theme",
+      "bars": 4,
+      "timeSignature": {
+        "numerator": 4,
+        "denominator": 4
+      },
+      "targetTempoBpm": 60,
+      "skills": [
+        "note-reading.open-strings",
+        "rhythm.quarter-notes",
+        "sightreading.phrase-endings"
+      ],
+      "difficulty": 1,
+      "startBar": 1,
+      "pickupBeats": 0.0,
+      "events": [
+        {
+          "startBeat": 0.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 2.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 3.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C#5",
+          "soundingMidi": 61,
+          "string": 2,
+          "fret": 2
+        },
+        {
+          "startBeat": 4.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 5.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
+        },
+        {
+          "startBeat": 6.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        },
+        {
+          "startBeat": 8.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "C#5",
+          "soundingMidi": 61,
+          "string": 2,
+          "fret": 2
+        },
+        {
+          "startBeat": 10.0,
+          "durationBeats": 2,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 12.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "A4",
+          "soundingMidi": 57,
+          "string": 3,
+          "fret": 2
+        },
+        {
+          "startBeat": 13.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "B4",
+          "soundingMidi": 59,
+          "string": 2,
+          "fret": 0
+        },
+        {
+          "startBeat": 14.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "C#5",
+          "soundingMidi": 61,
+          "string": 2,
+          "fret": 2
+        },
+        {
+          "startBeat": 15.0,
+          "durationBeats": 1,
+          "kind": "note",
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
+        }
+      ]
+    }
+  ],
+  "authoring": {
+    "author": "Hear Me Out content team",
+    "source": "Original composition for the Hear Me Out sight-reading set. No external melody is quoted.",
+    "reviewedBy": "Machine validation and rubric review; human playtest pending T3.8",
+    "notes": "Level 1 etude in D major: four bars at 60 BPM built on the scale-run motif, using open strings and first position on strings 1-3 with a clear cadence on D5.",
+    "kind": "etude",
+    "tier": "foundation",
+    "stage": 1
+  }
+}
