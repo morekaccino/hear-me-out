@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "corpusId": "spike-fixture",
+  "players": [
+    {
+      "playerId": "p01",
+      "segment": "returner",
+      "guitar": "nylon",
+      "playingLevel": 3
+    },
+    {
+      "playerId": "p02",
+      "segment": "near-beginner",
+      "guitar": "steel",
+      "playingLevel": 1
+    }
+  ],
+  "devices": [
+    {
+      "device": "pixel-6a",
+      "platform": "android",
+      "deviceClass": "mid-range-android"
+    }
+  ],
+  "takes": [
+    {
+      "takeId": "p01-pixel-6a-quiet-001",
+      "playerId": "p01",
+      "device": "pixel-6a",
+      "platform": "android",
+      "condition": "quiet",
+      "labelFile": "p01/pixel-6a/quiet/p01-pixel-6a-quiet-001.json",
+      "audioFile": "p01/pixel-6a/quiet/p01-pixel-6a-quiet-001.wav",
+      "status": "accepted"
+    }
+  ],
+  "notes": "Fixture only. This is not a real corpus."
+}

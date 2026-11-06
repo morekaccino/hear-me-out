@@ -20,6 +20,11 @@ jobs:
         with:
           channel: stable
           cache: true
+      - name: Corpus validator tests
+        working-directory: .
+        run: |
+          dart analyze tool/corpus test/corpus_label_test.dart
+          dart run test/corpus_label_test.dart
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test

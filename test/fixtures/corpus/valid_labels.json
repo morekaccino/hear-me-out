@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "takeId": "p01-pixel-6a-quiet-001",
+  "playerId": "p01",
+  "device": "pixel-6a",
+  "platform": "android",
+  "condition": "quiet",
+  "guitar": "nylon",
+  "sampleRate": 48000,
+  "channels": 1,
+  "tempoBpm": 60,
+  "phraseNoteCount": 8,
+  "target": [
+    {
+      "index": 0,
+      "writtenNote": "E4",
+      "soundingMidi": 52,
+      "string": 4,
+      "fret": 2,
+      "onsetSample": 204000,
+      "onsetSeconds": 4.25,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 1,
+      "writtenNote": "F4",
+      "soundingMidi": 53,
+      "string": 4,
+      "fret": 3,
+      "onsetSample": 228000,
+      "onsetSeconds": 4.75,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 2,
+      "writtenNote": "G4",
+      "soundingMidi": 55,
+      "string": 3,
+      "fret": 0,
+      "onsetSample": 252000,
+      "onsetSeconds": 5.25,
+      "durationSeconds": 0.45,
+      "confidence": 0.95
+    },
+    {
+      "index": 3,
+      "writtenNote": "A4",
+      "soundingMidi": 57,
+      "string": 3,
+      "fret": 2,
+      "onsetSample": 276000,
+      "onsetSeconds": 5.75,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 4,
+      "writtenNote": "B4",
+      "soundingMidi": 59,
+      "string": 2,
+      "fret": 0,
+      "onsetSample": 300000,
+      "onsetSeconds": 6.25,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 5,
+      "writtenNote": "C5",
+      "soundingMidi": 60,
+      "string": 2,
+      "fret": 1,
+      "onsetSample": 324000,
+      "onsetSeconds": 6.75,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 6,
+      "writtenNote": "D5",
+      "soundingMidi": 62,
+      "string": 2,
+      "fret": 3,
+      "onsetSample": 348000,
+      "onsetSeconds": 7.25,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    },
+    {
+      "index": 7,
+      "writtenNote": "E5",
+      "soundingMidi": 64,
+      "string": 1,
+      "fret": 0,
+      "onsetSample": 372000,
+      "onsetSeconds": 7.75,
+      "durationSeconds": 0.45,
+      "confidence": 1.0
+    }
+  ],
+  "expert": {
+    "outcome": "correct",
+    "noteAccuracy": 1.0,
+    "timingOk": true,
+    "completeness": "complete",
+    "labeler": "expert-a",
+    "reviewedBy": "expert-b"
+  },
+  "consent": {
+    "audioCapture": true,
+    "keepRawAudio": false,
+    "anonymizedMetrics": true
+  },
+  "notes": "Synthetic fixture for the validator. No audio file is stored."
+}
