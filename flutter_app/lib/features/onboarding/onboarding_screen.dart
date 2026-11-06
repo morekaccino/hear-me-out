@@ -136,6 +136,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   Future<void> _goTo(int page) async {
     if (!mounted || page == _page) return;
     if (_page == 0 && page > 0) await _stopMic();
+    if (_playingPieceId != null) {
+      try {
+        await ref.read(audioEngineProvider).stop();
+      } catch (_) {
+        // Preview audio is optional.
+      }
+      if (mounted) setState(() => _playingPieceId = null);
+    }
     if (!mounted) return;
     if (!_pageController.hasClients) {
       setState(() => _page = page);
