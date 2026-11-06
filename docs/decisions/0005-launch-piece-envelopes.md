@@ -8,7 +8,7 @@
 ## Context
 
 T3.1 locked the 10-piece launch list with a nominal string/fret target per
-stage: stages 1-2 on strings 1-3, stage 3 on strings 4-6, and so on. T3.3
+stage: stages 1-2 on strings 1-3, stage 3 on strings 3-6, and so on. T3.3
 arranged the five Foundation pieces. Four of the five need a string outside
 that nominal set to keep the traditional melody in first position:
 

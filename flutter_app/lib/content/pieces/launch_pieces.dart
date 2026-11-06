@@ -166,7 +166,7 @@ final launchPieces = List<LaunchPiece>.unmodifiable(<LaunchPiece>[
     v1Stage: 3,
     phraseCount: 4,
     targetTempoBpm: 76,
-    techniqueFocus: 'Middle strings, syncopated eighths, one accidental',
+    techniqueFocus: 'Middle strings, syncopated eighths, two accidentals',
     rangeAndPosition: 'First position; strings 2-4; frets 0-3',
     licenseQuestion:
         'Confirm the traditional spiritual is public domain in the US, '

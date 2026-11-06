@@ -141,10 +141,10 @@ string restriction. The monophonic and first-position rules are unchanged.
   0-3. D4-F4 sit on string 4 (frets 0-3); G4-B4 on string 3; C5 is string 2
   fret 1. The melody never goes below D4, so strings 5-6 are not used.
 - **Technique focus:** middle-string reading (string 4 for the lower melody
-  notes, string 3 for the upper ones), syncopated eighths, and two chromatic
+  notes, strings 2-3 for the upper ones), syncopated eighths, and two chromatic
   notes (A-sharp lower neighbour and F-natural flat seventh). The earlier
   "lower-strings" tag was wrong because most notes sit on strings 2-3; the
-  arrangement now stays on strings 3-4 and the skills name middle strings and
+  arrangement stays on strings 2-4 and the skills name middle strings and
   string crossing.
 - **Transposition:** source ABC in D major, transposed up a perfect fourth to
   G major. The source's C natural becomes F natural (the flat seventh), and

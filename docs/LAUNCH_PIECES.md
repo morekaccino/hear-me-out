@@ -1,6 +1,6 @@
 # Launch pieces (T3.1)
 
-**Status:** Metadata locked; not arranged, recorded, or legally cleared.
+**Status:** Metadata locked; Foundation (T3.3) and Returner (T3.4) arrangements complete; not recorded, musically reviewed, or legally cleared.
 **Owner:** T3.1. **Legal review:** T6.3. **Notes:** T3.3/T3.4.
 **Reference recordings:** T3.5.
 **Source of truth:** [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md)
@@ -132,7 +132,7 @@ Open legal questions that apply to the whole list:
 - Exam-board names, syllabi, or grade lists. The V1 stages are internal and are
   not exam grades.
 - Chords, bass lines, double stops, and any second voice.
-- Actual note arrangements and audio assets. T3.3/T3.4 arrange the pieces.
+- Audio assets and human reference takes. T3.3/T3.4 arranged the pieces.
   T3.5 records the 20 human reference takes (target and slow tempo). T6.4 is
   the paywall and day-7 recap, not the recording owner.
 - Legal clearance. T6.3 owns it.
@@ -141,7 +141,7 @@ Open legal questions that apply to the whole list:
 
 ## Not yet validated
 
-- No phrase notes or score JSON exist for any launch piece. T3.3/T3.4 add them.
+- The Foundation and Returner JSON arrangements exist and pass the T3.2 validator; the human musical review and 3-beginner playtest are T3.8.
 - No reference recordings exist at target or slow tempo. T3.5 owns the 20
   human reference takes (target and slow tempo) and must not use copyrighted
   recordings.
@@ -160,7 +160,9 @@ Open legal questions that apply to the whole list:
 - The list exposes `launchPieces`, `launchPieceById(String id)`,
   `launchPiecesForTier(LaunchTier tier)`, and the `v1StageOutcomes` map.
 - Each entry uses the T2.1 `Piece` model with standard tuning, capo 0, and a
-  `public-domain` or `original` license. Phrase notes are deliberately absent.
+  `public-domain` or `original` license. The note arrangements live under
+  `flutter_app/assets/content/pieces/foundation/` and
+  `flutter_app/assets/content/pieces/returner/`.
 
 ## References
 
