@@ -111,6 +111,65 @@ void main() {
       expect(report.failures.join(' '), contains('offset'));
     });
 
+    test('does not alias a 490 ms offset to -10 ms on a 0.5 s train', () {
+      final report = analyzeLoopback(
+        reference: clickTrain(),
+        recorded: clickTrain(offsetMs: 490),
+      );
+
+      expect(report.offsetMs, closeTo(490, 1));
+      expect(report.offsetVerified, isTrue);
+      expect(report.driftVerified, isTrue);
+      expect(report.timingUsable, isFalse);
+      expect(report.failures.join(' '), contains('offset'));
+    });
+
+    test('measures 240 ms and 300 ms offsets on a 0.5 s train', () {
+      for (final offset in [240.0, 300.0]) {
+        final report = analyzeLoopback(
+          reference: clickTrain(),
+          recorded: clickTrain(offsetMs: offset),
+        );
+
+        expect(report.offsetMs, closeTo(offset, 1));
+        expect(report.offsetVerified, isTrue);
+        expect(report.timingUsable, isFalse);
+      }
+    });
+
+    test('does not alias a 60 ms offset on a 0.05 s train', () {
+      final report = analyzeLoopback(
+        reference: clickTrain(durationSeconds: 10, intervalSeconds: 0.05),
+        recorded: clickTrain(
+          durationSeconds: 10,
+          intervalSeconds: 0.05,
+          offsetMs: 60,
+        ),
+      );
+
+      expect(report.offsetMs, closeTo(60, 1));
+      expect(report.offsetVerified, isTrue);
+      expect(report.timingUsable, isFalse);
+    });
+
+    test('marks a take that starts before the reference as unverified', () {
+      final report = analyzeLoopback(
+        reference: clickTrain(),
+        recorded: clickTrain(offsetMs: -400),
+      );
+
+      expect(report.offsetVerified, isFalse);
+      expect(report.driftVerified, isFalse);
+      expect(report.timingUsable, isFalse);
+      expect(
+        report.failures.join(' '),
+        contains('before the first reference click'),
+      );
+      expect(report.toJson()['offsetMs'], isNull);
+      expect(report.toJson()['driftMsPer60s'], isNull);
+      expect(report.toJson()['offsetVerified'], isFalse);
+    });
+
     test('respects a custom offset gate', () {
       final recording = clickTrain(offsetMs: 10);
 
@@ -202,8 +261,12 @@ void main() {
       );
 
       expect(report.expectedOnsets, 1);
+      expect(report.offsetVerified, isFalse);
+      expect(report.driftVerified, isFalse);
       expect(report.timingUsable, isFalse);
       expect(report.failures.join(' '), contains('at least 2'));
+      expect(report.toJson()['offsetMs'], isNull);
+      expect(report.toJson()['driftMsPer60s'], isNull);
     });
   });
 

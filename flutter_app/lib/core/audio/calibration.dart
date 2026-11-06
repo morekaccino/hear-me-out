@@ -52,6 +52,8 @@ class CalibrationReport {
     required this.noteRecall,
     required this.timingUsable,
     required this.failures,
+    this.offsetVerified = true,
+    this.driftVerified = true,
     this.expectedOnsets = 0,
     this.matchedOnsets = 0,
     this.detectedOnsets = 0,
@@ -77,16 +79,27 @@ class CalibrationReport {
 
   final List<String> failures;
 
+  /// True when the first reference click was matched and the takes share a
+  /// time origin. When false, [offsetMs] is diagnostic only.
+  final bool offsetVerified;
+
+  /// True when the offset is verified and at least two clicks were matched,
+  /// so a drift line could be fitted. When false, [driftMsPer60s] is
+  /// diagnostic only.
+  final bool driftVerified;
+
   final int expectedOnsets;
   final int matchedOnsets;
   final int detectedOnsets;
 
   Map<String, dynamic> toJson() => {
-    'offsetMs': _rounded(offsetMs, 3),
-    'driftMsPer60s': _rounded(driftMsPer60s, 3),
+    'offsetMs': offsetVerified ? _rounded(offsetMs, 3) : null,
+    'driftMsPer60s': driftVerified ? _rounded(driftMsPer60s, 3) : null,
     'falseOnsetsPerMinute': _rounded(falseOnsetsPerMinute, 3),
     'noteRecall': _rounded(noteRecall, 4),
     'timingUsable': timingUsable,
+    'offsetVerified': offsetVerified,
+    'driftVerified': driftVerified,
     'failures': List<String>.from(failures),
     'expectedOnsets': expectedOnsets,
     'matchedOnsets': matchedOnsets,
@@ -179,16 +192,20 @@ class BleedReport {
 /// 2. A 4 ms RMS envelope is sampled every 1 ms.
 /// 3. Energy onsets are picked from local envelope maxima that clear an
 ///    adaptive threshold (10% of the peak or 3x the 20th percentile).
-/// 4. A bounded normalized cross-correlation of the two envelopes gives a
-///    coarse offset. The search is limited to +/-500 ms and to less than half
-///    the reference click interval so a periodic train cannot alias.
-/// 5. Reference onsets are paired with recorded onsets under the coarse
-///    offset, then a least-squares line is fitted and the pairing is repeated.
+/// 4. The first reference click is aligned to recorded onsets in a bounded
+///    0..2 s window. Candidate offsets are scored by how many reference
+///    clicks they match and by their least-squares residual. The earliest
+///    candidate wins a tie, so a shared time origin selects the true click
+///    even when a periodic train has aliases.
+/// 5. A take with an onset before the first reference click, or with no
+///    candidate in the alignment window, is marked unverified instead of
+///    being certified. This catches unaligned starts and missed first clicks.
 /// 6. The line intercept at t = 0 is the offset; (slope - 1) * 60000 is drift
-///    in ms per 60 s.
+///    in ms per 60 s. Offset and drift are only usable when verified.
 ///
 /// Positive offset means the recording is late. [timingUsable] is true only
-/// when the offset and drift gates pass and the drift was measurable.
+/// when both measurements are verified, the offset and drift gates pass, and
+/// drift was measurable from at least two clicks.
 CalibrationReport analyzeLoopback({
   required WavData reference,
   required WavData recorded,
@@ -218,15 +235,23 @@ CalibrationReport analyzeLoopback({
     );
   }
 
-  final coarseOffset = _coarseOffsetSeconds(
-    referenceEnvelope,
-    recordedEnvelope,
+  final alignment = _alignFirstClick(referenceOnsets, recordedOnsets);
+  final candidate = _bestCandidate(
     referenceOnsets,
+    recordedOnsets,
+    alignment.coarseOffsetSeconds,
   );
-  final fit = _fitOnsets(referenceOnsets, recordedOnsets, coarseOffset);
+  final fit = candidate.fit;
 
   final offsetMs = fit.interceptSeconds * 1000.0;
   final driftMsPer60s = (fit.slope - 1.0) * 60000.0;
+  final firstReference = referenceOnsets.first;
+  final offsetVerified =
+      alignment.failures.isEmpty &&
+      fit.pairs.length >= 2 &&
+      _matchesFirstReference(fit, firstReference);
+  final driftVerified = offsetVerified && fit.pairs.length >= 2;
+
   final matchedReference = <double>{};
   final usedRecorded = <int>{};
   for (final pair in fit.pairs) {
@@ -241,21 +266,39 @@ CalibrationReport analyzeLoopback({
   final noteRecall = matchedReference.length / referenceOnsets.length;
 
   final failures = <String>[];
-  if (fit.pairs.length < 2) {
+  if (!offsetVerified) {
+    if (alignment.failures.isNotEmpty) {
+      failures.addAll(alignment.failures);
+    } else if (!_matchesFirstReference(fit, firstReference)) {
+      failures.add(
+        'offset could not be verified: the first reference click was not '
+        'matched in the recording',
+      );
+    } else {
+      failures.add(
+        'offset could not be verified: ${fit.pairs.length} reference '
+        'click(s) matched, at least 2 are required',
+      );
+    }
+  } else if (_exceeds(offsetMs.abs(), gates.maxOffsetMs)) {
     failures.add(
-      'drift cannot be verified: ${fit.pairs.length} reference click(s) '
-      'matched, at least 2 are required',
+      'offset ${_format(offsetMs)} ms exceeds '
+      '+/-${_format(gates.maxOffsetMs)} ms',
     );
+  }
+  if (!driftVerified) {
+    if (!offsetVerified) {
+      failures.add('drift cannot be verified because the offset is unverified');
+    } else {
+      failures.add(
+        'drift cannot be verified: ${fit.pairs.length} reference click(s) '
+        'matched, at least 2 are required',
+      );
+    }
   } else if (_exceeds(driftMsPer60s.abs(), gates.maxDriftMsPer60s)) {
     failures.add(
       'drift ${_format(driftMsPer60s)} ms/60s exceeds '
       '+/-${_format(gates.maxDriftMsPer60s)} ms/60s',
-    );
-  }
-  if (_exceeds(offsetMs.abs(), gates.maxOffsetMs)) {
-    failures.add(
-      'offset ${_format(offsetMs)} ms exceeds '
-      '+/-${_format(gates.maxOffsetMs)} ms',
     );
   }
 
@@ -266,6 +309,8 @@ CalibrationReport analyzeLoopback({
     noteRecall: noteRecall,
     timingUsable: failures.isEmpty,
     failures: failures,
+    offsetVerified: offsetVerified,
+    driftVerified: driftVerified,
     expectedOnsets: referenceOnsets.length,
     matchedOnsets: matchedReference.length,
     detectedOnsets: recordedOnsets.length,
@@ -579,104 +624,143 @@ List<double> _detectOnsets(_Envelope envelope) {
   return [for (final onset in onsets) onset.seconds];
 }
 
-double _coarseOffsetSeconds(
-  _Envelope reference,
-  _Envelope recorded,
+const double _maxAlignmentLatencySeconds = 2.0;
+const double _alignmentToleranceSeconds = 0.050;
+const int _maxAlignmentCandidates = 8;
+
+class _Alignment {
+  const _Alignment({required this.coarseOffsetSeconds, required this.failures});
+
+  final double coarseOffsetSeconds;
+  final List<String> failures;
+}
+
+class _CandidateFit {
+  const _CandidateFit({
+    required this.fit,
+    required this.offsetSeconds,
+    required this.matched,
+    required this.residualSeconds,
+  });
+
+  final _Fit fit;
+  final double offsetSeconds;
+  final int matched;
+  final double residualSeconds;
+}
+
+/// Checks that the takes share a time origin and that the first reference
+/// click has a recorded candidate within the plausible latency window.
+_Alignment _alignFirstClick(
   List<double> referenceOnsets,
+  List<double> recordedOnsets,
 ) {
-  final referenceValues = reference.values;
-  final recordedValues = recorded.values;
-  if (referenceValues.isEmpty || recordedValues.isEmpty) return 0.0;
-
-  final maximumLag = _maximumLagFrames(reference, referenceOnsets);
-  if (maximumLag == 0) return 0.0;
-
-  final referenceMean = _mean(referenceValues);
-  final recordedMean = _mean(recordedValues);
-  final referenceDeviation = _standardDeviation(referenceValues, referenceMean);
-  final recordedDeviation = _standardDeviation(recordedValues, recordedMean);
-  if (referenceDeviation <= 0 || recordedDeviation <= 0) return 0.0;
-
-  final minimumOverlap = math.max(1, (referenceValues.length * 0.25).floor());
-  final scores = List<double>.filled(
-    maximumLag * 2 + 1,
-    double.negativeInfinity,
-  );
-  var bestIndex = -1;
-  var bestScore = double.negativeInfinity;
-  for (var lag = -maximumLag; lag <= maximumLag; lag++) {
-    var sum = 0.0;
-    var count = 0;
-    final referenceStart = math.max(0, -lag);
-    final referenceEnd = math.min(
-      referenceValues.length,
-      recordedValues.length - lag,
+  final firstReference = referenceOnsets.first;
+  final early = <double>[
+    for (final onset in recordedOnsets)
+      if (onset < firstReference - _alignmentToleranceSeconds) onset,
+  ];
+  if (early.isNotEmpty) {
+    final earlyMs = (firstReference - early.first) * 1000.0;
+    return _Alignment(
+      coarseOffsetSeconds: 0.0,
+      failures: [
+        'the recording has an onset ${_format(earlyMs)} ms before the first '
+            'reference click; start playback and recording together so both '
+            'takes share sample zero',
+      ],
     );
-    for (var index = referenceStart; index < referenceEnd; index++) {
-      final referenceValue =
-          (referenceValues[index] - referenceMean) / referenceDeviation;
-      final recordedValue =
-          (recordedValues[index + lag] - recordedMean) / recordedDeviation;
-      sum += referenceValue * recordedValue;
-      count++;
-    }
-    if (count < minimumOverlap) continue;
-    final score = sum / count;
-    scores[lag + maximumLag] = score;
-    if (score > bestScore) {
-      bestScore = score;
-      bestIndex = lag;
-    }
   }
-  if (bestIndex < 0) return 0.0;
 
-  var refinedIndex = bestIndex.toDouble();
-  final scoreIndex = bestIndex + maximumLag;
-  if (scoreIndex > 0 && scoreIndex + 1 < scores.length) {
-    final before = scores[scoreIndex - 1];
-    final center = scores[scoreIndex];
-    final after = scores[scoreIndex + 1];
-    final denominator = before - 2.0 * center + after;
-    if (denominator.abs() > 1e-12) {
-      final shift = 0.5 * (before - after) / denominator;
-      refinedIndex += shift.clamp(-0.5, 0.5);
+  for (final onset in recordedOnsets) {
+    final offset = onset - firstReference;
+    if (offset >= -_alignmentToleranceSeconds &&
+        offset <= _maxAlignmentLatencySeconds) {
+      return _Alignment(
+        coarseOffsetSeconds: offset,
+        failures: const <String>[],
+      );
     }
   }
-  return refinedIndex * reference.frameSeconds;
+
+  return const _Alignment(
+    coarseOffsetSeconds: 0.0,
+    failures: <String>[
+      'could not align the first reference click; the recording may start '
+          'after it, or the input may be silent',
+    ],
+  );
 }
 
-int _maximumLagFrames(_Envelope reference, List<double> onsets) {
-  var interval = 1.0;
-  if (onsets.length >= 2) {
-    final intervals = <double>[];
-    for (var index = 1; index < onsets.length; index++) {
-      intervals.add(onsets[index] - onsets[index - 1]);
-    }
-    intervals.sort();
-    interval = intervals[intervals.length ~/ 2];
+/// Scores candidate alignments by matched clicks, then fit residual, then
+/// the earliest offset. Anchoring to the first reference click prevents a
+/// periodic train from selecting a negative alias such as -10 ms for a
+/// 490 ms delay.
+_CandidateFit _bestCandidate(
+  List<double> referenceOnsets,
+  List<double> recordedOnsets,
+  double fallbackOffset,
+) {
+  final firstReference = referenceOnsets.first;
+  final candidates = <double>[];
+  for (final onset in recordedOnsets) {
+    final offset = onset - firstReference;
+    if (offset < -_alignmentToleranceSeconds) continue;
+    if (offset > _maxAlignmentLatencySeconds) break;
+    candidates.add(offset);
+    if (candidates.length >= _maxAlignmentCandidates) break;
   }
-  final limitSeconds = math.min(0.5, math.max(0.05, interval * 0.45));
-  final frames = (limitSeconds / reference.frameSeconds).round();
-  return math.min(frames, math.max(1, reference.values.length - 1));
+
+  _CandidateFit? best;
+  for (final candidate in candidates) {
+    final fit = _fitOnsets(referenceOnsets, recordedOnsets, candidate);
+    final current = _CandidateFit(
+      fit: fit,
+      offsetSeconds: candidate,
+      matched: fit.pairs.length,
+      residualSeconds: _residualSeconds(fit),
+    );
+    if (best == null || _isBetterCandidate(current, best)) {
+      best = current;
+    }
+  }
+
+  if (best != null) return best;
+
+  final fit = _fitOnsets(referenceOnsets, recordedOnsets, fallbackOffset);
+  return _CandidateFit(
+    fit: fit,
+    offsetSeconds: fallbackOffset,
+    matched: fit.pairs.length,
+    residualSeconds: _residualSeconds(fit),
+  );
 }
 
-double _mean(Float64List values) {
-  if (values.isEmpty) return 0.0;
+bool _isBetterCandidate(_CandidateFit candidate, _CandidateFit current) {
+  if (candidate.matched != current.matched) {
+    return candidate.matched > current.matched;
+  }
+  if ((candidate.residualSeconds - current.residualSeconds).abs() > 1e-9) {
+    return candidate.residualSeconds < current.residualSeconds;
+  }
+  return candidate.offsetSeconds < current.offsetSeconds;
+}
+
+double _residualSeconds(_Fit fit) {
+  if (fit.pairs.isEmpty) return double.infinity;
   var sum = 0.0;
-  for (final value in values) {
-    sum += value;
+  for (final pair in fit.pairs) {
+    final predicted = fit.interceptSeconds + fit.slope * pair.reference;
+    sum += (pair.recorded - predicted).abs();
   }
-  return sum / values.length;
+  return sum / fit.pairs.length;
 }
 
-double _standardDeviation(Float64List values, double mean) {
-  if (values.isEmpty) return 0.0;
-  var sum = 0.0;
-  for (final value in values) {
-    final centered = value - mean;
-    sum += centered * centered;
+bool _matchesFirstReference(_Fit fit, double firstReference) {
+  for (final pair in fit.pairs) {
+    if ((pair.reference - firstReference).abs() < 1e-9) return true;
   }
-  return math.sqrt(sum / values.length);
+  return false;
 }
 
 class _Pair {
