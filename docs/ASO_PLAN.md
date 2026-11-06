@@ -39,7 +39,7 @@ Gate evidence is in [`PHASE_GATES.md`](PHASE_GATES.md). Demand assumptions are i
 | Field | Store limit | Proposed value | Count | Status |
 |---|---|---:|---:|---|
 | App name | 30 (both stores) | `Hear Me Out` | 11 | Use. It carries no guitar or learn keyword; the subtitle carries discovery. |
-| Subtitle | 30 (App Store) | `Guitar Sight-Reading & Practice` | 31 | Canonical line. Over the App Store limit; see 1.2 for the approved fallback. |
+| Subtitle | 30 (App Store) | `Guitar Sight-Reading & Practice` | 31 | Canonical line. Over the App Store limit; see 1.2 for the proposed fallback. |
 | Short description | 80 (Google Play) | `Practice guitar sight-reading with notation drills. No account, no ads.` | 71 | Use. |
 | Long description | 4,000 (both stores) | Section 1.4 | Under 4,000 | Use only after the claims audit in section 6. |
 | Keyword field | 100 (App Store) | Section 2.4 | 94–97 | Use per locale. |
@@ -64,7 +64,7 @@ That is 31 characters. As of the App Store Connect field limit at the time of
 writing, the subtitle field allows 30 characters. Do not submit a truncated
 string and do not drop a word to make it fit.
 
-**Approved App Store variant**
+**Proposed fallback**
 
 ```
 Guitar Sight-Reading Practice
@@ -102,17 +102,19 @@ Plain text, ready for the store console. It describes the app that exists today.
 Read music. Play guitar.
 
 Hear Me Out is a calm, local-only guitar sight-reading and note-reading trainer.
-Each short lesson shows a note on a treble staff and asks you to name it or play
-it. The microphone listens on your device and tells you what it heard. If the
-microphone is unavailable, you can answer with note names instead.
+A typical lesson shows a note on a treble staff and asks you to name it or play
+it. Other lessons add chords, rhythm, and ear training. The microphone listens on
+your device and tells you what it heard. If the microphone is unavailable, you can
+answer with note names instead.
 
 WHAT YOU GET
 • 240 lessons across 40 units, from open strings and first position to rhythm,
-  chords, harmony, scales, ear training, and repertoire.
+  chords, harmony, scales, ear training, and fretboard work.
 • Guitar-correct notation. The staff shows written pitch; the app listens for
   the octave below.
-• One review schedule for every skill. Mastery needs correct answers across
-  several days, not one lucky tap.
+• One review schedule for the skills the course teaches: notes, rhythm, chords
+  and harmony, theory, ear training, and fretboard work. Mastery needs correct
+  answers across several days, not one lucky tap.
 • A standard-tuning tuner and a 60-second technique self-check.
 • No hearts, no loss loops, no leaderboards. A wrong answer never costs a life.
 • Local-only progress. No account, no cloud, no ads, no third-party trackers.
@@ -133,6 +135,10 @@ validated microphone accuracy or unlimited generated content.
 
 No account. No ads. No cloud. Read music. Play guitar.
 ```
+
+**en-GB spelling note:** in the long description, change "practice alone" to
+"practise alone". "Practice routine" is a noun and stays as written. The en-GB
+short description is in section 2.4. No other wording changes.
 
 **Claims check:** every sentence above maps to a shipped surface, a
 target-audience statement, or an explicit "not in this version" statement. Do not
@@ -363,7 +369,7 @@ captures from a real build after the frame is marked shippable.
 | 3 | Before/after proof | Hear the difference. | **Not shippable yet** (no recording UI) |
 | 4 | Five-minute Today session | Five minutes. One next step. | **Partially shippable** (Today card only) |
 | 5 | Technique self-check | A 60-second technique check. | **Shippable today** (Practice → Technique check; video pending) |
-| 6 | Privacy/local-only | No account. No cloud. No ads. | **Shippable today** (Profile privacy card) |
+| 6 | Privacy/local-only | No account. No cloud. No ads. | **Shippable with crop** (Profile privacy card; media sentence excluded) |
 | 7 | Progress/can-play | Real progress, not a streak. | **Partially shippable** (progress stats; no can-play evidence) |
 
 ### 3.3 Frame details
@@ -463,18 +469,18 @@ captures from a real build after the frame is marked shippable.
 
 - **Caption:** `No account. No cloud. No ads.`
 - **Subline:** `Your practice stays on your device.`
-- **Visual:** the Profile privacy section with the beta usage log off by default,
-  the local-only copy, and the clipboard backup action. Use the real state from
-  the test profile; do not invent a "0 KB uploaded" counter.
+- **Visual:** the Profile Privacy heading, the beta usage log card with the switch
+  off, and the clipboard backup row. Crop out the `MediaPrivacyCard` recording
+  sentence. Use the real state from the test profile; do not invent a "0 KB
+  uploaded" counter.
 - **Proof point:** progress is stored in `shared_preferences`; there is no account,
   no cloud, no ads, and no third-party tracker. The microphone is active only
-  during a lesson, practice, tuner, or recording session. The optional usage log
-  is local, bounded, and eraseable.
-- **Status:** **Shippable today.** Capture the privacy card. Caveat: the recording
-  screen is not built, so do not show a "recordings never leave this device"
-  claim in the screenshot. The card may say it when the recording UI ships and
-  the platform confirms backup exclusion; otherwise it must say the app could
-  not confirm it.
+  during a lesson, practice, or tuner session. The optional usage log is local,
+  bounded, and eraseable.
+- **Status:** **Shippable today only with that crop.** `mediaPrivacyNote` always
+  adds a "When you record a take…" sentence, and the recording UI is not built, so
+  a full-card capture would claim an unshipped flow. Do not show the media card
+  until T4.2 and the backup-exclusion copy exist.
 - **Designer note:** do not add a shield, lock, or "encrypted" badge that the app
   does not support. The plain copy is the proof.
 
@@ -500,9 +506,9 @@ captures from a real build after the frame is marked shippable.
 **Full launch order, after every gate ships:** 1 notation → 2 phrase → 3
 before/after → 4 Today → 5 technique → 6 privacy → 7 progress.
 
-**Current-build order, shippable frames only:** 1 notation → 4 Today card
-(retitled) → 5 technique → 6 privacy → 7 progress. That is five frames; both
-stores allow it. Do not pad the list with a gated frame.
+**Current-build order, five frames (two partial):** 1 notation → 4 Today card
+(retitled) → 5 technique → 6 privacy → 7 progress. Both stores allow five frames.
+Do not pad the list with a gated frame.
 
 **Minimum set if a store limits the count:** notation, privacy, progress. The
 notation frame must do the discovery work in any set; the name alone does not.
@@ -516,7 +522,7 @@ notation frame must do the discovery work in any set; the name alone does not.
 | 3 Before/after | Local media store only; no recording UI or comparison | T4.2 recording UI, comparison surface, device backup copy |
 | 4 Today session | Today card exists; five-minute session model exists in core/content but no UI | Today loop screen and Phase 1 evidence for the full frame |
 | 5 Technique | Technique screen reachable from Practice; video pending | None for the checklist; video asset for a video frame |
-| 6 Privacy | Profile privacy card; beta log off by default; local store | None; confirm store labels and legal copy |
+| 6 Privacy | Profile privacy card and beta log off by default; crop out the media recording sentence | None; confirm store labels and legal copy |
 | 7 Progress | Profile and Practice stats from `ProgressState` | None for progress; can-play evidence later |
 
 ---
@@ -554,8 +560,8 @@ do not call the result a benchmark.
 
 ### 4.2 Materials
 
-- The current-build set of five shippable frames in the intended order, at phone
-  size, with the captions a shopper would see.
+- The current-build set of five frames (two partial) in the intended order, at
+  phone size, with the captions a shopper would see.
 - A card with the title, subtitle, and short description.
 - A notes sheet with the fields in 4.5.
 - No app access and no unshipped frame.
@@ -666,9 +672,9 @@ All of these must be true before the first paid dollar:
    cadence below one new piece per month.
 3. Four consecutive weeks of organic installs have a recorded denominator,
    product-page conversion, and keyword rank, with no unexplained decline.
-4. A paid test is pre-registered: a $500 cap (the plan's validation budget), one
-   channel, one creative set, a maximum CPI/CAC, a minimum D7 or trial-to-paid
-   quality bar, and a stop rule if the cap is hit or the paid cohort is worse than
+4. A paid test is pre-registered: a separate $500 paid-test cap, one channel,
+   one creative set, a maximum CPI/CAC, a minimum D7 or trial-to-paid quality
+   bar, and a stop rule if the cap is hit or the paid cohort is worse than
    organic.
 5. Legal and privacy review covers the ad creative, the landing page, and the
    install source tracking.
