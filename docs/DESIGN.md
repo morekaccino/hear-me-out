@@ -439,6 +439,25 @@ Due, weak, and free practice are separate intents. Never imply a practice
 session is a test. Practice does not consume hearts and restores one on
 completion.
 
+### Technique
+
+A self-check reached from Practice, never a scored lesson. It uses the teal
+accent. Each V1 stage has one focus (setup and posture, left hand, right hand,
+damping, shifts, or slurs), exactly three observable checklist items, exactly
+three self-rating rows, one 60-second drill, and a short demo script. Ticks and
+ratings are session-only; they are not persisted, do not change FSRS, and award
+no hearts, XP, gems, or streak.
+
+The microphone cannot see hands. Say so on the screen: this is not automated
+hand assessment and it does not replace a teacher. Put the pain, numbness, and
+tingling warning above the fold, not in a footer. Keep the copy non-judgmental
+for returners who already have habits.
+
+Video demos are a separate content-production task. Until an asset exists, the
+screen says “Demo video pending” and shows the written cues. Do not add a fake
+asset path, a video player dependency, or copy that implies the videos are
+available.
+
 ### Profile
 
 A transparent record of real work: notes with box progress, accuracy, completed

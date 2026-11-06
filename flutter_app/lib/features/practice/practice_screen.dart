@@ -18,6 +18,7 @@ import '../../shared/widgets/tappable.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../lesson/lesson_screen.dart';
+import '../technique/technique_screen.dart';
 
 class PracticeScreen extends ConsumerStatefulWidget {
   const PracticeScreen({super.key});
@@ -34,6 +35,7 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
   String? _micError;
   bool _starting = false;
   bool _openingPractice = false;
+  bool _openingTechnique = false;
   int _micGeneration = 0;
   int _selectedString = 0;
 
@@ -60,12 +62,17 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
 
   Future<void> _stopTuner() async {
     final generation = ++_micGeneration;
-    await _subscription?.cancel();
-    _subscription = null;
     final source = _source;
     _source = null;
+    final subscription = _subscription;
+    _subscription = null;
+    // Stop the hardware before waiting on the stream teardown. This keeps a
+    // navigation tap responsive and guarantees the mic is off first. The
+    // generation token already makes stale frames harmless, so the cancelled
+    // subscription does not need to block navigation.
     await source?.stop();
     await source?.dispose();
+    unawaited(subscription?.cancel());
     if (mounted && generation == _micGeneration) {
       setState(() {
         _frame = null;
@@ -121,6 +128,21 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
       return false;
     } finally {
       await source.dispose();
+    }
+  }
+
+  Future<void> _openTechnique() async {
+    if (_openingTechnique) return;
+    _openingTechnique = true;
+    try {
+      // The technique screen plays button sounds; the tuner must not keep
+      // listening underneath it.
+      await _stopTuner();
+      if (!mounted) return;
+      await Navigator.of(context)
+          .push(duoLessonRoute<void>((_) => const TechniqueScreen()));
+    } finally {
+      _openingTechnique = false;
     }
   }
 
@@ -348,9 +370,22 @@ class _PracticeScreenState extends ConsumerState<PracticeScreen>
                     : 'Mix every skill you have met',
                 onTap: () => _startPractice('all'),
               ),
+              const SizedBox(height: 24),
+              const Text(
+                'Technique',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 8),
+              _PracticeRow(
+                icon: Icons.pan_tool_alt_rounded,
+                color: AppColors.teal,
+                title: 'Technique check',
+                subtitle: 'Posture, hands, and a 60-second drill',
+                onTap: _openTechnique,
+              ),
               const SizedBox(height: 16),
               Text(
-                'The tuner listens to your guitar and shows how far each string is from standard pitch. No audio leaves this device.',
+                'The standard tuning tuner above listens to your guitar and shows how far each string is from standard pitch. No audio leaves this device.',
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,

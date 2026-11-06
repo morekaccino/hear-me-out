@@ -410,6 +410,8 @@ generation token:
 - After `await start()`, a stale token means dispose the new source.
 - Subscription callbacks ignore stale generations.
 - Onboarding disables its test button while a source is listening.
+- Before pushing a route that can play sound (a lesson or the technique
+  self-check), Practice stops and disposes the tuner first.
 
 Do not remove these guards. They prevent duplicate recorders when users tap
 repeatedly, skip onboarding, leave practice, retry a lesson, or start practice
@@ -460,9 +462,14 @@ Screens:
 - `PathScreen` — lesson map, counters, chests, jump-ahead tests, lesson launch.
 - `LessonScreen` — staff, name/play answers, hearts, feedback, result.
 - `PracticeScreen` — tuner, due/weak/free practice, heart recovery, stats.
+- `TechniqueScreen` — per-stage self-check, 60-second drill, demo script.
 - `QuestsScreen` — three daily quests and gem claims.
 - `ShopScreen` — heart refill, streak freezes, double XP.
 - `ProfileScreen` — stats, per-note boxes, settings, backup/restore, reset.
+
+`TechniqueScreen` reads `lib/content/technique/technique_content.dart`. The
+checklists are pure data: they do not touch the scheduler, storage, or mic, and
+the drill/checklist state lives only in the screen's `State`.
 
 `PageFrame` keeps content in a responsive centered column (600 px default,
 720 px hubs). `HomeShell` owns five destinations and switches between a 256 px
@@ -542,6 +549,8 @@ fresh profile; an unreadable document is quarantined first.
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
 | `test/economy_test.dart` | Hearts, gems, chests, quests, boosts, jump tests |
+| `test/technique_test.dart` | Eight-stage coverage, 3/3 item counts, 60-second drills, demo scripts, pain warning |
+| `test/technique_screen_test.dart` | Practice entry, tuner teardown, session-only state, drill timer, 390 px/wide layout |
 
 `test/support/fakes.dart` contains an in-memory store, controllable
 `FakePitchSource` / `FakePitchSourceFactory`, and `FakeSoundService`. Use

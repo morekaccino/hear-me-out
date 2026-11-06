@@ -304,6 +304,10 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Practice'), findsWidgets);
 
+    await tester.scrollUntilVisible(find.text('Technique check'), 300);
+    expect(find.text('Technique check'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
