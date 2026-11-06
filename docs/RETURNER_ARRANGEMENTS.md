@@ -32,13 +32,15 @@ authoring validator with zero errors and zero warnings.
   `<piece-id>-p1` through `-p4`.
 - The written range stays inside E3-E6. No arrangement uses a fret above 5.
 - The T3.1 planning note says "strings 1-3" for the stage-5 and stage-9
-  pieces. Two authentic melodies need a lower string for a few melody notes:
-  Londonderry Air and Spanish Romance use string 4 for E4/F#4, and the Bach
-  Minuet needs strings 2-5 because its two phrases sit in different registers.
-  These are melody notes, not added bass or accompaniment. The deviations are
-  recorded per piece below and in the `authoring.notes` field.
-- No arrangement copies a copyrighted edition, engraving, fingering, or
-  recording. Source editions were used only to confirm the traditional melody.
+  pieces. Three authentic melodies need string 4 for a few low melody notes:
+  Londonderry Air, Spanish Romance, and the Bach Minuet use string 4 for E4
+  and/or F#4. These are melody notes, not added bass or accompaniment. The
+  deviations are recorded per piece below and in the `authoring.notes` field.
+- The reference editions were used to confirm the traditional melody; no
+  engraving, fingering, or recording was copied. Several reference collections
+  carry Creative Commons terms: the Spanish Romance edition is CC BY-SA 2.5 and
+  the Londonderry tunebook is CC BY-NC-SA. Those terms are recorded per piece
+  and must be resolved by T6.3. The `license` field alone is not clearance.
 
 ## 1. Scarborough Fair
 
@@ -62,34 +64,39 @@ authoring validator with zero errors and zero warnings.
 - **T6.3 question:** Confirm the traditional melody is public domain in the
   US, UK, EU, and Canada; confirm our single-line arrangement is original;
   confirm no copyrighted Simon & Garfunkel arrangement or countermelody is
-  used; confirm the chosen reference edition/transcription is public domain or
-  newly engraved.
+  used; confirm the chosen reference transcription is public domain, newly
+  engraved, or used only as a melodic reference with any applicable attribution
+  terms satisfied.
 
 ## 2. Londonderry Air
 
 - **File:** `londonderry-air.json`.
 - **Source melody:** Traditional Irish air, collected in 1855. The melodic
-  reference is the F major "Danny Boy" setting in Paul Hardy's Songs Tunebook,
-  transposed up a whole tone to G and reduced to the vocal line. Weatherly's
-  1913 lyric is not used. The ABC file is a pitch reference only; no
-  copyrighted arrangement or lyric is copied.
+  reference is the C major "Danny Boy" setting in Paul Hardy's Songs Tunebook
+  (tune 0006), transposed up a perfect fifth to G and reduced to the vocal line.
+  The tunebook is CC BY-NC-SA. Weatherly's 1913 lyric is not used. The ABC
+  transcription is a pitch reference only; our arrangement is a new melody-only
+  setting, not a copy of the transcription.
 - **Key / time / tempo:** G major, 4/4, 54 BPM.
 - **Phrase map:** p1 bars 1-4 (two-beat pickup), p2 bars 5-8, p3 bars 9-10,
   p4 bars 11-13; 13 bars total.
 - **Position and range:** p1 and p2 in first position; p3 moves to second
   position; p4 returns to first position. Strings 1-4, frets 0-5. Written range
-  E4-G5. The low E4 and F#4 are melody notes on string 4 (open and fret 4),
+  E4-G5. The low E4 and F#4 are melody notes on string 4 fret 2 and fret 4,
   not a bass voice.
 - **Technique focus:** two hand shifts, sustained tone, and wide leaps. The
   shift up is the B-section lift in p3 (E5 on string 2 fret 5); the shift down
   is the return to the open first string in p4.
-- **Transposition:** up a whole tone from the F major reference to match the
+- **Pickup rhythm:** the pickup figures keep the source's rest plus three
+  eighth notes in p1, p2, and p3.
+- **Transposition:** up a perfect fifth from the C major reference to match the
   T3.1 G major metadata. No phrase is transposed by an octave.
 - **T6.3 question:** Confirm the traditional melody is public domain in the
   US, UK, EU, and Canada; confirm V1 uses the melody only; confirm no
-  copyrighted lyric (including "Danny Boy") or copyrighted arrangement is
-  used; confirm the chosen reference edition is public domain or newly
-  engraved.
+  copyrighted lyric (including "Danny Boy") is used. The cited Paul Hardy
+  tunebook is CC BY-NC-SA, so confirm that our independent melody-only
+  arrangement does not copy the transcription and that any attribution,
+  non-commercial, and share-alike obligations are satisfied.
 
 ## 3. Minuet in G major, BWV Anh. 114
 
@@ -101,20 +108,18 @@ authoring validator with zero errors and zero warnings.
 - **Key / time / tempo:** G major, 3/4, 72 BPM.
 - **Phrase map:** p1 bars 1-4, p2 bars 5-8, p3 bars 9-12, p4 bars 13-16;
   16 bars total. This is the first 16-bar section of the Minuet.
-- **Position and range:** first position, strings 2-5, frets 0-4. Written
-  range C4-D5.
+- **Position and range:** first position, strings 1-4, frets 0-4. Written
+  range F#4-G5. String 4 carries F#4 (fret 4); every other note is on strings
+  1-3.
 - **Technique focus:** sight-reading fluency, 3/4 phrasing, single-line
-  reading, and register contrast between the opening and answering phrases.
-- **Transposition:** the opening phrase (bars 1-4 and its repeat) is transposed
-  down one octave because its written B5/C6 notes lie above the V1
-  first-position range. The answering phrase (bars 5-8 and its repeat) already
-  fits and stays at its written octave. The key remains G major.
+  reading, and register contrast between the higher opening phrase (G4-G5) and
+  the lower answering phrase (F#4-D5).
+- **Transposition:** none. The arrangement uses the guitar edition's written
+  octave, so the opening falling fifth (D5-G4) and the G5-G4-G5 cadence are
+  preserved. The key remains G major.
 - **T3.1 metadata note:** the locked planning note says "strings 1-3; frets
-  0-4". The authentic two-register melody cannot be played entirely on strings
-  1-3 in first position without changing key. This arrangement keeps the key
-  and the first-position requirement, and uses strings 2-5 for the melody.
-  T6.3 and the musical reviewer should confirm this is the preferred
-  resolution; the T3.1 file itself is unchanged.
+  0-4". F#4 is the only note that needs string 4; it uses fret 4. Everything
+  else is on strings 1-3 and frets 0-4. The T3.1 file itself is unchanged.
 - **T6.3 question:** Confirm the 1725 melody is public domain in the US, UK,
   EU, and Canada; confirm the Petzold attribution; confirm the single-line
   edition is newly engraved or public domain; confirm no copyrighted edition,
@@ -124,15 +129,15 @@ authoring validator with zero errors and zero warnings.
 
 - **File:** `spanish-romance.json`.
 - **Source melody:** Anonymous, late 19th-century. The melodic reference is the
-  upper line of the Mutopia edition (`Mutopia-2006/08/03-795`). The arpeggio
-  accompaniment and bass line are deliberately omitted; every event is one
-  melody note.
+  upper line of the Mutopia edition (`Mutopia-2006/08/03-795`), which is
+  Creative Commons Attribution-ShareAlike 2.5. The arpeggio accompaniment and
+  bass line are deliberately omitted; every event is one melody note.
 - **Key / time / tempo:** E minor, 3/4, 72 BPM.
 - **Phrase map:** p1 bars 1-4, p2 bars 5-8, p3 bars 9-12, p4 bars 13-16;
   16 bars total. This is the 16-bar E-minor A section.
 - **Position and range:** first position, strings 1-4, frets 0-4. Written range
-  E4-E5. String 4 carries the low E4 and F#4 melody notes; there is no bass
-  voice.
+  E4-E5. String 4 carries the low E4 (fret 2) and F#4 (fret 4) melody notes;
+  there is no bass voice.
 - **Technique focus:** melody across strings 1-2, steady pulse, first-position
   reading, and a single-line reduction of a texture that is normally
   accompanied by arpeggios.
@@ -143,8 +148,11 @@ authoring validator with zero errors and zero warnings.
   within 0-4.
 - **T6.3 question:** Confirm the anonymous 19th-century melody is public
   domain in the US, UK, EU, and Canada; address the disputed authorship
-  (Rubira, Sor, and others); confirm our single-line reduction is original;
-  confirm no copyrighted edition, arrangement, or recording is copied.
+  (Rubira, Sor, and others); confirm our single-line reduction is original. The
+  cited Mutopia edition is CC BY-SA 2.5, so confirm that our independent
+  reduction does not copy the transcription and that any attribution and
+  share-alike obligations are satisfied. Confirm no copyrighted arrangement or
+  recording is copied.
 
 ## 5. Original Monophonic Study No. 2
 
@@ -174,7 +182,8 @@ Before this content ships:
    off the melody, rhythm, fingering, and position plan. Record the reviewer
    and date in `authoring.reviewedBy`.
 2. T3.5 records the human reference takes at target and slow tempo.
-3. T6.3 answers the legal questions above. The `license` field alone is not
+3. T6.3 answers the legal questions above, including the CC BY-SA 2.5 and
+   CC BY-NC-SA reference-edition obligations. The `license` field alone is not
    clearance.
 4. Re-run `dart run tool/content/validate_piece.dart <file> --strict` and
    `flutter test test/returner_pieces_test.dart` after any note change.

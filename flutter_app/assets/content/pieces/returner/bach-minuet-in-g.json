@@ -50,10 +50,10 @@
           "startBeat": 0.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "D4",
-          "soundingMidi": 50,
-          "string": 4,
-          "fret": 0
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
         },
         {
           "startBeat": 1.0,
@@ -95,10 +95,10 @@
           "startBeat": 3.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "D4",
-          "soundingMidi": 50,
-          "string": 4,
-          "fret": 0
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
         },
         {
           "startBeat": 4.0,
@@ -122,55 +122,55 @@
           "startBeat": 6.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "E4",
-          "soundingMidi": 52,
-          "string": 4,
-          "fret": 2
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
         },
         {
           "startBeat": 7.0,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "C4",
-          "soundingMidi": 48,
-          "string": 5,
-          "fret": 3
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
         },
         {
           "startBeat": 7.5,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "D4",
-          "soundingMidi": 50,
-          "string": 4,
-          "fret": 0
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
         },
         {
           "startBeat": 8.0,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "E4",
-          "soundingMidi": 52,
-          "string": 4,
-          "fret": 2
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
         },
         {
           "startBeat": 8.5,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "F#4",
-          "soundingMidi": 54,
-          "string": 4,
-          "fret": 4
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
         },
         {
           "startBeat": 9.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "G4",
-          "soundingMidi": 55,
-          "string": 3,
-          "fret": 0
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
         },
         {
           "startBeat": 10.0,
@@ -185,10 +185,10 @@
           "startBeat": 11.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "G4",
-          "soundingMidi": 55,
-          "string": 3,
-          "fret": 0
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
         }
       ]
     },
@@ -378,10 +378,10 @@
           "startBeat": 0.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "D4",
-          "soundingMidi": 50,
-          "string": 4,
-          "fret": 0
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
         },
         {
           "startBeat": 1.0,
@@ -423,10 +423,10 @@
           "startBeat": 3.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "D4",
-          "soundingMidi": 50,
-          "string": 4,
-          "fret": 0
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
         },
         {
           "startBeat": 4.0,
@@ -450,55 +450,55 @@
           "startBeat": 6.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "E4",
-          "soundingMidi": 52,
-          "string": 4,
-          "fret": 2
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
         },
         {
           "startBeat": 7.0,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "C4",
-          "soundingMidi": 48,
-          "string": 5,
-          "fret": 3
+          "writtenNote": "C5",
+          "soundingMidi": 60,
+          "string": 2,
+          "fret": 1
         },
         {
           "startBeat": 7.5,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "D4",
-          "soundingMidi": 50,
-          "string": 4,
-          "fret": 0
+          "writtenNote": "D5",
+          "soundingMidi": 62,
+          "string": 2,
+          "fret": 3
         },
         {
           "startBeat": 8.0,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "E4",
-          "soundingMidi": 52,
-          "string": 4,
-          "fret": 2
+          "writtenNote": "E5",
+          "soundingMidi": 64,
+          "string": 1,
+          "fret": 0
         },
         {
           "startBeat": 8.5,
           "durationBeats": 0.5,
           "kind": "note",
-          "writtenNote": "F#4",
-          "soundingMidi": 54,
-          "string": 4,
-          "fret": 4
+          "writtenNote": "F#5",
+          "soundingMidi": 66,
+          "string": 1,
+          "fret": 2
         },
         {
           "startBeat": 9.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "G4",
-          "soundingMidi": 55,
-          "string": 3,
-          "fret": 0
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
         },
         {
           "startBeat": 10.0,
@@ -513,10 +513,10 @@
           "startBeat": 11.0,
           "durationBeats": 1,
           "kind": "note",
-          "writtenNote": "G4",
-          "soundingMidi": 55,
-          "string": 3,
-          "fret": 0
+          "writtenNote": "G5",
+          "soundingMidi": 67,
+          "string": 1,
+          "fret": 3
         }
       ]
     },
@@ -687,9 +687,9 @@
   ],
   "authoring": {
     "author": "Hear Me Out content team",
-    "source": "Single-line melody after the public-domain Mutopia guitar edition. The opening phrase is transposed down one octave to fit first position; the answering phrase stays at its written octave. No left-hand bass or second voice is used.",
+    "source": "Single-line melody after the public-domain Mutopia guitar edition (Mutopia-2013/01/06-695). The arrangement uses the edition's written octave. No left-hand bass or second voice is used.",
     "reviewedBy": "Pending musical review",
-    "notes": "First 16-bar section only, in 3/4, melody only. The opening phrase (bars 1-4 and its repeat) is transposed down one octave because it exceeds the V1 first-position range; the answering phrase (bars 5-8 and its repeat) is left at pitch. The written range is C4-D5 and every note is in first position. The T3.1 planning note says strings 1-3, but the authentic two-register melody needs strings 2-5; no bass voice is added.",
+    "notes": "First 16-bar section only, in 3/4, melody only. The arrangement keeps the guitar edition's written octave, so the opening falling fifth (D5-G4) and the G5-G4-G5 cadence are preserved. F#4 is the only note on string 4; everything else is first position on strings 1-3, frets 0-4. Written range F#4-G5.",
     "kind": "piece",
     "tier": "returner",
     "stage": 9

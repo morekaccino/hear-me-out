@@ -21,7 +21,7 @@ const List<String> returnerPieceIds = <String>[
 
 /// Arrangement expectations that are specific to this ticket. The string sets
 /// record the documented deviations from the T3.1 planning notes:
-/// - Bach's authentic two-register melody needs strings 2-5 in first position.
+/// - Bach uses string 4 only for F#4; the rest is on strings 1-3.
 /// - Londonderry Air and Spanish Romance need string 4 for low melody notes.
 /// Everything else stays inside the planned first-position shapes.
 class _PieceExpectation {
@@ -57,10 +57,10 @@ const Map<String, _PieceExpectation> _expectations =
         phraseBars: <int>[4, 4, 2, 3],
       ),
       'bach-minuet-in-g': _PieceExpectation(
-        strings: <int>{2, 3, 4, 5},
+        strings: <int>{1, 2, 3, 4},
         maxFret: 4,
-        lowestWritten: 'C4',
-        highestWritten: 'D5',
+        lowestWritten: 'F#4',
+        highestWritten: 'G5',
         phraseBars: <int>[4, 4, 4, 4],
       ),
       'spanish-romance': _PieceExpectation(
@@ -306,11 +306,11 @@ void main() {
         }
 
         // Melody only: the lowest written note stays in the melody register.
-        // Bach's octave-reduced opening phrase goes down to C4; Spanish
-        // Romance goes down to E4. Neither reaches the bass E3 or below.
+        // Bach goes down to F#4; Spanish Romance goes down to E4. Neither
+        // reaches the bass E3 or below.
         expect(
           lowest,
-          greaterThanOrEqualTo(id == 'bach-minuet-in-g' ? 60 : 64),
+          greaterThanOrEqualTo(id == 'bach-minuet-in-g' ? 66 : 64),
         );
       });
     }

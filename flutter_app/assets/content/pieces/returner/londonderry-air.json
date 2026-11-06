@@ -31,7 +31,7 @@
   "phrases": [
     {
       "id": "londonderry-air-p1",
-      "title": "Oh Danny Boy",
+      "title": "The pipes are calling",
       "bars": 4,
       "timeSignature": {
         "numerator": 4,
@@ -50,6 +50,11 @@
         {
           "startBeat": 0.0,
           "durationBeats": 0.5,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 0.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "F#4",
           "soundingMidi": 54,
@@ -57,7 +62,7 @@
           "fret": 4
         },
         {
-          "startBeat": 0.5,
+          "startBeat": 1.0,
           "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "G4",
@@ -66,8 +71,8 @@
           "fret": 0
         },
         {
-          "startBeat": 1.0,
-          "durationBeats": 1,
+          "startBeat": 1.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "A4",
           "soundingMidi": 57,
@@ -245,7 +250,7 @@
     },
     {
       "id": "londonderry-air-p2",
-      "title": "From glen to glen",
+      "title": "The summer's gone",
       "bars": 4,
       "timeSignature": {
         "numerator": 4,
@@ -273,6 +278,11 @@
         {
           "startBeat": 2.0,
           "durationBeats": 0.5,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 2.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "F#4",
           "soundingMidi": 54,
@@ -280,7 +290,7 @@
           "fret": 4
         },
         {
-          "startBeat": 2.5,
+          "startBeat": 3.0,
           "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "G4",
@@ -289,8 +299,8 @@
           "fret": 0
         },
         {
-          "startBeat": 3.0,
-          "durationBeats": 1,
+          "startBeat": 3.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "A4",
           "soundingMidi": 57,
@@ -468,7 +478,7 @@
     },
     {
       "id": "londonderry-air-p3",
-      "title": "The summer's gone",
+      "title": "But come ye back",
       "bars": 2,
       "timeSignature": {
         "numerator": 4,
@@ -496,6 +506,11 @@
         {
           "startBeat": 2.0,
           "durationBeats": 0.5,
+          "kind": "rest"
+        },
+        {
+          "startBeat": 2.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "D5",
           "soundingMidi": 62,
@@ -503,7 +518,7 @@
           "fret": 3
         },
         {
-          "startBeat": 2.5,
+          "startBeat": 3.0,
           "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "E5",
@@ -512,8 +527,8 @@
           "fret": 5
         },
         {
-          "startBeat": 3.0,
-          "durationBeats": 1,
+          "startBeat": 3.5,
+          "durationBeats": 0.5,
           "kind": "note",
           "writtenNote": "F#5",
           "soundingMidi": 66,
@@ -578,7 +593,7 @@
     },
     {
       "id": "londonderry-air-p4",
-      "title": "And I shall hear",
+      "title": "Valley and snow",
       "bars": 3,
       "timeSignature": {
         "numerator": 4,
@@ -726,9 +741,9 @@
   ],
   "authoring": {
     "author": "Hear Me Out content team",
-    "source": "Traditional melody after the F major Danny Boy setting in Paul Hardy's Songs Tunebook, transposed up a whole tone to G and reduced to the vocal line. Weatherly's lyric is not used.",
+    "source": "Traditional melody after the C major Danny Boy setting in Paul Hardy's Songs Tunebook (tune 0006), transposed up a perfect fifth to G and reduced to the vocal line. The tunebook is CC BY-NC-SA. Weatherly's lyric is not used.",
     "reviewedBy": "Pending musical review",
-    "notes": "13 bars in 4/4 with a two-beat pickup. The first two phrases are in first position; the B-section lift moves to second position (E5 on string 2 fret 5), then phrase 4 returns to first position: two hand shifts. The low E4 and F#4 are melody notes on string 4, not a bass voice.",
+    "notes": "13 bars in 4/4 with a two-beat pickup. The pickup figures keep the source's rest plus three eighth notes. The first two phrases are in first position; the B-section lift moves to second position (E5 on string 2 fret 5), then phrase 4 returns to first position: two hand shifts. The low E4 (string 4 fret 2) and F#4 (string 4 fret 4) are melody notes, not a bass voice.",
     "kind": "piece",
     "tier": "returner",
     "stage": 5
