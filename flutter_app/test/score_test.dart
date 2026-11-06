@@ -109,7 +109,7 @@ void main() {
 
       expect(_codes(issues), contains('phrase.barCountMismatch'));
       expect(_codes(issues), contains('bar.durationMismatch'));
-      expect(bar.path, 'phrases[0].bars[4]');
+      expect(bar.path, 'phrases[0].events');
       expect(bar.message, contains('Bar 4'));
       expect(bar.message, contains('3'));
       expect(bar.message, contains('4'));
@@ -236,6 +236,246 @@ void main() {
     });
   });
 
+  group('Validator guard rails', () {
+    Score scoreWith(Phrase phrase, {Piece? piece}) =>
+        Score(piece: piece ?? base.piece, phrases: [phrase]);
+
+    Phrase phraseWith(List<NoteEvent> events) => Phrase(
+      id: 'guard',
+      bars: 1,
+      timeSignature: const TimeSignature(4, 4),
+      targetTempoBpm: 80,
+      events: events,
+    );
+
+    test('rest events reject pitch, fingering, and ties', () {
+      final score = scoreWith(
+        phraseWith([
+          const NoteEvent(
+            startBeat: 0,
+            durationBeats: 4,
+            kind: NoteEventKind.rest,
+            writtenNote: Note('E', 5),
+            soundingMidi: 64,
+            string: 1,
+            fret: 0,
+            tieToNext: true,
+          ),
+        ]),
+      );
+
+      expect(
+        _codes(score.validate()),
+        containsAll(<String>[
+          'rest.hasWrittenNote',
+          'rest.hasSoundingMidi',
+          'rest.hasFingering',
+          'rest.hasTie',
+        ]),
+      );
+    });
+
+    test('note events require written and sounding pitches', () {
+      final score = scoreWith(
+        phraseWith([
+          const NoteEvent(
+            startBeat: 0,
+            durationBeats: 2,
+            kind: NoteEventKind.note,
+            soundingMidi: 64,
+          ),
+          const NoteEvent(
+            startBeat: 2,
+            durationBeats: 2,
+            kind: NoteEventKind.note,
+            writtenNote: Note('E', 5),
+          ),
+        ]),
+      );
+
+      expect(
+        _codes(score.validate()),
+        containsAll(<String>['note.missingWritten', 'note.missingSounding']),
+      );
+    });
+
+    test('an out-of-range sounding MIDI is rejected', () {
+      final score = scoreWith(
+        phraseWith([
+          const NoteEvent(
+            startBeat: 0,
+            durationBeats: 4,
+            kind: NoteEventKind.note,
+            writtenNote: Note('E', 12),
+            soundingMidi: 148,
+          ),
+        ]),
+      );
+      final codes = _codes(score.validate());
+
+      expect(codes, contains('note.soundingOutOfRange'));
+      expect(codes, isNot(contains('note.writtenSoundingMismatch')));
+    });
+
+    test('incomplete and out-of-range fingerings are rejected', () {
+      final score = scoreWith(
+        phraseWith([
+          const NoteEvent(
+            startBeat: 0,
+            durationBeats: 1,
+            kind: NoteEventKind.note,
+            writtenNote: Note('E', 5),
+            soundingMidi: 64,
+            string: 1,
+          ),
+          const NoteEvent(
+            startBeat: 1,
+            durationBeats: 1,
+            kind: NoteEventKind.note,
+            writtenNote: Note('E', 5),
+            soundingMidi: 64,
+            string: 7,
+            fret: 0,
+          ),
+          const NoteEvent(
+            startBeat: 2,
+            durationBeats: 1,
+            kind: NoteEventKind.note,
+            writtenNote: Note('E', 5),
+            soundingMidi: 64,
+            string: 1,
+            fret: 25,
+          ),
+          const NoteEvent(
+            startBeat: 3,
+            durationBeats: 1,
+            kind: NoteEventKind.rest,
+          ),
+        ]),
+      );
+
+      expect(
+        _codes(score.validate()),
+        containsAll(<String>[
+          'fingering.incomplete',
+          'fingering.invalidString',
+          'fingering.invalidFret',
+        ]),
+      );
+    });
+
+    test('a rest and note overlap is rejected', () {
+      final score = scoreWith(
+        phraseWith([
+          const NoteEvent(
+            startBeat: 0,
+            durationBeats: 2,
+            kind: NoteEventKind.note,
+            writtenNote: Note('E', 5),
+            soundingMidi: 64,
+            string: 1,
+            fret: 0,
+          ),
+          const NoteEvent(
+            startBeat: 1,
+            durationBeats: 1,
+            kind: NoteEventKind.rest,
+          ),
+          const NoteEvent(
+            startBeat: 2,
+            durationBeats: 1,
+            kind: NoteEventKind.rest,
+          ),
+          const NoteEvent(
+            startBeat: 3,
+            durationBeats: 1,
+            kind: NoteEventKind.rest,
+          ),
+        ]),
+      );
+
+      expect(_codes(score.validate()), contains('event.overlap'));
+    });
+
+    test('empty phrase id and empty skill id are rejected', () {
+      final emptyId = base.phrases.single.copyWith(id: '');
+      final emptySkill = base.phrases.single.copyWith(
+        skills: const ['note-reading.open-strings', ' '],
+      );
+
+      expect(_codes(scoreWith(emptyId).validate()), contains('phrase.emptyId'));
+      expect(
+        _codes(scoreWith(emptySkill).validate()),
+        contains('phrase.emptySkill'),
+      );
+    });
+
+    test('unordered events are rejected', () {
+      final source = base.phrases.single.events;
+      final unordered = base.phrases.single.copyWith(
+        events: [source[1], source[0], ...source.skip(2)],
+      );
+
+      expect(
+        _codes(scoreWith(unordered).validate()),
+        contains('phrase.eventsUnordered'),
+      );
+    });
+
+    test('invalid bar count, start bar, and time signature are rejected', () {
+      final noBars = base.phrases.single.copyWith(bars: 0);
+      final tooManyBars = base.phrases.single.copyWith(bars: 65);
+      final badStart = base.phrases.single.copyWith(startBar: 0);
+      final badMeter = base.phrases.single.copyWith(
+        timeSignature: const TimeSignature(4, 0),
+      );
+
+      expect(
+        _codes(scoreWith(noBars).validate()),
+        contains('phrase.invalidBars'),
+      );
+      expect(
+        _codes(scoreWith(tooManyBars).validate()),
+        contains('phrase.invalidBars'),
+      );
+      expect(
+        _codes(scoreWith(badStart).validate()),
+        contains('phrase.invalidStartBar'),
+      );
+      expect(
+        _codes(scoreWith(badMeter).validate()),
+        contains('phrase.invalidTimeSignature'),
+      );
+    });
+
+    test('unsupported and out-of-range capos are rejected', () {
+      final capoFive = scoreWith(
+        base.phrases.single,
+        piece: base.piece.copyWith(capo: 5),
+      );
+      final capoThirteen = scoreWith(
+        base.phrases.single,
+        piece: base.piece.copyWith(capo: 13),
+      );
+      final capoFiveIssues = capoFive.validate();
+
+      expect(_codes(capoFiveIssues), ['piece.unsupportedCapo']);
+      expect(capoFiveIssues.single.path, 'piece.capo');
+      expect(capoFive.hasErrors, isTrue);
+      expect(base.piece.copyWith(capo: 5).isV1Compatible, isFalse);
+      expect(_codes(capoThirteen.validate()), contains('piece.invalidCapo'));
+    });
+
+    test('an invalid piece time signature is rejected', () {
+      final score = scoreWith(
+        base.phrases.single,
+        piece: base.piece.copyWith(timeSignature: const TimeSignature(4, 0)),
+      );
+
+      expect(_codes(score.validate()), contains('piece.invalidTimeSignature'));
+    });
+  });
+
   group('Tie rules', () {
     test('a dangling tie is rejected', () {
       final json = loadScoreFixture('tie');
@@ -304,6 +544,51 @@ void main() {
       last['fret'] = 5;
 
       expect(_codes(parseScore(json).validate()), contains('tie.mismatch'));
+    });
+
+    test(
+      'a tie from a positioned note to an unpositioned note is rejected',
+      () {
+        final json = loadScoreFixture('tie');
+        final last = _lastTieEvent(json);
+        last.remove('string');
+        last.remove('fret');
+
+        expect(_codes(parseScore(json).validate()), contains('tie.mismatch'));
+      },
+    );
+
+    test('a tie with no fingering on either side is accepted', () {
+      final score = Score(
+        piece: base.piece,
+        phrases: [
+          Phrase(
+            id: 'unpositioned-tie',
+            bars: 1,
+            timeSignature: const TimeSignature(4, 4),
+            targetTempoBpm: 80,
+            events: [
+              const NoteEvent(
+                startBeat: 0,
+                durationBeats: 1,
+                kind: NoteEventKind.note,
+                writtenNote: Note('C', 5),
+                soundingMidi: 60,
+                tieToNext: true,
+              ),
+              const NoteEvent(
+                startBeat: 1,
+                durationBeats: 3,
+                kind: NoteEventKind.note,
+                writtenNote: Note('C', 5),
+                soundingMidi: 60,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(score.validate(), isEmpty);
     });
 
     test('a tie that is not adjacent is rejected', () {
