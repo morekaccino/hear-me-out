@@ -445,9 +445,10 @@ The live registers are Plane [T9.1] (risk), [T9.2] (decision), and [T9.8] (phase
 gate). The plan's kill criteria are in
 [`TRANSFORMATION_PLAN_FINAL.md` §12.4](TRANSFORMATION_PLAN_FINAL.md#124-kill-criteria).
 The gate checklist is [`PHASE_GATES.md`](PHASE_GATES.md); its thresholds govern
-a gate decision. This section is the index; it does not replace those sources. A
-gate is not passed by a code merge, a green test suite, a plan quote, or an
-agent's summary.
+a gate decision. Live threshold status is in
+[`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md). This section is the
+index; it does not replace those sources. A gate is not passed by a code merge,
+a green test suite, a plan quote, or an agent's summary.
 
 | Assumption | Failure signal / kill criterion | What it invalidates | Response |
 |---|---|---|---|
@@ -524,6 +525,7 @@ correct this file and record the reason in [T9.2].
 [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md),
 [`COPPA_GUARDIAN_CONSENT_PLAN.md`](COPPA_GUARDIAN_CONSENT_PLAN.md),
 [`PHASE_GATES.md`](PHASE_GATES.md),
+[`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md),
 [`CORPUS_PROTOCOL.md`](CORPUS_PROTOCOL.md),
 [`CORPUS_CONSENT.md`](CORPUS_CONSENT.md),
 [`CORPUS_LABELING.md`](CORPUS_LABELING.md),

@@ -205,6 +205,7 @@ session rules.
 - [docs/CONTENT_CALENDAR.md](docs/CONTENT_CALENDAR.md) — 24-month content supply, cost model, break-even, and the subscription-to-piece-pack gate (T3.9)
 - [docs/FINANCIAL_MODEL.md](docs/FINANCIAL_MODEL.md) — costed P&L, base and downside cash model, break-even, and sensitivity (T6.2)
 - [docs/PHASE_GATES.md](docs/PHASE_GATES.md) — phase-gate evidence checklist for Phase 0–3 (T9.8)
+- [docs/KILL_CRITERIA_DASHBOARD.md](docs/KILL_CRITERIA_DASHBOARD.md) — locked kill/gate thresholds, current status, and review protocol (T9.4)
 - [docs/WEEKLY_REVIEW.md](docs/WEEKLY_REVIEW.md) — weekly review cadence, inputs, agenda, templates, anti-patterns (T9.7)
 - [docs/DESIGN.md](docs/DESIGN.md) — mission, Duolingo-style design language, copy, gamification
 - [docs/SOUND.md](docs/SOUND.md) — Bright Pluck sound family and event map

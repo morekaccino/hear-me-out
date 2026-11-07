@@ -54,6 +54,11 @@ launch, a public social surface, or a price change. Those need a pass.
 4. If the decision is fail, the fail action starts before any new feature work.
 5. The next gate review starts from the recorded decision, not from memory.
 
+Use [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) for the current
+value, denominator, source, and status of every locked kill and gate threshold.
+Do not move the goalposts after seeing the data; a threshold change needs a new
+[T9.2] record with the old value, the new value, the evidence, and the reason.
+
 ### Reopening a gate
 
 Do not reopen a settled gate because a later metric looks better. Add a new
@@ -507,6 +512,7 @@ that expansion only; it does not authorize a different expansion.
 | Content supply and cost | [T3.9], [CONTENT_CALENDAR.md](CONTENT_CALENDAR.md), [LAUNCH_PIECES.md](LAUNCH_PIECES.md) |
 | Teacher path | [T7.1], [T7.2], [T7.3] |
 | Risk and decision logs | [T9.1], [T9.2], [T9.4], [T9.9] |
+| Kill and gate status | [KILL_CRITERIA_DASHBOARD.md](KILL_CRITERIA_DASHBOARD.md) |
 | Plane project | [Hear Me Out — Guitar Practice OS](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780) |
 
 ## 10. Maintenance
