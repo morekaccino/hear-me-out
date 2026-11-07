@@ -302,9 +302,13 @@ Then open <http://127.0.0.1:8080/>.
   scheduler lives behind a conditional import so web resolves to a no-op and
   never imports the platform plugin. Progress schema 9 adds these settings with
   defaults; a v8 save migrates without inventing a preference. Enabling the
-  reminder records the local `reminder_opt_in` retention event. The Quests
-  screen shows a weekly recap of real minutes, phrases, recordings, and one
-  before/after pair; no lesson-completion percentage is used.
+  reminder records the local `reminder_opt_in` retention event. The body copy
+  is assigned by a deterministic 50/50 hash of the opted-in install id (T5.6;
+  see [`docs/REMINDER_EXPERIMENT.md`](docs/REMINDER_EXPERIMENT.md)): the generic
+  arm is exactly `Time to practice!`, and an install without an opted-in log
+  keeps the specific-task copy. The Quests screen shows a weekly recap of real
+  minutes, phrases, recordings, and one before/after pair; no lesson-completion
+  percentage is used.
 - **Gems and shop:** none. V1 has no gems, chests, shop, XP boosts, or paid
   streak freezes. Do not add a closed currency economy back; the V1 economy was
   removed by T5.5.

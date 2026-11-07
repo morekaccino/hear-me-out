@@ -9,6 +9,7 @@ import '../../core/learning/skill.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/note.dart';
 import '../../core/notifications/reminder_copy.dart';
+import '../../core/notifications/reminder_experiment.dart';
 import '../../core/notifications/reminder_scheduler.dart';
 import '../../core/storage/progress_store.dart';
 import '../../shared/audio/sound_service.dart';
@@ -819,7 +820,15 @@ class ProfileScreen extends ConsumerWidget {
 
   String _reminderBody(WidgetRef ref) {
     final progress = ref.read(appControllerProvider).requireValue.progress;
-    return reminderTaskBody(progress, DateTime.now());
+    final retention = ref.read(retentionControllerProvider).asData?.value;
+    // The experiment only reads installs whose local log is opted in, because
+    // those are the only returns that can be measured. A missing or still
+    // loading state keeps the current specific-task copy instead of blocking
+    // the settings action on storage.
+    final variant = retention != null && retention.optIn
+        ? reminderVariantForInstall(retention.log.installId)
+        : ReminderCopyVariant.specificTask;
+    return reminderBodyForVariant(progress, DateTime.now(), variant: variant);
   }
 
   Future<void> _copyBackup(

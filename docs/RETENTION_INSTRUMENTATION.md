@@ -135,6 +135,16 @@ observed. Use this log to debug the funnel and to form hypotheses. For the
 pilot, use the hand-recruited beta cohort and report its results separately.
 Do not present opt-in D1/D7/D30 as the product's retention rate.
 
+## Reminder-copy experiment
+
+T5.6 uses this log for a local, pre-registered reminder-copy experiment: a
+specific-task reminder versus `Time to practice!`. The protocol, assignment
+rule, metrics, sample-size caveat, and decision rule are in
+[`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md). The experiment is
+**prepared, not measured**; it adds no upload, no event name, and no storage
+key. The analysis helper is `returnMetricsFromLog` in
+`lib/core/retention/return_metrics.dart`.
+
 ## API
 
 Pure domain (`lib/core/retention/`):
@@ -143,6 +153,9 @@ Pure domain (`lib/core/retention/`):
 - `RetentionEvent` — name, UTC timestamp, install id.
 - `RetentionLog` — `record`, `funnel`, `activeDays`, `retainedOnDay`,
   `d1Retained`, `d7Retained`, `d30Retained`, `exportJson`.
+- `ReturnMetrics` / `returnMetricsFromLog` — session-2 within 48 elapsed hours
+  and D7 activity for the reminder experiment; see
+  [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md).
 
 Storage (`lib/core/storage/retention_store.dart`):
 
@@ -164,6 +177,8 @@ State (`lib/state/retention_controller.dart`):
 
 - `test/retention_test.dart` — event names, bound, timestamp-ordered funnel,
   D1/D7/D30, pinned install day, export fields, and the pure-domain import rule.
+- `test/return_metrics_test.dart` — session-2 at 47/48/49 hours, same-day
+  sessions, D7 boundaries, future timestamps, and foreign install ids.
 - `test/retention_store_test.dart` — default opt-out, round trip, corrupt and
   future data, bad event entries, bound on load, install-day persistence.
 - `test/retention_controller_test.dart` — opt-in gating, persistence, erase,

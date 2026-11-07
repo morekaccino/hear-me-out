@@ -5,7 +5,7 @@ in [§12](#12-current-status). Do not read a plan target as a measured result.
 **Ticket:** [T9.5] / HEARM-100.
 **Owner:** Human owner for evidence, manager for Plane state, engineering for
 this file and its relative-link check.
-**Last updated:** 2026-11-06.
+**Last updated:** 2026-11-07.
 **Source of truth:** Plane. The approved plan is
 [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md); the live
 decision and risk registers are [T9.2] and [T9.1].
@@ -341,6 +341,14 @@ a reason to ship uncleared content.
 | A-015 | Retention | 60% of new users reach their first note in under 60 seconds. | Low | None yet | 5-user moderated test of the onboarding prototype or the built [T5.1]/[T5.2] flow; start at install/open, stop at the first scored note; record seconds and hesitation points. The beta confirms with real new installs. | 3–5 days; 5 users; small incentive (planning estimate). | Human owner | untested | 2026-11-06 | [§5.4](TRANSFORMATION_PLAN_FINAL.md#54-onboarding-and-placement), [§12.2](TRANSFORMATION_PLAN_FINAL.md#122-targets-category-benchmarks), [T5.1], [T5.2], [T9.8] |
 | A-016 | Retention | 50% of new users reach their first phrase in under three minutes. | Low | None yet | Same 5-user onboarding test; stop at the first phrase attempt; the beta confirms with the real phrase path ([T2.5]/[T2.6]). Do not claim the mic path works before [T1.7]. | Piggyback on A-015; no extra cash. | Human owner | untested | 2026-11-06 | [§5.4](TRANSFORMATION_PLAN_FINAL.md#54-onboarding-and-placement), [§12.2](TRANSFORMATION_PLAN_FINAL.md#122-targets-category-benchmarks), [T2.6], [T5.2], [T9.8] |
 
+T5.6 pre-registers the reminder-copy experiment for the same T5.7 cohort:
+specific-task reminder versus `Time to practice!`, assigned roughly 50/50 by a
+deterministic hash of the local install id, with session-2 within 48 hours as
+the primary metric and D7 as a secondary. The protocol and fixed decision rule
+are in [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md). It is **prepared,
+not measured**: it moves no row, adds no experiment-log entry, and is not
+evidence for A-013 or any other assumption.
+
 [T9.8] marks first note and first phrase as report-only Phase 1 targets, not
 pass/fail gates. A miss is a loop signal, not a failed gate. D7 and D30 are
 hard gates in [T9.8]; the opt-in log is diagnostic only and cannot replace the
@@ -542,6 +550,7 @@ correct this file and record the reason in [T9.2].
 | Date | Change | Ticket |
 |---|---|---|
 | 2026-11-06 | Created the tracker with 22 untested assumptions, the demand and phrase first-test cards, and the empty experiment log. | [T9.5] / HEARM-100 |
+| 2026-11-07 | Noted the T5.6 pre-registered reminder-copy experiment. No row status, confidence, or result changed. | T5.6 |
 
 ---
 

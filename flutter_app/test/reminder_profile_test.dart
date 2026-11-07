@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/media/backup_exclusion.dart';
+import 'package:hear_me_out/core/notifications/reminder_experiment.dart';
 import 'package:hear_me_out/core/notifications/reminder_scheduler.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
@@ -207,6 +208,96 @@ void main() {
 
     expect(find.text('Practice reminder'), findsOneWidget);
     expect(find.text('Reminder time'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('an opted-in generic install schedules the generic body', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // Pinned fixture: this id hashes to the generic arm.
+    const installId = '0123456789abcdef0123456789abcdef';
+    expect(reminderVariantForInstall(installId), ReminderCopyVariant.generic);
+
+    final store = profileStore();
+    final scheduler = FakeReminderScheduler();
+    await tester.pumpWidget(
+      buildApp(
+        progressStore: store,
+        scheduler: scheduler,
+        retentionStore: MemoryRetentionStore(optIn: true, installId: installId),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await openProfile(tester);
+
+    await tester.tap(find.byKey(const ValueKey('reminder-enabled-switch')));
+    await tester.pumpAndSettle();
+
+    expect(scheduler.schedules, hasLength(1));
+    expect(scheduler.schedules.single.title, 'Time to practice');
+    expect(scheduler.schedules.single.body, 'Time to practice!');
+
+    // Changing the time re-schedules with the same assigned variant. The
+    // assignment is a function of the install id, not the clock.
+    await tester.tap(find.text('Reminder time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.keyboard_outlined));
+    await tester.pumpAndSettle();
+    final fields = find.byType(TextField);
+    expect(fields, findsNWidgets(2));
+    await tester.enterText(fields.at(0), '08');
+    await tester.enterText(fields.at(1), '00');
+    await tester.tap(find.text('AM'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(scheduler.schedules, hasLength(2));
+    expect(scheduler.schedules.last.hour, 8);
+    expect(scheduler.schedules.last.minute, 0);
+    expect(scheduler.schedules.last.body, 'Time to practice!');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a non-opted-in install keeps the specific body', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // The same id would be generic for an opted-in install. Without consent
+    // the reminder keeps the current specific-task copy.
+    const installId = '0123456789abcdef0123456789abcdef';
+    expect(reminderVariantForInstall(installId), ReminderCopyVariant.generic);
+
+    final store = profileStore();
+    final scheduler = FakeReminderScheduler();
+    await tester.pumpWidget(
+      buildApp(
+        progressStore: store,
+        scheduler: scheduler,
+        retentionStore: MemoryRetentionStore(
+          optIn: false,
+          installId: installId,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await openProfile(tester);
+
+    await tester.tap(find.byKey(const ValueKey('reminder-enabled-switch')));
+    await tester.pumpAndSettle();
+
+    expect(scheduler.schedules, hasLength(1));
+    expect(
+      scheduler.schedules.single.body,
+      'Today: 5 min to reach your weekly goal.',
+    );
     expect(tester.takeException(), isNull);
   });
 }
