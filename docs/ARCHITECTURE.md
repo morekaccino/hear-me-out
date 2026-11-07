@@ -502,6 +502,22 @@ before `TakePlayer.playWav`. Delete and export use the existing
 Tests: `test/loudness_test.dart`, `test/compare_pair_test.dart`, and
 `test/compare_takes_screen_test.dart`.
 
+## Before/after card (T4.4)
+
+`core/media/before_after.dart` is pure Dart. It reuses the comparison pair
+selection, groups takes by piece/phrase, and returns the first/latest take, the
+take count, and the local-day span. A group with fewer than two takes returns
+null; a free take (no piece id) is not a card. `features/before_after/before_after_card.dart`
+renders piece, phrase, dates, and one metric (days apart) with a privacy line;
+it never shows a score, grade, or public rank. `before_after_screen.dart` wraps
+the card in a `RepaintBoundary`, renders PNG bytes, and writes them through the
+existing `RecordingExporter` seam with `image/png` only after the explicit
+export tap. The audio is not included. `recordingExporterProvider` is shared by
+the recording service and the card so tests and production use one seam.
+
+Tests: `test/before_after_test.dart` (pure) and
+`test/before_after_screen_test.dart` (widget).
+
 ## Local reminders and weekly recap (T2.9)
 
 `core/notifications/reminder_copy.dart` is pure Dart: fixed quiet hours

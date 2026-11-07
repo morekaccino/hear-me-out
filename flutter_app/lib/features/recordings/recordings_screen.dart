@@ -15,6 +15,7 @@ import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../state/providers.dart';
 import '../../state/recording_controller.dart';
+import '../before_after/before_after_screen.dart';
 import '../profile/privacy_note.dart';
 import 'compare_takes_screen.dart';
 
@@ -478,40 +479,54 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
       key: const ValueKey('compare-takes-card'),
       color: AppColors.purpleSoft,
       borderColor: AppColors.purple,
-      child: Row(
+      child: Column(
         children: [
-          Icon(Icons.compare_arrows_rounded, color: AppColors.purpleDark),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Hear the change',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Icon(Icons.compare_arrows_rounded, color: AppColors.purpleDark),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Hear the change',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Compare the first and latest take with matched loudness.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textLight,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  'Compare the first and latest take with matched loudness.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textLight,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              DuoButton(
+                key: const ValueKey('compare-takes-open'),
+                label: 'COMPARE',
+                height: 48,
+                color: AppColors.purple,
+                fontSize: 13,
+                expanded: false,
+                onPressed: _openCompare,
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          DuoButton(
-            key: const ValueKey('compare-takes-open'),
-            label: 'COMPARE',
-            height: 48,
-            color: AppColors.purple,
-            fontSize: 13,
-            expanded: false,
-            onPressed: _openCompare,
+          const SizedBox(height: 8),
+          OutlineDuoButton(
+            key: const ValueKey('before-after-open'),
+            label: 'PRIVATE BEFORE/AFTER CARD',
+            color: AppColors.greenDark,
+            onPressed: _openBeforeAfter,
           ),
         ],
       ),
@@ -523,6 +538,14 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
       Navigator.of(
         context,
       ).push(duoLessonRoute((context) => const CompareTakesScreen())),
+    );
+  }
+
+  void _openBeforeAfter() {
+    unawaited(
+      Navigator.of(
+        context,
+      ).push(duoLessonRoute((context) => const BeforeAfterScreen())),
     );
   }
 
