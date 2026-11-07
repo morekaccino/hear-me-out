@@ -9,6 +9,7 @@ import '../../core/learning/onboarding_choices.dart';
 import '../../core/music/note.dart';
 import '../../core/storage/onboarding_store.dart';
 import '../../shared/audio/sound_service.dart';
+import '../../shared/navigation/duo_route.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/theme/motion.dart';
 import '../../shared/widgets/duo_button.dart';
@@ -20,6 +21,7 @@ import '../../state/app_controller.dart';
 import '../../state/providers.dart';
 import '../../state/retention_controller.dart';
 import '../placement/placement_navigation.dart';
+import '../first_session/first_session_screen.dart';
 import 'onboarding_pieces.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -272,6 +274,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
         .progress
         .settings;
     await ref.read(appControllerProvider.notifier).completeOnboarding(settings);
+    if (!mounted) return;
+    unawaited(
+      Navigator.of(context).push(
+        duoLessonRoute((context) => const FirstSessionScreen()),
+      ),
+    );
     if (mounted) setState(() => _finishing = false);
   }
 

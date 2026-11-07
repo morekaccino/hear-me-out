@@ -76,6 +76,7 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
     this.recordProgress = true,
     this.practiceOnly = false,
     this.onTakeCompleted,
+    this.onVerification,
     this.verifier = const PhraseVerifier(),
   });
 
@@ -110,6 +111,13 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
   /// The returned bool is the saved/practice label the player shows. The
   /// callback owns persistence, so a Today take is recorded exactly once.
   final Future<bool> Function(PhraseVerification verification)? onTakeCompleted;
+
+  /// Receives every verification immediately after analysis.
+  ///
+  /// This is for flows that own the next screen (the first-session correction)
+  /// and do not want to persist progress. It fires before the scored-take gate
+  /// and before any save. The callback must not assume the player stays mounted.
+  final void Function(PhraseVerification verification)? onVerification;
 
   final PhraseVerifier verifier;
 
@@ -294,6 +302,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
       samples: take.samples,
       sampleRate: take.sampleRate,
     );
+    widget.onVerification?.call(verification);
 
     var saved = false;
     if (widget.practiceOnly) {
