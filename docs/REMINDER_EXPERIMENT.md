@@ -27,12 +27,19 @@ difference, so the test has one variable.
 
 | Variant | Body | Source |
 |---|---|---|
-| `specificTask` | `Today: 5 min — <phrase>, <n> bars.` when a real phrase target resolves; else `Today: 5 min — <n> notes are due.`; else `Today: 5 min to reach your weekly goal.`; else `Today: 5 min of guitar.` | `reminderTaskBody` in `flutter_app/lib/core/notifications/reminder_copy.dart`, fed from `ProgressState` |
+| `specificTask` | `Today: 5 min — <phrase>, 1 bar.` / `Today: 5 min — <phrase>, <n> bars.` when a real phrase target resolves; else `Today: 5 min — 1 note is due.` / `Today: 5 min — <n> notes are due.`; else `Today: 5 min to reach your weekly goal.`; else `Today: 5 min of guitar.` | `reminderTaskBody` in `flutter_app/lib/core/notifications/reminder_copy.dart`, fed from `ProgressState` |
 | `generic` | `Time to practice!` | `genericReminderBody` in `flutter_app/lib/core/notifications/reminder_experiment.dart` |
 
 The specific copy never invents a task, a count, or a deadline. The phrase
 title and bar count are used only when the caller resolves a real phrase; the
 due-note count and the weekly-goal remainder come from `ProgressState`.
+
+**The current Profile reminder path does not resolve a phrase target.** It
+calls the copy function without phrase inputs, so during the beta the specific
+arm will use the real due-note count, the real weekly-goal remainder, or
+`Today: 5 min of guitar.` The phrase/bar branch is the first branch of the same
+function and becomes reachable only when a caller supplies a real phrase; it is
+not what this beta measures.
 
 Neither body contains a streak, a lost day, "don't lose", "you missed", a fake
 deadline, or urgency. `test/reminder_experiment_test.dart` scans every generated
@@ -93,11 +100,20 @@ never sees the word "experiment".
   calendar day seven days after the install day, 00:00 through 23:59 local,
   inclusive of the end. A mere `app_open` does not count. `ReturnMetrics`
   reports `day7WindowComplete` so an unfinished day is not read as a miss.
+  D7 is a **local-day** metric, but the log stores UTC timestamps only and
+  `localDayKey` uses the analysis machine's timezone. Run the analysis in the
+  participant's local timezone; a different timezone can move an event between
+  day 6, day 7, and day 8. If the timezone is unknown, state that limitation
+  rather than guessing.
 - **Reminder opt-in rate:** installs with a `reminder_opt_in` event divided by
   opted-in installs with at least one event. This is a proxy, not a perfect
-  exposure flag: the event is written only after a successful schedule while
+  exposure flag. The event is written only after a successful schedule while
   the log is opted in, so a denied permission, a scheduler failure, or a
-  reminder enabled before consent leaves no event.
+  reminder enabled before consent leaves no event. The write is also fired
+  without awaiting it, so an app kill before the queued write lands leaves an
+  exposed user without the event. Treat `reminder_opt_in` as a lower bound on
+  exposure, and use the facilitator's exposure answer for the primary
+  denominator.
 - **Notification permission grant rate:** the local log has **no** permission
   event, so this is not derivable from the export. The beta facilitator records
   it once per participant during the cohort check-in. Do not infer it from
@@ -116,9 +132,15 @@ For each exported log:
 1. Verify `schemaVersion: 1`. Reject an unknown version; do not guess.
 2. Compute the variant with `reminderVariantForInstall(installId)` or the
    identical documented hash. Do not ask the user which copy they saw.
-3. Classify exposure: the install has a `reminder_opt_in` event. Report the
-   users who enabled the reminder before consent as an explicit exclusion, not
-   as exposure.
+3. Classify exposure from the facilitator's per-participant answer,
+   corroborated by the log:
+   - Never enabled the reminder → not exposed.
+   - Enabled the reminder before opting into the log → exposed but excluded
+     from the primary comparison. The log alone cannot identify this; only the
+     facilitator's answer can.
+   - Enabled the reminder while opted in → exposed, whether or not
+     `reminder_opt_in` is present. The event can be missing because the write is
+     fired unawaited and an app kill can lose it.
 4. Find session 1 and session 2 with the rules above. Compute
    `returnedWithin48h`.
 5. Compute D7 from `installAt` and the local day keys. Only count a user in the
