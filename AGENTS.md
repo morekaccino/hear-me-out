@@ -385,7 +385,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 983 tests passing
+- `flutter test` - 1038 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
