@@ -545,8 +545,14 @@ When one piece has two takes, the list also offers an A/B comparison. The
 comparison screen normalizes both sides to matched loudness before playback,
 shows date, length, and the phrase’s target tempo when the registry resolves it,
 and offers delete and export from either side. It never changes the stored take.
-A take with no resolved phrase shows “Tempo not captured” rather than a guessed
+A take with no resolved phrase shows "Tempo not captured" rather than a guessed
 tempo.
+
+The same two-take state offers a private **before/after card**: piece, phrase,
+date range, and one metric (days apart). It has no score, grade, leaderboard, or
+public link. The card is local by default; **Export card** renders a PNG only
+after an explicit tap, and the audio is not included. The copy says the card
+stays on the device unless the learner exports it.
 
 The privacy card sits above the record control and uses the conditional
 `MediaPrivacyCard` copy. Never claim backup exclusion unless the platform

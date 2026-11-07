@@ -363,6 +363,9 @@ Then open <http://127.0.0.1:8080/>.
   before/after claim. T4.3 adds an in-memory loudness-matched A/B comparison:
   both takes are normalized to the same RMS before playback, the stored WAV is
   never rewritten, and a missing tempo is shown honestly rather than invented.
+  T4.4 adds a private before/after PNG card: piece, phrase, date range, and the
+  days-apart metric; no score, no public link, no audio in the export, and the
+  file is written only after an explicit tap.
 
 ## Testing notes
 
@@ -414,7 +417,9 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   local play, delete, clear-all, and export. T4.3 adds an A/B comparison reached
   when one piece has two takes. Both sides are normalized in memory to −20 dBFS
   RMS (peak-normalized below −60 dBFS, capped gain and ±0.98 sample ceiling)
-  before playback; the stored take is never changed. V1 is WAV, not AAC
+  before playback; the stored take is never changed. T4.4 adds a private
+  before/after PNG card reached from the same two-take state; it exports only
+  on an explicit tap and contains no audio or score. V1 is WAV, not AAC
   (decision 0009), and recording quality is not validated on every device.
 - T2.9 adds an opt-in local practice reminder with fixed quiet hours, a weekly
   recap card in Quests, and a before/after notification hook. Progress schema

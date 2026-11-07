@@ -10,6 +10,7 @@ import '../core/audio/pitch_source.dart';
 import '../core/media/backup_exclusion.dart';
 import '../core/media/media_store.dart';
 import '../core/media/media_store_factory.dart';
+import '../core/media/recording_exporter.dart';
 import '../core/media/recording_exporter_factory.dart';
 import '../core/media/recording_index_store.dart';
 import '../core/media/recording_index.dart';
@@ -173,17 +174,24 @@ final recordingRecapTakesProvider =
       );
     });
 
+/// Copies explicit exports out of the app. IO writes under `exports/`; web
+/// downloads through the browser. Tests override it with a fake.
+final recordingExporterProvider = FutureProvider<RecordingExporter>((ref) async {
+  final exportsDirectory = await ref.watch(exportsDirectoryProvider.future);
+  return createRecordingExporter(exportsDirectory: exportsDirectory);
+});
+
 /// Builds the bounded local recording service.
 ///
 /// The service never starts the microphone by itself. It is constructed only
 /// when the recordings screen or a test reads this provider.
 final recordingServiceProvider = FutureProvider<RecordingService>((ref) async {
   final store = await ref.watch(mediaStoreProvider.future);
-  final exportsDirectory = await ref.watch(exportsDirectoryProvider.future);
+  final exporter = await ref.watch(recordingExporterProvider.future);
   final service = RecordingService(
     store: store,
     indexStore: ref.watch(recordingIndexStoreProvider),
-    exporter: createRecordingExporter(exportsDirectory: exportsDirectory),
+    exporter: exporter,
     clock: ref.watch(clockProvider),
     recorderFactory: ref.watch(phraseRecorderFactoryProvider),
   );
