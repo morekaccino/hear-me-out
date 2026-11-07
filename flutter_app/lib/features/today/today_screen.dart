@@ -1205,6 +1205,7 @@ class _BlockBody extends ConsumerWidget {
       duoLessonRoute<void>(
         (_) => RecordingsScreen(
           initialPieceId: target.phrase?.piece.id,
+          singleTake: true,
           onTakeSaved: () =>
               ref.read(todayControllerProvider.notifier).markPerformanceTaken(),
         ),

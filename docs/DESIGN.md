@@ -345,7 +345,7 @@ streak, quests, currency, or punishment.
   opens the gated phrase player.
 - **Performance cadence:** a performance day appears roughly once or twice a
   week. It needs three real practice days in the last seven, at most two
-  performance days in that window, and two quiet days after the last take. A
+  performance days in that window, and two calendar days since the last take. A
   new learner is never on stage on day one. The card says this plainly; there
   is no schedule setting, no reminder to record, and no guilt for a practice
   day.
@@ -545,8 +545,10 @@ opens because the platform recorder is shared. Record/stop stays in one card,
 with the 60-second limit visible and an optional launch-piece selector. Choosing
 a piece gives the take a stable `pieceId`, which is what makes the first/last
 per-piece retention rule reachable. Today opens the same screen for a
-performance-day take with its target piece preselected. Leaving the screen
-stops and discards a live take; the microphone never stays on behind Practice.
+performance-day take with its target piece preselected and a one-take guard
+that disables the record control after the first saved take; the general
+Practice route stays multi-take. Leaving the screen stops and discards a live
+take; the microphone never stays on behind Practice.
 
 The take list shows date, piece or phrase, duration, and size, and offers play,
 export, and delete. Usage is shown as “takes used / 20” and bytes used / 200 MB.

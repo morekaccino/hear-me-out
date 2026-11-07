@@ -259,8 +259,13 @@ use `HomeShell.withTodayForTesting()`, a `@visibleForTesting` constructor.
 - The Apply block is practice only on an ordinary day. On a performance day it
   shows one calm recital card above it (one take, no score while you play,
   feedback after) and opens the existing local `RecordingsScreen` with the
-  target's launch piece preselected. That is the unscored media path: one take,
-  playback afterwards, no note score, no progress write. Today does not
+  target's launch piece preselected and `singleTake: true`, so the record
+  control disables after the first committed take. That is the unscored media
+  path: one take, playback afterwards, no note score, no FSRS, phrase, mastery,
+  XP, or streak write. The real saved take does increment the existing weekly
+  recording quest through `recordRecordingMade`, exactly as any save from the
+  recordings screen does; that counter is real quest evidence, not a score.
+  Today does not
   construct `PhrasePlayerScreen` at all; decisions 0001/0010 keep the phrase
   player out of main navigation until T1.7. The recordings screen reports a
   committed take through its `onTakeSaved` callback, and the reflect block then
@@ -493,10 +498,13 @@ second `AudioRecorder` and no simultaneous record and stream.
   usage and cap, an empty state, and `MediaPrivacyCard`. The piece selector is
   the production path that makes first/last retention reachable.
   `PracticeScreen` opens the screen after stopping the tuner, and Today opens it
-  for a performance-day take with an optional `initialPieceId` and an
-  `onTakeSaved` callback. The screen has no hearts, gems, XP, or streak, and it
-  does not implement the T4.4 before/after card. The T4.3 comparison is a
-  separate screen reached from the take list.
+  for a performance-day take with an optional `initialPieceId`, an `onTakeSaved`
+  callback, and `singleTake: true` (the record control disables after the first
+  committed take; no new storage state). The screen has no hearts, gems, XP, or
+  streak, and it does not implement the T4.4 before/after card. The T4.3
+  comparison is a separate screen reached from the take list. A successful save
+  increments the existing weekly recording quest and invalidates the read-only
+  recap index, so every consumer sees the new take.
 - Backup exclusion remains decision [`0002`](decisions/0002-backup-exclusion-no-opt-in.md):
   the screen shows the conditional `MediaPrivacyCard` copy and never claims
   exclusion when the platform did not confirm it.
@@ -573,10 +581,13 @@ permission. `reminderSchedulerProvider` owns the instance.
 `core/notifications/weekly_recap.dart` builds real minutes, phrases, recordings,
 and one before/after pair from `ProgressState` and the recording index. The
 Quests screen renders it; `recordingRecapTakesProvider` reads the index without
-starting the recorder. `RecordingController` asks the scheduler for the
-“before/after ready” alert only after a saved take makes a piece’s second take,
-and only when reminders are enabled. The reminder settings are part of
-`AppSettings`; progress schema 9 migrates a v8 document with reminders off.
+starting the recorder. `RecordingController._applyStop` invalidates that provider
+after every committed save, so the recap and Today's performance-day cadence
+re-read the index even when the take was recorded from the Practice route.
+`RecordingController` asks the scheduler for the “before/after ready” alert only
+after a saved take makes a piece’s second take, and only when reminders are
+enabled. The reminder settings are part of `AppSettings`; progress schema 9
+migrates a v8 document with reminders off.
 
 ## Retention instrumentation
 
@@ -1069,7 +1080,7 @@ fresh profile; an unreadable document is quarantined first.
 | `test/recording_service_test.dart` | Permission denial, 60 s auto-stop/truncation, busy guard, quotas, storage failure, delete/clear/export, first/last retention, orphan reconciliation |
 | `test/recording_index_store_test.dart` | Versioned take manifest, future-version rejection, malformed entries, clear |
 | `test/recording_exporter_test.dart` | IO export bytes/name and path traversal rejection |
-| `test/recordings_screen_test.dart` | 390x844 and 1200 px, empty state, record/stop, play/export/delete, quota action, clear-all confirmation, auto-stop, conditional privacy copy |
+| `test/recordings_screen_test.dart` | 390x844 and 1200 px, empty state, record/stop, play/export/delete, quota action, clear-all confirmation, auto-stop, conditional privacy copy, preselected/unknown piece, single-take guard |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
 | `test/attempt_outcome_test.dart` | Tri-state no-ops, determinate scheduling, phrase evidence, retry feedback |
@@ -1095,6 +1106,7 @@ fresh profile; an unreadable document is quarantined first.
 | `test/weekly_recap_test.dart` | Real minutes, phrases, recordings, visible before/after selection, empty state |
 | `test/reminder_scheduler_test.dart` | Fake schedule request, cancel, denied-permission no-op, typed failure, web no-op |
 | `test/recording_reminder_test.dart` | First take silent, second take fires, reminders-off silent, one-piece scope |
+| `test/recording_recap_refresh_test.dart` | A committed save refreshes the recap index and the derived performance-day cadence, and counts the recording quest |
 | `test/reminder_profile_test.dart` | Toggle persist/schedule, denial path, quiet-hour rejection, 390/1200 px |
 | `test/weekly_recap_widget_test.dart` | Recap real numbers, empty state link, 390/1200 px |
 | `test/habit_test.dart` | Weekly minutes goal, optional streak, no-heart/no-shop UI, musical quests, measured session time, local completion/return |

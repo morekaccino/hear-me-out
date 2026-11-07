@@ -308,6 +308,73 @@ void main() {
     await harness.service.dispose();
   });
 
+  testWidgets('an unknown preselected piece falls back to a free take', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await tester.pumpWidget(
+      _shell(
+        harness,
+        const RecordingsScreen(initialPieceId: 'not-a-launch-piece'),
+        const BackupExclusionResult.failed('denied'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The invalid value is dropped rather than asserted into the dropdown.
+    expect(find.text('Free take'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pumpAndSettle();
+
+    final takes = await harness.service.listTakes();
+    expect(takes, hasLength(1));
+    expect(takes.single.pieceId, isNull);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a single-take entry disables record after the first save', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await tester.pumpWidget(
+      _shell(
+        harness,
+        const RecordingsScreen(singleTake: true),
+        const BackupExclusionResult.failed('denied'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('TAKE SAVED'), findsOneWidget);
+    expect(find.text('Take saved. Listen back below.'), findsOneWidget);
+    expect(find.text('Record a few bars, then listen back.'), findsNothing);
+    // The real save still counts toward the existing recording quest.
+    expect(harness.progressStore.value!.quests.recordingsMade, 1);
+
+    // The one-take entry cannot start a second take.
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pumpAndSettle();
+    expect(harness.capture.startCalls, 1);
+    expect(await harness.service.listTakes(), hasLength(1));
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
   testWidgets('play, export, and delete use the stored take without mutation', (
     tester,
   ) async {

@@ -589,6 +589,63 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('the performance card and share row fit 1200 px', (tester) async {
+    useSize(tester, const Size(1200, 900));
+    final indexStore = MemoryRecordingIndexStore();
+    final service = buildRecordingService(indexStore);
+    addTearDown(service.dispose);
+    final takes = [
+      RecordingTake(
+        id: 'take-old',
+        createdAt: DateTime(2026, 11, 1, 12).toUtc(),
+        byteLength: 1000,
+        durationMs: 1000,
+        pieceId: 'ode-to-joy',
+      ),
+      RecordingTake(
+        id: 'take-new',
+        createdAt: DateTime(2026, 11, 4, 12).toUtc(),
+        byteLength: 1000,
+        durationMs: 1000,
+        pieceId: 'ode-to-joy',
+      ),
+    ];
+    await tester.pumpWidget(
+      buildToday(
+        store: freshStore(),
+        performanceDay: true,
+        recapTakes: takes,
+        recordingService: service,
+        recordingIndexStore: indexStore,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('today-performance-day-card')),
+      findsOneWidget,
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TodayScreen)),
+    );
+    final controller = container.read(todayControllerProvider.notifier);
+    controller.markPerformanceTaken();
+    controller.finishEarly();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('today-before-after-result')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byType(SingleChildScrollView)).width,
+      lessThanOrEqualTo(720),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('fits 1200px without overflow and keeps a 720px column', (
     tester,
   ) async {

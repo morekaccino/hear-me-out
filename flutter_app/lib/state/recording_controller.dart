@@ -264,6 +264,12 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
       return;
     }
 
+    // A committed take changes the durable recording index. Refresh the
+    // read-only recap provider here, in the save path, because Today's cadence
+    // and the Quests recap pin it across tab switches even when the recorder
+    // was opened from Practice. Invalidating only from Today's route cleanup
+    // would leave both consumers with the pre-save list.
+    ref.invalidate(recordingRecapTakesProvider);
     unawaited(
       ref.read(retentionControllerProvider.notifier).recordFirstRecording(),
     );

@@ -51,11 +51,20 @@ void main() {
 
     test('two performance days in the last seven close the stage', () {
       final progress = progressWithPracticeDays([0, 1, 2]);
-      final takes = [takeOnLocalDay(1), takeOnLocalDay(3)];
+      // The latest take is exactly two days ago, so the rest rule is already
+      // satisfied. Only the weekly cap can make this false.
+      final takes = [takeOnLocalDay(2), takeOnLocalDay(4)];
 
-      // The latest take is three days ago (rest satisfied), but two days in
-      // the window is already the weekly cap.
       expect(isPerformanceDay(progress, takes, now), isFalse);
+    });
+
+    test('one of those days in the window leaves the stage open', () {
+      final progress = progressWithPracticeDays([0, 1, 2]);
+      // The -2 take is in the window and satisfies the rest rule; the -8 take
+      // is outside it and does not count toward the cap.
+      final takes = [takeOnLocalDay(2), takeOnLocalDay(8)];
+
+      expect(isPerformanceDay(progress, takes, now), isTrue);
     });
 
     test('a take three days ago with a practice habit opens the stage', () {
