@@ -208,6 +208,12 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
           height: 56,
           onPressed: () => setState(() => _step = _Step.hear),
         ),
+        const SizedBox(height: 8),
+        TextButton(
+          key: const ValueKey('first-session-skip'),
+          onPressed: () => Navigator.of(context).maybePop(),
+          child: const Text('SKIP FOR NOW'),
+        ),
       ],
     );
   }
@@ -422,15 +428,11 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
     }
     if (!_firstNoteRecorded) {
       _firstNoteRecorded = true;
-      unawaited(
-        ref.read(retentionControllerProvider.notifier).recordFirstNote(),
-      );
+      await ref.read(retentionControllerProvider.notifier).recordFirstNote();
     }
     if (!_firstPhraseRecorded && verification.complete) {
       _firstPhraseRecorded = true;
-      unawaited(
-        ref.read(retentionControllerProvider.notifier).recordFirstPhrase(),
-      );
+      await ref.read(retentionControllerProvider.notifier).recordFirstPhrase();
     }
     setState(() {
       _verification = verification;

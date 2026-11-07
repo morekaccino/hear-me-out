@@ -548,6 +548,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('START PLAYING'));
     await tester.pumpAndSettle();
+    final skipFirstSession = find.byKey(const ValueKey('first-session-skip'));
+    if (skipFirstSession.evaluate().isNotEmpty) {
+      await tester.tap(skipFirstSession);
+      await tester.pumpAndSettle();
+    }
 
     expect(find.text('Open Strings'), findsOneWidget);
     expect(find.text('START'), findsOneWidget);

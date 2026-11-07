@@ -75,6 +75,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+
+  Future<void> skipFirstSession(WidgetTester tester) async {
+    final finder = find.byKey(const ValueKey('first-session-skip'));
+    if (finder.evaluate().isEmpty) return;
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
+    await tester.tap(finder);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('three screens run in order and back returns to each one', (
     tester,
   ) async {
@@ -137,6 +147,7 @@ void main() {
     await openPieces(tester);
     await tapText(tester, 'Greensleeves');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(
       retention.value.log.hasEvent(RetentionEventName.onboardingComplete),
@@ -156,6 +167,7 @@ void main() {
     await openPieces(tester);
     await tapText(tester, 'Greensleeves');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(retention.value.log.events, isEmpty);
     expect(retention.value.optIn, isFalse);
@@ -178,6 +190,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapText(tester, 'Greensleeves');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(onboarding.value?.hasGuitar, isFalse);
     expect(find.text('Open Strings'), findsOneWidget);
@@ -194,6 +207,7 @@ void main() {
     await tester.pumpAndSettle();
     await tapText(tester, 'Ode to Joy');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(onboarding.value?.readingLevel, ReadingLevel.comfortable);
     expect(onboarding.value?.firstPieceId, 'ode-to-joy');
@@ -242,6 +256,7 @@ void main() {
 
     await tapText(tester, 'Amazing Grace');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     final choices = onboarding.value;
     expect(onboarding.saveCount, 1);
@@ -309,6 +324,7 @@ void main() {
     await openPieces(tester);
     await tapText(tester, 'Greensleeves');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(find.byKey(const ValueKey('side-rail')), findsOneWidget);
   });
@@ -531,6 +547,7 @@ void main() {
     await openPieces(tester);
     await tapText(tester, 'Greensleeves');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(find.text('Open Strings'), findsOneWidget);
     final loaded = await store.load();
@@ -555,6 +572,7 @@ void main() {
     await openPieces(tester);
     await tapText(tester, 'Ode to Joy');
     await tapText(tester, 'START PLAYING');
+    await skipFirstSession(tester);
 
     expect(find.text('Open Strings'), findsOneWidget);
     expect((await store.load())?.firstPieceId, 'ode-to-joy');
