@@ -449,6 +449,12 @@ second `AudioRecorder` and no simultaneous record and stream.
 - `core/media/recording_exporter.dart` copies bytes without changing the stored
   take. IO writes under the app support `exports/` directory; web uses
   `package:web` to download the WAV. There is no share or cloud package.
+- `core/audio/loudness.dart` measures RMS/peak and returns a new WAV with a
+  capped gain and a shared peak limiter. `CompareTakesScreen` reads both takes,
+  normalizes them in memory, and only then calls `TakePlayer`. Stored bytes are
+  unchanged; a malformed take is a typed error, never a raw fallback. The screen
+  shows the real date, take length, and target tempo only when the phrase
+  registry resolves one.
 - `state/recording_controller.dart` is auto-disposed with the recordings route.
   Its dispose stops and discards a live take, so the microphone never remains
   open behind Practice. A save already in flight is owned by `stop()`: `cancel`
@@ -463,8 +469,8 @@ second `AudioRecorder` and no simultaneous record and stream.
   usage and cap, an empty state, and `MediaPrivacyCard`. The piece selector is
   the production path that makes first/last retention reachable.
   `PracticeScreen` opens the screen after stopping the tuner. The screen has no
-  hearts, gems, XP, or streak, and it does not implement T4.3 A/B playback or the
-  T4.4 before/after card.
+  hearts, gems, XP, or streak, and it does not implement the T4.4 before/after
+  card. The T4.3 comparison is a separate screen reached from the take list.
 - Backup exclusion remains decision [`0002`](decisions/0002-backup-exclusion-no-opt-in.md):
   the screen shows the conditional `MediaPrivacyCard` copy and never claims
   exclusion when the platform did not confirm it.
@@ -479,6 +485,22 @@ both reconciliation directions, and adoption of a partially malformed index.
 390x844 / 1200 px screen with conditional privacy copy, route-exit microphone
 shutdown, pop-while-saving with a gated store, and the piece-scoped retention
 path.
+
+## Take comparison (T4.3)
+
+`core/audio/loudness.dart` is pure Dart. It parses PCM16 WAV bytes, measures RMS
+and peak, applies a gain toward −20 dBFS RMS (or −1 dBFS peak below −60 dBFS
+RMS), caps the gain at +18 dB and attenuation at −24 dB, clamps each sample to
+±0.98, and returns new bytes. A silent take is returned unchanged; malformed
+bytes throw `LoudnessNormalizationException`; the stored blob is never
+rewritten. `features/recordings/compare_takes_screen.dart` picks the oldest and
+newest take for a piece (preferring a shared phrase), shows date, length, and
+the registry's target tempo when available, and normalizes both sides in memory
+before `TakePlayer.playWav`. Delete and export use the existing
+`RecordingController` paths.
+
+Tests: `test/loudness_test.dart`, `test/compare_pair_test.dart`, and
+`test/compare_takes_screen_test.dart`.
 
 ## Retention instrumentation
 
