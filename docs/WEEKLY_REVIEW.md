@@ -58,7 +58,7 @@ the links the working day before; each attendee adds evidence, not opinions.
 | Decision log | [T9.2] | Decisions due, decisions superseded, and decisions that need a new record. Do not reopen a settled decision without new evidence. |
 | Current cycle | Plane Cycles view ([project]) | Shipped, in progress, not started, slipped, and the remaining capacity. |
 | Blocked tickets | Plane ([project], state = Blocked) | The blocker, its owner, the dependency that clears it, and when it was last checked. |
-| Phase gates | [PHASE_GATES.md](PHASE_GATES.md), [T9.8] | Any threshold at risk, missing evidence, or gate decision due. |
+| Phase gates | [PHASE_GATES.md](PHASE_GATES.md), [KILL_CRITERIA_DASHBOARD.md](KILL_CRITERIA_DASHBOARD.md), [T9.8] | Any threshold at risk, missing evidence, or gate decision due. |
 | Assumption tracker | [T9.5] | Assumptions whose confidence moved, and the cheapest next test for each. |
 | Content calendar | [CONTENT_CALENDAR.md](CONTENT_CALENDAR.md), [T3.9] | Only when the week touched content supply, cost, or cadence. |
 | Financial model | [FINANCIAL_MODEL.md](FINANCIAL_MODEL.md), [T6.2] | Only when the week touched pricing, cost, cash, or the funding decision. |
@@ -211,7 +211,7 @@ and date. A number without a source is an opinion.
 | Question | Metric | Source |
 |---|---|---|
 | Is the cycle moving? | Work items done, in progress, and blocked in the current cycle | Plane cycle view ([project]) |
-| Is the loop honest? | Gate thresholds and evidence for the current phase | [PHASE_GATES.md](PHASE_GATES.md), [T9.8] |
+| Is the loop honest? | Gate thresholds and evidence for the current phase | [PHASE_GATES.md](PHASE_GATES.md), [KILL_CRITERIA_DASHBOARD.md](KILL_CRITERIA_DASHBOARD.md), [T9.8] |
 | Do users return? | Pilot cohort retention and session frequency | [T5.7], [RETENTION_INSTRUMENTATION.md](RETENTION_INSTRUMENTATION.md) |
 | Is demand real? | Pre-orders, best-cell conversion, and concierge retention | [T1.8], [T1.9] |
 | Does the money work? | Price, cost per piece, and the cash path | [FINANCIAL_MODEL.md](FINANCIAL_MODEL.md), [T6.2] |
