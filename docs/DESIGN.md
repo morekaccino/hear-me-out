@@ -694,8 +694,10 @@ placement.
 - **Practice reminder:** Profile has an off-by-default local reminder switch and
   a time row. Quiet hours are 21:00–07:59, so only 08:00–20:59 is accepted; a
   denied permission keeps the switch off and explains why. The copy is a
-  specific task, never a streak-loss threat. Web says reminders are available on
-  mobile instead of pretending.
+  specific task or, in the pre-registered T5.6 beta experiment, the generic
+  `Time to practice!` arm; neither is a streak-loss threat. See
+  [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md). Web says reminders are
+  available on mobile instead of pretending.
 - **Combo:** positive feedback only; do not add a combo loss mechanic.
 - **Level:** `xp ~/ 100 + 1`; do not invent a separate progression currency.
 - **Jump ahead:** a 15-exercise test can unlock earlier sections without
