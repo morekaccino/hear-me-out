@@ -518,6 +518,21 @@ the recording service and the card so tests and production use one seam.
 Tests: `test/before_after_test.dart` (pure) and
 `test/before_after_screen_test.dart` (widget).
 
+## First session (T5.2)
+
+`features/first_session/first_session_screen.dart` owns a five-step, practice-only
+flow pushed after onboarding: intro, hear, play, correction, 10-second record,
+done. The phrase is the first four written notes of Ode to Joy (E5 E5 F5 G5,
+string 1, first position). The play step uses `PhrasePlayerScreen` with
+`practiceOnly: true` and `recordProgress: false`; the player exposes
+`onVerification` so the flow can show the single correction without saving FSRS,
+mastery, XP, or quest evidence. The recording step uses the existing
+`RecordingController` (one live take, typed failures, 10-second timer, skip
+path). The flow records the existing local funnel events (`first_note`,
+`first_phrase`, `session_start`, `session_complete`, `daily_active`) and real
+elapsed guitar time. It is not the scored phrase loop; decision 0001 still gates
+that path.
+
 ## Local reminders and weekly recap (T2.9)
 
 `core/notifications/reminder_copy.dart` is pure Dart: fixed quiet hours

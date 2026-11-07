@@ -430,7 +430,7 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
       setState(() => _step = _Step.hear);
       return;
     }
-    if (!_firstNoteRecorded) {
+    if (!_firstNoteRecorded && verification.complete) {
       _firstNoteRecorded = true;
       await ref.read(retentionControllerProvider.notifier).recordFirstNote();
     }

@@ -283,6 +283,13 @@ Then open <http://127.0.0.1:8080/>.
 - **No hearts:** there is no heart pool, regeneration timer, refill, or
   out-of-lives failure. A lesson always reaches its result; wrong answers lower
   accuracy and queue the repair, never a life.
+- **First session:** after onboarding, the learner gets a practice-only guided
+  flow: hear the first four notes of Ode to Joy, play them back, see one real
+  correction, record ten seconds, and finish. It writes no FSRS, mastery, XP, or
+  quest evidence from the phrase take; the recording is the only saved artifact.
+  It is reachable without opening the scored phrase loop. The local
+  `first_note`, `first_phrase`, and `first_recording` hooks measure the funnel;
+  the percentages are pending a real beta.
 - **Weekly goal:** `settings.weeklyGoalMinutes` defaults to 30 and is the primary
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
@@ -426,6 +433,10 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   9 stores the reminder settings. The notification plugin is mobile-only
   behind a conditional import; web shows the setting as unavailable. Opt-in
   and session-2 lift are instrumented locally and remain pending a real beta.
+- T5.2 adds the guided first session after onboarding: hear/play the first four
+  notes of Ode to Joy, see one practice-only correction, record ten seconds, and
+  finish. It writes no scored phrase evidence; the recording is the only saved
+  artifact. The funnel hooks are local and the percentages remain pending beta.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
