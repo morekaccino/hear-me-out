@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -17,12 +18,18 @@ import '../../state/providers.dart';
 import '../../state/recording_controller.dart';
 import 'before_after_card.dart';
 
+/// Renders the card to PNG bytes. Injectable so widget tests do not need the
+/// image encoder; production uses [RenderRepaintBoundary.toImage].
+typedef BeforeAfterCardRenderer = Future<Uint8List?> Function(GlobalKey key);
+
 /// The private before/after card.
 ///
 /// The card is rendered from real takes and exported only when the learner taps
 /// the explicit action. Nothing is uploaded, shared, or ranked.
 class BeforeAfterScreen extends ConsumerStatefulWidget {
-  const BeforeAfterScreen({super.key});
+  const BeforeAfterScreen({super.key, this.renderer});
+
+  final BeforeAfterCardRenderer? renderer;
 
   @override
   ConsumerState<BeforeAfterScreen> createState() => _BeforeAfterScreenState();
@@ -150,7 +157,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
           ),
         Expanded(
           child: Text(
-            'Before / after',
+            'Progress card',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -194,19 +201,10 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
       _error = null;
     });
     try {
-      final boundary =
-          _cardKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) {
+      final renderer = widget.renderer ?? _renderCardPng;
+      final bytes = await renderer(_cardKey);
+      if (bytes == null || bytes.isEmpty) {
         setState(() => _error = 'The card is not ready to export.');
-        return;
-      }
-      final image = await boundary.toImage(pixelRatio: 3);
-      final byteData = await image.toByteData(
-        format: ui.ImageByteFormat.png,
-      );
-      image.dispose();
-      if (byteData == null) {
-        setState(() => _error = 'Could not render the card.');
         return;
       }
       final exporter = await ref.read(recordingExporterProvider.future);
@@ -215,7 +213,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
           id: 'before-after-card',
           fileName:
               'before-after-${_safeName(data.pieceId)}-${data.last.id}.png',
-          bytes: byteData.buffer.asUint8List(),
+          bytes: bytes,
           mimeType: 'image/png',
         ),
       );
@@ -232,6 +230,16 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<Uint8List?> _renderCardPng(GlobalKey key) async {
+    final boundary =
+        key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return null;
+    final image = await boundary.toImage(pixelRatio: 3);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    return byteData?.buffer.asUint8List();
   }
 
   Widget _messageCard({required String title, required String body}) {

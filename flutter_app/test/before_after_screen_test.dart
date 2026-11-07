@@ -100,7 +100,12 @@ Widget _build(_Harness harness) {
       retentionStoreProvider.overrideWithValue(harness.retention),
       progressStoreProvider.overrideWithValue(harness.progressStore),
     ],
-    child: MaterialApp(theme: AppTheme.light, home: const BeforeAfterScreen()),
+    child: MaterialApp(
+      theme: AppTheme.light,
+      home: BeforeAfterScreen(
+        renderer: (_) async => Uint8List.fromList(<int>[1, 2, 3, 4]),
+      ),
+    ),
   );
 }
 
