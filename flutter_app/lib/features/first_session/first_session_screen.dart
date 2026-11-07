@@ -387,14 +387,18 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
     final elapsed = _clock.elapsed;
     try {
       await ref
-          .read(appControllerProvider.notifier)
-          .recordTodayPractice(instrumentTime: elapsed);
-      await ref
           .read(retentionControllerProvider.notifier)
           .record(RetentionEventName.sessionComplete);
       await ref
           .read(retentionControllerProvider.notifier)
           .recordDailyActive();
+    } catch (_) {
+      // Instrumentation is best-effort and must not block the done screen.
+    }
+    try {
+      await ref
+          .read(appControllerProvider.notifier)
+          .recordTodayPractice(instrumentTime: elapsed);
     } catch (_) {
       // The learner already had the session; a save hiccup is not a failure.
     }
