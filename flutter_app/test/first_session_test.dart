@@ -133,6 +133,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('You played your first phrase'), findsOneWidget);
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
     final stored = await retention.load();
     expect(
       stored.log.hasEvent(RetentionEventName.firstNote),

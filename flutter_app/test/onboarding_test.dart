@@ -225,6 +225,7 @@ void main() {
     expect(find.text('Pick a first piece'), findsOneWidget);
 
     await tapText(tester, 'Choose later');
+    await skipFirstSession(tester);
 
     expect(onboarding.value?.readingLevel, ReadingLevel.slowReader);
   });
@@ -243,6 +244,7 @@ void main() {
     expect(find.text('Amazing Grace'), findsOneWidget);
 
     await tapText(tester, 'Choose later');
+    await skipFirstSession(tester);
 
     expect(onboarding.value?.firstPieceId, onboardingPieces.first.id);
     expect(find.text('Open Strings'), findsOneWidget);
