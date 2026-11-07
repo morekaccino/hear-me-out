@@ -577,9 +577,11 @@ app, and the teacher gets a copy only if the student shares it. The summary
 carries stored practice evidence, an explicit “no stored evidence” line, or an
 evidence-unavailable line; it never presents a teacher grade. A cancelled share
 uses a neutral notice, not the green success card. The web build downloads the
-three files instead of opening a share sheet. **CLEAR EXPORTS** deletes only the
-copies in the app's exports folder; Delete and Clear all touch only stored
-takes, and the screen says which is which.
+three files instead of opening a share sheet; the in-app **CLEAR EXPORTS** action
+is hidden there, and the browser's downloads list is the deletion path on web.
+On Android/iOS **CLEAR EXPORTS** deletes only the copies in the app's exports
+folder; Delete and Clear all touch only stored takes, and the screen says which
+is which.
 
 The privacy card sits above the record control and uses the conditional
 `MediaPrivacyCard` copy. Never claim backup exclusion unless the platform

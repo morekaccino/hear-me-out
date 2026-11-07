@@ -515,6 +515,7 @@ void main() {
         jsonDecode(utf8.decode(request.files[1].bytes)) as Map<String, dynamic>;
     expect(json['takeId'], id);
     expect(json['exportedAt'], '2026-11-07T09:15:00.000Z');
+    expect(json['evidenceStatus'], 'none');
     expect(json['evidence'], isNull);
 
     expect(harness.share.sharedPaths, hasLength(1));
@@ -596,6 +597,7 @@ void main() {
       'stage': 2,
     });
     expect(json['phraseId'], 'p1');
+    expect(json['evidenceStatus'], 'stored');
     final evidence = json['evidence']! as Map<String, dynamic>;
     expect(evidence['attempts'], 1);
     expect(evidence['bestAccuracy'], 0.9);
@@ -628,6 +630,7 @@ void main() {
         jsonDecode(utf8.decode(request.files[1].bytes)) as Map<String, dynamic>;
     expect(json['piece'], isNotNull);
     expect(json['phraseId'], 'p1');
+    expect(json['evidenceStatus'], 'none');
     expect(json['evidence'], isNull);
     expect(json.containsKey('score'), isFalse);
     expect(json.containsKey('grade'), isFalse);
@@ -744,6 +747,21 @@ void main() {
     );
     expect(button.onPressed, isNull);
 
+    // Clear exports must not delete files the in-flight share may still use.
+    await _reveal(tester, find.byKey(const ValueKey('clear-exports')));
+    final clearButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('clear-exports')),
+    );
+    expect(clearButton.onPressed, isNull);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingsScreen)),
+    );
+    final guarded = await container
+        .read(recordingControllerProvider.notifier)
+        .clearExports();
+    expect(guarded?.message, contains('An export is in progress'));
+    expect(harness.exportCleaner.calls, 0);
+
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.text('EXPORT FOR TEACHER'), findsOneWidget);
@@ -829,6 +847,7 @@ void main() {
     final harness = _Harness();
     await harness.seedTake('take-1');
     harness.exportCleaner.result = const TakeExportClearResult(
+      deletedCount: 2,
       failure: TakeExportClearFailure(
         'Could not clear every exported file. Some copies may remain.',
       ),
@@ -843,7 +862,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Could not clear every exported file. Some copies may remain.'),
+      find.textContaining('Could not clear every exported file.'),
+      findsWidgets,
+    );
+    expect(
+      find.textContaining('2 files were deleted before the error.'),
       findsWidgets,
     );
     expect(await harness.store.list(), hasLength(1));

@@ -26,10 +26,11 @@ by the app.
    taps **CLEAR EXPORTS** on the Recordings screen (Android/iOS). On web the
    browser's downloads list owns them.
 
-The screen shows the caption: “Export for teacher gives you the take, a
-one-page summary, and a JSON copy. Nothing is uploaded by the app; your teacher
-gets a copy only if you share it. Exported copies stay in the app until you tap
-Clear exports.”
+The screen shows a caption that says the export is local, nothing is uploaded
+by the app, and the teacher gets a copy only if the student shares it. On
+Android/iOS it adds that exported copies stay in the app until **Clear
+exports**; on web it says the browser downloads the files and points at the
+browser's downloads list.
 
 ## Bundle contents
 
@@ -87,6 +88,9 @@ The stable top-level shape is:
   - `unavailable` — the progress aggregate could not be read; `evidence` is null
     and the PDF says the evidence could not be read. The app does not claim
     there is none.
+- `schemaVersion` stays `1` because `evidenceStatus` is an additive field.
+  Readers must ignore unknown fields; removing, renaming, or retyping a field is
+  a breaking change and needs version 2.
 - The summary contains no account, name, email, device id, install id, audio
   path, or free text the learner typed. The local retention log's `installId`
   is never included.
@@ -166,10 +170,11 @@ today.
   download remain. There is no ZIP. The app has no in-app clear action for web
   downloads; use the browser's downloads list.
 - **Multiple file types.** Some share destinations accept only one file type
-  (audio, JSON, or PDF). The three files remain in the app's `exports/` folder
-  until **CLEAR EXPORTS**; the app does not provide a per-file share from that
-  folder. A destination that refuses the set is a destination limitation, not a
-  file-location workaround.
+  (audio, JSON, or PDF). On Android/iOS the three files remain in the app's
+  `exports/` folder until **CLEAR EXPORTS**; on web they are browser downloads
+  managed in the downloads list. The app does not provide a per-file share from
+  that folder. A destination that refuses the set is a destination limitation,
+  not a file-location workaround.
 - **Verified in this branch.** `flutter analyze`, `flutter test` (the count is
   recorded in `AGENTS.md`), and `flutter build web --release` pass. The OS share
   sheet has **not** been verified on a physical iOS or Android device in this

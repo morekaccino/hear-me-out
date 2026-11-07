@@ -28,9 +28,11 @@ itself remains gated and is not opened by this decision.
 
 1. **The OS share sheet is the delivery seam.** `share_plus` is added because it
    is a local operating-system hand-off: no network, no account, no cloud, no
-   sync, and no tracking. It is wrapped in `TakeShareGateway` so tests and app
-   code never touch a platform channel. On web the app does not import or call
-   `share_plus`; it uses a download-only gateway. `share_plus` declares a web
+   sync, and no tracking. It is wrapped in `TakeShareGateway` so tests never
+   touch a platform channel; app code uses the gateway seam, and the IO
+   implementation is the only place that talks to the plugin. On web the app
+   does not import or call `share_plus`; it uses a download-only gateway.
+   `share_plus` declares a web
    plugin, so the generated web plugin registrant may still compile/register
    it, but app code never calls it on web. The share action is explicit: the
    student sees the header sheet, confirms, and chooses one destination. There

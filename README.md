@@ -232,7 +232,8 @@ session rules.
   copy). The export shows the plain-language header, writes local files, and
   opens the OS share sheet on Android/iOS; the web build downloads the three
   files. Nothing is uploaded by the app. **Clear exports** deletes only those
-  copies; Delete and Clear all touch only stored takes. The summary carries
+  copies on Android/iOS; on web use the browser's downloads list. Delete and
+  Clear all touch only stored takes. The summary carries
   stored practice evidence, an explicit “no stored evidence” line, or an
   evidence-unavailable line.
 - A take leaves the device only through an explicit export you start, and

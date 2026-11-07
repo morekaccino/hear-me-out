@@ -101,6 +101,11 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     final async = ref.watch(recordingControllerProvider);
     final backup = ref.watch(mediaBackupStatusProvider);
     final state = async.asData?.value;
+    final exportsSupported = ref
+        .watch(takeExportCleanerProvider)
+        .asData
+        ?.value
+        .isSupported;
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
@@ -143,7 +148,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 if (state.takes.isEmpty)
                   _emptyState(),
                 if (state.takes.isNotEmpty) ...[
-                  _exportCaptionCard(),
+                  _exportCaptionCard(exportsSupported),
                   const SizedBox(height: DuoSpacing.sm),
                   for (final take in state.takes) ...[
                     _takeCard(
@@ -155,7 +160,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                   ],
                 ],
                 const SizedBox(height: DuoSpacing.md),
-                _usageCard(state),
+                _usageCard(state, exportsSupported),
                 const SizedBox(height: DuoSpacing.md),
                 Text(
                   'Takes are stored as WAV files on this device and are never '
@@ -468,12 +473,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
-  Widget _usageCard(RecordingScreenState state) {
-    // The web build has no app-owned exports folder; the browser owns those
-    // downloads, so the in-app clear action is hidden there.
-    final exportsSupported =
-        ref.watch(takeExportCleanerProvider).asData?.value.isSupported ??
-        false;
+  Widget _usageCard(
+    RecordingScreenState state,
+    bool? exportsSupported,
+  ) {
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -535,10 +538,11 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 icon: const Icon(Icons.cleaning_services_rounded, size: 18),
                 label: const Text('CHECK STORAGE'),
               ),
-              if (exportsSupported)
+              if (exportsSupported == true)
                 TextButton.icon(
                   key: const ValueKey('clear-exports'),
-                  onPressed: state.busy || state.recording
+                  onPressed:
+                      state.busy || state.recording || _exportingTakeId != null
                       ? null
                       : _confirmClearExports,
                   style: TextButton.styleFrom(
@@ -638,7 +642,23 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
-  Widget _exportCaptionCard() {
+  Widget _exportCaptionCard(bool? exportsSupported) {
+    final copy = switch (exportsSupported) {
+      true =>
+        'Export for teacher gives you the take, a one-page summary, and a '
+            'JSON copy. Nothing is uploaded by the app; your teacher gets a '
+            'copy only if you share it. Exported copies stay in the app until '
+            'you tap Clear exports.',
+      false =>
+        'Export for teacher gives you the take, a one-page summary, and a '
+            'JSON copy. Nothing is uploaded by the app; your teacher gets a '
+            'copy only if you share it. Your browser downloads the files; use '
+            'the browser downloads list to delete them.',
+      null =>
+        'Export for teacher gives you the take, a one-page summary, and a '
+            'JSON copy. Nothing is uploaded by the app; your teacher gets a '
+            'copy only if you share it.',
+    };
     return SectionCard(
       key: const ValueKey('export-for-teacher-caption'),
       color: AppColors.blueSoft,
@@ -654,10 +674,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
           const SizedBox(width: DuoSpacing.xs),
           Expanded(
             child: Text(
-              'Export for teacher gives you the take, a one-page summary, and '
-              'a JSON copy. Nothing is uploaded by the app; your teacher gets a '
-              'copy only if you share it. Exported copies stay in the app until '
-              'you tap Clear exports.',
+              copy,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

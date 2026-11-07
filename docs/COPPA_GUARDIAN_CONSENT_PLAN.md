@@ -50,7 +50,8 @@ from what this plan would require.
 | Consumer app has no account, cloud sync, remote analytics, or third-party tracker | Shipped rule | [`../AGENTS.md`](../AGENTS.md) hard rule 1; [decision 0006](decisions/0006-local-retention-instrumentation.md) | Shipped |
 | Progress is local in `shared_preferences` | Shipped | `flutter_app/lib/core/storage/progress_store.dart` | Shipped |
 | Recordings use a local `MediaStore` and are excluded from cloud backup when the platform confirms it | Shipped | T4.1, T4.5; [decision 0002](decisions/0002-backup-exclusion-no-opt-in.md) | Shipped |
-| Recording, delete, export, and clear-export controls in the UI | Shipped (T4.2) and implemented (T7.2, pending merge) | T4.2 recording/delete; T7.2 manual export and **Clear exports** | `Shipped` |
+| Recording and delete controls in the UI (T4.2) | Shipped | T4.2 recording, **Delete**, and **Clear all** | `Shipped` |
+| Manual export and Clear exports in the UI (T7.2) | Implemented; pending merge | T7.2 manual export and **Clear exports** | `Draft` |
 | Teacher dashboard, roster, assignments, comments | Not built by design before three paid pilots | T7.5; plan §10.3 | `Not built` |
 | Parent/guardian consent for the teacher channel | No in-app flow; this document defines a manual pilot process | This document | `Draft` |
 | Deletion rehearsal for recordings and exports | Not run | [§4.8](#48-test-before-any-claim) | `Not run` |
@@ -809,9 +810,10 @@ needs its own privacy review.
 The T7.2 export must include a plain-language header in the summary: what the
 file contains, who it is for, the retention rule, and how to delete it. The
 student sees that header before sharing. **Implemented in T7.2:** the
-pre-export sheet shows the shared header before the OS share sheet opens, and
-the PDF/JSON carry the same facts. This is an engineering control, not a legal
-clearance; the count of students who saw it is not yet measured.
+pre-export sheet shows the shared header before the OS share sheet opens, the
+PDF carries the header, and the JSON carries the take and evidence facts. This
+is an engineering control, not a legal clearance; the count of students who saw
+it is not yet measured.
 
 ### 6.6 Training and checklist
 

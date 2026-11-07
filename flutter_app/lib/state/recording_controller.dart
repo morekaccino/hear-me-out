@@ -243,6 +243,15 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   /// untouched. The screen confirms before calling this; it is the only write
   /// path for the exports folder.
   Future<RecordingFailure?> clearExports() async {
+    // Do not delete files while a bundle is being written or shared: the share
+    // sheet may still be reading them.
+    if (_exportingBundle) {
+      return const RecordingFailure(
+        RecordingFailureKind.export,
+        'An export is in progress. Wait for it to finish, then clear exported '
+        'files.',
+      );
+    }
     final current = state.asData?.value ?? await future;
     if (current.busy) return null;
     state = AsyncData(current.copyWith(busy: true, clearNotice: true));
@@ -262,7 +271,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
         ? null
         : RecordingFailure(
             RecordingFailureKind.export,
-            result.failure!.message,
+            _clearFailureMessage(result),
             cause: result.failure!.cause,
           );
     if (_disposed) return failure;
@@ -568,6 +577,16 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
             '${share.message ?? 'The share sheet could not open.'}',
       ),
     };
+  }
+
+  String _clearFailureMessage(TakeExportClearResult result) {
+    final message =
+        result.failure?.message ?? 'Could not clear the exported files.';
+    if (result.deletedCount <= 0) return message;
+    final deleted = result.deletedCount == 1
+        ? '1 file was'
+        : '${result.deletedCount} files were';
+    return '$message $deleted deleted before the error.';
   }
 
   TakeBundleExportOutcome _failBundleExport(

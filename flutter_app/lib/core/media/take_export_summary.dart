@@ -178,6 +178,11 @@ class TakeExportSummary {
        );
 
   /// Version of the JSON document written by this build.
+  ///
+  /// Adding an optional field (such as `evidenceStatus`) is backward
+  /// compatible and does not bump this version; a reader must ignore unknown
+  /// fields. Removing, renaming, or retyping a field is a breaking change and
+  /// needs version 2.
   static const int schemaVersion = 1;
 
   final String takeId;
