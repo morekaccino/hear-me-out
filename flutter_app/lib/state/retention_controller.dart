@@ -93,6 +93,12 @@ class RetentionController extends AsyncNotifier<RetentionState> {
   Future<void> recordFirstRecording({DateTime? at}) =>
       _recordOnce(RetentionEventName.firstRecording, at);
 
+  /// Records the learner's choice to turn on local practice reminders.
+  ///
+  /// Once per install, and only while the retention log is opted in.
+  Future<void> recordReminderOptIn({DateTime? at}) =>
+      _recordOnce(RetentionEventName.reminderOptIn, at);
+
   Future<void> _recordOnce(RetentionEventName name, DateTime? at) =>
       _enqueue(() async {
         final current = await future;

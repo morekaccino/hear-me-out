@@ -45,6 +45,7 @@ The wire names are stable. Do not rename them without a schema change.
 | `session_start` | `sessionStart` | A lesson, practice, or jump test starts | Every session |
 | `session_complete` | `sessionComplete` | A session finishes, passed or failed | Every session |
 | `daily_active` | `dailyActive` | A session completes | At most once per local day |
+| `reminder_opt_in` | `reminderOptIn` | The learner enables the local practice reminder | Once per install; no copy, piece, or time is stored |
 
 `first_phrase` and `first_recording` have no caller in this ticket. T2.5 and
 T4.2 must call `RetentionController.recordFirstPhrase()` and

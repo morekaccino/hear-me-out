@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../content/pieces/launch_pieces.dart';
 import '../../core/learning/progress.dart';
+import '../../core/media/recording_index.dart';
+import '../../core/notifications/weekly_recap.dart';
+import '../../shared/navigation/duo_route.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
+import '../../state/providers.dart';
+import '../recordings/recordings_screen.dart';
 
 /// Musical habits, not currency. Completing the real action completes the
 /// quest, so there is no claim button and no reward to collect.
@@ -19,7 +26,19 @@ class QuestsScreen extends ConsumerWidget {
       return const Center(child: CircularProgressIndicator());
     }
     final progress = data.progress;
-    progress.refreshQuests(DateTime.now());
+    final now = DateTime.now();
+    progress.refreshQuests(now);
+    final takes =
+        ref.watch(recordingRecapTakesProvider).asData?.value ??
+        const <RecordingTake>[];
+    final recap = buildWeeklyRecap(
+      progress: progress,
+      takes: takes,
+      now: now,
+      pieceTitles: <String, String>{
+        for (final launch in launchPieces) launch.piece.id: launch.piece.title,
+      },
+    );
     final daily = [
       for (final quest in questDefinitions)
         if (quest.period == QuestPeriod.daily) quest,
@@ -50,6 +69,11 @@ class QuestsScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                   color: AppColors.textMuted,
                 ),
+              ),
+              const SizedBox(height: 24),
+              _WeeklyRecapCard(
+                recap: recap,
+                onOpenRecordings: () => _openRecordings(context),
               ),
               const SizedBox(height: 24),
               _QuestBanner(progress: progress),
@@ -140,6 +164,230 @@ class QuestsScreen extends ConsumerWidget {
   String _weekResetCopy() {
     final days = 8 - DateTime.now().weekday;
     return days == 1 ? '1 day left' : '$days days left';
+  }
+
+  Future<void> _openRecordings(BuildContext context) =>
+      Navigator.of(context).push(
+        duoLessonRoute<void>((_) {
+          return const RecordingsScreen();
+        }),
+      );
+}
+
+/// Real seven-day numbers, plus one honest before/after or an empty state.
+///
+/// This is not a lesson-completion percentage and it never estimates. The
+/// recordings link is offered when there is nothing to compare yet.
+class _WeeklyRecapCard extends StatelessWidget {
+  const _WeeklyRecapCard({required this.recap, required this.onOpenRecordings});
+
+  final WeeklyRecap recap;
+  final VoidCallback onOpenRecordings;
+
+  @override
+  Widget build(BuildContext context) {
+    final pair = recap.beforeAfter;
+    return SectionCard(
+      key: const ValueKey('weekly-recap-card'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.insights_rounded,
+                color: AppColors.greenDark,
+                size: 22,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Your week so far',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'The rolling seven days on this device.',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _RecapStat(
+                value: '${recap.minutes}',
+                label: 'minutes',
+                valueKey: const ValueKey('recap-minutes'),
+              ),
+              _RecapStat(
+                value: '${recap.phrases}',
+                label: recap.phrases == 1 ? 'phrase' : 'phrases',
+                valueKey: const ValueKey('recap-phrases'),
+              ),
+              _RecapStat(
+                value: '${recap.recordings}',
+                label: recap.recordings == 1 ? 'recording' : 'recordings',
+                valueKey: const ValueKey('recap-recordings'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (pair != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.blueSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.compare_arrows_rounded,
+                    color: AppColors.blueDark,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Before/after: ${pair.pieceTitle}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.blueDark,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${_takeDay(pair.before.createdAt)} → '
+                          '${_takeDay(pair.after.createdAt)} · '
+                          '${pair.takeCount} takes',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
+                            color: AppColors.blueDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            Text(
+              'No before/after yet. Save two takes of one piece to compare '
+              'them.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+                color: AppColors.textMuted,
+              ),
+            ),
+            const SizedBox(height: 8),
+            DuoTappable(
+              onTap: onOpenRecordings,
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.blueSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.mic_rounded,
+                      color: AppColors.blueDark,
+                      size: 18,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Open recordings',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.blueDark,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.blueDark,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _takeDay(DateTime utc) {
+    const months = <String>[
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final local = utc.toLocal();
+    return '${months[local.month - 1]} ${local.day}';
+  }
+}
+
+class _RecapStat extends StatelessWidget {
+  const _RecapStat({required this.value, required this.label, this.valueKey});
+
+  final String value;
+  final String label;
+  final Key? valueKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            value,
+            key: valueKey,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textMuted,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

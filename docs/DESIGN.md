@@ -670,8 +670,19 @@ placement.
 - **Quest honesty:** a determinate phrase advances `phrasesPracticed`. A bar
   counts only when the learner completes a correct determinate take of the
   phrase that contains it, once per phrase per week; tapping a prompt never
-  counts. The recording counter has no producer until T4.2 lands, so its quest
-  shows zero with a "coming with recordings" note.
+  counts. The recording counter advances only from a real saved take through
+  `recordRecordingMade`; there is no tap shortcut.
+- **Weekly recap:** the Quests screen opens with a local recap of the rolling
+  seven days: measured minutes, phrases practiced, recordings made, and one
+  real before/after pair when a piece has two takes. The before/after row names
+  the piece and the two take days; nothing is uploaded. A missing pair is stated
+  honestly, not filled with a placeholder, and links to the recordings screen.
+  There is no lesson-completion percentage.
+- **Practice reminder:** Profile has an off-by-default local reminder switch and
+  a time row. Quiet hours are 21:00–07:59, so only 08:00–20:59 is accepted; a
+  denied permission keeps the switch off and explains why. The copy is a
+  specific task, never a streak-loss threat. Web says reminders are available on
+  mobile instead of pretending.
 - **Combo:** positive feedback only; do not add a combo loss mechanic.
 - **Level:** `xp ~/ 100 + 1`; do not invent a separate progression currency.
 - **Jump ahead:** a 15-exercise test can unlock earlier sections without

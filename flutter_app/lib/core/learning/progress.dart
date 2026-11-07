@@ -31,6 +31,9 @@ class AppSettings {
     this.soundEffects = true,
     this.weeklyGoalMinutes = defaultWeeklyGoalMinutes,
     this.streakEnabled = false,
+    this.reminderEnabled = false,
+    this.reminderHour = defaultReminderHour,
+    this.reminderMinute = defaultReminderMinute,
     this.onboardingComplete = false,
     this.themeMode = AppThemeMode.system,
   });
@@ -46,6 +49,12 @@ class AppSettings {
 
   /// The streak is opt-in. When false it is neither shown nor advanced.
   final bool streakEnabled;
+
+  /// Local practice reminder. Off by default; no account or network is
+  /// involved. The time is always outside the fixed quiet hours.
+  final bool reminderEnabled;
+  final int reminderHour;
+  final int reminderMinute;
   final bool onboardingComplete;
   final AppThemeMode themeMode;
 
@@ -57,6 +66,9 @@ class AppSettings {
     bool? soundEffects,
     int? weeklyGoalMinutes,
     bool? streakEnabled,
+    bool? reminderEnabled,
+    int? reminderHour,
+    int? reminderMinute,
     bool? onboardingComplete,
     AppThemeMode? themeMode,
   }) {
@@ -68,6 +80,9 @@ class AppSettings {
       soundEffects: soundEffects ?? this.soundEffects,
       weeklyGoalMinutes: weeklyGoalMinutes ?? this.weeklyGoalMinutes,
       streakEnabled: streakEnabled ?? this.streakEnabled,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+      reminderHour: reminderHour ?? this.reminderHour,
+      reminderMinute: reminderMinute ?? this.reminderMinute,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       themeMode: themeMode ?? this.themeMode,
     );
@@ -81,6 +96,9 @@ class AppSettings {
     'soundEffects': soundEffects,
     'weeklyGoalMinutes': weeklyGoalMinutes,
     'streakEnabled': streakEnabled,
+    'reminderEnabled': reminderEnabled,
+    'reminderHour': reminderHour,
+    'reminderMinute': reminderMinute,
     'onboardingComplete': onboardingComplete,
     'themeMode': themeMode.name,
   };
@@ -98,6 +116,13 @@ class AppSettings {
                   defaultWeeklyGoalMinutes)
               .clamp(1, 24 * 60),
       streakEnabled: json['streakEnabled'] as bool? ?? false,
+      reminderEnabled: json['reminderEnabled'] as bool? ?? false,
+      reminderHour:
+          ((json['reminderHour'] as num?)?.toInt() ?? defaultReminderHour)
+              .clamp(0, 23),
+      reminderMinute:
+          ((json['reminderMinute'] as num?)?.toInt() ?? defaultReminderMinute)
+              .clamp(0, 59),
       onboardingComplete: json['onboardingComplete'] as bool? ?? false,
       themeMode: appThemeModeFromName(json['themeMode'] as String?),
     );
@@ -118,6 +143,10 @@ const List<Duration> reviewIntervals = [
 /// not XP.
 const int defaultWeeklyGoalMinutes = 30;
 const List<int> weeklyGoalMinuteOptions = [15, 30, 45, 60, 90];
+
+/// The local practice reminder is opt-in and defaults to 19:00.
+const int defaultReminderHour = 19;
+const int defaultReminderMinute = 0;
 
 /// Guitar time in one session that counts as effective practice for the
 /// optional streak. A determinate recorded phrase take also counts.

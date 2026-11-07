@@ -502,6 +502,25 @@ before `TakePlayer.playWav`. Delete and export use the existing
 Tests: `test/loudness_test.dart`, `test/compare_pair_test.dart`, and
 `test/compare_takes_screen_test.dart`.
 
+## Local reminders and weekly recap (T2.9)
+
+`core/notifications/reminder_copy.dart` is pure Dart: fixed quiet hours
+(21:00–07:59), an allowed-time predicate, time formatting, and a real-task body
+built from due notes and the weekly goal. `reminder_scheduler.dart` is the
+platform seam; `reminder_scheduler_factory.dart` conditionally exports the IO
+implementation (flutter_local_notifications + timezone) or a web no-op. The IO
+implementation initializes the local timezone explicitly and refuses to schedule
+if it cannot resolve one; it uses an inexact daily schedule, not exact-alarm
+permission. `reminderSchedulerProvider` owns the instance.
+
+`core/notifications/weekly_recap.dart` builds real minutes, phrases, recordings,
+and one before/after pair from `ProgressState` and the recording index. The
+Quests screen renders it; `recordingRecapTakesProvider` reads the index without
+starting the recorder. `RecordingController` asks the scheduler for the
+“before/after ready” alert only after a saved take makes a piece’s second take,
+and only when reminders are enabled. The reminder settings are part of
+`AppSettings`; progress schema 9 migrates a v8 document with reminders off.
+
 ## Retention instrumentation
 
 The retention log is a separate, opt-in storage domain. `core/retention/` is
@@ -539,7 +558,7 @@ change from the old "no analytics" rule.
 - `practiceSecondsByDay` (real measured guitar time)
 - `quests`: daily phrase count, weekly recording count, and the learned-bars
   map for the current local week
-- settings
+- settings, including the opt-in reminder switch and its local time
 - `curriculumVersion` plus a migration path from the old 40-lesson IDs
 - last 30 session summaries
 
@@ -870,10 +889,11 @@ Screens:
 - `LessonScreen` — staff, name/play answers, feedback, result.
 - `PracticeScreen` — tuner, due/weak/free practice, weekly goal, stats.
 - `TechniqueScreen` — per-stage self-check, 60-second drill, demo script.
-- `QuestsScreen` — daily phrase, weekly recording, and weekly bars quests with
-  real counters and no claim step.
+- `QuestsScreen` — a weekly recap card (real minutes, phrases, recordings, and
+  one before/after), then the daily phrase, weekly recording, and weekly bars
+  quests with real counters and no claim step.
 - `ProfileScreen` — stats, weekly goal, optional streak, per-note boxes,
-  settings, backup/restore, reset.
+  settings, the opt-in local practice reminder, backup/restore, reset.
 
 `TechniqueScreen` reads `lib/content/technique/technique_content.dart`. The
 checklists are pure data: they do not touch the scheduler, storage, or mic, and
@@ -891,9 +911,9 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which runs the pure migration
-pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 7.
+pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 9.
 
-### Schema v8 migration pipeline
+### Schema v9 migration pipeline
 
 `migrateProgress` takes a decoded map and returns a `MigrationSuccess` with a
 new map or a `MigrationFailure` with a reason. It has no IO, clock, or random
@@ -908,8 +928,10 @@ input, and it never mutates its argument. The steps are explicit:
 | v5 → v6 | per-phrase `contentVersion` (default 1) for existing evidence; every phrase id and counter is preserved |
 | v6 → v7 | remove `hearts`, `nextHeartAt`, `streakFreezes`, and the XP `dailyGoalXp`; map `lastCompletedDay` to `lastPracticeDay`; add `weeklyGoalMinutes` (default 30), `streakEnabled` (default false), and an empty `practiceSecondsByDay` |
 | v7 → v8 | remove `gems`, `xpBoostUntil`, `openedChests`, `claimedQuests`, and `questDay`; add `quests` with empty day/week, zero counters, and an empty learned-bars map |
+| v8 → v9 | add `reminderEnabled` (default false), `reminderHour` (default 19), and `reminderMinute` (default 0); the validator checks the bool and the 0–23 / 0–59 clock ranges |
 
-A v8 document is returned as an equivalent new map, not migrated again. The
+A v9 document is returned as an equivalent new map, not migrated again. A v8
+document gains the reminder defaults and keeps every other field. The
 migration never invents practice minutes or quest progress: old saves have no
 measured guitar time or phrase/recording/bars evidence, so the weekly goal and
 the quest counters start at zero until the learner acts.
@@ -970,10 +992,16 @@ fresh profile; an unreadable document is quarantined first.
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |
 | `test/quests_test.dart` | Musical quest definitions and counters, honest recording quest, resets, jump tests, no currency |
+| `test/reminder_copy_test.dart` | Due-note / weekly-goal / plain copy branches, no guilt words, quiet hours, time format |
+| `test/weekly_recap_test.dart` | Real minutes, phrases, recordings, visible before/after selection, empty state |
+| `test/reminder_scheduler_test.dart` | Fake schedule request, cancel, denied-permission no-op, typed failure, web no-op |
+| `test/recording_reminder_test.dart` | First take silent, second take fires, reminders-off silent, one-piece scope |
+| `test/reminder_profile_test.dart` | Toggle persist/schedule, denial path, quiet-hour rejection, 390/1200 px |
+| `test/weekly_recap_widget_test.dart` | Recap real numbers, empty state link, 390/1200 px |
 | `test/habit_test.dart` | Weekly minutes goal, optional streak, no-heart/no-shop UI, musical quests, measured session time, local completion/return |
 | `test/retention_test.dart` | Event names, bound, funnel, D1/D7/D30, export fields, pure-domain imports |
 | `test/retention_store_test.dart` | Opt-out default, round trip, corrupt/future data, bound, erase |
-| `test/retention_controller_test.dart` | Opt-in gating, first-event dedupe, AppController session hooks |
+| `test/retention_controller_test.dart` | Opt-in gating, first-event dedupe, `reminder_opt_in` dedupe, AppController session hooks |
 | `test/retention_profile_test.dart` | Default-off switch, toggle, copy, erase, 390 px and 1200 px layouts |
 | `test/technique_test.dart` | Eight-stage coverage, 3/3 item counts, 60-second drills, demo scripts, pain warning |
 | `test/technique_screen_test.dart` | Practice entry, tuner teardown, session-only state, drill timer, 390 px/wide layout |

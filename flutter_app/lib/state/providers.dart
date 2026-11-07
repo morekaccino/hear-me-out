@@ -11,7 +11,10 @@ import '../core/media/media_store.dart';
 import '../core/media/media_store_factory.dart';
 import '../core/media/recording_exporter_factory.dart';
 import '../core/media/recording_index_store.dart';
+import '../core/media/recording_index.dart';
 import '../core/media/recording_service.dart';
+import '../core/notifications/reminder_scheduler.dart';
+import '../core/notifications/reminder_scheduler_factory.dart';
 import '../core/storage/recording_index_store.dart';
 import '../shared/audio/audio_engine.dart';
 import '../shared/audio/sound_service.dart';
@@ -147,6 +150,21 @@ final recordingIndexStoreProvider = Provider<RecordingIndexStore>(
   (ref) => SharedPreferencesRecordingIndexStore(),
 );
 
+/// Read-only takes for the Quests recap.
+///
+/// It reads the recording index directly, newest first. It deliberately does
+/// not watch `recordingControllerProvider`: that controller owns the
+/// microphone and is auto-disposed with the recordings route. Keeping it alive
+/// from a tab would break the mic lifecycle rule. The index is the same durable
+/// data the controller lists.
+final recordingRecapTakesProvider =
+    FutureProvider.autoDispose<List<RecordingTake>>((ref) async {
+      final index = await ref.watch(recordingIndexStoreProvider).load();
+      return List<RecordingTake>.unmodifiable(
+        index?.takes.reversed.toList() ?? const <RecordingTake>[],
+      );
+    });
+
 /// Builds the bounded local recording service.
 ///
 /// The service never starts the microphone by itself. It is constructed only
@@ -174,6 +192,19 @@ final takePlayerProvider = Provider<TakePlayer>((ref) {
     unawaited(player.dispose());
   });
   return player;
+});
+
+/// Opt-in local practice reminders.
+///
+/// Web resolves to a no-op scheduler, so the settings screen can say reminders
+/// are unavailable instead of pretending. Tests override this provider with a
+/// fake and assert the exact schedule request.
+final reminderSchedulerProvider = Provider<ReminderScheduler>((ref) {
+  final scheduler = createReminderScheduler();
+  ref.onDispose(() {
+    unawaited(scheduler.dispose());
+  });
+  return scheduler;
 });
 
 final soundServiceProvider = Provider<SoundService>((ref) {

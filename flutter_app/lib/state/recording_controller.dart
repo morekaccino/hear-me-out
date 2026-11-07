@@ -268,6 +268,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
       ref.read(retentionControllerProvider.notifier).recordFirstRecording(),
     );
     await _recordRecordingQuest();
+    await _maybeShowBeforeAfter(result.take);
     final takes = await _service.listTakes();
     final usage = await _service.usageBytes();
     if (_disposed) return;
@@ -285,6 +286,27 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
             : 'Take saved on this device.',
       ),
     );
+  }
+
+  /// Shows the "Your before/after is ready" local notification after a take
+  /// makes the piece's second recording.
+  ///
+  /// It never fires for the first take, and never when reminders are off. The
+  /// take is already saved, so a missing permission or plugin failure is
+  /// ignored here instead of turning a successful save into an error.
+  Future<void> _maybeShowBeforeAfter(RecordingTake? take) async {
+    final pieceId = take?.pieceId;
+    if (pieceId == null || pieceId.trim().isEmpty) return;
+    try {
+      final data = await ref.read(appControllerProvider.future);
+      if (!data.progress.settings.reminderEnabled) return;
+      final takes = await _service.listTakes();
+      final count = takes.where((item) => item.pieceId == pieceId).length;
+      if (count < 2) return;
+      await ref.read(reminderSchedulerProvider).showBeforeAfterReady(pieceId);
+    } catch (_) {
+      // The saved take is the user-visible result; the reminder is extra.
+    }
   }
 
   /// Increments the weekly recording quest from a real saved take.

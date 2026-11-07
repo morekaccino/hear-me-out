@@ -21,7 +21,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Progress migration pipeline', () {
-    test('every fixture migrates to v8 without losing progress', () {
+    test('every fixture migrates to v9 without losing progress', () {
       for (final name in <String>[
         'v1',
         'v2',
@@ -31,15 +31,16 @@ void main() {
         'v6',
         'v7',
         'v8',
+        'v9',
       ]) {
         final fixture = _loadFixture(name);
         final migrated = _migrate(fixture);
-        expect(migrated['schemaVersion'], 8, reason: name);
+        expect(migrated['schemaVersion'], 9, reason: name);
 
         final progress = importProgress(jsonEncode(fixture));
         expect(progress, isNotNull, reason: name);
         final restored = progress!;
-        expect(restored.schemaVersion, 8, reason: name);
+        expect(restored.schemaVersion, 9, reason: name);
         expect(
           restored.curriculumVersion,
           ProgressState.currentCurriculumVersion,
@@ -70,17 +71,30 @@ void main() {
         expect(restored.toJson().containsKey('gems'), isFalse, reason: name);
         expect(
           restored.settings.weeklyGoalMinutes,
-          name == 'v7' || name == 'v8' ? 45 : defaultWeeklyGoalMinutes,
+          name == 'v7' || name == 'v8' || name == 'v9'
+              ? 45
+              : defaultWeeklyGoalMinutes,
           reason: name,
         );
         expect(
           restored.settings.streakEnabled,
-          name == 'v7' || name == 'v8',
+          name == 'v7' || name == 'v8' || name == 'v9',
+          reason: name,
+        );
+        expect(restored.settings.reminderEnabled, name == 'v9', reason: name);
+        expect(
+          restored.settings.reminderHour,
+          name == 'v9' ? 8 : defaultReminderHour,
+          reason: name,
+        );
+        expect(
+          restored.settings.reminderMinute,
+          name == 'v9' ? 30 : defaultReminderMinute,
           reason: name,
         );
         expect(
           restored.practiceSecondsByDay,
-          name == 'v7' || name == 'v8'
+          name == 'v7' || name == 'v8' || name == 'v9'
               ? <String, int>{'2026-10-12': 300, '2026-10-13': 600}
               : isEmpty,
           reason: name,
@@ -94,10 +108,20 @@ void main() {
         );
         expect(
           restored.contentVersion,
-          name == 'v5' || name == 'v6' || name == 'v7' || name == 'v8' ? 3 : 1,
+          name == 'v5' ||
+                  name == 'v6' ||
+                  name == 'v7' ||
+                  name == 'v8' ||
+                  name == 'v9'
+              ? 3
+              : 1,
           reason: name,
         );
-        if (name == 'v5' || name == 'v6' || name == 'v7' || name == 'v8') {
+        if (name == 'v5' ||
+            name == 'v6' ||
+            name == 'v7' ||
+            name == 'v8' ||
+            name == 'v9') {
           expect(
             restored.phraseProgress.keys,
             containsAll(<String>['twinkle.a', 'twinkle.b']),
@@ -111,7 +135,10 @@ void main() {
             1,
             reason: 'v5 evidence predates per-phrase versions',
           );
-        } else if (name == 'v6' || name == 'v7' || name == 'v8') {
+        } else if (name == 'v6' ||
+            name == 'v7' ||
+            name == 'v8' ||
+            name == 'v9') {
           expect(
             restored.phraseProgressFor('twinkle.a')!.contentVersion,
             2,
@@ -299,14 +326,14 @@ void main() {
       expect(importProgress(jsonEncode(fixture)), isNull);
     });
 
-    test('v7 migrates to v8 and removes every economy field', () {
+    test('v7 migrates to v9 and removes every economy field', () {
       final fixture = _loadFixture('v7');
       expect(fixture['gems'], 420);
       expect(fixture['openedChests'], isNotEmpty);
       expect(fixture['claimedQuests'], isNotEmpty);
 
       final migrated = _migrate(fixture);
-      expect(migrated['schemaVersion'], 8);
+      expect(migrated['schemaVersion'], 9);
       expect(migrated['gems'], isNull);
       expect(migrated['xpBoostUntil'], isNull);
       expect(migrated['openedChests'], isNull);
@@ -337,8 +364,56 @@ void main() {
       });
     });
 
-    test('v8 is idempotent and keeps raw phrase evidence', () {
+    test('v8 gains the reminder defaults and keeps every other field', () {
       final fixture = _loadFixture('v8');
+      expect(
+        (fixture['settings'] as Map<String, dynamic>).containsKey(
+          'reminderEnabled',
+        ),
+        isFalse,
+      );
+
+      final migrated = _migrate(fixture);
+      expect(migrated['schemaVersion'], 9);
+      final settings = migrated['settings'] as Map<String, dynamic>;
+      expect(settings['reminderEnabled'], isFalse);
+      expect(settings['reminderHour'], defaultReminderHour);
+      expect(settings['reminderMinute'], defaultReminderMinute);
+      // Every other field is copied through exactly.
+      expect(settings['weeklyGoalMinutes'], 45);
+      expect(settings['streakEnabled'], isTrue);
+      expect(migrated['xp'], 140);
+      expect(migrated['contentVersion'], 3);
+      expect(migrated['quests'], isA<Map<String, dynamic>>());
+      expect(migrated['phraseProgress'], isA<Map<String, dynamic>>());
+
+      final restored = importProgress(jsonEncode(fixture))!;
+      expect(restored.settings.reminderEnabled, isFalse);
+      expect(restored.settings.reminderHour, defaultReminderHour);
+      expect(restored.settings.reminderMinute, defaultReminderMinute);
+      expect(restored.settings.weeklyGoalMinutes, 45);
+      expect(restored.settings.streakEnabled, isTrue);
+    });
+
+    test('v9 round-trips the reminder settings through a save', () {
+      final fixture = _loadFixture('v9');
+      final migrated = _migrate(fixture);
+      expect(migrated, equals(fixture));
+
+      final restored = importProgress(jsonEncode(fixture))!;
+      expect(restored.settings.reminderEnabled, isTrue);
+      expect(restored.settings.reminderHour, 8);
+      expect(restored.settings.reminderMinute, 30);
+      final exported =
+          jsonDecode(exportProgress(restored)) as Map<String, dynamic>;
+      final settings = exported['settings'] as Map<String, dynamic>;
+      expect(settings['reminderEnabled'], isTrue);
+      expect(settings['reminderHour'], 8);
+      expect(settings['reminderMinute'], 30);
+    });
+
+    test('v9 is idempotent and keeps raw phrase evidence', () {
+      final fixture = _loadFixture('v9');
       final once = _migrate(fixture);
       expect(once, equals(fixture));
       expect(identical(once, fixture), isFalse);
@@ -414,7 +489,7 @@ void main() {
     });
 
     test('future, old, and invalid schema versions are rejected', () {
-      for (final version in <Object>[0, -1, 9, 999]) {
+      for (final version in <Object>[0, -1, 10, 999]) {
         final result = migrateProgress(<String, dynamic>{
           'schemaVersion': version,
         });
@@ -432,7 +507,7 @@ void main() {
         isA<MigrationFailure>(),
       );
       expect(migrateProgress(<String, dynamic>{}), isA<MigrationFailure>());
-      expect(importProgress('{"schemaVersion": 9}'), isNull);
+      expect(importProgress('{"schemaVersion": 10}'), isNull);
     });
 
     test('malformed fields fail cleanly', () {
@@ -480,44 +555,64 @@ void main() {
       'malformed known fields fail with FormatException, not a type error',
       () {
         final cases = <Map<String, dynamic>>[
-          <String, dynamic>{'schemaVersion': 8, 'daily': <dynamic>[]},
+          <String, dynamic>{'schemaVersion': 9, 'daily': <dynamic>[]},
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'bestLessonAccuracy': <dynamic>[],
           },
-          <String, dynamic>{'schemaVersion': 8, 'completedLessons': 'nope'},
+          <String, dynamic>{'schemaVersion': 9, 'completedLessons': 'nope'},
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'recentSessions': <dynamic>[1],
           },
-          <String, dynamic>{'schemaVersion': 8, 'xp': 'many'},
+          <String, dynamic>{'schemaVersion': 9, 'xp': 'many'},
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'practiceSecondsByDay': <String, dynamic>{'2026-10-13': -1},
           },
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'practiceSecondsByDay': <String, dynamic>{'not-a-day': 60},
           },
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'settings': <String, dynamic>{'weeklyGoalMinutes': 0},
           },
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'settings': <String, dynamic>{'weeklyGoalMinutes': 2000},
           },
-          <String, dynamic>{'schemaVersion': 8, 'quests': <dynamic>[]},
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
+            'settings': <String, dynamic>{'reminderEnabled': 'yes'},
+          },
+          <String, dynamic>{
+            'schemaVersion': 9,
+            'settings': <String, dynamic>{'reminderHour': 24},
+          },
+          <String, dynamic>{
+            'schemaVersion': 9,
+            'settings': <String, dynamic>{'reminderHour': -1},
+          },
+          <String, dynamic>{
+            'schemaVersion': 9,
+            'settings': <String, dynamic>{'reminderMinute': 60},
+          },
+          <String, dynamic>{
+            'schemaVersion': 9,
+            'settings': <String, dynamic>{'reminderMinute': -1},
+          },
+          <String, dynamic>{'schemaVersion': 9, 'quests': <dynamic>[]},
+          <String, dynamic>{
+            'schemaVersion': 9,
             'quests': <String, dynamic>{'phrasesPracticed': -1},
           },
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'quests': <String, dynamic>{'day': 'not-a-day'},
           },
           <String, dynamic>{
-            'schemaVersion': 8,
+            'schemaVersion': 9,
             'quests': <String, dynamic>{
               'learnedBarsByPhrase': <String, dynamic>{'twinkle.a': -2},
             },
@@ -642,7 +737,7 @@ void main() {
       'a future document is quarantined and survives a fresh save',
       () async {
         final future = jsonEncode(<String, dynamic>{
-          'schemaVersion': 9,
+          'schemaVersion': 10,
           'xp': 999,
         });
         SharedPreferences.setMockInitialValues({
@@ -656,7 +751,7 @@ void main() {
         final prefs = await SharedPreferences.getInstance();
         expect(
           prefs.getString(SharedPreferencesProgressStore.storageKey),
-          contains('"schemaVersion":8'),
+          contains('"schemaVersion":9'),
         );
         expect(
           prefs.getString(SharedPreferencesProgressStore.unreadableKey),
@@ -669,7 +764,7 @@ void main() {
       'the controller fallback preserves a future document across a save',
       () async {
         final future = jsonEncode(<String, dynamic>{
-          'schemaVersion': 9,
+          'schemaVersion': 10,
           'xp': 999,
         });
         SharedPreferences.setMockInitialValues({
@@ -692,7 +787,7 @@ void main() {
         );
         expect(
           prefs.getString(SharedPreferencesProgressStore.storageKey),
-          contains('"schemaVersion":8'),
+          contains('"schemaVersion":9'),
         );
       },
     );
