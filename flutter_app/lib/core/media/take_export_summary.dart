@@ -6,6 +6,68 @@ import 'package:pdf/widgets.dart' as pw;
 import '../app_metadata.dart' as metadata;
 import 'recording_index.dart';
 
+/// What the summary can honestly say about stored practice evidence.
+enum TakeExportEvidenceStatus {
+  /// A real phrase progress record was read and copied into the summary.
+  stored,
+
+  /// The take is a free take, or its phrase has no stored progress record.
+  /// This is a positive finding: there is nothing to include.
+  none,
+
+  /// The progress aggregate could not be read. The app must not claim there is
+  /// no evidence when it simply could not look.
+  unavailable,
+}
+
+/// One section of the plain-language header shared by the PDF and the
+/// pre-export sheet.
+class TakeSummaryHeaderSection {
+  const TakeSummaryHeaderSection({
+    required this.title,
+    required this.paragraphs,
+  });
+
+  final String title;
+  final List<String> paragraphs;
+}
+
+/// The COPPA §6.5 export header: what the bundle contains, who it is for, the
+/// retention rule, and how to delete it.
+///
+/// The pre-export sheet shows these sections before the share sheet opens, and
+/// the PDF repeats them. A test asserts that every required statement is
+/// present, so the sheet and the PDF cannot drift.
+const List<TakeSummaryHeaderSection> takeSummaryHeader =
+    <TakeSummaryHeaderSection>[
+      TakeSummaryHeaderSection(
+        title: 'WHAT THIS FILE CONTAINS',
+        paragraphs: <String>[
+          'One recorded guitar take (WAV), this one-page summary (PDF), and a '
+              'JSON copy of this summary.',
+        ],
+      ),
+      TakeSummaryHeaderSection(
+        title: 'WHO IT IS FOR',
+        paragraphs: <String>[
+          'A teacher or another person the student chooses. The app does not '
+              'send it to anyone; the student shares the files from the device '
+              'share sheet or downloads them in a web browser.',
+        ],
+      ),
+      TakeSummaryHeaderSection(
+        title: 'KEEPING AND DELETING IT',
+        paragraphs: <String>[
+          'The teacher should delete this copy after the review, and no later '
+              'than 90 days after receiving it.',
+          "To delete the student's own copy, open Recordings and use Clear "
+              'exported files on Android or iOS, or the browser downloads list '
+              'on web. Delete and Clear all remove the stored take, not an '
+              'export copy. The app never uploads the files.',
+        ],
+      ),
+    ];
+
 /// Human-readable piece details resolved from the launch-piece catalogue.
 ///
 /// The summary never invents a title: when the catalogue has no entry the
@@ -104,8 +166,16 @@ class TakeExportSummary {
     this.pieceId,
     this.piece,
     this.phraseId,
+    this.evidenceStatus = TakeExportEvidenceStatus.none,
     this.evidence,
-  });
+  }) : assert(
+         evidenceStatus != TakeExportEvidenceStatus.stored || evidence != null,
+         'Stored evidence status requires an evidence block.',
+       ),
+       assert(
+         evidenceStatus == TakeExportEvidenceStatus.stored || evidence == null,
+         'An evidence block requires the stored status.',
+       );
 
   /// Version of the JSON document written by this build.
   static const int schemaVersion = 1;
@@ -135,17 +205,24 @@ class TakeExportSummary {
   /// The phrase the take was recorded against, when the take has one.
   final String? phraseId;
 
-  /// Stored practice evidence, or null when the take has no phrase record.
+  /// Whether the evidence block is stored, absent, or unreadable.
+  final TakeExportEvidenceStatus evidenceStatus;
+
+  /// Stored practice evidence. Non-null only when [evidenceStatus] is
+  /// [TakeExportEvidenceStatus.stored].
   final TakeExportEvidence? evidence;
 
   /// Builds the summary for one stored take.
   ///
   /// [piece] and [evidence] must already be resolved by the caller; core code
-  /// does not import the content catalogue or the progress aggregate.
+  /// does not import the content catalogue or the progress aggregate. Pass
+  /// [TakeExportEvidenceStatus.unavailable] when the progress read failed;
+  /// never report an unread record as [TakeExportEvidenceStatus.none].
   factory TakeExportSummary.fromTake({
     required RecordingTake take,
     required DateTime exportedAt,
     TakeExportPiece? piece,
+    TakeExportEvidenceStatus evidenceStatus = TakeExportEvidenceStatus.none,
     TakeExportEvidence? evidence,
   }) => TakeExportSummary(
     takeId: take.id,
@@ -157,6 +234,7 @@ class TakeExportSummary {
     pieceId: take.pieceId,
     piece: piece,
     phraseId: take.phraseId,
+    evidenceStatus: evidenceStatus,
     evidence: evidence,
   );
 
@@ -173,16 +251,19 @@ class TakeExportSummary {
     'phraseId': phraseId,
     'appVersion': appVersion,
     'exportedAt': exportedAt.toUtc().toIso8601String(),
+    'evidenceStatus': evidenceStatus.name,
     'evidence': evidence?.toJson(),
   };
 }
 
 /// Renders [summary] as a one-page A4 PDF using PDF standard fonts.
 ///
-/// The header says what the bundle contains, who it is for, how long the
-/// teacher may keep it, and how to delete it. The evidence section is labelled
-/// as stored practice evidence; a take with no record says so instead of
-/// inventing a score.
+/// The shared [takeSummaryHeader] says what the bundle contains, who it is
+/// for, how long the teacher may keep it, and how to delete it. The evidence
+/// section is labelled as stored practice evidence; an absent record says so,
+/// and an unread record says the evidence could not be read. Neither case
+/// invents a score. Standard fonts cover WinAnsi/Latin-1; a future title or
+/// composer outside that range needs a bundled font.
 Future<Uint8List> buildTakeSummaryPdf(TakeExportSummary summary) async {
   final doc = pw.Document(
     title: 'Hear Me Out take summary',
@@ -217,30 +298,14 @@ Future<Uint8List> buildTakeSummaryPdf(TakeExportSummary summary) async {
           ),
           pw.SizedBox(height: 2),
           pw.Text(
-            'One page. Stored practice evidence, not a teacher grade.',
+            'One page. A practice take, not a teacher grade.',
             style: pw.TextStyle(fontSize: 10.5, color: PdfColors.grey700),
           ),
           pw.Divider(height: 18),
-          _sectionTitle('WHAT THIS FILE CONTAINS'),
-          _body(
-            'One recorded guitar take (WAV), this one-page summary (PDF), and '
-            'a JSON copy of this summary.',
-          ),
-          _sectionTitle('WHO IT IS FOR'),
-          _body(
-            'A teacher or another person the student chooses. The app does not '
-            'send it to anyone; the student shares the files from the device '
-            'share sheet.',
-          ),
-          _sectionTitle('KEEPING AND DELETING IT'),
-          _body(
-            'The teacher should delete this copy after the review, and no '
-            'later than 90 days after receiving it.',
-          ),
-          _body(
-            "To delete the student's own take, open Recordings and use Delete "
-            'or Clear all. The app never uploads the files.',
-          ),
+          for (final section in takeSummaryHeader) ...[
+            _sectionTitle(section.title),
+            for (final paragraph in section.paragraphs) _body(paragraph),
+          ],
           _sectionTitle('TAKE'),
           _row('Recorded', _formatUtc(summary.createdAt)),
           _row('Length', _formatDuration(summary.durationMs)),
@@ -251,8 +316,8 @@ Future<Uint8List> buildTakeSummaryPdf(TakeExportSummary summary) async {
           if (summary.piece?.stage != null)
             _row('Stage', '${summary.piece!.stage}'),
           if (summary.phraseId != null) _row('Phrase', summary.phraseId!),
-          _sectionTitle('STORED PRACTICE EVIDENCE'),
-          ..._evidenceWidgets(summary.evidence),
+          _sectionTitle('PRACTICE EVIDENCE'),
+          ..._evidenceWidgets(summary),
           pw.SizedBox(height: 14),
           pw.Divider(),
           pw.Text(
@@ -281,31 +346,51 @@ String _pieceLine(TakeExportSummary summary) {
   return 'Not identified in this build';
 }
 
-List<pw.Widget> _evidenceWidgets(TakeExportEvidence? evidence) {
-  if (evidence == null) {
-    return <pw.Widget>[
-      _body('No stored practice evidence for this take.'),
-      _body(
-        'The take may be a free recording, or this phrase has no stored '
-        'practice record. This summary does not invent a score or grade.',
-      ),
-    ];
+List<pw.Widget> _evidenceWidgets(TakeExportSummary summary) {
+  final evidence = summary.evidence;
+  switch (summary.evidenceStatus) {
+    case TakeExportEvidenceStatus.unavailable:
+      return <pw.Widget>[
+        _body('Practice evidence could not be read for this take.'),
+        _body(
+          'The app does not claim there is none. Reopen the app and export '
+          'again if you need the stored evidence.',
+        ),
+      ];
+    case TakeExportEvidenceStatus.none:
+      return <pw.Widget>[
+        _body('No stored practice evidence for this take.'),
+        _body(
+          'The take may be a free recording, or this phrase has no stored '
+          'practice record. This summary does not invent a score or grade.',
+        ),
+      ];
+    case TakeExportEvidenceStatus.stored:
+      if (evidence == null) {
+        // Defensive: the constructor asserts this pairing, but a bad caller
+        // must still produce an honest page rather than a blank section.
+        return <pw.Widget>[
+          _body('Practice evidence could not be read for this take.'),
+        ];
+      }
+      return <pw.Widget>[
+        _body(TakeExportEvidence.label),
+        _row('Attempts recorded', '${evidence.attempts}'),
+        _row('Best note accuracy', _formatPercent(evidence.bestAccuracy)),
+        _row(
+          'Best tempo',
+          evidence.bestTempoBpm == null
+              ? 'Not recorded'
+              : '${evidence.bestTempoBpm} BPM',
+        ),
+        _row('Practice days', '${evidence.performanceDays}'),
+        _row('Full-accuracy at-target days', '${evidence.masteryDays}'),
+        _row('Practice span', '${evidence.performanceSpanDays} days'),
+        _row('Evidence content version', '${evidence.contentVersion}'),
+        if (evidence.lastPerformedAt != null)
+          _row('Last practiced', _formatUtc(evidence.lastPerformedAt!)),
+      ];
   }
-  return <pw.Widget>[
-    _body(TakeExportEvidence.label),
-    _row('Attempts recorded', '${evidence.attempts}'),
-    _row('Best note accuracy', _formatPercent(evidence.bestAccuracy)),
-    _row(
-      'Best tempo',
-      evidence.bestTempoBpm == null ? 'Not recorded' : '${evidence.bestTempoBpm} BPM',
-    ),
-    _row('Practice days', '${evidence.performanceDays}'),
-    _row('Full-accuracy at-target days', '${evidence.masteryDays}'),
-    _row('Practice span', '${evidence.performanceSpanDays} days'),
-    _row('Evidence content version', '${evidence.contentVersion}'),
-    if (evidence.lastPerformedAt != null)
-      _row('Last practiced', _formatUtc(evidence.lastPerformedAt!)),
-  ];
 }
 
 pw.Widget _sectionTitle(String text) => pw.Padding(

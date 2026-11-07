@@ -17,6 +17,8 @@ import '../core/media/recording_index.dart';
 import '../core/media/recording_service.dart';
 import '../core/media/take_bundle_exporter.dart';
 import '../core/media/take_bundle_exporter_factory.dart';
+import '../core/media/take_export_cleaner.dart';
+import '../core/media/take_export_cleaner_factory.dart';
 import '../core/media/take_share_gateway.dart';
 import '../core/media/take_share_gateway_factory.dart';
 import '../core/notifications/reminder_scheduler.dart';
@@ -205,6 +207,18 @@ final takeBundleExporterProvider = FutureProvider<TakeBundleExporter>((
 final takeShareGatewayProvider = Provider<TakeShareGateway>(
   (ref) => createTakeShareGateway(),
 );
+
+/// Clears only the app's exported copies under the support `exports/` folder.
+///
+/// The media store lives under `media/`, so this cannot delete a stored take.
+/// On web the browser owns downloads and [TakeExportCleaner.isSupported] is
+/// false. Tests override it with a fake.
+final takeExportCleanerProvider = FutureProvider<TakeExportCleaner>((
+  ref,
+) async {
+  final exportsDirectory = await ref.watch(exportsDirectoryProvider.future);
+  return createTakeExportCleaner(exportsDirectory: exportsDirectory);
+});
 
 /// Builds the bounded local recording service.
 ///

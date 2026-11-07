@@ -569,13 +569,17 @@ public link. The card is local by default; **Export card** renders a PNG only
 after an explicit tap, and the audio is not included. The copy says the card
 stays on the device unless the learner exports it.
 
-The take list also offers **EXPORT FOR TEACHER**: one explicit tap writes the
-take, a one-page PDF summary, and a JSON copy, then opens the OS share sheet.
-The caption says the export is local, nothing is uploaded, and the teacher gets
-a copy only if the student shares it. The summary carries stored practice
-evidence or an explicit “no stored evidence” line; it never presents a teacher
-grade. The web build downloads the three files instead of opening a share
-sheet.
+The take list also offers **EXPORT FOR TEACHER**: tapping it shows the
+plain-language header (contents, audience, 90-day teacher retention, deletion),
+then writes the take, a one-page PDF summary, and a JSON copy and opens the OS
+share sheet. The caption says the export is local, nothing is uploaded by the
+app, and the teacher gets a copy only if the student shares it. The summary
+carries stored practice evidence, an explicit “no stored evidence” line, or an
+evidence-unavailable line; it never presents a teacher grade. A cancelled share
+uses a neutral notice, not the green success card. The web build downloads the
+three files instead of opening a share sheet. **CLEAR EXPORTS** deletes only the
+copies in the app's exports folder; Delete and Clear all touch only stored
+takes, and the screen says which is which.
 
 The privacy card sits above the record control and uses the conditional
 `MediaPrivacyCard` copy. Never claim backup exclusion unless the platform

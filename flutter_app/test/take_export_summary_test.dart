@@ -39,13 +39,23 @@ TakeExportSummary _summary({
     stage: 2,
   ),
   TakeExportEvidence? evidence,
+  TakeExportEvidenceStatus? evidenceStatus,
   bool withEvidence = true,
-}) => TakeExportSummary.fromTake(
-  take: take ?? _take(),
-  exportedAt: exportedAt ?? DateTime.utc(2026, 11, 7, 9, 15),
-  piece: piece,
-  evidence: withEvidence ? (evidence ?? _evidence()) : null,
-);
+}) {
+  final effectiveEvidence = withEvidence ? (evidence ?? _evidence()) : null;
+  final effectiveStatus =
+      evidenceStatus ??
+      (effectiveEvidence == null
+          ? TakeExportEvidenceStatus.none
+          : TakeExportEvidenceStatus.stored);
+  return TakeExportSummary.fromTake(
+    take: take ?? _take(),
+    exportedAt: exportedAt ?? DateTime.utc(2026, 11, 7, 9, 15),
+    piece: piece,
+    evidenceStatus: effectiveStatus,
+    evidence: effectiveEvidence,
+  );
+}
 
 void main() {
   test('JSON is versioned and carries only the documented take fields', () {
@@ -66,6 +76,7 @@ void main() {
     });
     expect(json['phraseId'], 'p1');
     expect(json['exportedAt'], '2026-11-07T09:15:00.000Z');
+    expect(json['evidenceStatus'], 'stored');
 
     final evidence = json['evidence']! as Map<String, Object?>;
     expect(evidence['label'], TakeExportEvidence.label);
@@ -110,6 +121,7 @@ void main() {
     expect(json['pieceId'], 'custom-piece');
     expect(json['piece'], isNull);
     expect(json['phraseId'], 'unknown-phrase');
+    expect(json['evidenceStatus'], 'none');
     expect(json['evidence'], isNull);
     expect(json.containsKey('score'), isFalse);
     expect(json.containsKey('grade'), isFalse);
@@ -125,7 +137,41 @@ void main() {
     expect(json['pieceId'], isNull);
     expect(json['piece'], isNull);
     expect(json['phraseId'], isNull);
+    expect(json['evidenceStatus'], 'none');
     expect(json['evidence'], isNull);
+  });
+
+  test('unread evidence is unavailable, not a no-evidence claim', () {
+    final json = _summary(
+      withEvidence: false,
+      evidenceStatus: TakeExportEvidenceStatus.unavailable,
+    ).toJson();
+
+    expect(json['evidenceStatus'], 'unavailable');
+    expect(json['evidence'], isNull);
+    expect(json.containsKey('score'), isFalse);
+    expect(json.containsKey('grade'), isFalse);
+  });
+
+  test('the shared header states contents, audience, retention, and deletion', () {
+    final titles = takeSummaryHeader.map((section) => section.title).toList();
+    expect(titles, <String>[
+      'WHAT THIS FILE CONTAINS',
+      'WHO IT IS FOR',
+      'KEEPING AND DELETING IT',
+    ]);
+
+    final text = takeSummaryHeader
+        .expand((section) => section.paragraphs)
+        .join(' ')
+        .toLowerCase();
+    expect(text, contains('wav'));
+    expect(text, contains('pdf'));
+    expect(text, contains('json'));
+    expect(text, contains('teacher'));
+    expect(text, contains('90 days'));
+    expect(text, contains('clear exported files'));
+    expect(text, contains('never uploads'));
   });
 
   test('the PDF starts with %PDF and is non-trivial', () async {
@@ -138,6 +184,36 @@ void main() {
   test('a take without evidence still produces a complete PDF', () async {
     final bytes = await buildTakeSummaryPdf(
       _summary(piece: null, withEvidence: false),
+    );
+
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    expect(bytes.length, greaterThan(1000));
+  });
+
+  test('an unavailable evidence read still produces a complete PDF', () async {
+    final bytes = await buildTakeSummaryPdf(
+      _summary(
+        withEvidence: false,
+        evidenceStatus: TakeExportEvidenceStatus.unavailable,
+      ),
+    );
+
+    expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    expect(bytes.length, greaterThan(1000));
+  });
+
+  test('a non-ASCII launch-piece title renders without throwing', () async {
+    // The V1 launch list includes "Spanish Romance (Romance Anónimo)". The
+    // standard Helvetica font covers WinAnsi, so the ó renders; a future title
+    // outside WinAnsi needs a bundled font.
+    final bytes = await buildTakeSummaryPdf(
+      _summary(
+        piece: const TakeExportPiece(
+          title: 'Spanish Romance (Romance Anónimo)',
+          composer: 'Anonymous',
+          stage: 9,
+        ),
+      ),
     );
 
     expect(String.fromCharCodes(bytes.take(4)), '%PDF');

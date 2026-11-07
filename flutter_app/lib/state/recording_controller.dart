@@ -8,6 +8,7 @@ import '../content/pieces/launch_pieces.dart';
 import '../core/media/recording_index.dart';
 import '../core/media/recording_service.dart';
 import '../core/media/take_bundle_exporter.dart';
+import '../core/media/take_export_cleaner.dart';
 import '../core/media/take_export_summary.dart';
 import '../core/media/take_share_gateway.dart';
 import 'app_controller.dart';
@@ -26,6 +27,7 @@ class RecordingScreenState {
     this.busy = false,
     this.failure,
     this.notice,
+    this.noticeNeutral = false,
     this.lastSaved,
   });
 
@@ -38,6 +40,10 @@ class RecordingScreenState {
   final bool busy;
   final RecordingFailure? failure;
   final String? notice;
+
+  /// True when [notice] is informational (export saved but not shared) rather
+  /// than a green success. A cancelled share must not look like a success.
+  final bool noticeNeutral;
   final RecordingTake? lastSaved;
 
   bool get hasTakes => takes.isNotEmpty;
@@ -53,6 +59,7 @@ class RecordingScreenState {
     bool? busy,
     RecordingFailure? failure,
     String? notice,
+    bool? noticeNeutral,
     RecordingTake? lastSaved,
     bool clearFailure = false,
     bool clearNotice = false,
@@ -66,6 +73,12 @@ class RecordingScreenState {
     busy: busy ?? this.busy,
     failure: clearFailure ? null : (failure ?? this.failure),
     notice: clearNotice ? null : (notice ?? this.notice),
+    // A new success notice must not inherit a previous neutral export flag.
+    noticeNeutral: clearNotice
+        ? false
+        : notice != null
+        ? (noticeNeutral ?? false)
+        : (noticeNeutral ?? this.noticeNeutral),
     lastSaved: lastSaved ?? this.lastSaved,
   );
 }
@@ -224,6 +237,53 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
     return failure;
   }
 
+  /// Deletes only the app's exported copies in the support `exports/` folder.
+  ///
+  /// Stored takes, the recording manifest, progress, and settings are
+  /// untouched. The screen confirms before calling this; it is the only write
+  /// path for the exports folder.
+  Future<RecordingFailure?> clearExports() async {
+    final current = state.asData?.value ?? await future;
+    if (current.busy) return null;
+    state = AsyncData(current.copyWith(busy: true, clearNotice: true));
+    TakeExportClearResult result;
+    try {
+      final cleaner = await ref.read(takeExportCleanerProvider.future);
+      result = await cleaner.clearExports();
+    } catch (error) {
+      result = TakeExportClearResult(
+        failure: TakeExportClearFailure(
+          'Could not clear the exported files.',
+          error,
+        ),
+      );
+    }
+    final failure = result.failure == null
+        ? null
+        : RecordingFailure(
+            RecordingFailureKind.export,
+            result.failure!.message,
+            cause: result.failure!.cause,
+          );
+    if (_disposed) return failure;
+    final notice = failure != null
+        ? null
+        : result.deletedCount == 0
+        ? 'No exported copies to clear.'
+        : 'Cleared ${result.deletedCount} exported '
+              '${result.deletedCount == 1 ? 'file' : 'files'}.';
+    state = AsyncData(
+      current.copyWith(
+        busy: false,
+        failure: failure,
+        clearFailure: failure == null,
+        notice: notice,
+        clearNotice: failure != null,
+      ),
+    );
+    return failure;
+  }
+
   Future<RecordingExportOutcome> exportTake(String id) async {
     final outcome = await _service.exportTake(id);
     if (_disposed) return outcome;
@@ -247,9 +307,10 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   /// The bundle is the stored WAV (never re-encoded), a one-page PDF summary,
   /// and a versioned JSON summary. The summary carries real phrase evidence
   /// only when the take has a phrase id and a stored progress record exists;
-  /// otherwise it says there is no stored evidence. After the files are
-  /// written, the OS share sheet is offered once. Nothing is uploaded, and the
-  /// stored take is never changed.
+  /// otherwise it says there is no stored evidence, or that the evidence could
+  /// not be read when the progress read failed. After the files are written,
+  /// the OS share sheet is offered once. Nothing is uploaded by the app, and
+  /// the stored take is never changed.
   Future<TakeBundleExportOutcome> exportTakeBundle(String id) async {
     if (_exportingBundle) {
       return const TakeBundleExportOutcome(
@@ -294,7 +355,8 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
                 composer: launch.piece.composer,
                 stage: launch.v1Stage,
               ),
-        evidence: evidence,
+        evidenceStatus: evidence.status,
+        evidence: evidence.evidence,
       );
 
       final Uint8List pdfBytes;
@@ -374,7 +436,12 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
         final latest = state.asData?.value;
         if (latest != null) {
           state = AsyncData(
-            latest.copyWith(clearFailure: true, notice: share.message),
+            latest.copyWith(
+              clearFailure: true,
+              notice: share.message,
+              noticeNeutral:
+                  share.status != TakeBundleExportStatus.shared,
+            ),
           );
         }
       }
@@ -407,30 +474,50 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
     return null;
   }
 
-  /// Reads stored phrase evidence for the take, or null when there is none.
+  /// Reads stored phrase evidence for the take with an honest tri-state.
   ///
-  /// A take with no phrase id is a free take. A progress read failure is
-  /// treated as no evidence: the summary says so instead of blocking the
-  /// export of the take itself.
-  Future<TakeExportEvidence?> _loadTakeEvidence(RecordingTake take) async {
+  /// A take with no phrase id is a free take. A missing phrase record is
+  /// [TakeExportEvidenceStatus.none]. A progress read failure is
+  /// [TakeExportEvidenceStatus.unavailable], never `none`: the summary says
+  /// the evidence could not be read instead of claiming there is none.
+  Future<
+    ({TakeExportEvidence? evidence, TakeExportEvidenceStatus status})
+  >
+  _loadTakeEvidence(RecordingTake take) async {
     final phraseId = take.phraseId;
-    if (phraseId == null) return null;
+    if (phraseId == null) {
+      return (
+        evidence: null,
+        status: TakeExportEvidenceStatus.none,
+      );
+    }
     try {
       final data = await ref.read(appControllerProvider.future);
       final phrase = data.progress.phraseProgressFor(phraseId);
-      if (phrase == null) return null;
-      return TakeExportEvidence(
-        attempts: phrase.attempts,
-        bestAccuracy: phrase.bestAccuracy,
-        bestTempoBpm: phrase.bestTempoBpm,
-        performanceDays: phrase.performanceDays.length,
-        masteryDays: phrase.masteryDays.length,
-        performanceSpanDays: phrase.performanceSpanDays,
-        contentVersion: phrase.contentVersion,
-        lastPerformedAt: phrase.lastPerformanceAt?.toUtc(),
+      if (phrase == null) {
+        return (
+          evidence: null,
+          status: TakeExportEvidenceStatus.none,
+        );
+      }
+      return (
+        evidence: TakeExportEvidence(
+          attempts: phrase.attempts,
+          bestAccuracy: phrase.bestAccuracy,
+          bestTempoBpm: phrase.bestTempoBpm,
+          performanceDays: phrase.performanceDays.length,
+          masteryDays: phrase.masteryDays.length,
+          performanceSpanDays: phrase.performanceSpanDays,
+          contentVersion: phrase.contentVersion,
+          lastPerformedAt: phrase.lastPerformanceAt?.toUtc(),
+        ),
+        status: TakeExportEvidenceStatus.stored,
       );
     } catch (_) {
-      return null;
+      return (
+        evidence: null,
+        status: TakeExportEvidenceStatus.unavailable,
+      );
     }
   }
 
@@ -442,7 +529,8 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
       return (
         status: TakeBundleExportStatus.exported,
         message:
-            'Downloaded ${result.files.length} files. Nothing is uploaded.',
+            'Downloaded ${result.files.length} files. Nothing is uploaded by '
+            'the app.',
       );
     }
 

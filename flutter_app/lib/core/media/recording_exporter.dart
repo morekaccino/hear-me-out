@@ -32,8 +32,10 @@ class RecordingExportResult {
 
 /// Copies a recording out of local storage without changing it.
 ///
-/// IO writes under the app support `exports/` directory. Web downloads the WAV
-/// through the browser. There is deliberately no share or cloud package.
+/// IO writes under the app support `exports/` directory. Web downloads the file
+/// through the browser. This single-file seam has no share or cloud dependency;
+/// T7.2 adds the OS share sheet separately behind `TakeShareGateway`. There is
+/// still no cloud, upload, or sync package.
 abstract interface class RecordingExporter {
   Future<RecordingExportResult> export(RecordingExportRequest request);
 }

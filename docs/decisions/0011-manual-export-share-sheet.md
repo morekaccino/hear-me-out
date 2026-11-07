@@ -28,35 +28,46 @@ itself remains gated and is not opened by this decision.
 
 1. **The OS share sheet is the delivery seam.** `share_plus` is added because it
    is a local operating-system hand-off: no network, no account, no cloud, no
-   sync, and no tracking. It is wrapped in `TakeShareGateway` so tests and the
-   web build never touch a platform channel. The share action is explicit: one
-   tap, one destination chosen by the student. There is no automatic share.
+   sync, and no tracking. It is wrapped in `TakeShareGateway` so tests and app
+   code never touch a platform channel. On web the app does not import or call
+   `share_plus`; it uses a download-only gateway. `share_plus` declares a web
+   plugin, so the generated web plugin registrant may still compile/register
+   it, but app code never calls it on web. The share action is explicit: the
+   student sees the header sheet, confirms, and chooses one destination. There
+   is no automatic share.
 2. **The bundle is three files, not one archive.** One selected take produces
    the existing WAV bytes, a one-page PDF summary, and a versioned JSON summary.
    The files are shared together. No ZIP/archive package is added; `share_plus`
    already accepts multiple files. `archive` appears in the lockfile only as a
-   transitive dependency of `pdf` and is not used for packaging.
+   transitive dependency of `pdf` and of the dev-only `flutter_launcher_icons` →
+   `image` chain; it is not used for packaging.
 3. **`pdf` renders the summary.** The package is pure Dart, so `lib/core/` stays
    free of native plugins and the web build needs no platform PDF engine.
    `printing` and native PDF plugins are not added. The PDF uses PDF standard
    fonts (Helvetica), not a bundled font asset; a font asset is not worth the
-   size for one page.
+   size for one page. Standard fonts cover WinAnsi/Latin-1; a future non-Latin
+   title needs a bundled font.
 4. **The stored take is unchanged.** The bundle exporter copies the stored WAV
    bytes; it never re-encodes, deletes, or rewrites the take or its manifest
    entry. IO writes into the existing app support `exports/` folder. Web uses
-   the existing browser-download technique through a conditional import; the
-   web build does not compile `share_plus`.
-5. **The summary carries evidence or says it has none.** Stored phrase evidence
-   is included only when the take has a phrase id and a real
-   `ProgressState.phraseProgress` record exists. The block is labelled “Stored
-   practice evidence, not a teacher grade.” A take without evidence says so in
-   the JSON and the PDF. No score, grade, or mastery claim is invented.
-6. **The deletion path is the existing recordings controls.** A per-take
-   **Delete** or **Clear all** removes the local take and its manifest entry.
-   The export copies are normal files in `exports/` and are outside the media
-   backup exclusion; the UI does not claim they are excluded. The app cannot
-   delete a copy a teacher already received; the teacher agreement and the
-   COPPA plan own that duty.
+   the existing browser-download technique through a conditional import.
+5. **The summary carries a tri-state evidence field.** Stored phrase evidence is
+   included only when the take has a phrase id and a real
+   `ProgressState.phraseProgress` record exists (`evidenceStatus: stored`). A
+   missing phrase record is `none`; a failed progress read is `unavailable`, so
+   the summary never claims there is no evidence when it could not look. The
+   stored block is labelled “Stored practice evidence, not a teacher grade.” No
+   score, grade, or mastery claim is invented.
+6. **Deletion has two explicit paths.** A per-take **Delete** or **Clear all**
+   removes the local take and its manifest entry. A new **Clear exports**
+   control deletes only the files directly inside the app support `exports/`
+   folder; it cannot reach the media store, manifest, progress, or settings.
+   Android/iOS do not expose that sandbox folder to the system file manager, so
+   the in-app control is the real deletion path; web downloads use the
+   browser's downloads list. The export copies are outside the media backup
+   exclusion and the UI does not claim they are excluded. The app cannot delete
+   a copy a teacher already received; the teacher agreement and the COPPA plan
+   own that duty.
 7. **No teacher account, dashboard, roster, upload, or sync is added.** The
    teacher receives a copy only if the student sends it. T7.5 remains gated by
    the COPPA plan and a separate decision.
@@ -74,22 +85,26 @@ The resolution details are a constraint, not a preference:
 - `pdf 3.11.3` caps `image` at `<4.6.0`, which resolves to `image 4.5.4` and
   `archive 4.0.9`, a working pair with `xml 6.6.1`.
 
-The pubspec declares `pdf: ^3.11.3` and `share_plus: ^13.3.1`; the lockfile
-pins `pdf 3.11.3`. A future ticket may raise `pdf` and `xml` together after
-proving the image/archive pair on every target.
+The pubspec declares `pdf: '>=3.11.3 <3.12.0'` and `share_plus: ^13.3.1`; the
+upper bound prevents a lockfile refresh from resolving the non-compiling
+`pdf 3.12`/`image`/`archive` pair. The lockfile pins `pdf 3.11.3`. A future
+ticket may raise `pdf` and `xml` together after proving the image/archive pair
+on every target.
 
 ## Consequences
 
 Positive: the teacher workflow exists without a server, account, or sync. The
-bundle is self-describing, carries real evidence or says it has none, and leaves
-the stored take untouched. The share seam is injectable, so CI never opens a
-share sheet, and the web build remains a pure download because the platform
-share path is conditionally excluded.
+bundle is self-describing, carries tri-state evidence rather than a guess, shows
+the header before the share sheet, and leaves the stored take untouched. The
+share seam is injectable, so CI never opens a share sheet. App code on web never
+imports or calls `share_plus`; it uses the download-only gateway, though the
+generated plugin registrant may still compile/register the plugin. The in-app
+Clear exports control closes the Android/iOS copy-deletion gap.
 
 Negative: the OS share sheet is not verified on a physical iOS or Android device
 in this environment, so no device share claim is made. Some destinations accept
-only one file type, so the student may need to share the three files
-individually. Web browsers can throttle several downloads from one tap. The
+only one file type, and the app does not provide a per-file share from the
+exports folder. Web browsers can throttle several downloads from one tap. The
 `exports/` folder sits outside the media backup exclusion, so an exported copy
 may be included in device backup; the copy is the student's responsibility.
 The teacher channel remains gated by the COPPA plan, and this decision does not

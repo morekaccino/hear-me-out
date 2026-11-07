@@ -229,9 +229,12 @@ session rules.
   not AAC, and recording quality is not validated on every device. The Practice
   **Recordings** screen owns record, play, delete, clear-all, and the manual
   **Export for teacher** bundle (the take, a one-page PDF summary, and a JSON
-  copy). The export writes local files and opens the OS share sheet; the web
-  build downloads the three files. Nothing is uploaded, and the summary carries
-  stored practice evidence or an explicit “no stored evidence” line.
+  copy). The export shows the plain-language header, writes local files, and
+  opens the OS share sheet on Android/iOS; the web build downloads the three
+  files. Nothing is uploaded by the app. **Clear exports** deletes only those
+  copies; Delete and Clear all touch only stored takes. The summary carries
+  stored practice evidence, an explicit “no stored evidence” line, or an
+  evidence-unavailable line.
 - A take leaves the device only through an explicit export you start, and
   deleting a take removes it from the device. An exported copy is a normal file
   outside the `media/` backup exclusion.

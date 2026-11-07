@@ -10,6 +10,7 @@ import 'package:hear_me_out/core/media/media_store.dart';
 import 'package:hear_me_out/core/media/recording_exporter.dart';
 import 'package:hear_me_out/core/media/recording_service.dart';
 import 'package:hear_me_out/core/media/take_bundle_exporter.dart';
+import 'package:hear_me_out/core/media/take_export_cleaner.dart';
 import 'package:hear_me_out/core/media/take_share_gateway.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
 import 'package:hear_me_out/core/notifications/reminder_scheduler.dart';
@@ -470,9 +471,15 @@ class FakeTakeBundleExporter implements TakeBundleExporter {
   Object? failWith;
   bool webDownload = false;
 
+  /// When set, [exportBundle] waits for the gate so a test can observe the
+  /// in-flight export state.
+  Completer<void>? gate;
+
   @override
   Future<TakeBundleResult> exportBundle(TakeBundleRequest request) async {
     requests.add(request);
+    final waiting = gate;
+    if (waiting != null) await waiting.future;
     final failure = failWith;
     if (failure != null) throw failure;
     return TakeBundleResult(
@@ -485,6 +492,26 @@ class FakeTakeBundleExporter implements TakeBundleExporter {
           ),
       ],
     );
+  }
+}
+
+/// Records clear-exports calls and returns a controllable typed result.
+class FakeTakeExportCleaner implements TakeExportCleaner {
+  FakeTakeExportCleaner({
+    this.isSupported = true,
+    this.result = const TakeExportClearResult(deletedCount: 3),
+  });
+
+  @override
+  bool isSupported;
+
+  TakeExportClearResult result;
+  int calls = 0;
+
+  @override
+  Future<TakeExportClearResult> clearExports() async {
+    calls++;
+    return result;
   }
 }
 
