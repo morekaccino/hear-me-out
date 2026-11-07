@@ -436,13 +436,16 @@ behavior as shipped.
 
 ### Feature gates that are easy to break
 
-- **Phrase loop — decision
+- **Phrase loop - decision
   [0001](decisions/0001-conditional-go.md).** Phase 1 engineering may proceed
-  while the corpus gate is open, but the phrase loop and any content that
+  while the corpus gate is open, but the scored phrase loop and any content that
   depends on validated phrase scoring stay unreachable from main navigation
   behind a single feature switch. The switch has no production "on" path before
   `T1.7` passes. No doc, ticket, or UI may claim mic accuracy is validated. The
-  Reading Lab and single-note features stay available.
+  Reading Lab and single-note features stay available. Decision
+  [0010](decisions/0010-first-session-practice-only.md) permits the T5.2
+  first-session flow to show **unscored practice-only** phrase feedback with no
+  progress write; the scored loop stays gated.
 - **Local-only retention — decision
   [0006](decisions/0006-local-retention-instrumentation.md).** No network,
   cloud, accounts, remote analytics, or third-party trackers. The only usage log

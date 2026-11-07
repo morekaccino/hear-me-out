@@ -412,8 +412,10 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   stimuli are synthesized locally as WAV bytes and the soundboard is available
   at `flutter_app/tool/soundboard.html`
 - The T2.5 phrase prompt, verifier, recorder, scored-take gate, and player
-  screen exist, but `phraseLoopEnabled` is false and the screen has no
-  main-navigation entry. No microphone-accuracy claim is validated.
+  screen exist, but `phraseLoopEnabled` is false and the scored screen has no
+  main-navigation entry. T5.2 may show the player practice-only from the first
+  session under decision 0010; that path writes no progress. No
+  microphone-accuracy claim is validated.
 - The T2.8 placement check is skippable and reachable from onboarding, a Path
   card, and the Profile starting-point card. Its versioned store is separate
   from progress; stages 6-8 map to 5 or 9 with a Phase 2 label, and the
