@@ -24,8 +24,10 @@ import 'phrase_loop_flag.dart';
 /// The only supported entry point for the phrase player.
 ///
 /// Returns null while decision 0001's [phraseLoopEnabled] gate is closed. No
-/// existing navigation calls this yet; T1.7 must pass before any caller wires
-/// it into Learn, Today, or Practice.
+/// scored entry point calls this until T1.7 passes. The practice-only
+/// first-session flow constructs [PhrasePlayerScreen] directly with
+/// `practiceOnly: true` and `recordProgress: false`; decision 0010 allows that
+/// unscored feedback and forbids any progress write from it.
 Widget? phrasePlayerFor(Phrase phrase) =>
     phraseLoopEnabled ? PhrasePlayerScreen(phrase: phrase) : null;
 
@@ -61,10 +63,13 @@ Widget? phrasePlayerForPhraseId(
 /// Gated phrase practice: read a phrase, hear it, play it, and get one
 /// correction.
 ///
-/// This surface is unreachable from main navigation while [phraseLoopEnabled]
-/// is false. It makes no validated-accuracy claim. A take is only persisted
-/// when [ScoredTakeGate.allowsScoredTake] is true and the verifier says the
-/// take is complete and determinate.
+/// The scored surface is unreachable from main navigation while
+/// [phraseLoopEnabled] is false. The first-session flow may show this screen
+/// with [practiceOnly] and `recordProgress: false`; decision 0010 permits that
+/// unscored correction and forbids any progress write from it. It makes no
+/// validated-accuracy claim. A take is only persisted when
+/// [ScoredTakeGate.allowsScoredTake] is true and the verifier says the take is
+/// complete and determinate.
 class PhrasePlayerScreen extends ConsumerStatefulWidget {
   const PhrasePlayerScreen({
     super.key,
@@ -76,6 +81,7 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
     this.recordProgress = true,
     this.practiceOnly = false,
     this.onTakeCompleted,
+    this.onVerification,
     this.verifier = const PhraseVerifier(),
   });
 
@@ -110,6 +116,13 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
   /// The returned bool is the saved/practice label the player shows. The
   /// callback owns persistence, so a Today take is recorded exactly once.
   final Future<bool> Function(PhraseVerification verification)? onTakeCompleted;
+
+  /// Receives every verification immediately after analysis.
+  ///
+  /// This is for flows that own the next screen (the first-session correction)
+  /// and do not want to persist progress. It fires before the scored-take gate
+  /// and before any save. The callback must not assume the player stays mounted.
+  final void Function(PhraseVerification verification)? onVerification;
 
   final PhraseVerifier verifier;
 
@@ -294,6 +307,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
       samples: take.samples,
       sampleRate: take.sampleRate,
     );
+    widget.onVerification?.call(verification);
 
     var saved = false;
     if (widget.practiceOnly) {

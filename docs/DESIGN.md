@@ -612,6 +612,13 @@ fourth screen and never a permission gate. No hearts, XP, streak, quests, gems,
 chests, or shop chrome appear during onboarding. The user should reach the path
 in under a minute.
 
+After onboarding, the **first session** takes about three minutes: hear the
+first four notes of Ode to Joy, play them back, see one specific correction, then
+record ten seconds. It is practice-only — no score, no accuracy percentage, no
+mastery claim — and the learner can skip it. The correction comes from the real
+verifier; the recording is the only saved artifact. The done screen says “You
+played your first phrase” and sends the learner to Learn.
+
 The first screen also carries a compact, off-by-default **Optional beta usage
 log** consent card below the optional microphone check. It is part of the first
 screen, not a fourth step. The copy says local only, no audio, no free text, no

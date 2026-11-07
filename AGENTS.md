@@ -283,6 +283,13 @@ Then open <http://127.0.0.1:8080/>.
 - **No hearts:** there is no heart pool, regeneration timer, refill, or
   out-of-lives failure. A lesson always reaches its result; wrong answers lower
   accuracy and queue the repair, never a life.
+- **First session:** after onboarding, the learner gets a practice-only guided
+  flow: hear the first four notes of Ode to Joy, play them back, see one real
+  correction, record ten seconds, and finish. It writes no FSRS, mastery, XP, or
+  quest evidence from the phrase take; the recording is the only saved artifact.
+  It is reachable without opening the scored phrase loop. The local
+  `first_note`, `first_phrase`, and `first_recording` hooks measure the funnel;
+  the percentages are pending a real beta.
 - **Weekly goal:** `settings.weeklyGoalMinutes` defaults to 30 and is the primary
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
@@ -405,8 +412,10 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   stimuli are synthesized locally as WAV bytes and the soundboard is available
   at `flutter_app/tool/soundboard.html`
 - The T2.5 phrase prompt, verifier, recorder, scored-take gate, and player
-  screen exist, but `phraseLoopEnabled` is false and the screen has no
-  main-navigation entry. No microphone-accuracy claim is validated.
+  screen exist, but `phraseLoopEnabled` is false and the scored screen has no
+  main-navigation entry. T5.2 may show the player practice-only from the first
+  session under decision 0010; that path writes no progress. No
+  microphone-accuracy claim is validated.
 - The T2.8 placement check is skippable and reachable from onboarding, a Path
   card, and the Profile starting-point card. Its versioned store is separate
   from progress; stages 6-8 map to 5 or 9 with a Phase 2 label, and the
@@ -426,6 +435,10 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   9 stores the reminder settings. The notification plugin is mobile-only
   behind a conditional import; web shows the setting as unavailable. Opt-in
   and session-2 lift are instrumented locally and remain pending a real beta.
+- T5.2 adds the guided first session after onboarding: hear/play the first four
+  notes of Ode to Joy, see one practice-only correction, record ten seconds, and
+  finish. It writes no scored phrase evidence; the recording is the only saved
+  artifact. The funnel hooks are local and the percentages remain pending beta.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
