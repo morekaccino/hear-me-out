@@ -34,6 +34,7 @@ void main() {
     int? contentVersion,
     bool recordProgress = true,
     bool practiceOnly = false,
+    bool hideLiveScore = false,
     Future<bool> Function(PhraseVerification verification)? onTakeCompleted,
     FakeAudioEngine? engine,
     FakePcmCapture? capture,
@@ -63,6 +64,7 @@ void main() {
           clockVerified: clockVerified,
           recordProgress: recordProgress,
           practiceOnly: practiceOnly,
+          hideLiveScore: hideLiveScore,
           onTakeCompleted: onTakeCompleted,
         ),
       ),
@@ -203,6 +205,43 @@ void main() {
       findsNothing,
     );
     expect(find.text('Listen once, then record a take.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a recital take shows no score until it completes', (
+    tester,
+  ) async {
+    useSize(tester, const Size(390, 844));
+    final store = freshStore();
+    await tester.pumpWidget(
+      buildScreen(store: store, headphonesConfirmed: true, hideLiveScore: true),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('phrase-take-result')), findsNothing);
+
+    await tester.tap(find.text('RECORD'));
+    await tester.pump();
+    await tester.pump();
+    await pumpPastCountIn(tester);
+
+    // While the microphone is live there is no score, accuracy, or correction.
+    expect(find.text('Recording — no score while you play.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('phrase-take-result')), findsNothing);
+    expect(find.text('Clean take'), findsNothing);
+    expect(find.textContaining('%'), findsNothing);
+
+    await tester.tap(find.text('STOP'));
+    await tester.pumpAndSettle();
+    for (var index = 0; index < 20; index++) {
+      if (find.text('Clean take').evaluate().isNotEmpty) break;
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    // The result is revealed only after the take completed.
+    expect(find.byKey(const ValueKey('phrase-take-result')), findsOneWidget);
+    expect(find.text('Clean take'), findsOneWidget);
+    expect(find.text('Saved to phrase progress.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

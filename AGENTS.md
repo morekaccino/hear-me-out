@@ -334,6 +334,17 @@ Then open <http://127.0.0.1:8080/>.
   attempt records its raw evidence and its own repertoire skill, never
   per-note skills. `phrase:` skill ids resolve through the content registry,
   and unknown ids are skipped rather than crashing practice.
+- **Performance days:** recording is a recital, not an every-session action.
+  `core/learning/performance_day.dart` is the pure cadence: three distinct
+  practice days in the last seven, at most two performance days in that window,
+  and two calendar days since the last take. Performance days come from the
+  real recording index (`RecordingTake.createdAt`), never from
+  `PhraseProgress.performanceDays`, which only the gated scored phrase loop
+  writes. Today opens the existing local recorder with no score during the
+  take; the weekly before/after card is the share. The real saved take still
+  counts toward the existing weekly recording quest, and it writes no
+  FSRS/phrase/mastery/XP/streak evidence. Decisions 0001/0010 still keep the
+  phrase player out of main navigation.
 - **XP:** 10 normal lesson, 15 review, +5 perfect; replay 5, +3 perfect replay;
   practice 5; jump test 20. XP is an internal progress number, not a currency
   and not the habit goal; there is no multiplier or purchase.

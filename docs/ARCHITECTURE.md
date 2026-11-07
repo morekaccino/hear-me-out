@@ -173,10 +173,14 @@ footer so a test build cannot be mistaken for released behavior.
   record/stop, status, the gate card, and one `FeedbackPanel` correction. It
   scores with `AppSettings.toleranceCents`, not a hard-coded 30-cent threshold.
   It has no hearts, XP, streak, quests, or other game chrome. Retry clears
-  the result and re-arms the take. It also supports `recordProgress: false`
-  with an `onTakeCompleted` callback, so Today owns the single recording and
-  receives the real take correction, and `practiceOnly` for an unscored Acquire
-  take.
+  the result and re-arms the take. It can hand a take to a caller
+  (`recordProgress: false` with `onTakeCompleted`) and supports an unscored
+  practice-only mode, but Today no longer uses either entry: decisions
+  0001/0010 keep this screen out of main navigation until T1.7. `hideLiveScore`
+  (default false) is the player-side recital contract: during the take it shows
+  no score or correction and only the calm status, then reveals the result
+  after the take completes. No current caller passes true; it is ready for the
+  scored phrase entry when its gate opens.
 
 The prompt is intentionally not part of the sealed `Prompt` hierarchy. The
 lesson composer and lesson screen keep their existing behavior.
@@ -215,13 +219,28 @@ use `HomeShell.withTodayForTesting()`, a `@visibleForTesting` constructor.
   habit streak; Today shows no XP, streak, quest, currency, or punishment.
   `instrumentElapsed` is the real guitar-in-hand time and is what the screen
   displays; the 5-minute plan has 3:30 of it.
-- `todayPerformanceDayProvider` defaults to false, so an Apply take is practice
-  only unless a caller explicitly marks a performance day.
-  `todayScoredTakeGateProvider` wraps the T2.5 `ScoredTakeGate`. A phrase result
-  is handed to `AppController.recordPhraseResult` only on a performance day,
-  when it is complete and determinate, and when the gate is open; indeterminate,
-  incomplete, non-performance-day, or gate-closed takes record nothing. The
-  surface never promotes a take as a validated accuracy claim.
+- `todayPerformanceDayProvider` is derived, not a constant. It reads the real
+  recording index (`recordingRecapTakesProvider`, the same durable take list the
+  recordings screen uses, without keeping the recordings controller or its
+  microphone service alive) and `ProgressState.practiceSecondsByDay`.
+  `core/learning/performance_day.dart` is the pure policy: at least three
+  distinct local practice days in the last seven, at most two performance days
+  (days with a saved take) in that window, and two local calendar days since the
+  most recent take. A learner with no takes is eligible once the practice habit
+  exists. A fresh profile, a still-loading app, or a still-loading index returns
+  false; a performance day is never invented. `PhraseProgress.performanceDays`
+  is deliberately not the source: it is written only by the gated scored phrase
+  loop.
+- The Today controller captures the derived day when the session builds and
+  only promotes false → true if the asynchronous index resolves late. It never
+  demotes mid-session: saving today's take legitimately makes the next session a
+  practice day, not this one. `TodayState.performanceTaken` is a UI flag set by
+  the recorder's real save callback, so the reflect block can show the weekly
+  before/after row.
+  `todayScoredTakeGateProvider` still wraps the T2.5 `ScoredTakeGate` and
+  `TodayController.savePhraseResult` still enforces the performance-day, gate,
+  complete, and determinate rules, but no current screen opens the phrase
+  player; it is the save gate for a future scored phrase entry.
 - `features/today/today_screen.dart` renders a responsive `PageFrame` column
   (720 px max) that fits 390x844 and 1200 px. The plan is a visible sequence:
   setup, technique, model, acquire, apply, reflect, then the maintenance block
@@ -237,17 +256,27 @@ use `HomeShell.withTodayForTesting()`, a `@visibleForTesting` constructor.
   `SYNTH PREVIEW`; it says human reference recordings are not available yet.
   The technique block links to the existing T2.7 `TechniqueScreen` and shows
   only the existing 60-second drill data.
-- The Apply block records only on a performance day and only through the T2.5
-  gate. It opens the phrase player with `recordProgress: false` and an
-  `onTakeCompleted` callback, so the take is recorded exactly once through
-  `TodayController.savePhraseResult` and the reflect card receives the real
-  `PhraseResult` and correction. Acquire opens the player in practice-only
-  mode, which never saves progress. When the gate is closed or the phrase
-  player is still gated, the block says the take is unscored practice. The
+- The Apply block is practice only on an ordinary day. On a performance day it
+  shows one calm recital card above it (one take, no score while you play,
+  feedback after) and opens the existing local `RecordingsScreen` with the
+  target's launch piece preselected and `singleTake: true`, so the record
+  control disables after the first committed take. That is the unscored media
+  path: one take, playback afterwards, no note score, no FSRS, phrase, mastery,
+  XP, or streak write. The real saved take does increment the existing weekly
+  recording quest through `recordRecordingMade`, exactly as any save from the
+  recordings screen does; that counter is real quest evidence, not a score.
+  Today does not
+  construct `PhrasePlayerScreen` at all; decisions 0001/0010 keep the phrase
+  player out of main navigation until T1.7. The recordings screen reports a
+  committed take through its `onTakeSaved` callback, and the reflect block then
+  shows the weekly before/after row: the existing T4.4 card when two comparable
+  takes exist, or a plain pointer to Recordings when they do not. Acquire falls
+  back to `OPEN READING LAB` instead of a practice-only phrase player. The
   reflect block asks for the 1-3 self-rating first, then shows one real metric
-  (the last take's note accuracy or measured guitar time), one correction, and
-  one next step. A correction that comes only from the self-rating is labelled
-  `ONE CORRECTION · FROM YOUR RATING`, not presented as take evidence.
+  (the last scored take's note accuracy or measured guitar time), one
+  correction, and one next step. A correction that comes only from the
+  self-rating is labelled `ONE CORRECTION · FROM YOUR RATING`, not presented as
+  take evidence.
 
 Session state is in memory; the durable facts are the measured seconds in
 `ProgressState.practiceSecondsByDay` (through `recordPracticeEffort`) and phrase
@@ -468,9 +497,14 @@ second `AudioRecorder` and no simultaneous record and stream.
   optional launch-piece selector, the take list with local play/export/delete,
   usage and cap, an empty state, and `MediaPrivacyCard`. The piece selector is
   the production path that makes first/last retention reachable.
-  `PracticeScreen` opens the screen after stopping the tuner. The screen has no
-  hearts, gems, XP, or streak, and it does not implement the T4.4 before/after
-  card. The T4.3 comparison is a separate screen reached from the take list.
+  `PracticeScreen` opens the screen after stopping the tuner, and Today opens it
+  for a performance-day take with an optional `initialPieceId`, an `onTakeSaved`
+  callback, and `singleTake: true` (the record control disables after the first
+  committed take; no new storage state). The screen has no hearts, gems, XP, or
+  streak, and it does not implement the T4.4 before/after card. The T4.3
+  comparison is a separate screen reached from the take list. A successful save
+  increments the existing weekly recording quest and invalidates the read-only
+  recap index, so every consumer sees the new take.
 - Backup exclusion remains decision [`0002`](decisions/0002-backup-exclusion-no-opt-in.md):
   the screen shows the conditional `MediaPrivacyCard` copy and never claims
   exclusion when the platform did not confirm it.
@@ -547,10 +581,13 @@ permission. `reminderSchedulerProvider` owns the instance.
 `core/notifications/weekly_recap.dart` builds real minutes, phrases, recordings,
 and one before/after pair from `ProgressState` and the recording index. The
 Quests screen renders it; `recordingRecapTakesProvider` reads the index without
-starting the recorder. `RecordingController` asks the scheduler for the
-“before/after ready” alert only after a saved take makes a piece’s second take,
-and only when reminders are enabled. The reminder settings are part of
-`AppSettings`; progress schema 9 migrates a v8 document with reminders off.
+starting the recorder. `RecordingController._applyStop` invalidates that provider
+after every committed save, so the recap and Today's performance-day cadence
+re-read the index even when the take was recorded from the Practice route.
+`RecordingController` asks the scheduler for the “before/after ready” alert only
+after a saved take makes a piece’s second take, and only when reminders are
+enabled. The reminder settings are part of `AppSettings`; progress schema 9
+migrates a v8 document with reminders off.
 
 ## Retention instrumentation
 
@@ -1043,7 +1080,7 @@ fresh profile; an unreadable document is quarantined first.
 | `test/recording_service_test.dart` | Permission denial, 60 s auto-stop/truncation, busy guard, quotas, storage failure, delete/clear/export, first/last retention, orphan reconciliation |
 | `test/recording_index_store_test.dart` | Versioned take manifest, future-version rejection, malformed entries, clear |
 | `test/recording_exporter_test.dart` | IO export bytes/name and path traversal rejection |
-| `test/recordings_screen_test.dart` | 390x844 and 1200 px, empty state, record/stop, play/export/delete, quota action, clear-all confirmation, auto-stop, conditional privacy copy |
+| `test/recordings_screen_test.dart` | 390x844 and 1200 px, empty state, record/stop, play/export/delete, quota action, clear-all confirmation, auto-stop, conditional privacy copy, preselected/unknown piece, single-take guard |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
 | `test/attempt_outcome_test.dart` | Tri-state no-ops, determinate scheduling, phrase evidence, retry feedback |
@@ -1069,6 +1106,7 @@ fresh profile; an unreadable document is quarantined first.
 | `test/weekly_recap_test.dart` | Real minutes, phrases, recordings, visible before/after selection, empty state |
 | `test/reminder_scheduler_test.dart` | Fake schedule request, cancel, denied-permission no-op, typed failure, web no-op |
 | `test/recording_reminder_test.dart` | First take silent, second take fires, reminders-off silent, one-piece scope |
+| `test/recording_recap_refresh_test.dart` | A committed save refreshes the recap index and the derived performance-day cadence, and counts the recording quest |
 | `test/reminder_profile_test.dart` | Toggle persist/schedule, denial path, quiet-hour rejection, 390/1200 px |
 | `test/weekly_recap_widget_test.dart` | Recap real numbers, empty state link, 390/1200 px |
 | `test/habit_test.dart` | Weekly minutes goal, optional streak, no-heart/no-shop UI, musical quests, measured session time, local completion/return |
@@ -1083,9 +1121,10 @@ fresh profile; an unreadable document is quarantined first.
 | `test/phrase_recorder_test.dart` | PCM collection, resampling, effective format, flush/stop, double start, dispose |
 | `test/scored_take_gate_test.dart` | Headphones, verified clock, calibration gate, practice-only default |
 | `test/phrase_loop_flag_test.dart` | Flag is off, gated entry returns null, no main-navigation entry |
-| `test/phrase_player_screen_test.dart` | 390x844 and 1200 px, play/count-in/record/stop/correction/retry, gate, calm copy |
-| `test/today_session_test.dart` | 5/10/20 plans, 3:30 guitar time, maintenance, supplied clock, no drift, early end, synth preview, phrase gate |
-| `test/today_screen_test.dart` | Gated Today surface, block sequence and copy, instrument timer, reflection, 390x844/1200 px, HomeShell switch |
+| `test/phrase_player_screen_test.dart` | 390x844 and 1200 px, play/count-in/record/stop/correction/retry, gate, calm copy, recital take hides the score until it completes |
+| `test/performance_day_test.dart` | Practice-day prerequisite, weekly take cap, rest days, distinct local days, future/malformed evidence |
+| `test/today_session_test.dart` | 5/10/20 plans, 3:30 guitar time, maintenance, supplied clock, no drift, early end, synth preview, phrase gate, derived performance-day cadence |
+| `test/today_screen_test.dart` | Gated Today surface, block sequence and copy, instrument timer, reflection, recital framing and recorder entry, weekly before/after row, 390x844/1200 px, HomeShell switch |
 
 `test/support/fakes.dart` contains an in-memory store, controllable
 `FakePitchSource` / `FakePitchSourceFactory`, and `FakeSoundService`. Use

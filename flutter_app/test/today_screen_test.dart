@@ -5,9 +5,16 @@ import 'package:hear_me_out/content/pieces/phrase_objectives.dart';
 import 'package:hear_me_out/core/audio/scored_take_gate.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/learning/skill.dart';
+import 'package:hear_me_out/core/media/backup_exclusion.dart';
+import 'package:hear_me_out/core/media/media_store.dart';
+import 'package:hear_me_out/core/media/recording_index.dart';
+import 'package:hear_me_out/core/media/recording_index_store.dart';
+import 'package:hear_me_out/core/media/recording_service.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
+import 'package:hear_me_out/features/before_after/before_after_screen.dart';
 import 'package:hear_me_out/features/home_shell.dart';
 import 'package:hear_me_out/features/path/path_screen.dart';
+import 'package:hear_me_out/features/recordings/recordings_screen.dart';
 import 'package:hear_me_out/features/today/today_controller.dart';
 import 'package:hear_me_out/features/today/today_screen.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
@@ -57,12 +64,26 @@ void main() {
     PhraseObjectiveRegistry? registry,
     FakeAudioEngine? engine,
     VoidCallback? onOpenPractice,
+    List<RecordingTake> recapTakes = const <RecordingTake>[],
+    RecordingService? recordingService,
+    MemoryRecordingIndexStore? recordingIndexStore,
   }) {
     return ProviderScope(
       overrides: [
         progressStoreProvider.overrideWithValue(store),
         soundServiceProvider.overrideWithValue(FakeSoundService()),
         audioEngineProvider.overrideWithValue(engine ?? FakeAudioEngine()),
+        takePlayerProvider.overrideWithValue(FakeTakePlayer()),
+        mediaBackupStatusProvider.overrideWithValue(
+          const AsyncData(BackupExclusionResult.failed('test')),
+        ),
+        recordingRecapTakesProvider.overrideWithValue(AsyncData(recapTakes)),
+        if (recordingService != null)
+          recordingServiceProvider.overrideWithValue(
+            AsyncData(recordingService),
+          ),
+        if (recordingIndexStore != null)
+          recordingIndexStoreProvider.overrideWithValue(recordingIndexStore),
         todayClockProvider.overrideWithValue(
           clock ?? () => DateTime(2026, 11, 6, 10),
         ),
@@ -76,6 +97,16 @@ void main() {
         theme: AppTheme.light,
         home: TodayScreen(onOpenPractice: onOpenPractice),
       ),
+    );
+  }
+
+  RecordingService buildRecordingService(MemoryRecordingIndexStore indexStore) {
+    return RecordingService(
+      store: MemoryMediaStore(),
+      indexStore: indexStore,
+      exporter: FakeRecordingExporter(),
+      clock: () => DateTime(2026, 11, 6, 12),
+      recorderFactory: () => throw StateError('No take in this test'),
     );
   }
 
@@ -381,16 +412,76 @@ void main() {
     final status = textOf(tester, 'today-apply-status');
     expect(status, contains('Practice only'));
     expect(status, contains('performance day'));
+    expect(
+      find.byKey(const ValueKey('today-performance-day-card')),
+      findsNothing,
+    );
+    expect(find.text('OPEN RECORDING'), findsNothing);
     expect(find.text('OPEN PHRASE TAKE'), findsNothing);
+    expect(find.text('OPEN PHRASE PRACTICE'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('a performance day with a closed gate stays unscored', (
+  testWidgets('a performance day frames a recital and opens the recorder', (
+    tester,
+  ) async {
+    useSize(tester, const Size(390, 844));
+    final indexStore = MemoryRecordingIndexStore();
+    final service = buildRecordingService(indexStore);
+    addTearDown(service.dispose);
+    await tester.pumpWidget(
+      buildToday(
+        store: freshStore(),
+        performanceDay: true,
+        recordingService: service,
+        recordingIndexStore: indexStore,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The calm banner sits above Apply and states the whole cadence.
+    expect(
+      find.byKey(const ValueKey('today-performance-day-card')),
+      findsOneWidget,
+    );
+    expect(find.text('PERFORMANCE DAY'), findsOneWidget);
+    expect(find.text('Today is a recital: one take.'), findsOneWidget);
+    expect(find.textContaining('No score while you play'), findsWidgets);
+    expect(find.textContaining('weekly before/after'), findsOneWidget);
+
+    await tapKey(tester, 'today-session-start');
+    await tapKey(tester, 'today-block-action-0');
+    await tapKey(tester, 'today-block-action-1');
+    await tapKey(tester, 'today-block-action-2');
+    await tapKey(tester, 'today-block-action-3');
+
+    final status = textOf(tester, 'today-apply-status');
+    expect(status, contains('Performance day'));
+    expect(status, contains('no score while you play'));
+    expect(find.text('OPEN RECORDING'), findsOneWidget);
+    expect(find.text('OPEN PHRASE TAKE'), findsNothing);
+
+    await tester.ensureVisible(find.text('OPEN RECORDING'));
+    await tester.tap(find.text('OPEN RECORDING'));
+    await tester.pumpAndSettle();
+
+    // The unscored local recorder is the performance take, not the gated
+    // phrase player (decisions 0001/0010).
+    expect(find.byType(RecordingsScreen), findsOneWidget);
+    expect(find.text('Recordings'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a performance day never opens the gated phrase player', (
     tester,
   ) async {
     useSize(tester, const Size(390, 844));
     await tester.pumpWidget(
-      buildToday(store: freshStore(), performanceDay: true),
+      buildToday(
+        store: freshStore(),
+        performanceDay: true,
+        gate: const ScoredTakeGate(headphonesConfirmed: true),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -400,9 +491,158 @@ void main() {
     await tapKey(tester, 'today-block-action-2');
     await tapKey(tester, 'today-block-action-3');
 
-    final status = textOf(tester, 'today-apply-status');
-    expect(status, contains('scored-take gate is closed'));
     expect(find.text('OPEN PHRASE TAKE'), findsNothing);
+    expect(find.text('OPEN PHRASE PRACTICE'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a saved performance take points to Recordings without a pair', (
+    tester,
+  ) async {
+    useSize(tester, const Size(390, 844));
+    final indexStore = MemoryRecordingIndexStore();
+    final service = buildRecordingService(indexStore);
+    addTearDown(service.dispose);
+    await tester.pumpWidget(
+      buildToday(
+        store: freshStore(),
+        performanceDay: true,
+        recordingService: service,
+        recordingIndexStore: indexStore,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TodayScreen)),
+    );
+    final controller = container.read(todayControllerProvider.notifier);
+    controller.markPerformanceTaken();
+    controller.finishEarly();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('today-before-after-result')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('lives in Recordings'), findsOneWidget);
+    expect(find.text('OPEN RECORDINGS'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a saved performance take links to the before/after card', (
+    tester,
+  ) async {
+    useSize(tester, const Size(390, 844));
+    final indexStore = MemoryRecordingIndexStore();
+    final service = buildRecordingService(indexStore);
+    addTearDown(service.dispose);
+    final takes = [
+      RecordingTake(
+        id: 'take-old',
+        createdAt: DateTime(2026, 11, 1, 12).toUtc(),
+        byteLength: 1000,
+        durationMs: 1000,
+        pieceId: 'ode-to-joy',
+      ),
+      RecordingTake(
+        id: 'take-new',
+        createdAt: DateTime(2026, 11, 4, 12).toUtc(),
+        byteLength: 1000,
+        durationMs: 1000,
+        pieceId: 'ode-to-joy',
+      ),
+    ];
+    await tester.pumpWidget(
+      buildToday(
+        store: freshStore(),
+        performanceDay: true,
+        recapTakes: takes,
+        recordingService: service,
+        recordingIndexStore: indexStore,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TodayScreen)),
+    );
+    final controller = container.read(todayControllerProvider.notifier);
+    controller.markPerformanceTaken();
+    controller.finishEarly();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('today-before-after-result')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('days apart'), findsOneWidget);
+    expect(find.text('OPEN BEFORE/AFTER'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('OPEN BEFORE/AFTER'));
+    await tester.tap(find.text('OPEN BEFORE/AFTER'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BeforeAfterScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the performance card and share row fit 1200 px', (tester) async {
+    useSize(tester, const Size(1200, 900));
+    final indexStore = MemoryRecordingIndexStore();
+    final service = buildRecordingService(indexStore);
+    addTearDown(service.dispose);
+    final takes = [
+      RecordingTake(
+        id: 'take-old',
+        createdAt: DateTime(2026, 11, 1, 12).toUtc(),
+        byteLength: 1000,
+        durationMs: 1000,
+        pieceId: 'ode-to-joy',
+      ),
+      RecordingTake(
+        id: 'take-new',
+        createdAt: DateTime(2026, 11, 4, 12).toUtc(),
+        byteLength: 1000,
+        durationMs: 1000,
+        pieceId: 'ode-to-joy',
+      ),
+    ];
+    await tester.pumpWidget(
+      buildToday(
+        store: freshStore(),
+        performanceDay: true,
+        recapTakes: takes,
+        recordingService: service,
+        recordingIndexStore: indexStore,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('today-performance-day-card')),
+      findsOneWidget,
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(TodayScreen)),
+    );
+    final controller = container.read(todayControllerProvider.notifier);
+    controller.markPerformanceTaken();
+    controller.finishEarly();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey('today-before-after-result')),
+      findsOneWidget,
+    );
+    expect(
+      tester.getSize(find.byType(SingleChildScrollView)).width,
+      lessThanOrEqualTo(720),
+    );
     expect(tester.takeException(), isNull);
   });
 

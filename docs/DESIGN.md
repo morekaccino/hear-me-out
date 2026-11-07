@@ -330,14 +330,25 @@ streak, quests, currency, or punishment.
 - **Model:** a `SYNTH PREVIEW` badge, a locally generated preview, and the line
   `Human reference recordings are not available yet.` Never label the synth as
   a human recording.
-- **Acquire:** a staff read-along card for a note, or the phrase player in
-  practice-only mode when its gate is open. Copy: one bar at 50–70%, 3–5
-  blocked reps, then one correction. Practice-only player takes never save.
+- **Acquire:** a staff read-along card for a note, or a pointer to the Reading
+  Lab when the target is a phrase. Copy: one bar at 50–70%, 3–5 blocked reps,
+  then one correction. The gated phrase player is not opened from Today while
+  decisions 0001/0010 keep it out of main navigation.
 - **Apply:** one take at target tempo. Recording is a performance-day action,
-  not an every-session action. The default is practice only; a closed
-  scored-take gate says the take is unscored and is not saved. On a performance
-  day with the gate open, the player returns its take to Today, which records
-  it once and uses the take's correction in the reflect card.
+  not an every-session action. The default is practice only. On a performance
+  day a calm recital card sits above Apply: one take, no score while you play,
+  feedback after, and the weekly before/after as the thing worth sharing. Apply
+  opens the existing local recorder (piece preselected when the target has one);
+  the take is unscored, stays on the device, and is played back afterwards. The
+  reflect block then offers the private before/after card when two comparable
+  takes exist, or points plainly to Recordings when they do not. Today never
+  opens the gated phrase player.
+- **Performance cadence:** a performance day appears roughly once or twice a
+  week. It needs three real practice days in the last seven, at most two
+  performance days in that window, and two calendar days since the last take. A
+  new learner is never on stage on day one. The card says this plainly; there
+  is no schedule setting, no reminder to record, and no guilt for a practice
+  day.
 - **Reflect:** the 1-3 self-rating comes first. Only after the rating does the
   learner see one real metric (last-take note accuracy or measured guitar time),
   one correction, and one next step. Nothing is invented. If no take correction
@@ -533,7 +544,10 @@ A local take recorder reached from Practice; the tuner stops before the route
 opens because the platform recorder is shared. Record/stop stays in one card,
 with the 60-second limit visible and an optional launch-piece selector. Choosing
 a piece gives the take a stable `pieceId`, which is what makes the first/last
-per-piece retention rule reachable. Leaving the screen stops and discards a live
+per-piece retention rule reachable. Today opens the same screen for a
+performance-day take with its target piece preselected and a one-take guard
+that disables the record control after the first saved take; the general
+Practice route stays multi-take. Leaving the screen stops and discards a live
 take; the microphone never stays on behind Practice.
 
 The take list shows date, piece or phrase, duration, and size, and offers play,

@@ -6,6 +6,7 @@ import '../../content/pieces/phrase_objectives.dart';
 import '../../content/practice_session_factory.dart';
 import '../../core/audio/phrase_scorer.dart';
 import '../../core/audio/scored_take_gate.dart';
+import '../../core/learning/performance_day.dart';
 import '../../core/learning/practice_session.dart';
 import '../../core/learning/progress.dart';
 import '../../state/app_controller.dart';
@@ -22,10 +23,28 @@ final todayClockProvider = Provider<TodayClock>((ref) => DateTime.now);
 
 /// Whether today is a performance day.
 ///
-/// Recording is deliberately not every-session behaviour. The default is false,
-/// so an Apply take is unscored practice unless a caller opts in. No screen
-/// turns this on automatically; a future performance-day scheduler owns that.
-final todayPerformanceDayProvider = Provider<bool>((ref) => false);
+/// Recording is deliberately not every-session behaviour. The cadence is
+/// derived from real evidence: at least three local practice days in the last
+/// seven, and a take-recording rhythm of at most two performance days in that
+/// window with two calendar days of rest after each. The pure policy lives in
+/// `core/learning/performance_day.dart`.
+///
+/// The recording index is the evidence, not `PhraseProgress.performanceDays`:
+/// the scored phrase loop is still gated, so its performance days cannot be the
+/// cadence source. [recordingRecapTakesProvider] reads the same durable index
+/// without keeping the recordings controller (and its microphone service)
+/// alive behind Today.
+///
+/// A fresh profile, a still-loading progress store, or a still-loading
+/// recording index all return false. A performance day is never invented.
+final todayPerformanceDayProvider = Provider<bool>((ref) {
+  final progress = ref.watch(appControllerProvider).asData?.value.progress;
+  if (progress == null) return false;
+  final takes = ref.watch(recordingRecapTakesProvider).asData?.value;
+  if (takes == null) return false;
+  final now = ref.watch(todayClockProvider)();
+  return isPerformanceDay(progress, takes.map((take) => take.createdAt), now);
+});
 
 /// The T2.5 scored-take gate for a Today take.
 ///
@@ -61,6 +80,7 @@ class TodayState {
     this.lastCorrection,
     this.earlyEnded = false,
     this.completedRecorded = false,
+    this.performanceTaken = false,
   });
 
   final PracticeSession session;
@@ -86,6 +106,13 @@ class TodayState {
   /// True once the completion was sent to the app controller.
   final bool completedRecorded;
 
+  /// True once a take was saved from this session's performance recording.
+  ///
+  /// The recording index is the durable evidence; this flag only lets the
+  /// reflect block show the weekly before/after row on the result. It is never
+  /// set from a tap alone, resets with a new session, and never claims a score.
+  final bool performanceTaken;
+
   TodayState copyWith({
     PracticeSession? session,
     String? targetReason,
@@ -98,6 +125,7 @@ class TodayState {
     bool clearLastCorrection = false,
     bool? earlyEnded,
     bool? completedRecorded,
+    bool? performanceTaken,
   }) {
     return TodayState(
       session: session ?? this.session,
@@ -112,6 +140,7 @@ class TodayState {
           : lastCorrection ?? this.lastCorrection,
       earlyEnded: earlyEnded ?? this.earlyEnded,
       completedRecorded: completedRecorded ?? this.completedRecorded,
+      performanceTaken: performanceTaken ?? this.performanceTaken,
     );
   }
 }
@@ -134,6 +163,16 @@ class TodayController extends Notifier<TodayState> {
   TodayState build() {
     _completionRecorded = false;
     _clock = ref.read(todayClockProvider);
+    // The recording index loads asynchronously. Promote the session to a
+    // performance day when the real evidence arrives, but never demote it:
+    // saving today's take adds today to the index and legitimately makes the
+    // *next* session a practice day, not this one. The day is a snapshot once
+    // the session starts, exactly like the plan and the target.
+    ref.listen<bool>(todayPerformanceDayProvider, (previous, next) {
+      if (next && !state.performanceDay) {
+        state = state.copyWith(performanceDay: true);
+      }
+    });
     final progress = _progress();
     final now = _clock();
     final session = buildPracticeSession(progress: progress, now: now);
@@ -293,12 +332,28 @@ class TodayController extends Notifier<TodayState> {
     state = state.copyWith(selfRating: rating);
   }
 
+  /// Marks that the performance-day recording route saved a real take.
+  ///
+  /// The recordings controller calls this after the recording index committed
+  /// a take, so the reflect block can offer the weekly before/after card. It is
+  /// a UI flag only: the take itself lives in the recording index, not in
+  /// `ProgressState`, and no score is implied.
+  void markPerformanceTaken() {
+    if (!state.performanceDay || state.performanceTaken) return;
+    state = state.copyWith(performanceTaken: true);
+  }
+
   /// Records one completed phrase take through the existing progress path.
   ///
   /// A take is saved only on a performance day, when it is determinate and
   /// complete, and when the T2.5 gate is open. An indeterminate, incomplete,
   /// gate-closed, or non-performance-day take remains practice only: it is
   /// shown to the learner but never calls `recordPhraseResult`.
+  ///
+  /// Today's shipped performance take uses the local recording index instead
+  /// of this scored path, per decisions 0001 and 0010. This method stays the
+  /// single save gate for a future scored phrase entry; no current screen calls
+  /// it, and it never runs from the recording route.
   Future<bool> savePhraseResult({
     required String phraseId,
     required PhraseResult result,

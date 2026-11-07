@@ -43,6 +43,7 @@ Widget? phrasePlayerForPhraseId(
   bool practiceOnly = false,
   bool headphonesConfirmed = false,
   bool clockVerified = false,
+  bool hideLiveScore = false,
   Future<bool> Function(PhraseVerification verification)? onTakeCompleted,
 }) {
   if (!phraseLoopEnabled) return null;
@@ -56,6 +57,7 @@ Widget? phrasePlayerForPhraseId(
     practiceOnly: practiceOnly,
     headphonesConfirmed: headphonesConfirmed,
     clockVerified: clockVerified,
+    hideLiveScore: hideLiveScore,
     onTakeCompleted: onTakeCompleted,
   );
 }
@@ -80,6 +82,7 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
     this.headphonesConfirmed = false,
     this.recordProgress = true,
     this.practiceOnly = false,
+    this.hideLiveScore = false,
     this.onTakeCompleted,
     this.onVerification,
     this.verifier = const PhraseVerifier(),
@@ -110,6 +113,16 @@ class PhrasePlayerScreen extends ConsumerStatefulWidget {
   /// True for unscored phrase practice. The player still listens and gives
   /// feedback, but it never saves progress and labels the card "Practice take".
   final bool practiceOnly;
+
+  /// True for a recital take: no score, accuracy, or correction is shown while
+  /// the microphone is live. The result panel still appears once the take
+  /// completes, so the learner hears the feedback after playing, not during.
+  ///
+  /// The default false keeps ordinary practice takes unchanged. No current
+  /// screen passes true: Today's performance take uses the unscored recording
+  /// index, and decisions 0001/0010 keep this player out of main navigation
+  /// until T1.7. The flag is the player-side contract for that scored entry.
+  final bool hideLiveScore;
 
   /// Receives a complete, determinate take when [recordProgress] is false.
   ///
@@ -380,7 +393,11 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
     if (_recording && _countInRemaining > 0) {
       return 'Count-in: $_countInRemaining';
     }
-    if (_recording) return 'Recording — play the phrase.';
+    if (_recording) {
+      return widget.hideLiveScore
+          ? 'Recording — no score while you play.'
+          : 'Recording — play the phrase.';
+    }
     if (_verification != null) {
       return switch (_verification!.outcome) {
         AttemptOutcome.correct => 'Clean take.',
@@ -444,6 +461,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
                 const SizedBox(height: DuoSpacing.sm),
                 Text(
                   _statusText,
+                  key: const ValueKey('phrase-live-status'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -457,9 +475,13 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
                 ],
                 const SizedBox(height: DuoSpacing.md),
                 _gateCard(),
-                if (_verification != null) ...[
+                // A recital take never reveals its result while the microphone
+                // is live. Ordinary takes keep the same timing: the panel is
+                // created only after the take stops and analysis completes.
+                if (_verification != null && !_recording && !_analyzing) ...[
                   const SizedBox(height: DuoSpacing.md),
                   ClipRRect(
+                    key: const ValueKey('phrase-take-result'),
                     borderRadius: BorderRadius.circular(24),
                     child: _feedbackCard(_verification!),
                   ),

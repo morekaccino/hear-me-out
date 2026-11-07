@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/content/pieces/phrase_objectives.dart';
@@ -7,6 +9,7 @@ import 'package:hear_me_out/core/learning/note_objective.dart';
 import 'package:hear_me_out/core/learning/practice_session.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/learning/skill.dart';
+import 'package:hear_me_out/core/media/recording_index.dart';
 import 'package:hear_me_out/core/music/note.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/features/today/today_content.dart';
@@ -427,6 +430,8 @@ void main() {
 
       expect(saved, isFalse);
       expect(container.read(todayControllerProvider).lastTakeSaved, isFalse);
+      // A gate-open take on a practice day never reaches recordPhraseResult.
+      expect(store.value!.phraseProgress, isEmpty);
       expect(store.value!.phraseProgressFor('ode-to-joy-p1'), isNull);
     });
 
@@ -510,4 +515,117 @@ void main() {
       expect(other.read(todayControllerProvider).performanceDay, isTrue);
     },
   );
+
+  group('Today performance-day cadence', () {
+    final now = DateTime(2026, 11, 6, 10);
+
+    MemoryProgressStore practicedRecently() {
+      return MemoryProgressStore(
+        ProgressState(
+          settings: const AppSettings(onboardingComplete: true),
+          practiceSecondsByDay: {
+            dayKey(DateTime(2026, 11, 6)): 300,
+            dayKey(DateTime(2026, 11, 5)): 300,
+            dayKey(DateTime(2026, 11, 3)): 300,
+          },
+        ),
+      );
+    }
+
+    RecordingTake takeOn(DateTime localTime) => RecordingTake(
+      id: 'take-${localTime.day}',
+      createdAt: localTime.toUtc(),
+      byteLength: 1000,
+      durationMs: 1000,
+    );
+
+    ProviderContainer cadenceContainer({
+      required MemoryProgressStore store,
+      required FutureOr<List<RecordingTake>> Function() takes,
+    }) {
+      final container = ProviderContainer(
+        overrides: [
+          progressStoreProvider.overrideWithValue(store),
+          soundServiceProvider.overrideWithValue(FakeSoundService()),
+          todayClockProvider.overrideWithValue(() => now),
+          recordingRecapTakesProvider.overrideWith((ref) => takes()),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    test('returns false while the app data is still loading', () async {
+      final container = cadenceContainer(
+        store: practicedRecently(),
+        takes: () => const <RecordingTake>[],
+      );
+
+      expect(container.read(todayPerformanceDayProvider), isFalse);
+      await container.read(appControllerProvider.future);
+      expect(container.read(todayPerformanceDayProvider), isTrue);
+    });
+
+    test('three real practice days with no takes open the stage', () async {
+      final container = cadenceContainer(
+        store: practicedRecently(),
+        takes: () => const <RecordingTake>[],
+      );
+      await container.read(appControllerProvider.future);
+
+      expect(container.read(todayPerformanceDayProvider), isTrue);
+    });
+
+    test('a real take yesterday makes today a rest day', () async {
+      final container = cadenceContainer(
+        store: practicedRecently(),
+        takes: () => [takeOn(DateTime(2026, 11, 5, 12))],
+      );
+      await container.read(appControllerProvider.future);
+
+      expect(container.read(todayPerformanceDayProvider), isFalse);
+    });
+
+    test('a late-loading recording index promotes the session', () async {
+      final gate = Completer<List<RecordingTake>>();
+      final container = cadenceContainer(
+        store: practicedRecently(),
+        takes: () => gate.future,
+      );
+      await container.read(appControllerProvider.future);
+
+      // The controller builds while the index is still loading: never invent a
+      // stage day from missing evidence.
+      expect(container.read(todayControllerProvider).performanceDay, isFalse);
+
+      gate.complete(const <RecordingTake>[]);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(container.read(todayControllerProvider).performanceDay, isTrue);
+    });
+
+    test('a saved performance take is marked once and resets on restart', () {
+      final container = ProviderContainer(
+        overrides: [
+          progressStoreProvider.overrideWithValue(freshStore()),
+          soundServiceProvider.overrideWithValue(FakeSoundService()),
+          todayClockProvider.overrideWithValue(() => now),
+          todayPerformanceDayProvider.overrideWithValue(true),
+          todayScoredTakeGateProvider.overrideWithValue(
+            const ScoredTakeGate(headphonesConfirmed: true),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(todayControllerProvider.notifier);
+
+      expect(container.read(todayControllerProvider).performanceTaken, isFalse);
+      controller.markPerformanceTaken();
+      expect(container.read(todayControllerProvider).performanceTaken, isTrue);
+
+      controller.restart();
+      expect(container.read(todayControllerProvider).performanceTaken, isFalse);
+    });
+  });
 }
