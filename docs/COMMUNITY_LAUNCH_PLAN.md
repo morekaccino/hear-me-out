@@ -4,7 +4,7 @@
 **Status:** Plan only. Not executed. Last updated 2026-11-07.
 **Owner:** Founder / human growth owner. Every post, comment, email, DM, and moderator request is sent by a person from a personal account.
 **Scope:** Organic community participation and teacher demand evidence for adult, notation-first guitar learners. No paid acquisition, no growth hacks, no app changes.
-**Source of truth:** Plane T8.5. Approved plan: sections 11.4 (acquisition) and 13 (roadmap) in [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md). Listing and claims: [`ASO_PLAN.md`](ASO_PLAN.md). Free lessons and tools: [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md). Teacher gate: [`COPPA_GUARDIAN_CONSENT_PLAN.md`](COPPA_GUARDIAN_CONSENT_PLAN.md). Gate evidence: [`PHASE_GATES.md`](PHASE_GATES.md). Voice: [`DESIGN.md`](DESIGN.md). Mission and hard rules: [`../AGENTS.md`](../AGENTS.md).
+**Source of truth:** Plane T8.5. Approved plan: sections 11.4 (acquisition) and 13 (roadmap) in [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md). Listing and claims: [`ASO_PLAN.md`](ASO_PLAN.md). Free lessons and tools: T8.3 and [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) §11.4. Content supply and cost model: [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md). Teacher gate: [`COPPA_GUARDIAN_CONSENT_PLAN.md`](COPPA_GUARDIAN_CONSENT_PLAN.md). Gate evidence: [`PHASE_GATES.md`](PHASE_GATES.md). Voice: [`DESIGN.md`](DESIGN.md). Mission and hard rules: [`../AGENTS.md`](../AGENTS.md).
 
 > **This is a plan, not execution.** On 2026-11-07, no community had been contacted; no post, comment, email, or DM had been sent; no teacher had replied; no LOI or partnership existed; and no launch date had been set. Nothing in this document is evidence of demand, traction, or approval.
 
@@ -30,7 +30,7 @@ The numbers in this plan are commitments and process targets, not measured resul
 1. **Value first.** Every post must be useful to a reader who never installs anything. If the post only makes sense as an ad, it is an ad.
 2. **Participate before promoting.** Four weeks of genuine participation before the first product mention. The plan is in §3.
 3. **Disclose affiliation.** Every product mention says “I build Hear Me Out” (or equivalent) in the same post. No exceptions, including comments.
-4. **One community at a time.** Finish one channel's participation and launch before starting the next. A parallel launch wave reads as a campaign.
+4. **One community at a time for value posts and launches.** Finish one channel's launch before starting the next, and keep a value post in one community. Participation comments may span the channels in §3. A parallel launch wave reads as a campaign.
 5. **No paid user acquisition.** This plan authorizes $0 of paid spend. The paid-acquisition rule and triggers are in [`ASO_PLAN.md`](ASO_PLAN.md) §5.
 6. **No astroturfing.** One personal account per person. No fake beginner posts, no friends posting on your behalf, no multiple accounts, no engagement pods, no upvote requests, no bots.
 7. **No fake social proof.** No invented user counts, ratings, testimonials, teacher quotes, “thousands of learners”, or beta claims. If a number is not measured, it is not used.
@@ -66,7 +66,7 @@ Each profile answers the same nine questions: audience, what they care about, th
 |---|---|---|---|
 | r/classicalguitar | Closest audience: classical and notation players, some teachers | P0 | `TO VERIFY before posting` |
 | Delcamp Classical Guitar Forum | Deep classical guitar forum; adult learners and teachers | P0 | `TO VERIFY before posting` (forum root reachable; rule text not read) |
-| Teacher newsletters and direct teacher outreach | Demand evidence for the Phase 2 teacher path | P0, later stage | `Permission-based`; each newsletter's policy `TO VERIFY` |
+| Teacher newsletters and direct teacher outreach | Demand evidence for the Phase 2 teacher path | P0, later stage | `Permission-based`; each newsletter's policy `TO VERIFY before posting` |
 | r/LearnGuitar | Beginner questions; high traffic, strict moderation | P1 | `TO VERIFY before posting` |
 | Classical guitar societies and teacher associations | Formal, local, slower; good teacher contacts | P1 | `TO VERIFY before posting` per organisation |
 | r/guitar | Broad guitar audience; weak fit for notation | P2, optional | `TO VERIFY before posting` |
@@ -112,7 +112,7 @@ Each profile answers the same nine questions: audience, what they care about, th
 - **Audience.** An international classical guitar forum: adult learners, teachers, professionals, and luthiers. Long-form threads, recordings, technique, repertoire, and instrument discussion.
 - **What they care about.** Musicianship, respectful discussion, correct notation and fingering, and no commercial noise. Many members are teachers; they judge the musical content first.
 - **Self-promotion rule (`TO VERIFY before posting`).** The forum index at <https://www.classicalguitardelcamp.com/> was reachable on 2026-11-07. It links a “Forum Rules and Practices” page at `https://www.classicalguitardelcamp.com/viewtopic.php?t=1550`, but the rule text was not read. Do not assume the forum permits app promotion. Ask a moderator before any product mention and record the answer in Appendix A.
-- **Allowed formats (conditional).** The New Members' Introductions board (`viewforum.php?f=28`), answers in technique and repertoire threads, and a short method or recording post. A “Members' Announcements” board exists (`viewforum.php?f=46`); whether a product announcement belongs there is `TO VERIFY`.
+- **Allowed formats (conditional).** The New Members' Introductions board (`viewforum.php?f=28`), answers in technique and repertoire threads, and a short method or recording post. A “Members' Announcements” board exists (`viewforum.php?f=46`); whether a product announcement belongs there is `TO VERIFY before posting`.
 - **What not to do.** No link in a first post. No “free app” thread without permission. No PM campaign. No cross-posting the same text across the language forums. No exam or teacher endorsement claims. No arguing after a moderator asks you to stop.
 - **Value-first post idea.** A careful post on reading a short Giuliani or Sor study from the staff: the exact bars, the written-versus-sounding octave point, the string and fret map, and a ten-minute routine. No app link unless a moderator agreed.
 - **Cadence.** Two comments a week. One introduction post in week 1. No product post until week 4 at the earliest, and only with permission.
@@ -135,7 +135,7 @@ Each profile answers the same nine questions: audience, what they care about, th
 
 - **Audience.** Individual teachers and small studios (classical, folk, adult beginners), plus newsletter editors.
 - **What they care about.** Student practice quality, time saved, simple tools, no admin burden, privacy for minors, and a clear scope.
-- **Self-promotion rule (`Permission-based`; each newsletter's policy is `TO VERIFY`).** Write to a published business contact only. No list purchase, no scraping, no auto-subscribe. Honour a no immediately. Check the commercial-email rules in the teacher's jurisdiction with counsel.
+- **Self-promotion rule (`Permission-based`; each newsletter's policy is `TO VERIFY before posting`).** Write to a published business contact only. No list purchase, no scraping, no auto-subscribe. Honour a no immediately. Check the commercial-email rules in the teacher's jurisdiction with counsel.
 - **Allowed formats (conditional).** A short personal email or DM to a teacher who has publicly invited contact. A newsletter submission if the editor accepts one. A free one-page exercise or lesson plan. A 15-minute call. A non-binding LOI ask after the Phase 2 path is defined.
 - **What not to do.** No bulk email. No “Dear teacher” mass mail. No scraped directory. No adding anyone to a mailing list. No dashboard, roster, or student-data ask. No minor-student participation before COPPA and legal clearance. No money ask before the Phase 2 gate.
 - **Value-first post idea.** “Here is a free one-page reading exercise for an adult student. Reply if you want the 20-minute lesson plan.”
@@ -154,7 +154,7 @@ Each profile answers the same nine questions: audience, what they care about, th
 - Comments before posts: no value post in a channel before at least five genuine comments there.
 - No product link in weeks 1–2. In weeks 3–4, a link only if the rule explicitly allows it or a moderator confirms it.
 - One value post a week, in one channel, only where allowed. If no channel allows it, the week has no post.
-- One channel at a time for the value post. Comments may span two channels.
+- One channel at a time for the value post and the launch. Participation comments may span the channels in the table.
 - Track every post and comment in the manual table in §7.
 - Stop a channel if a moderator removes a post or asks you to stop.
 - A comment is not “genuine” if it repeats a template or exists to set up a link.
@@ -207,9 +207,9 @@ Do not target high-karma users for their reach. Do not follow or DM people who d
 | Stage | When | Audience | Action | Gate to the next stage |
 |---|---|---|---|---|
 | 0 — Readiness | Before any public post | None | Complete the “do not launch until” checklist; verify every rule; prepare the free tool and listing assets | Checklist green; at least one moderator permission recorded |
-| 1 — Soft launch | Week 5 | Waitlist and pre-sale list only (people who opted in) | One plain email from a person; no countdown; answer replies | 48 hours of replies handled; no claim correction needed |
-| 2 — Community launch | Weeks 6 onward | One community at a time, ordered by how the participation was received | Ask permission, post once, answer for 48 hours, log the result | Five to seven days with no removal before the next community |
-| 3 — Teacher outreach | After stage 2, or earlier for T7.1 demand evidence once the Phase 2 path is defined | Teachers, adult students first | Five to ten personalised emails a week; calls; non-binding LOI asks | Three signed LOIs; not claimed as paid pilots |
+| 1 — Soft launch | After week 4 and the Phase 1 gate, or as an explicit pre-gate free-tool launch | Waitlist and pre-sale list only (people who opted in) | One plain email from a person; no countdown; answer replies | 48 hours of replies handled; no claim correction needed |
+| 2 — Community launch | After stage 1, one community at a time | One community at a time, ordered by how the participation was received | Ask permission, post once, answer for 48 hours, log the result | Five to seven days with no removal before the next community |
+| 3 — Teacher outreach | After stage 2, or earlier for T7.1 demand evidence once the Phase 2 path is defined | Teachers, adult students only | Five to ten personalised emails a week; calls; non-binding LOI asks | Three signed LOIs; not claimed as paid pilots |
 | 4 — Review | Four weeks after stage 2 starts | All channels | Keep, pause, or stop each channel; update the tracking sheet and this plan | A recorded decision with a date |
 
 **Order for the community launch.** Start with whichever of r/classicalguitar or Delcamp gave the best reception during the four weeks. Then the other. Then r/LearnGuitar. Then a society or association. r/guitar only if a moderator invites it. Space the communities a week apart and write a different opening for each. Do not post the same text twice.
@@ -220,6 +220,7 @@ Do not target high-karma users for their reach. Do not follow or DM people who d
 - [ ] **T8.3 free lesson or tool is live at a stable URL**, and the post states its real signup and email behaviour. If the page captures an email, the post says so.
 - [ ] **T8.2 listing assets are ready, if the launch includes a store listing.** Screenshots, copy, and the claims audit are done. If the store listing is not live, this is a free-tool and waitlist launch, not a store launch; do not imply an app is available where it is not.
 - [ ] **Every claim matches the build on the day.** Use the claims matrix in [`ASO_PLAN.md`](ASO_PLAN.md) §6.1. No phrase scoring, no before/after comparison, no five-minute Today session, no teacher features, and no microphone-accuracy percentage unless the matching gate has shipped and the ASO copy has been updated.
+- [ ] **The Phase 1 gate is recorded, or the launch is explicitly a pre-gate free-tool launch.** [`ASO_PLAN.md`](ASO_PLAN.md) §5.2 places the organic soft launch after the Phase 1 gate: 20 users, at least 30% of actives at three or more sessions a week for four weeks, false fail at or below 10%, and D7 at or above 18%. A pre-gate launch may share the free tool and collect waitlist emails, but it must not present community signups as launch evidence or substitute for the gate.
 - [ ] **The privacy and consent copy is current.** Local-only progress, no account, cloud, ads, or third-party trackers; microphone active only during a lesson, practice, tuner, or recording session; recordings local; beta usage log off by default; no cloud-backup-exclusion claim unless the platform confirmed it. See [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) and the media privacy copy in [`DESIGN.md`](DESIGN.md).
 - [ ] **The legal and store-policy check is recorded for anything paid or for any claim that needs it (T6.3).** No exam-board names, no method names, no competitor names, no testimonial or install count.
 - [ ] **A moderator has given permission, or the written rule explicitly allows the post.** “I did not see a rule against it” is not permission.
@@ -249,7 +250,7 @@ Do not target high-karma users for their reach. Do not follow or DM people who d
 
 ### 5.1 What this is, and what it is not
 
-- The teacher path is **Phase 2**. The approved plan's demand evidence is **three non-binding letters of intent** at **$19/month** for a **20–30 student** pilot (plan §11.5; ticket T7.1). That is the target this plan works toward.
+- The teacher path is **Phase 2**. The approved plan's demand evidence is **10 structured teacher interviews plus three non-binding letters of intent** at **$19/month** for a **20–30 student** pilot (plan §11.5; ticket T7.1). This plan targets the interviews first, then the three LOIs.
 - An LOI is **not** a partnership, revenue, or a paid pilot. Do not call it any of those in public or in Plane. On 2026-11-07 this plan has recorded zero teacher conversations and zero LOIs.
 - Until the Phase 2 gate and the COPPA/guardian-consent plan clear, **adult students only**. No minor student may participate, and no teacher may send a minor's recording or progress. The teacher path is gated by [`COPPA_GUARDIAN_CONSENT_PLAN.md`](COPPA_GUARDIAN_CONSENT_PLAN.md) and legal review; an agent or a founder cannot clear it.
 - There is **no dashboard, no student account, no roster, and no cloud**. The integration is a manual export (T7.2). Do not build or promise a dashboard in a teacher conversation.
@@ -275,7 +276,7 @@ The ask is one page, non-binding, and specific:
 
 - **Non-binding letter of intent.** It records interest; it does not obligate the teacher to pay or start.
 - **$19/month** for the Teacher Studio pilot, **20–30 students**.
-- **Manual export only.** A student selects a take, exports the audio plus a one-page JSON/PDF summary through the share sheet, and gives the file to the teacher however the teacher already collects work. No persistent cloud, no automatic sync, no dashboard, no student or teacher accounts.
+- **Manual export only.** A student selects a take, exports the audio plus a one-page JSON/PDF summary through the share sheet, and gives the file to the teacher in the teacher's approved local folder, never by email, chat, or a personal cloud drive. No persistent cloud, no automatic sync, no dashboard, no student or teacher accounts.
 - **Adult students only** until the COPPA/guardian-consent plan and legal review clear any minor participation.
 - **The pilot starts after the Phase 2 gate.** The LOI can be signed earlier as demand evidence for T7.1.
 - **The teacher can withdraw at any time before the pilot starts.** No exclusivity, no endorsement, no school-wide rollout, no named case study.
@@ -301,7 +302,7 @@ The ask is one page, non-binding, and specific:
 - No mailing-list signup and no “unsubscribe” theatre: these are one-to-one emails. Honour a no immediately and record it.
 - No mass mail, no scraped directory, no bought list, no DM to every teacher in a directory.
 - Do not contact a teacher through a personal social account unless that account invites business contact.
-- Record the contact as “teacher A/B/C” in the tracking sheet. The real name stays in the teacher's own correspondence and is not put in Plane.
+- Record the contact as “teacher A/B/C” in the tracking sheet. The real name stays in the founder's own correspondence and is not put in Plane.
 
 ### 5.6 What not to claim in teacher outreach
 
@@ -322,7 +323,7 @@ The ask is one page, non-binding, and specific:
 - Banned phrases: “revolutionary”, “game-changing”, “unlock”, “secret”, “guaranteed”, “proven”, “scientifically”, “cure”, “fix your technique”, “exam-ready”, “don't miss out”, “only X spots”, “last chance”.
 - No fake urgency, countdown, or deadline. No streak guilt. No “your progress will disappear”.
 - No exam-success or learning-outcome promise. No accuracy percentage. No user count, rating, testimonial, or “thousands”.
-- Every post that mentions the product includes a disclosure line in the same post: “I build Hear Me Out” or “Disclosure: I am the developer of Hear Me Out.”
+- Every post that mentions the product includes a disclosure line in the same post that names Hear Me Out and your role: “I build Hear Me Out…” or “I am the developer of Hear Me Out…”. A generic “a small notation trainer” is not enough.
 - Keep a post under about 250 words unless the community expects long-form (Delcamp). Short paragraphs.
 - Placeholders are in `{curly braces}`. Replace each one only with a verified link and a true fact. If the fact is not true, cut the sentence.
 - Do not post the same text in two communities. Adapt the opening and the framing.
@@ -430,9 +431,9 @@ signup behaviour.}
 
 I am planning a manual export flow for teachers: a student records a short take,
 exports it with a one-page summary from the app's share sheet, and gives the
-file to you however you already collect work. There is no dashboard, no student
-account, and no cloud. The export is not built yet, so I am not asking you to
-use it today.
+file to you in an approved local folder, not by email, chat, or a personal cloud
+drive. There is no dashboard, no student account, and no cloud. The export is
+not built yet, so I am not asking you to use it today.
 
 I am looking for three teachers for a non-binding letter of intent at $19/month
 for a 20-30 student pilot, once the teacher path is cleared. The LOI costs
@@ -473,7 +474,7 @@ without it.
 
 ### 6.5 Sample 5 — Launch-day post
 
-**Use when:** the moderators have approved the post and every checklist item in §4 is green. **Where:** one community at a time. **Notes:** the “four weeks” and “moderators have allowed” lines are true only if they are; if not, cut them. Do not add a discount, a countdown, or a user count.
+**Use when:** the moderators have approved the post, every checklist item in §4 is green, and the app or web version is actually available to the reader. If it is not available, do not use the title “available”; use the free-tool post instead. **Where:** one community at a time. **Notes:** the “four weeks” and “moderators have allowed” lines are true only if they are; if not, cut them. Do not add a discount, a countdown, or a user count.
 
 ```text
 Title: Hear Me Out is available: a local-only notation trainer for guitar
@@ -526,8 +527,9 @@ Disclosure: I build Hear Me Out.
 ```text
 Hello mods,
 
-I have been commenting in r/{subreddit} for four weeks. I build a local-only
-guitar notation trainer, and I would like to ask before posting about it.
+I have been commenting in r/{subreddit} for four weeks. I build Hear Me Out, a
+local-only guitar notation trainer, and I would like to ask before posting about
+it.
 
 I would share one free lesson, not a store link, and answer questions in the
 comments. If that is allowed, is there a format or a day you prefer? If it is
@@ -543,9 +545,9 @@ Thanks for the work you do here.
 ```text
 Hello,
 
-I am {name}, an adult learner and the developer of a small guitar notation
-trainer. I have been reading the technique and repertoire threads for a few
-weeks, and I have learned a lot from the recordings and the fingering
+I am {name}, an adult learner and the developer of Hear Me Out, a small guitar
+notation trainer. I have been reading the technique and repertoire threads for a
+few weeks, and I have learned a lot from the recordings and the fingering
 discussions.
 
 My own practice is first-position reading: short Sor and Giuliani phrases,
@@ -600,6 +602,7 @@ The app has **no network analytics**. It has no account, no remote analytics, no
 | A teacher wants to include minor students | Stop. No minor participates before the COPPA/guardian-consent gates and legal clearance. Do not collect a parent's contact or a child's data. | Founder; legal |
 | A teacher asks for a free pilot or a discount | Do not promise free seats or a discount. The LOI is $19/month. Record the request and bring it to the human owner; a price change needs a recorded decision. | Founder |
 | A teacher asks for a demo of the manual export before T7.2 ships | Describe the planned flow and label it “planned, not built”. Do not show a mock as if it works. | Founder |
+| A teacher asks for the export by email, chat, or a personal cloud drive | Explain that the manual export is a share-sheet file to an approved local folder. Do not send it by email, chat, or a personal cloud drive. If the teacher insists, pause the conversation and escalate to the human owner and legal. | Founder; legal |
 | Someone offers upvotes, an engagement pod, a bot, or a review swap | Decline. Do not use it. Record the offer and the refusal. | Founder |
 | A community member reports that the copy overclaims | Thank them. Correct the thread and the source document the same day. If the claim is in a store listing, follow the claims audit in [`ASO_PLAN.md`](ASO_PLAN.md) §6. | Founder |
 | A thread turns hostile | Answer once with facts, then stop. Do not trade insults. Do not delete a critical comment. | Founder |
@@ -650,8 +653,8 @@ The app has **no network analytics**. It has no account, no remote analytics, no
 
 | Item | Owner | Blocks | Status on 2026-11-07 |
 |---|---|---|---|
-| Read and record each Reddit self-promotion rule | Human owner | Any Reddit post | Open; `TO VERIFY` |
-| Read and record the Delcamp rule; ask a moderator | Human owner | Any Delcamp post | Open; `TO VERIFY` |
+| Read and record each Reddit self-promotion rule | Human owner | Any Reddit post | Open; `TO VERIFY before posting` |
+| Read and record the Delcamp rule; ask a moderator | Human owner | Any Delcamp post | Open; `TO VERIFY before posting` |
 | Confirm T8.1 free web test status | Engineering / growth | Launch checklist | Unknown |
 | Confirm T8.3 free lesson/tool status and signup behaviour | Content / growth | Launch checklist and copy | Unknown |
 | Confirm T8.2 listing asset status | Growth | Store launch stage | Unknown |
@@ -671,10 +674,10 @@ Checked on **2026-11-07**. A rule is `VERIFIED` only when the rule text was read
 | r/LearnGuitar | `https://www.reddit.com/r/LearnGuitar/` | Subreddit root, rules, wiki | `TO VERIFY before posting`. Not fetched; no rule text was read. | Same as above; check whether resource posts need approval. |
 | Delcamp Classical Guitar Forum | <https://www.classicalguitardelcamp.com/> | Forum index | **Root verified reachable on 2026-11-07.** The index links a “Forum Rules and Practices” page at `https://www.classicalguitardelcamp.com/viewtopic.php?t=1550`; the rule text was not read. Self-promotion rule: `TO VERIFY before posting`. | Read the rules topic and ask a moderator before any product mention. Record the answer and date here. |
 | Classical guitar societies and teacher associations | No organisation named | Per-organisation newsletter and notice policy | `TO VERIFY before posting` for each organisation. Nothing was checked and no organisation was invented. | Ask the committee or newsletter editor for written permission and record it here. |
-| Teacher newsletters | No publication named | Per-publication submission policy | `TO VERIFY` for each publication. Nothing was checked. | Read the submission policy before sending anything; no list purchase or scraping. |
+| Teacher newsletters | No publication named | Per-publication submission policy | `TO VERIFY before posting` for each publication. Nothing was checked. | Read the submission policy before sending anything; no list purchase or scraping. |
 | Direct teacher outreach | Published business contacts only | Permission and privacy | `Permission-based`. No community rule applies; the COPPA plan and commercial-email law still apply. | Use the template in §6.3; record replies as teacher A/B/C. |
 
-**Link-status note.** Internal Markdown links in this document point to files in this repository and were checked against the repository on 2026-11-07. The Delcamp forum root is the only external Markdown link, and it loaded on 2026-11-07. Reddit and other external URLs are written as code spans, not links, because they could not be verified from this environment; they carry `TO VERIFY` until a human opens them.
+**Link-status note.** Internal Markdown links in this document point to files in this repository and were checked against the repository on 2026-11-07. The Delcamp forum root is the only external Markdown link, and it loaded on 2026-11-07. Reddit and other external URLs are written as code spans, not links, because they could not be verified from this environment; they carry the `TO VERIFY before posting` mark until a human opens them.
 
 ---
 
@@ -682,12 +685,12 @@ Checked on **2026-11-07**. A rule is `VERIFIED` only when the rule text was read
 
 | Document | What this plan takes from it |
 |---|---|
-| [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) §11.4 | Communities, Delcamp, societies, teacher newsletters; “participate, don't spam”; no paid UA initially. |
-| [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) §11.5 | Three non-binding teacher LOIs at $19/month for 20–30 students; manual export scope; no claim before the product exists. |
+| [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) §11.4 | Communities, Delcamp, societies, teacher newsletters; the 20 free lessons/tools in the first 12 months; “participate, don't spam”; no paid UA initially. |
+| [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) §11.5 | Ten structured teacher interviews and three non-binding teacher LOIs at $19/month for 20–30 students; manual export scope; no claim before the product exists. |
 | [`TRANSFORMATION_PLAN_FINAL.md`](TRANSFORMATION_PLAN_FINAL.md) §13 | Phase 2 teacher traction and the Phase 1 gate. |
 | [`ASO_PLAN.md`](ASO_PLAN.md) §5 | No paid installs before organic or teacher traction; the paid trigger is not met. |
 | [`ASO_PLAN.md`](ASO_PLAN.md) §6.1 | The claims matrix the copy bank must match. |
-| [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md) | The free lessons and tools that can be shared; no subscription cadence promise in community copy. |
+| [`CONTENT_CALENDAR.md`](CONTENT_CALENDAR.md) | The 24-month content calendar and cost model. It is not the source of the free lessons/tools; those are T8.3 and plan §11.4. Do not promise its cadence in community copy. |
 | [`COPPA_GUARDIAN_CONSENT_PLAN.md`](COPPA_GUARDIAN_CONSENT_PLAN.md) | The teacher-channel gate, the manual export rules, the minor rule, and the deletion limits. |
 | [`PHASE_GATES.md`](PHASE_GATES.md) | The Phase 2 teacher gate and the evidence a launch must not shortcut. |
 | [`DESIGN.md`](DESIGN.md) | Copy tone: specific, calm, no hype; no shame, no fake stats. |
@@ -702,7 +705,7 @@ These are the assumptions and risks this plan depends on. They are recorded here
 1. **Rule risk.** Every Reddit and Delcamp self-promotion rule is unverified as of 2026-11-07. The plan cannot be executed until a human reads each rule and records it in Appendix A.
 2. **Time assumption.** Four weeks at 20–30 minutes a day is a solo-founder commitment of about 7–10 hours. If the founder cannot sustain it, the launch moves; it does not compress.
 3. **Demand assumption.** Community participation is expected to produce conversations and a small number of waitlist signups, not a conversion rate. No install, revenue, or teacher-traction number is claimed.
-4. **Teacher assumption.** Three non-binding LOIs at $19/month for 20–30 students are demand evidence for T7.1, not a partnership or a paid pilot. The COPPA/legal gate is not cleared by an LOI.
+4. **Teacher assumption.** Ten structured teacher interviews and three non-binding LOIs at $19/month for 20–30 students are demand evidence for T7.1, not a partnership or a paid pilot. The COPPA/legal gate is not cleared by an LOI.
 5. **Claims dependency.** The copy bank is only valid while the build matches [`ASO_PLAN.md`](ASO_PLAN.md) §6.1. If a feature ships or a gate opens, update the copy before posting; if a claim is withdrawn, remove it from the bank.
 6. **Channel risk.** r/guitar is optional and may be dropped entirely; Delcamp is the highest-credibility and highest-risk channel. A removal in either is a signal to pause, not to retry with a new account.
 7. **No analytics.** There is no in-app attribution. Community results are manual counts and are not comparable to store conversion or retention metrics.
