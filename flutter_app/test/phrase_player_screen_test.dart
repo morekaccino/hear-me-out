@@ -181,6 +181,11 @@ void main() {
     expect(saved!.correct, 1);
     expect(saved.reps, 1);
     expect(saved.contentVersion, prompt.phrase.contentVersion);
+    // The player passed the phrase's real target tempo, so this clean take is
+    // honest mastery evidence for today (one day is not mastery yet).
+    expect(saved.masteryDays, isNotEmpty);
+    expect(saved.lastMasteryAt, isNotNull);
+    expect(saved.isPerformanceMastered(prompt.phrase.contentVersion), isFalse);
 
     // Changing the gate after the take must not rewrite what happened to it.
     await tester.ensureVisible(find.text('Wired headphones connected'));

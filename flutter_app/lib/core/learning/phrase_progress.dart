@@ -12,6 +12,7 @@ class PhraseAttempt {
     required this.now,
     this.accuracy = 0,
     this.tempoBpm,
+    this.targetTempoBpm,
     this.pieceId,
     this.contentVersion,
     this.bars = 0,
@@ -26,6 +27,11 @@ class PhraseAttempt {
 
   /// Tempo the phrase was played at, when known.
   final int? tempoBpm;
+
+  /// The phrase's target tempo for this take, when the caller knows the
+  /// arrangement. Performance mastery counts a take only when it was played at
+  /// or above this tempo; there is no global default.
+  final int? targetTempoBpm;
 
   /// Piece that owns [phraseId], when the caller knows it. The phrase skill
   /// uses the canonical `phrase:<pieceId>:<phraseId>` id when present and the
@@ -59,11 +65,15 @@ class PhraseProgress {
     Set<String>? performanceDays,
     this.firstPerformanceDay,
     this.lastPerformanceAt,
+    Set<String>? masteryDays,
+    this.firstMasteryDay,
+    this.lastMasteryAt,
     this.bestTempoBpm,
     this.bestAccuracy,
     this.contentVersion = 1,
   }) : correctDays = correctDays ?? <String>{},
-       performanceDays = performanceDays ?? <String>{};
+       performanceDays = performanceDays ?? <String>{},
+       masteryDays = masteryDays ?? <String>{};
 
   final String phraseId;
   double stabilityDays;
@@ -87,6 +97,22 @@ class PhraseProgress {
   DateTime? lastPerformanceAt;
   int? bestTempoBpm;
 
+  /// Local `yyyy-MM-dd` keys on which this phrase was played correctly, at
+  /// full note accuracy, at or above its target tempo.
+  ///
+  /// This is the mastery evidence. A day enters the set only from a take that
+  /// meets every condition, so a failed, slow, low-accuracy, or indeterminate
+  /// take can never contribute. The raw [performanceDays] and [bestTempoBpm]
+  /// remain unchanged high-water evidence.
+  final Set<String> masteryDays;
+
+  /// The first mastery day. Stored explicitly so the seven-day window can
+  /// still be computed if the day set is pruned later.
+  String? firstMasteryDay;
+
+  /// The timestamp of the latest mastery take, used for the progress date.
+  DateTime? lastMasteryAt;
+
   /// Best raw note accuracy as a fraction in `[0, 1]` across determinate
   /// takes, including failed takes. This is a high-water mark, not a
   /// pass/mastery signal.
@@ -106,6 +132,24 @@ class PhraseProgress {
   /// True when the current arrangement differs from the evidence's version.
   bool needsRetestFor(int currentContentVersion) =>
       contentVersion != currentContentVersion;
+
+  /// True only when the stored evidence proves performance mastery.
+  ///
+  /// All of these must hold: the evidence was earned against
+  /// [currentContentVersion], at least three separate local days carry a
+  /// qualifying mastery take, and the first and last of those days are at least
+  /// seven calendar days apart. FSRS stability, lesson completion, and the raw
+  /// high-water marks are never a substitute.
+  bool isPerformanceMastered(int currentContentVersion) {
+    if (needsRetestFor(currentContentVersion)) return false;
+    final days = masteryDays.toList()..sort();
+    if (days.length < 3) return false;
+    final first =
+        _tryParseDay(firstMasteryDay ?? days.first) ?? _tryParseDay(days.first);
+    final last = _tryParseDay(days.last);
+    if (first == null || last == null) return false;
+    return last.difference(first).inDays >= 7;
+  }
 
   double get accuracy => attempts == 0 ? 0 : correct / attempts;
 
@@ -134,6 +178,19 @@ class PhraseProgress {
     final tempo = attempt.tempoBpm;
     if (tempo != null && tempo > (bestTempoBpm ?? 0)) {
       bestTempoBpm = tempo;
+    }
+
+    final target = attempt.targetTempoBpm;
+    final qualifiesForMastery =
+        attempt.outcome == AttemptOutcome.correct &&
+        attempt.accuracy >= 1.0 &&
+        tempo != null &&
+        target != null &&
+        tempo >= target;
+    if (qualifiesForMastery) {
+      masteryDays.add(day);
+      firstMasteryDay ??= day;
+      lastMasteryAt = attempt.now;
     }
   }
 
@@ -171,6 +228,9 @@ class PhraseProgress {
     performanceDays: {...performanceDays},
     firstPerformanceDay: firstPerformanceDay,
     lastPerformanceAt: lastPerformanceAt,
+    masteryDays: {...masteryDays},
+    firstMasteryDay: firstMasteryDay,
+    lastMasteryAt: lastMasteryAt,
     bestTempoBpm: bestTempoBpm,
     bestAccuracy: bestAccuracy,
     contentVersion: contentVersion,
@@ -189,6 +249,10 @@ class PhraseProgress {
     'performanceDays': performanceDays.toList()..sort(),
     'firstPerformanceDay': firstPerformanceDay ?? _firstDay(performanceDays),
     'lastPerformanceAt': lastPerformanceAt?.toIso8601String(),
+    if (masteryDays.isNotEmpty) 'masteryDays': masteryDays.toList()..sort(),
+    if (firstMasteryDay != null) 'firstMasteryDay': firstMasteryDay,
+    if (lastMasteryAt != null)
+      'lastMasteryAt': lastMasteryAt!.toIso8601String(),
     'bestTempoBpm': bestTempoBpm,
     'bestAccuracy': bestAccuracy,
     'contentVersion': contentVersion,
@@ -218,11 +282,17 @@ class PhraseProgress {
       incorrect: _readInt(json, 'incorrect', 0),
       correctDays: _readDays(json['correctDays'], 'correctDays'),
       performanceDays: _readDays(json['performanceDays'], 'performanceDays'),
-      firstPerformanceDay: _readDay(json['firstPerformanceDay']),
+      firstPerformanceDay: _readDay(
+        json['firstPerformanceDay'],
+        'firstPerformanceDay',
+      ),
       lastPerformanceAt: _readDate(
         json['lastPerformanceAt'],
         'lastPerformanceAt',
       ),
+      masteryDays: _readDays(json['masteryDays'], 'masteryDays'),
+      firstMasteryDay: _readDay(json['firstMasteryDay'], 'firstMasteryDay'),
+      lastMasteryAt: _readDate(json['lastMasteryAt'], 'lastMasteryAt'),
       bestTempoBpm: _readOptionalInt(json['bestTempoBpm'], 'bestTempoBpm'),
       bestAccuracy: _readOptionalDouble(json['bestAccuracy'], 'bestAccuracy'),
       contentVersion: _readContentVersion(json),
@@ -241,12 +311,10 @@ String _dayKey(DateTime time) =>
     '${time.month.toString().padLeft(2, '0')}-'
     '${time.day.toString().padLeft(2, '0')}';
 
-String? _readDay(Object? value) {
+String? _readDay(Object? value, String key) {
   if (value == null) return null;
   if (value is! String || _tryParseDay(value) == null) {
-    throw const FormatException(
-      'phraseProgress.firstPerformanceDay must be a yyyy-MM-dd day',
-    );
+    throw FormatException('phraseProgress.$key must be a yyyy-MM-dd day');
   }
   return value;
 }

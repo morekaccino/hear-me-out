@@ -520,6 +520,7 @@ void main() {
         phraseId: 'twinkle.a',
         result: result,
         tempoBpm: 60,
+        targetTempoBpm: 60,
         now: now,
       );
       expect(recorded, isTrue);
@@ -535,6 +536,10 @@ void main() {
       expect(phrase.performanceDays, contains('2026-11-06'));
       expect(phrase.bestTempoBpm, 60);
       expect(phrase.bestAccuracy, 1);
+      // The controller passes the caller's real target through to the mastery
+      // evidence; it never invents a global default.
+      expect(phrase.masteryDays, contains('2026-11-06'));
+      expect(phrase.lastMasteryAt, now);
       expect(
         progress.skills.keys.where((id) => id.startsWith('note:')),
         isEmpty,

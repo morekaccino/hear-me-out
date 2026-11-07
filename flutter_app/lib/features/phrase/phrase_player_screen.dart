@@ -317,6 +317,7 @@ class _PhrasePlayerScreenState extends ConsumerState<PhrasePlayerScreen> {
               phraseId: widget.phrase.id,
               result: verification.result,
               tempoBpm: _prompt.bpm,
+              targetTempoBpm: _prompt.bpm,
               pieceId: widget.pieceId,
               contentVersion:
                   widget.contentVersion ?? widget.phrase.contentVersion,

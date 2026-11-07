@@ -391,10 +391,14 @@ class AppController extends AsyncNotifier<AppData> {
   /// determinate take updates the phrase's raw progress and the phrase's own
   /// repertoire skill. Per-note skills are recorded separately and are never
   /// derived from a phrase attempt, so the same take cannot count twice.
+  ///
+  /// [targetTempoBpm] is the phrase's real target, not a global default. When
+  /// supplied, it makes the take eligible for performance-mastery evidence.
   Future<bool> recordPhraseResult({
     required String phraseId,
     required PhraseResult result,
     required int tempoBpm,
+    int? targetTempoBpm,
     DateTime? now,
     String? pieceId,
     int? contentVersion,
@@ -412,6 +416,7 @@ class AppController extends AsyncNotifier<AppData> {
         now: completedAt,
         accuracy: result.noteAccuracy,
         tempoBpm: tempoBpm,
+        targetTempoBpm: targetTempoBpm,
         pieceId: pieceId,
         contentVersion: contentVersion,
         bars: bars,

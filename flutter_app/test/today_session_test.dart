@@ -391,6 +391,7 @@ void main() {
         phraseId: 'ode-to-joy-p1',
         result: phraseResult(),
         tempoBpm: 72,
+        targetTempoBpm: 72,
         pieceId: 'ode-to-joy',
         contentVersion: 1,
         correction: 'Bar 1: play F♯5 cleanly.',
@@ -404,6 +405,8 @@ void main() {
       expect(phrase, isNotNull);
       expect(phrase!.reps, 1);
       expect(phrase.correct, 1);
+      expect(phrase.masteryDays, isNotEmpty);
+      expect(phrase.lastMasteryAt, isNotNull);
     });
 
     test('a gate-open non-performance day stays practice only', () async {

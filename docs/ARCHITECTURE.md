@@ -549,9 +549,12 @@ change from the old "no analytics" rule.
   time, level, fragile flag, cent samples
 - per-phrase `PhraseProgress`: raw phrase-attempt evidence — memory state,
   correct and performance days, best tempo, best accuracy, and the phrase
-  `contentVersion` the evidence was practiced against. It has no storage-level
-  mastery flag; T2.5 decides performance mastery from determinacy, clean takes,
-  timing, transfer, and checkpoint evidence.
+  `contentVersion` the evidence was practiced against. It also stores optional
+  performance-mastery evidence: `masteryDays` (local `yyyy-MM-dd` keys earned
+  only by a correct, full-accuracy, at-target take), `firstMasteryDay`, and
+  `lastMasteryAt`. Those three keys are written only when present and default
+  empty on load, so no schema bump is needed. There is no storage-level mastery
+  flag; T5.3 decides performance mastery from the mastery evidence.
 - per-note `NoteProgress`: legacy boxes kept for the note chips
 - completed lessons, checkpoints, and best accuracy
 - XP, daily XP, optional streak, and `lastPracticeDay`
@@ -589,6 +592,42 @@ phrase UI compares the versions and asks for a re-test instead of treating old
 evidence as proof of the unseen arrangement. No UI consumes `needsRetest` yet;
 the phrase UI stays behind the T1.7 switch, and progress is never reset
 silently.
+
+`PhraseProgress.isPerformanceMastered(currentContentVersion)` is the only
+can-play rule. It requires evidence from the current content version, at least
+three separate local mastery days, and a first-to-last span of at least seven
+calendar days. A mastery day enters `masteryDays` only from a correct take with
+note accuracy `1.0`, a known played tempo, a known phrase target tempo, and
+`tempoBpm >= targetTempoBpm`. Failed, slow, low-accuracy, indeterminate, and
+target-less takes never contribute. `performanceDays`, `bestTempoBpm`, and
+`bestAccuracy` remain raw high-water evidence and are never relabelled.
+
+## Mastery map (T5.3)
+
+`core/learning/mastery_map.dart` is a pure-Dart view model. It reads
+`ProgressState`, a `PhraseContentCatalog` (implemented by the one
+`PhraseObjectiveRegistry`, so `core` still does not import `content`), saved
+`RecordingTake`s, and a supplied clock. It produces four honest sections:
+
+- **can play** — phrases where `isPerformanceMastered` is true, with piece and
+  phrase titles and target tempo from the registry, the latest mastery date,
+  and the latest saved take for that phrase when one exists.
+- **shaky** — due or fragile atomic note, rhythm, and interval skills, capped
+  at five, with human-readable objective ids.
+- **reading** — the count of mastered note and rhythm skills plus a few
+  mastered entries; never a lesson-completion percentage.
+- **next** — due atomic skills plus the first unmastered phrase in registry
+  stage order. A phrase that is already can-play is never recommended again.
+
+`features/mastery/mastery_map_screen.dart` renders those sections in a
+responsive `PageFrame` at 390x844 and 1200 px. `features/mastery/
+mastery_entry_card.dart` is the Profile entry above the settings. The screen
+reads the shared `phraseRegistryProvider` and the existing recording controller,
+uses `takePlayerProvider` and `readTake` for explicit playback (no autoplay),
+and shows the exact empty state when no phrase has earned mastery. There are no
+hearts, gems, XP, leaderboards, social comparison, or fake progress. The screen
+is available while decision 0001 keeps the phrase loop gated; its can-play
+section stays honestly empty until real phrase evidence exists.
 
 A wrong answer is not just a box change: it queues a same-session repair, a
 next-day repair card, and a 3-day recheck. Two lapses marks the skill fragile;
@@ -988,6 +1027,9 @@ fresh profile; an unreadable document is quarantined first.
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
 | `test/progress_migration_test.dart` | v1–v8 fixtures, version rejection, phrase evidence and content versions, v7→v8 economy removal, quarantine/rollback |
 | `test/phrase_objective_test.dart` | Runtime phrase resolver, due phrase practice, unknown ids, edited content and re-test |
+| `test/phrase_progress_test.dart` | Mastery-day rule (correct, full accuracy, at target), three days over seven, stale versions, JSON round-trip |
+| `test/mastery_map_test.dart` | Can-play selection, piece/phrase/tempo/date/recording mapping, shaky/reading/next, no duplicate recommendation, empty state |
+| `test/mastery_map_screen_test.dart` | Profile entry, earned badge only, honest empty states, take playback, 390x844 and 1200 px, no lesson percentage |
 | `test/widget_test.dart` | Onboarding, sectioned path, lesson, mic exercise, sound trigger |
 | `test/path_layout_test.dart` | Path bounds, spacing, arc direction, and center anchors |
 | `test/microphone_flow_test.dart` | Mic lifecycle, name-only practice, retry reset |

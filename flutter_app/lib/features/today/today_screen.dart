@@ -1225,6 +1225,7 @@ class _BlockBody extends ConsumerWidget {
                 phraseId: record.phrase.id,
                 result: verification.result,
                 tempoBpm: record.phrase.targetTempoBpm,
+                targetTempoBpm: record.phrase.targetTempoBpm,
                 pieceId: record.piece.id,
                 contentVersion: record.contentVersion,
                 correction: verification.correction,

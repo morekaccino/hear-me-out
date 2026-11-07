@@ -130,6 +130,8 @@ void main() {
     expect(find.textContaining('self-paced reading practice'), findsOneWidget);
     expect(find.textContaining('5-minute Today loop'), findsNothing);
 
+    await tester.ensureVisible(find.text('OPEN READING LAB'));
+    await tester.pump();
     await tester.tap(find.text('OPEN READING LAB'));
     await tester.pumpAndSettle();
 
@@ -254,6 +256,8 @@ void main() {
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('OPEN READING LAB'));
+      await tester.pump();
       await tester.tap(find.text('OPEN READING LAB'));
       await tester.pumpAndSettle();
 
@@ -309,6 +313,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('reading-lab-card')), findsOneWidget);
+      await tester.ensureVisible(find.text('OPEN READING LAB'));
+      await tester.pump();
       await tester.tap(find.text('OPEN READING LAB'));
       await tester.pumpAndSettle();
 
