@@ -9,6 +9,8 @@ import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/media/media_store.dart';
 import 'package:hear_me_out/core/media/recording_exporter.dart';
 import 'package:hear_me_out/core/media/recording_service.dart';
+import 'package:hear_me_out/core/media/take_bundle_exporter.dart';
+import 'package:hear_me_out/core/media/take_share_gateway.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
 import 'package:hear_me_out/core/notifications/reminder_scheduler.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
@@ -459,6 +461,47 @@ class FakeRecordingExporter implements RecordingExporter {
       fileName: request.fileName,
       path: '/exports/${request.fileName}',
     );
+  }
+}
+
+/// Records bundle requests and returns predictable file paths.
+class FakeTakeBundleExporter implements TakeBundleExporter {
+  final requests = <TakeBundleRequest>[];
+  Object? failWith;
+  bool webDownload = false;
+
+  @override
+  Future<TakeBundleResult> exportBundle(TakeBundleRequest request) async {
+    requests.add(request);
+    final failure = failWith;
+    if (failure != null) throw failure;
+    return TakeBundleResult(
+      takeId: request.takeId,
+      files: <TakeBundleFileResult>[
+        for (final file in request.files)
+          TakeBundleFileResult(
+            fileName: file.fileName,
+            path: webDownload ? null : '/exports/${file.fileName}',
+          ),
+      ],
+    );
+  }
+}
+
+/// Records share requests and returns a controllable typed result.
+class FakeTakeShareGateway implements TakeShareGateway {
+  TakeShareResult result = const TakeShareResult(TakeShareStatus.shared);
+  final sharedPaths = <List<String>>[];
+  final subjects = <String?>[];
+
+  @override
+  Future<TakeShareResult> shareFiles(
+    List<String> paths, {
+    String? subject,
+  }) async {
+    sharedPaths.add(List<String>.unmodifiable(paths));
+    subjects.add(subject);
+    return result;
   }
 }
 

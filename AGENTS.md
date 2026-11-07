@@ -387,7 +387,16 @@ Then open <http://127.0.0.1:8080/>.
   never rewritten, and a missing tempo is shown honestly rather than invented.
   T4.4 adds a private before/after PNG card: piece, phrase, date range, and the
   days-apart metric; no score, no public link, no audio in the export, and the
-  file is written only after an explicit tap.
+  file is written only after an explicit tap. T7.2 adds the manual teacher
+  export: one explicit tap writes `<take-id>.wav`, `<take-id>.json`, and
+  `<take-id>.pdf` under the app support `exports/` folder and opens the OS share
+  sheet. The summary carries stored phrase evidence or an explicit “no stored
+  evidence” line, never a teacher grade. `share_plus` is an OS share sheet
+  behind `TakeShareGateway`, not a network service; the web build resolves to a
+  download-only fallback and does not compile it. `pdf` is pure Dart. No ZIP or
+  archive package is used, and the stored take is never deleted or rewritten.
+  The exports folder is outside the media backup exclusion, so the UI never
+  claims an exported copy is excluded.
 
 ## Testing notes
 
@@ -410,7 +419,7 @@ Then open <http://127.0.0.1:8080/>.
 Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 1038 tests passing
+- `flutter test` - 1096 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -454,6 +463,19 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   notes of Ode to Joy, see one practice-only correction, record ten seconds, and
   finish. It writes no scored phrase evidence; the recording is the only saved
   artifact. The funnel hooks are local and the percentages remain pending beta.
+- T7.2 adds the manual teacher export. **Export for teacher** writes
+  `<take-id>.wav`, `<take-id>.json`, and `<take-id>.pdf` to the app support
+  `exports/` folder through `TakeBundleExporter` and opens the OS share sheet
+  through `TakeShareGateway` (`share_plus`, IO only). The web build downloads
+  the three files and does not compile `share_plus`. The JSON/PDF summary is
+  versioned (`schemaVersion: 1`) and contains the take metadata, the resolved
+  launch-piece title/composer/stage, the phrase id, and stored phrase evidence
+  only when a real record exists; otherwise it says there is no stored evidence.
+  It never invents a score, includes no account/device/install id/path/free text,
+  and never changes the stored take. `pdf` is pure Dart, no ZIP/archive package
+  is used, and the exports folder is outside the media backup exclusion.
+  Decision 0011 records the change from the earlier no-share rule. The OS share
+  sheet is not device-verified in this environment; the tests use a fake.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
@@ -480,5 +502,6 @@ analyze/test/build commands as the source of truth.
 - [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map, settings
 - [`LEARNING_ALGORITHM.md`](LEARNING_ALGORITHM.md) — scheduling and session rules
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — layers, data flow, invariants
+- [`docs/MANUAL_EXPORT.md`](docs/MANUAL_EXPORT.md) — manual teacher export workflow, bundle format, consent/deletion copy, platform limits
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) — setup, run, debug, common failures
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contribution rules, Plane workflow, pull requests

@@ -477,7 +477,9 @@ second `AudioRecorder` and no simultaneous record and stream.
   when it opens and has a manual **Check storage** action.
 - `core/media/recording_exporter.dart` copies bytes without changing the stored
   take. IO writes under the app support `exports/` directory; web uses
-  `package:web` to download the WAV. There is no share or cloud package.
+  `package:web` to download the file. The T7.2 manual teacher bundle builds on
+  this seam; see [Manual export](#manual-export-t72). There is still no cloud
+  package and no automatic upload.
 - `core/audio/loudness.dart` measures RMS/peak and returns a new WAV with a
   capped gain and a shared peak limiter. `CompareTakesScreen` reads both takes,
   normalizes them in memory, and only then calls `TakePlayer`. Stored bytes are
@@ -551,6 +553,66 @@ the recording service and the card so tests and production use one seam.
 
 Tests: `test/before_after_test.dart` (pure) and
 `test/before_after_screen_test.dart` (widget).
+
+## Manual export (T7.2)
+
+The manual teacher export is a local workflow, not a dashboard or a sync
+service. One explicit tap turns one stored take into a three-file bundle and
+offers the OS share sheet.
+
+- `core/media/take_export_summary.dart` is pure Dart. `TakeExportSummary`
+  carries `schemaVersion: 1`, take id, UTC creation time, duration, capped flag,
+  optional piece id, resolved piece title/composer/stage, optional phrase id,
+  app version, export time, and an optional evidence block.
+  `buildTakeSummaryPdf` renders one A4 page with PDF standard fonts. The header
+  states what the bundle contains, who it is for, the 90-day teacher deletion
+  rule, and the student's delete path. The evidence block is labelled “Stored
+  practice evidence, not a teacher grade”; a take with no record says so.
+- `core/media/take_bundle_exporter.dart` defines `TakeBundleRequest`,
+  `TakeBundleResult`, and the `TakeBundleExporter` interface. A request has
+  already-encoded bytes; an exporter only copies them. IO
+  (`take_bundle_exporter_io.dart`) writes `<take-id>.wav`, `<take-id>.json`, and
+  `<take-id>.pdf` under the app support `exports/` folder through the existing
+  `FileRecordingExporter`. Web (`take_bundle_exporter_web.dart`) triggers one
+  browser download per file through the existing `WebRecordingExporter`. The
+  factory uses a conditional export. The stored take is never deleted, moved, or
+  rewritten.
+- `core/media/take_share_gateway.dart` defines `TakeShareGateway` and a typed
+  `TakeShareResult` (`shared`, `cancelled`, `unavailable`, `failed`).
+  `take_share_gateway_share_plus.dart` implements it with `share_plus`, which
+  is an OS share sheet, not a network service. The web factory resolves to an
+  unsupported gateway with a download message, so the web build does not
+  compile `share_plus`. No test opens a real share sheet.
+- `state/recording_controller.dart` owns `exportTakeBundle(id)`. It loads the
+  take and stored bytes, resolves the launch piece through
+  `launchPieceById`, reads `ProgressState.phraseProgressFor(take.phraseId)` for
+  evidence (only when the take has a phrase id and the record exists), builds
+  the PDF and JSON, calls the bundle exporter, then asks the share gateway.
+  The typed outcome distinguishes shared, exported, cancelled, and failed. A
+  failure becomes a calm `RecordingFailure` in the existing failure card; the
+  stored take is untouched and the student can retry.
+- `features/recordings/recordings_screen.dart` shows an **EXPORT FOR TEACHER**
+  action per take and a caption that says the export is local, nothing is
+  uploaded, and the teacher gets a copy only if the student shares it.
+- `core/app_metadata.dart` holds the single `appVersion` constant. A test reads
+  `pubspec.yaml` and fails when the two drift.
+- Dependencies: `pdf` (pure Dart) and `share_plus` (OS share sheet only). No
+  `printing` plugin, no cloud, upload, sync, or account package, and no
+  ZIP/archive packaging. Decision
+  [`0011`](decisions/0011-manual-export-share-sheet.md) records the change from
+  the earlier no-share rule and the version constraint that keeps `pdf` on the
+  3.11.x line with `xml 6.6.1`.
+
+The full workflow, bundle JSON, consent/deletion copy, COPPA gate, and platform
+limitations are in [`MANUAL_EXPORT.md`](MANUAL_EXPORT.md).
+
+Tests: `test/take_export_summary_test.dart` (JSON shape/version, determinism
+apart from the export time, unknown piece/phrase fallback, no invented score,
+PDF header and length, app-version drift), `test/take_bundle_exporter_test.dart`
+(IO writes all files, source take untouched, traversal rejection, typed
+failures), and the bundle cases in `test/recordings_screen_test.dart` (one
+bundle call per tap, typed failure, real evidence vs no evidence, cancelled
+share, web download).
 
 ## First session (T5.2)
 
@@ -1080,7 +1142,9 @@ fresh profile; an unreadable document is quarantined first.
 | `test/recording_service_test.dart` | Permission denial, 60 s auto-stop/truncation, busy guard, quotas, storage failure, delete/clear/export, first/last retention, orphan reconciliation |
 | `test/recording_index_store_test.dart` | Versioned take manifest, future-version rejection, malformed entries, clear |
 | `test/recording_exporter_test.dart` | IO export bytes/name and path traversal rejection |
-| `test/recordings_screen_test.dart` | 390x844 and 1200 px, empty state, record/stop, play/export/delete, quota action, clear-all confirmation, auto-stop, conditional privacy copy, preselected/unknown piece, single-take guard |
+| `test/take_export_summary_test.dart` | Versioned JSON shape, determinism apart from export time, unknown piece/phrase fallback, no invented score, PDF header/length, app-version drift |
+| `test/take_bundle_exporter_test.dart` | IO bundle writes all three files, source take untouched, traversal rejection, typed failures |
+| `test/recordings_screen_test.dart` | 390x844 and 1200 px, empty state, record/stop, play/bundle export/delete, quota action, clear-all confirmation, auto-stop, conditional privacy copy, preselected/unknown piece, single-take guard, bundle success/failure/cancel/web-download, stored-evidence vs no-evidence |
 | `test/staff_geometry_test.dart` | Staff positions, ledger lines |
 | `test/scheduler_test.dart` | Boxes, intervals, mastery, XP, streak |
 | `test/attempt_outcome_test.dart` | Tri-state no-ops, determinate scheduling, phrase evidence, retry feedback |

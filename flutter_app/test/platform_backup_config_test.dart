@@ -108,7 +108,7 @@ void main() {
         readme,
         contains(
           'the practice **recordings** screen owns record, play, delete, '
-          'clear-all, and export',
+          'clear-all, and the manual **export for teacher** bundle',
         ),
       );
       expect(readme, contains('v1 stores wav, not aac'));

@@ -15,6 +15,10 @@ import '../core/media/recording_exporter_factory.dart';
 import '../core/media/recording_index_store.dart';
 import '../core/media/recording_index.dart';
 import '../core/media/recording_service.dart';
+import '../core/media/take_bundle_exporter.dart';
+import '../core/media/take_bundle_exporter_factory.dart';
+import '../core/media/take_share_gateway.dart';
+import '../core/media/take_share_gateway_factory.dart';
 import '../core/notifications/reminder_scheduler.dart';
 import '../core/notifications/reminder_scheduler_factory.dart';
 import '../core/storage/recording_index_store.dart';
@@ -180,6 +184,27 @@ final recordingExporterProvider = FutureProvider<RecordingExporter>((ref) async 
   final exportsDirectory = await ref.watch(exportsDirectoryProvider.future);
   return createRecordingExporter(exportsDirectory: exportsDirectory);
 });
+
+/// Writes or downloads the three-file take bundle (T7.2).
+///
+/// IO writes the WAV, JSON, and PDF under the same `exports/` folder as the
+/// single-file export. Web downloads them through the browser. Tests override
+/// it with a fake so no platform path is touched.
+final takeBundleExporterProvider = FutureProvider<TakeBundleExporter>((
+  ref,
+) async {
+  final exportsDirectory = await ref.watch(exportsDirectoryProvider.future);
+  return createTakeBundleExporter(exportsDirectory: exportsDirectory);
+});
+
+/// Opens the OS share sheet for an exported bundle.
+///
+/// This is a local OS hand-off, not a network service. The web build resolves
+/// to an unsupported gateway because the bundle was already downloaded by the
+/// browser. Tests override it with a fake.
+final takeShareGatewayProvider = Provider<TakeShareGateway>(
+  (ref) => createTakeShareGateway(),
+);
 
 /// Builds the bounded local recording service.
 ///

@@ -136,8 +136,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 ],
                 const SizedBox(height: DuoSpacing.md),
                 if (state.takes.isEmpty)
-                  _emptyState()
-                else
+                  _emptyState(),
+                if (state.takes.isNotEmpty) ...[
+                  _exportCaptionCard(),
+                  const SizedBox(height: DuoSpacing.sm),
                   for (final take in state.takes) ...[
                     _takeCard(
                       take,
@@ -145,6 +147,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                     ),
                     const SizedBox(height: DuoSpacing.sm),
                   ],
+                ],
                 const SizedBox(height: DuoSpacing.md),
                 _usageCard(state),
                 const SizedBox(height: DuoSpacing.md),
@@ -605,6 +608,38 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
+  Widget _exportCaptionCard() {
+    return SectionCard(
+      key: const ValueKey('export-for-teacher-caption'),
+      color: AppColors.blueSoft,
+      borderColor: AppColors.blue,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.school_rounded,
+            color: AppColors.blueDark,
+            size: 20,
+          ),
+          const SizedBox(width: DuoSpacing.xs),
+          Expanded(
+            child: Text(
+              'Export for teacher gives you the take, a one-page summary, and '
+              'a JSON copy. Nothing is uploaded; your teacher gets a copy only '
+              'if you share it.',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.blueDark,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _emptyState() {
     return SectionCard(
       child: Column(
@@ -726,12 +761,6 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
               ),
               const Spacer(),
               IconButton(
-                key: ValueKey('export-take-${take.id}'),
-                tooltip: 'Export WAV',
-                onPressed: busy ? null : () => unawaited(_export(take)),
-                icon: const Icon(Icons.ios_share_rounded),
-              ),
-              IconButton(
                 key: ValueKey('delete-take-${take.id}'),
                 tooltip: 'Delete take',
                 onPressed: busy ? null : () => unawaited(_delete(take)),
@@ -739,6 +768,14 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 color: AppColors.redDark,
               ),
             ],
+          ),
+          const SizedBox(height: DuoSpacing.xxs),
+          OutlineDuoButton(
+            key: ValueKey('export-take-${take.id}'),
+            label: 'EXPORT FOR TEACHER',
+            icon: Icons.ios_share_rounded,
+            color: AppColors.blue,
+            onPressed: busy ? null : () => unawaited(_exportBundle(take)),
           ),
         ],
       ),
@@ -768,21 +805,14 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     }
   }
 
-  Future<void> _export(RecordingTake take) async {
+  Future<void> _exportBundle(RecordingTake take) async {
     final outcome = await ref
         .read(recordingControllerProvider.notifier)
-        .exportTake(take.id);
+        .exportTakeBundle(take.id);
     if (!mounted) return;
-    final result = outcome.result;
-    if (result == null) {
-      _snack(outcome.failure?.message ?? 'Could not export the take.');
-      return;
+    if (outcome.message != null) {
+      _snack(outcome.message!);
     }
-    _snack(
-      result.path == null
-          ? 'Downloaded ${result.fileName}.'
-          : 'Exported to ${result.path}',
-    );
   }
 
   Future<void> _delete(RecordingTake take) async {
