@@ -191,9 +191,15 @@ void main() {
     await tester.pumpWidget(_build(harness));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('compare-play-left')));
+    final leftPlay = find.byKey(const ValueKey('compare-play-left'));
+    final rightPlay = find.byKey(const ValueKey('compare-play-right'));
+    await tester.ensureVisible(leftPlay);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('compare-play-right')));
+    await tester.tap(leftPlay);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(rightPlay);
+    await tester.pumpAndSettle();
+    await tester.tap(rightPlay);
     await tester.pumpAndSettle();
 
     expect(harness.player.played, hasLength(2));
@@ -262,12 +268,18 @@ void main() {
     await tester.pumpWidget(_build(harness));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('compare-export-left')));
+    final exportLeft = find.byKey(const ValueKey('compare-export-left'));
+    await tester.ensureVisible(exportLeft);
+    await tester.pumpAndSettle();
+    await tester.tap(exportLeft);
     await tester.pumpAndSettle();
     expect(harness.exporter.requests, hasLength(1));
     expect(harness.exporter.requests.single.mimeType, 'audio/wav');
 
-    await tester.tap(find.byKey(const ValueKey('compare-delete-right')));
+    final deleteRight = find.byKey(const ValueKey('compare-delete-right'));
+    await tester.ensureVisible(deleteRight);
+    await tester.pumpAndSettle();
+    await tester.tap(deleteRight);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Delete').last);
     await tester.pumpAndSettle();
