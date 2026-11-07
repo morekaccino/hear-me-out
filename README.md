@@ -227,7 +227,15 @@ session rules.
   backup. The app never claims exclusion without that confirmation.
 - Takes are capped at 60 seconds, 20 takes, and 200 MB locally. V1 stores WAV,
   not AAC, and recording quality is not validated on every device. The Practice
-  **Recordings** screen owns record, play, delete, clear-all, and export.
+  **Recordings** screen owns record, play, delete, clear-all, and the manual
+  **Export for teacher** bundle (the take, a one-page PDF summary, and a JSON
+  copy). The export shows the plain-language header, writes local files, and
+  opens the OS share sheet on Android/iOS; the web build downloads the three
+  files. Nothing is uploaded by the app. **Clear exports** deletes only those
+  copies on Android/iOS; on web use the browser's downloads list. Delete and
+  Clear all touch only stored takes. The summary carries
+  stored practice evidence, an explicit “no stored evidence” line, or an
+  evidence-unavailable line.
 - A take leaves the device only through an explicit export you start, and
   deleting a take removes it from the device. An exported copy is a normal file
   outside the `media/` backup exclusion.

@@ -50,7 +50,8 @@ from what this plan would require.
 | Consumer app has no account, cloud sync, remote analytics, or third-party tracker | Shipped rule | [`../AGENTS.md`](../AGENTS.md) hard rule 1; [decision 0006](decisions/0006-local-retention-instrumentation.md) | Shipped |
 | Progress is local in `shared_preferences` | Shipped | `flutter_app/lib/core/storage/progress_store.dart` | Shipped |
 | Recordings use a local `MediaStore` and are excluded from cloud backup when the platform confirms it | Shipped | T4.1, T4.5; [decision 0002](decisions/0002-backup-exclusion-no-opt-in.md) | Shipped |
-| Recording, delete, and export controls in the UI | Not built | T4.2 and T7.2 are not merged into this branch | `Not built` |
+| Recording and delete controls in the UI (T4.2) | Shipped | T4.2 recording, **Delete**, and **Clear all** | `Shipped` |
+| Manual export and Clear exports in the UI (T7.2) | Implemented; pending merge | T7.2 manual export and **Clear exports** | `Draft` |
 | Teacher dashboard, roster, assignments, comments | Not built by design before three paid pilots | T7.5; plan §10.3 | `Not built` |
 | Parent/guardian consent for the teacher channel | No in-app flow; this document defines a manual pilot process | This document | `Draft` |
 | Deletion rehearsal for recordings and exports | Not run | [§4.8](#48-test-before-any-claim) | `Not run` |
@@ -252,7 +253,7 @@ progress backup. Counsel to confirm whether the pilot can accept this gap.
 | Record | Default limit | What happens at the limit | Owner | Marker |
 |---|---|---|---|---|
 | Local progress | Until the student resets progress or uninstalls the app | Deleted with the app's local storage | Student/guardian | N/A |
-| Local takes | Until the student deletes them. The planned cap is 20 takes and 60 s per take; the current `MediaStore` does not enforce it, so T4.2 must add the cap or the pilot must enforce it | The student or guardian deletes them; uninstall removes the local store | Student/guardian | N/A |
+| Local takes | Until the student deletes them. T4.2 enforces 20 takes and 60 s per take | The student or guardian deletes them with Delete or Clear all; uninstall removes the local store | Student/guardian | N/A |
 | Export received by a teacher | 30 days after the review; hard maximum 90 days | Teacher deletes the file and confirms in the deletion log | Teacher | Counsel to confirm |
 | Teacher roster | Until the student leaves the pilot plus 14 days | Teacher deletes the row; the redacted register keeps the record id and dates | Teacher | Counsel to confirm |
 | Consent record | Participation plus 12 months, then destroy | Shred or securely delete; the deletion log keeps only the record id and dates | Teacher/pilot lead | Counsel to confirm |
@@ -451,10 +452,10 @@ Effects:
   choose, but the teacher must not review new work.
 - The teacher deletes exported takes and summaries within 7 days, unless the
   parent asks for a copy first.
-- The student or guardian deletes local takes and progress. Until the
-  take-delete control from T4.2 exists, use the uninstall or clear-storage path
-  in §4.3 and §4.4; do not tell the student a per-take delete button is
-  available. The teacher can help.
+- The student or guardian deletes local takes with the recordings Delete or
+  Clear all controls, the exported copies with Clear exports (T4.2/T7.2), and
+  progress with Reset progress. Uninstall or clear-storage remains the fallback
+  when a device cannot run the controls. The teacher can help.
 - The consent record is marked `Revoked`; the redacted register keeps the date
   and scope but not the reason.
 - The project confirms the actions in writing within 14 days.
@@ -473,9 +474,10 @@ confirm.
 
 Do not claim "delete on request" until the workflow in this section has been
 run end to end on the devices in scope and the evidence is in the pilot file.
-The app currently has **Reset progress** and **Erase log** in Profile. It does
-not have recording delete or export controls. Those arrive with T4.2 and T7.2
-and must be tested before a pilot.
+The app has **Reset progress** and **Erase log** in Profile, the recordings
+**Delete** and **Clear all** controls (T4.2), and the manual **Export for
+teacher** flow with **Clear exports** (T7.2). The deletion rehearsal in §4.8 is
+still not run, so the path is not yet pilot evidence.
 
 ### 4.2 Request channels
 
@@ -516,16 +518,18 @@ These are the controls the pilot can use. Their status is part of the gate.
 |---|---|---|---|
 | Profile → Reset progress | Local progress, streak, skill and phrase state | Shipped; not covered by a dedicated test in this branch | Manual check in the §4.8 rehearsal |
 | Profile → Erase log | Local usage events; keeps install id, install day, and opt-in choice | Shipped; tested | `test/retention_profile_test.dart` |
-| Take delete control | One local recording and its manifest | `Not built` (T4.2) | Widget test plus device check |
-| Delete all recordings | Every local recording and manifest | `Not built` (T4.2) | Widget test plus device check |
+| Take delete control | One local recording and its manifest | `Shipped` (T4.2) | Widget test plus device check |
+| Delete all recordings | Every local recording and manifest | `Shipped` (T4.2) | Widget test plus device check |
+| Clear exported files | Every file directly under the app support `exports/` folder; the media store, manifest, progress, and settings are untouched | Implemented (T7.2, pending merge) | Widget test plus device check |
 | Uninstall the app | Local progress, settings, media store, and retention log | Platform behavior; `Not run` for the pilot devices | Device check on iOS and Android; web storage clear |
 | Web: clear site data | IndexedDB media and local storage | Platform behavior; `Not run` for the pilot browsers | Browser check |
 
 The app must not offer a "delete my data" button that only clears one store
 while leaving takes, the retention log, or a backup copy behind. The delete
-flow must name what it removes and show a confirmation. Until the recording
-controls exist, the only honest instruction for a saved take is to uninstall
-or clear the app's storage with the guardian present.
+flow must name what it removes and show a confirmation. The recordings controls
+now exist: Delete and Clear all remove stored takes; Clear exports removes the
+app's exported copies on Android/iOS. Web downloads are managed by the browser.
+The §4.8 rehearsal is still not run, so none of this is pilot evidence yet.
 
 ### 4.5 Export-file deletion
 
@@ -590,8 +594,10 @@ with no real child data.
       store and not in the progress document.
 - [ ] Export the take and summary. Confirm the export contains only the fields
       in §2.2 and no install id, email, device model, or parent detail.
-- [ ] Delete the take with the app control (when T4.2 lands). Confirm the file
-      and manifest are gone.
+- [ ] Open **Clear exports** and confirm the app support `exports/` folder is
+      empty while the stored take, progress, and settings are untouched.
+- [ ] Delete the take with the app control. Confirm the file and manifest are
+      gone.
 - [ ] Reset progress. Confirm progress is gone and the retention log is not
       silently changed.
 - [ ] Erase the retention log. Confirm the events are gone and the install id
@@ -793,6 +799,7 @@ needs its own privacy review.
 | Rule | Why | Evidence |
 |---|---|---|
 | Export only from the app's share sheet to the teacher's approved local folder | Keeps the teacher copy local and visible | Teacher attestation |
+| Show the plain-language header before the share sheet opens | The student must see what leaves the device, who it is for, and how to delete it | T7.2 pre-export sheet; widget test |
 | Do not use email, chat, or a personal cloud drive | Those copies cannot be deleted or audited | Incident if breached |
 | Encrypt the folder or device where the platform supports it | A lost device is the main breach risk | Device check |
 | Name files with the student label, not a legal name | A leaked file name should not identify a child | Sample file check |
@@ -802,7 +809,11 @@ needs its own privacy review.
 
 The T7.2 export must include a plain-language header in the summary: what the
 file contains, who it is for, the retention rule, and how to delete it. The
-student sees that header before sharing.
+student sees that header before sharing. **Implemented in T7.2:** the
+pre-export sheet shows the shared header before the OS share sheet opens, the
+PDF carries the header, and the JSON carries the take and evidence facts. This
+is an engineering control, not a legal clearance; the count of students who saw
+it is not yet measured.
 
 ### 6.6 Training and checklist
 

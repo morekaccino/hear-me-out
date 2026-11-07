@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/media/recording_index.dart';
 import '../../core/media/recording_service.dart';
 import '../../core/media/take_comparison.dart';
+import '../../core/media/take_export_summary.dart';
 import '../../content/pieces/launch_pieces.dart';
 import '../../shared/audio/take_player.dart';
 import '../../shared/navigation/duo_route.dart';
@@ -62,6 +63,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
   late final TakePlayer _player;
   String? _selectedPieceId;
 
+  /// The take currently being exported, if any. This is UI state only; the
+  /// controller also guards against a second concurrent export.
+  String? _exportingTakeId;
+
   @override
   void initState() {
     super.initState();
@@ -96,6 +101,11 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     final async = ref.watch(recordingControllerProvider);
     final backup = ref.watch(mediaBackupStatusProvider);
     final state = async.asData?.value;
+    final exportsSupported = ref
+        .watch(takeExportCleanerProvider)
+        .asData
+        ?.value
+        .isSupported;
     final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
@@ -128,7 +138,7 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 ],
                 if (state.notice != null) ...[
                   const SizedBox(height: DuoSpacing.sm),
-                  _noticeCard(state.notice!),
+                  _noticeCard(state.notice!, neutral: state.noticeNeutral),
                 ],
                 if (hasComparablePiecePair(state.takes)) ...[
                   const SizedBox(height: DuoSpacing.md),
@@ -136,17 +146,21 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 ],
                 const SizedBox(height: DuoSpacing.md),
                 if (state.takes.isEmpty)
-                  _emptyState()
-                else
+                  _emptyState(),
+                if (state.takes.isNotEmpty) ...[
+                  _exportCaptionCard(exportsSupported),
+                  const SizedBox(height: DuoSpacing.sm),
                   for (final take in state.takes) ...[
                     _takeCard(
                       take,
                       state.busy || state.recording || state.starting,
+                      _exportingTakeId,
                     ),
                     const SizedBox(height: DuoSpacing.sm),
                   ],
+                ],
                 const SizedBox(height: DuoSpacing.md),
-                _usageCard(state),
+                _usageCard(state, exportsSupported),
                 const SizedBox(height: DuoSpacing.md),
                 Text(
                   'Takes are stored as WAV files on this device and are never '
@@ -419,19 +433,26 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
-  Widget _noticeCard(String message) {
+  Widget _noticeCard(String message, {bool neutral = false}) {
+    final background = neutral ? AppColors.blueSoft : AppColors.greenSoft;
+    final foreground = neutral ? AppColors.blueDark : AppColors.greenDark;
     return Container(
+      key: ValueKey(
+        neutral ? 'recording-notice-neutral' : 'recording-notice-success',
+      ),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.greenSoft,
+        color: background,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
-            Icons.check_circle_rounded,
-            color: AppColors.greenDark,
+          Icon(
+            neutral
+                ? Icons.info_outline_rounded
+                : Icons.check_circle_rounded,
+            color: foreground,
             size: 20,
           ),
           const SizedBox(width: DuoSpacing.xs),
@@ -439,10 +460,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
             child: Text(
               message,
               key: const ValueKey('recording-notice'),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: AppColors.greenDark,
+                color: foreground,
                 height: 1.35,
               ),
             ),
@@ -452,7 +473,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
-  Widget _usageCard(RecordingScreenState state) {
+  Widget _usageCard(
+    RecordingScreenState state,
+    bool? exportsSupported,
+  ) {
     return SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -514,6 +538,19 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 icon: const Icon(Icons.cleaning_services_rounded, size: 18),
                 label: const Text('CHECK STORAGE'),
               ),
+              if (exportsSupported == true)
+                TextButton.icon(
+                  key: const ValueKey('clear-exports'),
+                  onPressed:
+                      state.busy || state.recording || _exportingTakeId != null
+                      ? null
+                      : _confirmClearExports,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.orangeDark,
+                  ),
+                  icon: const Icon(Icons.folder_delete_rounded, size: 18),
+                  label: const Text('CLEAR EXPORTS'),
+                ),
               TextButton.icon(
                 key: const ValueKey('clear-all-recordings'),
                 onPressed: state.busy || state.recording || !state.hasTakes
@@ -605,6 +642,52 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
+  Widget _exportCaptionCard(bool? exportsSupported) {
+    final copy = switch (exportsSupported) {
+      true =>
+        'Export for teacher gives you the take, a one-page summary, and a '
+            'JSON copy. Nothing is uploaded by the app; your teacher gets a '
+            'copy only if you share it. Exported copies stay in the app until '
+            'you tap Clear exports.',
+      false =>
+        'Export for teacher gives you the take, a one-page summary, and a '
+            'JSON copy. Nothing is uploaded by the app; your teacher gets a '
+            'copy only if you share it. Your browser downloads the files; use '
+            'the browser downloads list to delete them.',
+      null =>
+        'Export for teacher gives you the take, a one-page summary, and a '
+            'JSON copy. Nothing is uploaded by the app; your teacher gets a '
+            'copy only if you share it.',
+    };
+    return SectionCard(
+      key: const ValueKey('export-for-teacher-caption'),
+      color: AppColors.blueSoft,
+      borderColor: AppColors.blue,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.school_rounded,
+            color: AppColors.blueDark,
+            size: 20,
+          ),
+          const SizedBox(width: DuoSpacing.xs),
+          Expanded(
+            child: Text(
+              copy,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.blueDark,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _emptyState() {
     return SectionCard(
       child: Column(
@@ -632,7 +715,14 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     );
   }
 
-  Widget _takeCard(RecordingTake take, bool busy) {
+  Widget _takeCard(
+    RecordingTake take,
+    bool busy,
+    String? exportingTakeId,
+  ) {
+    final exporting = exportingTakeId != null;
+    final exportingThis = exportingTakeId == take.id;
+    final actionsDisabled = busy || exporting;
     return SectionCard(
       key: ValueKey('take-${take.id}'),
       child: Column(
@@ -720,25 +810,31 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
             children: [
               TextButton.icon(
                 key: ValueKey('play-take-${take.id}'),
-                onPressed: busy ? null : () => unawaited(_play(take)),
+                onPressed: actionsDisabled ? null : () => unawaited(_play(take)),
                 icon: const Icon(Icons.play_arrow_rounded, size: 20),
                 label: const Text('PLAY'),
               ),
               const Spacer(),
               IconButton(
-                key: ValueKey('export-take-${take.id}'),
-                tooltip: 'Export WAV',
-                onPressed: busy ? null : () => unawaited(_export(take)),
-                icon: const Icon(Icons.ios_share_rounded),
-              ),
-              IconButton(
                 key: ValueKey('delete-take-${take.id}'),
                 tooltip: 'Delete take',
-                onPressed: busy ? null : () => unawaited(_delete(take)),
+                onPressed: actionsDisabled
+                    ? null
+                    : () => unawaited(_delete(take)),
                 icon: const Icon(Icons.delete_outline_rounded),
                 color: AppColors.redDark,
               ),
             ],
+          ),
+          const SizedBox(height: DuoSpacing.xxs),
+          OutlineDuoButton(
+            key: ValueKey('export-take-${take.id}'),
+            label: exportingThis ? 'EXPORTING…' : 'EXPORT FOR TEACHER',
+            icon: Icons.ios_share_rounded,
+            color: AppColors.blue,
+            onPressed: actionsDisabled
+                ? null
+                : () => unawaited(_confirmExportBundle(take)),
           ),
         ],
       ),
@@ -768,21 +864,111 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     }
   }
 
-  Future<void> _export(RecordingTake take) async {
-    final outcome = await ref
-        .read(recordingControllerProvider.notifier)
-        .exportTake(take.id);
-    if (!mounted) return;
-    final result = outcome.result;
-    if (result == null) {
-      _snack(outcome.failure?.message ?? 'Could not export the take.');
-      return;
-    }
-    _snack(
-      result.path == null
-          ? 'Downloaded ${result.fileName}.'
-          : 'Exported to ${result.path}',
+  /// Shows the COPPA §6.5 header before the export/share starts.
+  ///
+  /// The student sees what the bundle contains, who it is for, the 90-day
+  /// teacher retention rule, and how to delete the copy before the OS share
+  /// sheet can open.
+  Future<void> _confirmExportBundle(RecordingTake take) async {
+    if (_exportingTakeId != null) return;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Export for teacher',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.text,
+                ),
+              ),
+              const SizedBox(height: DuoSpacing.xxs),
+              Text(
+                'One take. You choose where it goes.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: DuoSpacing.sm),
+              for (final section in takeSummaryHeader) ...[
+                Text(
+                  section.title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                for (final paragraph in section.paragraphs)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text(
+                      paragraph,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        height: 1.35,
+                        color: AppColors.text,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: DuoSpacing.xs),
+              ],
+              Text(
+                'Nothing is uploaded by the app.',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.blueDark,
+                ),
+              ),
+              const SizedBox(height: DuoSpacing.md),
+              DuoButton(
+                key: const ValueKey('export-confirm'),
+                label: 'EXPORT',
+                icon: Icons.ios_share_rounded,
+                onPressed: () => Navigator.pop(sheetContext, true),
+              ),
+              const SizedBox(height: DuoSpacing.xs),
+              OutlineDuoButton(
+                label: 'CANCEL',
+                onPressed: () => Navigator.pop(sheetContext, false),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
+    if (confirmed != true || !mounted) return;
+    await _exportBundle(take);
+  }
+
+  Future<void> _exportBundle(RecordingTake take) async {
+    if (_exportingTakeId != null) return;
+    setState(() => _exportingTakeId = take.id);
+    try {
+      final outcome = await ref
+          .read(recordingControllerProvider.notifier)
+          .exportTakeBundle(take.id);
+      if (!mounted) return;
+      if (outcome.message != null) {
+        _snack(outcome.message!);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _exportingTakeId = null);
+      }
+    }
   }
 
   Future<void> _delete(RecordingTake take) async {
@@ -821,6 +1007,42 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
         .clearAll();
     if (!mounted) return;
     _snack(failure?.message ?? 'All takes deleted.');
+  }
+
+  Future<void> _confirmClearExports() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear exported files?'),
+        content: const Text(
+          "This deletes the export copies in the app's exports folder: each "
+          'WAV, PDF, and JSON. Your stored takes, progress, and settings stay '
+          'as they are. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Clear exports'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final failure = await ref
+        .read(recordingControllerProvider.notifier)
+        .clearExports();
+    if (!mounted) return;
+    final notice = ref
+        .read(recordingControllerProvider)
+        .asData
+        ?.value
+        .notice;
+    _snack(failure?.message ?? notice ?? 'Exported copies cleared.');
   }
 
   Future<void> _showDeleteSheet() async {

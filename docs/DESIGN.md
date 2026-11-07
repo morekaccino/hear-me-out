@@ -551,9 +551,10 @@ Practice route stays multi-take. Leaving the screen stops and discards a live
 take; the microphone never stays on behind Practice.
 
 The take list shows date, piece or phrase, duration, and size, and offers play,
-export, and delete. Usage is shown as “takes used / 20” and bytes used / 200 MB.
-A full quota or a storage failure shows a specific message and a delete action;
-it never silently overwrites a take. **Clear all** requires confirmation.
+export for teacher, and delete. Usage is shown as “takes used / 20” and bytes
+used / 200 MB. A full quota or a storage failure shows a specific message and a
+delete action; it never silently overwrites a take. **Clear all** requires
+confirmation.
 
 When one piece has two takes, the list also offers an A/B comparison. The
 comparison screen normalizes both sides to matched loudness before playback,
@@ -568,11 +569,25 @@ public link. The card is local by default; **Export card** renders a PNG only
 after an explicit tap, and the audio is not included. The copy says the card
 stays on the device unless the learner exports it.
 
+The take list also offers **EXPORT FOR TEACHER**: tapping it shows the
+plain-language header (contents, audience, 90-day teacher retention, deletion),
+then writes the take, a one-page PDF summary, and a JSON copy and opens the OS
+share sheet. The caption says the export is local, nothing is uploaded by the
+app, and the teacher gets a copy only if the student shares it. The summary
+carries stored practice evidence, an explicit “no stored evidence” line, or an
+evidence-unavailable line; it never presents a teacher grade. A cancelled share
+uses a neutral notice, not the green success card. The web build downloads the
+three files instead of opening a share sheet; the in-app **CLEAR EXPORTS** action
+is hidden there, and the browser's downloads list is the deletion path on web.
+On Android/iOS **CLEAR EXPORTS** deletes only the copies in the app's exports
+folder; Delete and Clear all touch only stored takes, and the screen says which
+is which.
+
 The privacy card sits above the record control and uses the conditional
 `MediaPrivacyCard` copy. Never claim backup exclusion unless the platform
 confirmed it. The footer says takes are stored as WAV on this device and that
-recording quality has not been validated on every device. There is no
-before/after card, share sheet, cloud upload, heart, gem, XP, or streak here.
+recording quality has not been validated on every device. There is no cloud
+upload, public link, heart, gem, XP, or streak here.
 
 ### Technique
 

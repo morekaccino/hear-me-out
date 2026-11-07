@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -12,19 +13,31 @@ import 'package:hear_me_out/core/media/media_store.dart';
 import 'package:hear_me_out/core/media/recording_index.dart';
 import 'package:hear_me_out/core/media/recording_index_store.dart';
 import 'package:hear_me_out/core/media/recording_service.dart';
+import 'package:hear_me_out/core/media/take_bundle_exporter.dart';
+import 'package:hear_me_out/core/media/take_export_cleaner.dart';
+import 'package:hear_me_out/core/media/take_share_gateway.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/core/storage/retention_store.dart';
 import 'package:hear_me_out/content/pieces/launch_pieces.dart';
 import 'package:hear_me_out/features/recordings/recordings_screen.dart';
 import 'package:hear_me_out/shared/theme/app_theme.dart';
+import 'package:hear_me_out/shared/widgets/duo_button.dart';
+import 'package:hear_me_out/state/app_controller.dart';
 import 'package:hear_me_out/state/providers.dart';
 import 'package:hear_me_out/state/recording_controller.dart';
 
 import 'support/fakes.dart';
 
 class _Harness {
-  _Harness({MediaStore? store}) : store = store ?? MemoryMediaStore() {
+  _Harness({MediaStore? store, ProgressState? progress})
+    : store = store ?? MemoryMediaStore(),
+      progressStore = MemoryProgressStore(
+        progress ??
+            ProgressState.fresh(
+              settings: const AppSettings(onboardingComplete: true),
+            ),
+      ) {
     capture = FakePcmCapture(
       chunks: <Uint8List>[_tone()],
       config: const PcmCaptureConfig(sampleRate: 8000, channels: 1),
@@ -46,12 +59,13 @@ class _Harness {
   final MediaStore store;
   final MemoryRecordingIndexStore indexStore = MemoryRecordingIndexStore();
   final FakeRecordingExporter exporter = FakeRecordingExporter();
+  final FakeTakeBundleExporter bundleExporter = FakeTakeBundleExporter();
+  final FakeTakeShareGateway share = FakeTakeShareGateway();
+  final FakeTakeExportCleaner exportCleaner = FakeTakeExportCleaner();
   final FakeRecordingTimerFactory timers = FakeRecordingTimerFactory();
   final FakeTakePlayer player = FakeTakePlayer();
   final MemoryRetentionStore retention = MemoryRetentionStore(optIn: true);
-  final MemoryProgressStore progressStore = MemoryProgressStore(
-    ProgressState.fresh(settings: const AppSettings(onboardingComplete: true)),
-  );
+  final MemoryProgressStore progressStore;
   late final FakePcmCapture capture;
   late final RecordingService service;
 
@@ -145,11 +159,42 @@ Uint8List _toneBytes() {
 
 Uint8List _tone() => _toneBytes();
 
+ProgressState _progressWithPhraseEvidence() {
+  final progress = ProgressState.fresh(
+    settings: const AppSettings(onboardingComplete: true),
+  );
+  progress.recordPhraseAttempt(
+    PhraseAttempt(
+      phraseId: 'p1',
+      outcome: AttemptOutcome.correct,
+      now: DateTime.utc(2026, 11, 1, 10),
+      accuracy: 0.9,
+      tempoBpm: 68,
+      targetTempoBpm: 72,
+      pieceId: 'ode-to-joy',
+      contentVersion: 1,
+      bars: 4,
+    ),
+  );
+  return progress;
+}
+
+class _FailingAppController extends AppController {
+  @override
+  Future<AppData> build() async => throw StateError('progress unavailable');
+}
+
 Widget _build(
   _Harness harness, {
   BackupExclusionResult backup = const BackupExclusionResult.failed('denied'),
+  AppController Function()? appController,
 }) {
-  return _shell(harness, const RecordingsScreen(), backup);
+  return _shell(
+    harness,
+    const RecordingsScreen(),
+    backup,
+    appController: appController,
+  );
 }
 
 Widget _buildNavigated(_Harness harness) {
@@ -171,12 +216,27 @@ Widget _buildNavigated(_Harness harness) {
   );
 }
 
-Widget _shell(_Harness harness, Widget home, BackupExclusionResult backup) {
+Widget _shell(
+  _Harness harness,
+  Widget home,
+  BackupExclusionResult backup, {
+  AppController Function()? appController,
+}) {
   return ProviderScope(
     overrides: [
       recordingServiceProvider.overrideWithValue(AsyncData(harness.service)),
       mediaBackupStatusProvider.overrideWithValue(AsyncData(backup)),
       takePlayerProvider.overrideWithValue(harness.player),
+      takeBundleExporterProvider.overrideWithValue(
+        AsyncData(harness.bundleExporter),
+      ),
+      takeShareGatewayProvider.overrideWithValue(harness.share),
+      takeExportCleanerProvider.overrideWithValue(
+        AsyncData(harness.exportCleaner),
+      ),
+      if (appController != null)
+        appControllerProvider.overrideWith(appController),
+      clockProvider.overrideWithValue(() => DateTime.utc(2026, 11, 7, 9, 15)),
       soundServiceProvider.overrideWithValue(FakeSoundService()),
       retentionStoreProvider.overrideWithValue(harness.retention),
       progressStoreProvider.overrideWithValue(harness.progressStore),
@@ -192,8 +252,48 @@ void _useSize(WidgetTester tester, Size size) {
   addTearDown(tester.view.resetDevicePixelRatio);
 }
 
+Future<void> _reveal(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(finder, 240);
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _scrollToTop(WidgetTester tester) async {
+  await tester.drag(
+    find.byKey(const ValueKey('recordings-list')),
+    const Offset(0, 2000),
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Opens the export header sheet and confirms the export.
+Future<void> _tapExport(WidgetTester tester, String id) async {
+  await _reveal(tester, find.byKey(ValueKey('export-take-$id')));
+  await tester.tap(find.byKey(ValueKey('export-take-$id')));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const ValueKey('export-confirm')), findsOneWidget);
+  await tester.tap(find.byKey(const ValueKey('export-confirm')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('a new success notice resets the neutral export flag', () {
+    const state = RecordingScreenState(
+      takes: <RecordingTake>[],
+      usageBytes: 0,
+      takeLimit: 20,
+      byteLimit: 200,
+      notice: 'Export saved. Share cancelled.',
+      noticeNeutral: true,
+    );
+
+    final next = state.copyWith(notice: 'Take saved on this device.');
+
+    expect(next.notice, 'Take saved on this device.');
+    expect(next.noticeNeutral, isFalse);
+  });
 
   testWidgets('empty state fits 390x844 and never claims backup exclusion', (
     tester,
@@ -256,8 +356,11 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('record-button')));
     await tester.pumpAndSettle();
 
+    final savedId = (await harness.service.listTakes()).single.id;
+    await _reveal(tester, find.byKey(ValueKey('take-$savedId')));
     expect(find.text('Free take'), findsWidgets);
     expect(find.text('0:01'), findsOneWidget);
+    await _scrollToTop(tester);
     expect(find.text('1 of 20 takes stored'), findsOneWidget);
     expect(find.text('Take saved on this device.'), findsOneWidget);
     expect(await harness.store.list(), hasLength(1));
@@ -375,7 +478,7 @@ void main() {
     await harness.service.dispose();
   });
 
-  testWidgets('play, export, and delete use the stored take without mutation', (
+  testWidgets('play, bundle export, and delete use the stored take without mutation', (
     tester,
   ) async {
     _useSize(tester, const Size(390, 844));
@@ -387,35 +490,386 @@ void main() {
     await tester.pumpWidget(_build(harness));
     await tester.pumpAndSettle();
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('play-take-$id')),
-      160,
-    );
-    await tester.tap(find.byKey(const ValueKey('play-take-$id')));
+    await _reveal(tester, find.byKey(ValueKey('play-take-$id')));
+    await tester.tap(find.byKey(ValueKey('play-take-$id')));
     await tester.pumpAndSettle();
     expect(harness.player.played, hasLength(1));
     expect(harness.player.played.single, beforeBytes);
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('export-take-$id')),
-      160,
+    await _tapExport(tester, id);
+
+    expect(harness.bundleExporter.requests, hasLength(1));
+    final request = harness.bundleExporter.requests.single;
+    expect(request.takeId, id);
+    expect(request.files.map((file) => file.fileName), <String>[
+      '$id.wav',
+      '$id.json',
+      '$id.pdf',
+    ]);
+    expect(request.files.first.bytes, beforeBytes);
+    expect(
+      String.fromCharCodes(request.files.last.bytes.take(4)),
+      '%PDF',
     );
-    await tester.tap(find.byKey(const ValueKey('export-take-$id')));
-    await tester.pumpAndSettle();
-    expect(harness.exporter.requests, hasLength(1));
-    expect(harness.exporter.requests.single.bytes, beforeBytes);
-    expect(harness.exporter.requests.single.fileName, 'recording-$id.wav');
+    final json =
+        jsonDecode(utf8.decode(request.files[1].bytes)) as Map<String, dynamic>;
+    expect(json['takeId'], id);
+    expect(json['exportedAt'], '2026-11-07T09:15:00.000Z');
+    expect(json['evidenceStatus'], 'none');
+    expect(json['evidence'], isNull);
+
+    expect(harness.share.sharedPaths, hasLength(1));
+    expect(harness.share.sharedPaths.single, <String>[
+      '/exports/$id.wav',
+      '/exports/$id.json',
+      '/exports/$id.pdf',
+    ]);
+    expect(
+      find.text('Shared. Nothing is uploaded by the app.'),
+      findsWidgets,
+    );
+    await _scrollToTop(tester);
+    final notice = tester.widget<Text>(
+      find.byKey(const ValueKey('recording-notice')),
+    );
+    expect(notice.data, contains('Shared'));
+    expect(
+      find.byKey(const ValueKey('recording-notice-success')),
+      findsOneWidget,
+    );
     expect(await harness.store.get(id), beforeBytes);
     expect(await harness.store.list(), hasLength(1));
 
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('delete-take-$id')),
-      160,
-    );
-    await tester.tap(find.byKey(const ValueKey('delete-take-$id')));
+    await _reveal(tester, find.byKey(ValueKey('delete-take-$id')));
+    await tester.tap(find.byKey(ValueKey('delete-take-$id')));
     await tester.pumpAndSettle();
     expect(await harness.store.list(), isEmpty);
     expect(find.text('No takes yet'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a bundle failure shows a typed message, not an exception', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedTake(id);
+    harness.bundleExporter.failWith = const TakeBundleExportException(
+      'Could not write the export bundle.',
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _tapExport(tester, id);
+
+    expect(find.text('Could not write the export bundle.'), findsWidgets);
+    await _scrollToTop(tester);
+    final message = tester.widget<Text>(
+      find.byKey(const ValueKey('recording-failure-message')),
+    );
+    expect(message.data, 'Could not write the export bundle.');
+    expect(harness.share.sharedPaths, isEmpty);
+    expect(await harness.store.list(), hasLength(1));
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a phrase take includes real stored evidence in the summary', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness(progress: _progressWithPhraseEvidence());
+    const id = 'take-1';
+    await harness.seedPieceTake(id);
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _tapExport(tester, id);
+
+    final request = harness.bundleExporter.requests.single;
+    final json =
+        jsonDecode(utf8.decode(request.files[1].bytes)) as Map<String, dynamic>;
+    expect(json['piece'], <String, Object?>{
+      'title': 'Ode to Joy',
+      'composer': 'Ludwig van Beethoven',
+      'stage': 2,
+    });
+    expect(json['phraseId'], 'p1');
+    expect(json['evidenceStatus'], 'stored');
+    final evidence = json['evidence']! as Map<String, dynamic>;
+    expect(evidence['attempts'], 1);
+    expect(evidence['bestAccuracy'], 0.9);
+    expect(evidence['bestTempoBpm'], 68);
+    expect(evidence['performanceDays'], 1);
+    expect(evidence['masteryDays'], 0);
+    expect(evidence['contentVersion'], 1);
+    expect(
+      String.fromCharCodes(request.files.last.bytes.take(4)),
+      '%PDF',
+    );
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a phrase take with no stored record says there is no evidence', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedPieceTake(id);
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _tapExport(tester, id);
+
+    final request = harness.bundleExporter.requests.single;
+    final json =
+        jsonDecode(utf8.decode(request.files[1].bytes)) as Map<String, dynamic>;
+    expect(json['piece'], isNotNull);
+    expect(json['phraseId'], 'p1');
+    expect(json['evidenceStatus'], 'none');
+    expect(json['evidence'], isNull);
+    expect(json.containsKey('score'), isFalse);
+    expect(json.containsKey('grade'), isFalse);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a cancelled share keeps the exported files and says so', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedTake(id);
+    harness.share.result = const TakeShareResult(TakeShareStatus.cancelled);
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _tapExport(tester, id);
+
+    expect(harness.bundleExporter.requests, hasLength(1));
+    expect(find.textContaining('Share cancelled'), findsWidgets);
+    await _scrollToTop(tester);
+    expect(
+      find.byKey(const ValueKey('recording-notice-neutral')),
+      findsOneWidget,
+    );
+    final notice = tester.widget<Text>(
+      find.byKey(const ValueKey('recording-notice')),
+    );
+    expect(notice.data, contains('Share cancelled'));
+    expect(notice.data, contains('/exports/$id.wav'));
+    expect(harness.share.sharedPaths, hasLength(1));
+    expect(await harness.store.list(), hasLength(1));
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a web-style download reports the three files without a share', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedTake(id);
+    harness.bundleExporter.webDownload = true;
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _tapExport(tester, id);
+
+    expect(find.textContaining('Downloaded 3 files'), findsWidgets);
+    await _scrollToTop(tester);
+    final notice = tester.widget<Text>(
+      find.byKey(const ValueKey('recording-notice')),
+    );
+    expect(notice.data, contains('Downloaded 3 files'));
+    expect(notice.data, contains('Nothing is uploaded'));
+    expect(harness.share.sharedPaths, isEmpty);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('the export header is shown before the share sheet', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedTake(id);
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _reveal(tester, find.byKey(ValueKey('export-take-$id')));
+    await tester.tap(find.byKey(ValueKey('export-take-$id')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('WHAT THIS FILE CONTAINS'), findsOneWidget);
+    expect(find.text('WHO IT IS FOR'), findsOneWidget);
+    expect(find.text('KEEPING AND DELETING IT'), findsOneWidget);
+    expect(find.textContaining('90 days'), findsOneWidget);
+    expect(find.textContaining('Clear exported files'), findsOneWidget);
+    expect(find.text('Nothing is uploaded by the app.'), findsOneWidget);
+
+    await tester.tap(find.text('CANCEL'));
+    await tester.pumpAndSettle();
+    expect(harness.bundleExporter.requests, isEmpty);
+    expect(harness.share.sharedPaths, isEmpty);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('the export action is disabled while an export is in flight', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedTake(id);
+    final gate = Completer<void>();
+    harness.bundleExporter.gate = gate;
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _reveal(tester, find.byKey(ValueKey('export-take-$id')));
+    await tester.tap(find.byKey(ValueKey('export-take-$id')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('export-confirm')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('EXPORTING…'), findsOneWidget);
+    final button = tester.widget<OutlineDuoButton>(
+      find.byKey(ValueKey('export-take-$id')),
+    );
+    expect(button.onPressed, isNull);
+
+    // Clear exports must not delete files the in-flight share may still use.
+    await _reveal(tester, find.byKey(const ValueKey('clear-exports')));
+    final clearButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('clear-exports')),
+    );
+    expect(clearButton.onPressed, isNull);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingsScreen)),
+    );
+    final guarded = await container
+        .read(recordingControllerProvider.notifier)
+        .clearExports();
+    expect(guarded?.message, contains('An export is in progress'));
+    expect(harness.exportCleaner.calls, 0);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('EXPORT FOR TEACHER'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a progress read failure is exported as evidence unavailable', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedPieceTake(id);
+
+    await tester.pumpWidget(
+      _build(harness, appController: _FailingAppController.new),
+    );
+    await tester.pumpAndSettle();
+    await _tapExport(tester, id);
+
+    final request = harness.bundleExporter.requests.single;
+    final json =
+        jsonDecode(utf8.decode(request.files[1].bytes)) as Map<String, dynamic>;
+    expect(json['phraseId'], 'p1');
+    expect(json['evidenceStatus'], 'unavailable');
+    expect(json['evidence'], isNull);
+    expect(json.containsKey('score'), isFalse);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('clear exports deletes the app copies after confirmation', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await harness.seedTake('take-1');
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await _reveal(tester, find.byKey(const ValueKey('clear-exports')));
+    await tester.tap(find.byKey(const ValueKey('clear-exports')));
+    await tester.pumpAndSettle();
+    expect(find.text('Clear exported files?'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(harness.exportCleaner.calls, 0);
+
+    await tester.tap(find.byKey(const ValueKey('clear-exports')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear exports'));
+    await tester.pumpAndSettle();
+
+    expect(harness.exportCleaner.calls, 1);
+    expect(find.text('Cleared 3 exported files.'), findsWidgets);
+    expect(await harness.store.list(), hasLength(1));
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('clear exports is hidden when the platform has no app folder', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    harness.exportCleaner.isSupported = false;
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('clear-exports')), findsNothing);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a clear-exports failure is typed and the stored take remains', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await harness.seedTake('take-1');
+    harness.exportCleaner.result = const TakeExportClearResult(
+      deletedCount: 2,
+      failure: TakeExportClearFailure(
+        'Could not clear every exported file. Some copies may remain.',
+      ),
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _reveal(tester, find.byKey(const ValueKey('clear-exports')));
+    await tester.tap(find.byKey(const ValueKey('clear-exports')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear exports'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Could not clear every exported file.'),
+      findsWidgets,
+    );
+    expect(
+      find.textContaining('2 files were deleted before the error.'),
+      findsWidgets,
+    );
+    expect(await harness.store.list(), hasLength(1));
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
   });
@@ -462,11 +916,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Free take'), findsWidgets);
 
-    await tester.drag(
-      find.byKey(const ValueKey('recordings-list')),
-      const Offset(0, -400),
-    );
-    await tester.pumpAndSettle();
+    await _reveal(tester, find.byKey(const ValueKey('clear-all-recordings')));
     await tester.tap(find.byKey(const ValueKey('clear-all-recordings')));
     await tester.pumpAndSettle();
     expect(find.text('Clear all takes?'), findsOneWidget);
@@ -475,6 +925,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(await harness.store.list(), hasLength(1));
 
+    await _reveal(tester, find.byKey(const ValueKey('clear-all-recordings')));
     await tester.tap(find.byKey(const ValueKey('clear-all-recordings')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Clear all'));
@@ -504,6 +955,8 @@ void main() {
     expect(find.text('Take saved at the 60-second limit.'), findsOneWidget);
     expect(find.text('STOP'), findsNothing);
     expect(find.text('RECORD'), findsOneWidget);
+    final savedId = (await harness.service.listTakes()).single.id;
+    await _reveal(tester, find.byKey(ValueKey('take-$savedId')));
     expect(find.text('Stopped at 60 s'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
