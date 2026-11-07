@@ -490,9 +490,9 @@ path.
 
 `core/audio/loudness.dart` is pure Dart. It parses PCM16 WAV bytes, measures RMS
 and peak, applies a gain toward −20 dBFS RMS (or −1 dBFS peak below −60 dBFS
-RMS), caps the gain at +18 dB and attenuation at −24 dB, clamps each sample to
-±0.98, and returns new bytes. A silent take is returned unchanged; malformed
-bytes throw `LoudnessNormalizationException`; the stored blob is never
+RMS), caps the gain at +18 dB and attenuation at −24 dB, applies a shared peak
+limiter at ±0.98, and returns new bytes. A silent take is returned unchanged;
+malformed bytes throw `LoudnessNormalizationException`; the stored blob is never
 rewritten. `features/recordings/compare_takes_screen.dart` picks the oldest and
 newest take for a piece (preferring a shared phrase), shows date, length, and
 the registry's target tempo when available, and normalizes both sides in memory
