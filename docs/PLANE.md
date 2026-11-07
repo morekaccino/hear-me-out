@@ -114,7 +114,9 @@ protocol's order governs.
 4. **`D0.4` — Target user, positioning, V1 scope.**
 5. **`D0.5` — Assessment contract & 3-week spike.**
 6. The ticket for the work you are about to do.
-7. [`PHASE_GATES.md`](PHASE_GATES.md) before a phase-gate review.
+7. [`PHASE_GATES.md`](PHASE_GATES.md) and
+   [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) before a
+   phase-gate review.
 8. [`WEEKLY_REVIEW.md`](WEEKLY_REVIEW.md) before the weekly review.
 9. The current cycle (`C0` on 2026-11-04).
 10. [`ASSUMPTION_TRACKER.md`](ASSUMPTION_TRACKER.md) — the beliefs the plan
