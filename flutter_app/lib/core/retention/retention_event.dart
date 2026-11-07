@@ -11,7 +11,8 @@ enum RetentionEventName {
   firstRecording('first_recording'),
   sessionStart('session_start'),
   sessionComplete('session_complete'),
-  dailyActive('daily_active');
+  dailyActive('daily_active'),
+  reminderOptIn('reminder_opt_in');
 
   const RetentionEventName(this.wireName);
 

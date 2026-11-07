@@ -10,6 +10,7 @@ import 'package:hear_me_out/core/media/media_store.dart';
 import 'package:hear_me_out/core/media/recording_exporter.dart';
 import 'package:hear_me_out/core/media/recording_service.dart';
 import 'package:hear_me_out/core/music/sound_spec.dart';
+import 'package:hear_me_out/core/notifications/reminder_scheduler.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/retention/retention_log.dart';
 import 'package:hear_me_out/core/storage/onboarding_store.dart';
@@ -111,6 +112,67 @@ class MemoryRetentionStore implements RetentionStore {
   Future<void> clear() async {
     value = RetentionStoredData(optIn: value.optIn, log: value.log.clear());
     clearCount++;
+  }
+}
+
+/// Records reminder scheduler requests and returns controllable results.
+class FakeReminderScheduler implements ReminderScheduler {
+  FakeReminderScheduler({
+    this.supported = true,
+    this.permission = ReminderPermissionStatus.granted,
+    this.scheduleResult = const ReminderScheduleResult.scheduled(),
+    this.cancelResult = const ReminderScheduleResult.cancelled(),
+    this.beforeAfterResult = const ReminderScheduleResult.scheduled(),
+  });
+
+  bool supported;
+  ReminderPermissionStatus permission;
+  ReminderScheduleResult scheduleResult;
+  ReminderScheduleResult cancelResult;
+  ReminderScheduleResult beforeAfterResult;
+
+  int permissionRequests = 0;
+  int cancelCalls = 0;
+  int disposeCalls = 0;
+  final List<({int hour, int minute, String title, String body})> schedules =
+      <({int hour, int minute, String title, String body})>[];
+  final List<String> beforeAfterPieceIds = <String>[];
+
+  @override
+  bool get isSupported => supported;
+
+  @override
+  Future<ReminderPermissionStatus> requestPermission() async {
+    permissionRequests++;
+    return permission;
+  }
+
+  @override
+  Future<ReminderScheduleResult> scheduleDaily({
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+  }) async {
+    schedules.add((hour: hour, minute: minute, title: title, body: body));
+    return scheduleResult;
+  }
+
+  @override
+  Future<ReminderScheduleResult> cancelDaily() async {
+    cancelCalls++;
+    return cancelResult;
+  }
+
+  @override
+  Future<ReminderScheduleResult> showBeforeAfterReady(String pieceId) async {
+    beforeAfterPieceIds.add(pieceId);
+    return beforeAfterResult;
+  }
+
+  @override
+  Future<void> dispose() async {
+    disposeCalls++;
   }
 }
 

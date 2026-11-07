@@ -8,6 +8,8 @@ import '../../core/learning/progress.dart';
 import '../../core/learning/skill.dart';
 import '../../core/music/curriculum.dart';
 import '../../core/music/note.dart';
+import '../../core/notifications/reminder_copy.dart';
+import '../../core/notifications/reminder_scheduler.dart';
 import '../../core/storage/progress_store.dart';
 import '../../shared/audio/sound_service.dart';
 import '../../state/app_controller.dart';
@@ -62,6 +64,7 @@ class ProfileScreen extends ConsumerWidget {
       0,
       (sum, phrase) => sum + phrase.reps,
     );
+    final remindersAvailable = ref.watch(reminderSchedulerProvider).isSupported;
 
     return Scaffold(
       body: SafeArea(
@@ -352,6 +355,62 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                     const Divider(),
                     _SettingRow(
+                      icon: Icons.notifications_active_rounded,
+                      label: 'Practice reminder',
+                      minHeight: 56,
+                      trailing: Switch.adaptive(
+                        key: const ValueKey('reminder-enabled-switch'),
+                        value: settings.reminderEnabled,
+                        activeThumbColor: AppColors.green,
+                        onChanged: remindersAvailable
+                            ? (value) {
+                                unawaited(
+                                  _setReminderEnabled(
+                                    context,
+                                    ref,
+                                    settings,
+                                    value,
+                                  ),
+                                );
+                              }
+                            : null,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 32, bottom: 10),
+                      child: Text(
+                        remindersAvailable
+                            ? 'A local notification at your chosen time. '
+                                  'Quiet hours are 9 PM to 8 AM, so the '
+                                  'earliest choice is 8:00 AM.'
+                            : 'Reminders are available on mobile.',
+                        key: const ValueKey('reminder-helper'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          height: 1.35,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ),
+                    if (settings.reminderEnabled && remindersAvailable) ...[
+                      const Divider(),
+                      _SettingRow(
+                        icon: Icons.schedule_rounded,
+                        label: 'Reminder time',
+                        minHeight: 56,
+                        value: formatReminderTime(
+                          settings.reminderHour,
+                          settings.reminderMinute,
+                        ),
+                        onTap: () {
+                          _play(ref, Sfx.uiSelect);
+                          unawaited(_pickReminderTime(context, ref, settings));
+                        },
+                      ),
+                    ],
+                    const Divider(),
+                    _SettingRow(
                       icon: Icons.vibration_rounded,
                       label: 'Haptics',
                       trailing: Switch.adaptive(
@@ -596,6 +655,154 @@ class ProfileScreen extends ConsumerWidget {
         );
   }
 
+  Future<void> _setReminderEnabled(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+    bool enabled,
+  ) async {
+    final scheduler = ref.read(reminderSchedulerProvider);
+    final controller = ref.read(appControllerProvider.notifier);
+
+    if (!enabled) {
+      _play(ref, Sfx.uiToggleOff);
+      // Persist off first so a later scheduler failure cannot leave the switch
+      // claiming a reminder that no longer exists.
+      await controller.updateSettings(
+        settings.copyWith(reminderEnabled: false),
+      );
+      final result = await scheduler.cancelDaily();
+      if (!context.mounted) return;
+      if (result.status == ReminderScheduleStatus.failed) {
+        _snack(
+          context,
+          result.message ?? 'Could not cancel the reminder on this device.',
+        );
+      }
+      return;
+    }
+
+    if (!scheduler.isSupported) {
+      _snack(context, 'Reminders are available on mobile.');
+      return;
+    }
+
+    final hour =
+        isAllowedReminderTime(settings.reminderHour, settings.reminderMinute)
+        ? settings.reminderHour
+        : defaultReminderHour;
+    final minute =
+        isAllowedReminderTime(settings.reminderHour, settings.reminderMinute)
+        ? settings.reminderMinute
+        : defaultReminderMinute;
+    final next = settings.copyWith(
+      reminderEnabled: true,
+      reminderHour: hour,
+      reminderMinute: minute,
+    );
+    // Persist before scheduling, as the settings contract requires.
+    await controller.updateSettings(next);
+    final result = await requestAndScheduleDaily(
+      scheduler,
+      hour: hour,
+      minute: minute,
+      title: reminderNotificationTitle,
+      body: _reminderBody(ref),
+    );
+    if (!context.mounted) return;
+    if (!result.ok) {
+      await controller.updateSettings(
+        settings.copyWith(reminderEnabled: false),
+      );
+      await scheduler.cancelDaily();
+      if (context.mounted) {
+        _play(ref, Sfx.errorSoft);
+        _snack(
+          context,
+          result.status == ReminderScheduleStatus.permissionDenied
+              ? 'Notifications are turned off for this app. Turn them on in '
+                    'system settings, then try again.'
+              : result.message ??
+                    'Could not schedule the reminder on this device.',
+        );
+      }
+      return;
+    }
+    _play(ref, Sfx.uiToggleOn);
+    unawaited(
+      ref.read(retentionControllerProvider.notifier).recordReminderOptIn(),
+    );
+  }
+
+  Future<void> _pickReminderTime(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(
+        hour: settings.reminderHour,
+        minute: settings.reminderMinute,
+      ),
+      helpText: 'Practice reminder',
+    );
+    if (picked == null || !context.mounted) return;
+    if (!isAllowedReminderTime(picked.hour, picked.minute)) {
+      _play(ref, Sfx.errorSoft);
+      _snack(
+        context,
+        'Choose a time between 8:00 AM and 9:00 PM. Quiet hours are 9 PM to '
+        '8 AM.',
+      );
+      return;
+    }
+
+    final controller = ref.read(appControllerProvider.notifier);
+    final scheduler = ref.read(reminderSchedulerProvider);
+    await controller.updateSettings(
+      settings.copyWith(
+        reminderHour: picked.hour,
+        reminderMinute: picked.minute,
+      ),
+    );
+    if (!settings.reminderEnabled) {
+      _play(ref, Sfx.uiSelect);
+      return;
+    }
+
+    final result = await scheduler.scheduleDaily(
+      hour: picked.hour,
+      minute: picked.minute,
+      title: reminderNotificationTitle,
+      body: _reminderBody(ref),
+    );
+    if (!context.mounted) return;
+    if (!result.ok) {
+      await controller.updateSettings(settings);
+      await scheduler.scheduleDaily(
+        hour: settings.reminderHour,
+        minute: settings.reminderMinute,
+        title: reminderNotificationTitle,
+        body: _reminderBody(ref),
+      );
+      if (context.mounted) {
+        _play(ref, Sfx.errorSoft);
+        _snack(
+          context,
+          result.message ?? 'Could not schedule the reminder on this device.',
+        );
+      }
+      return;
+    }
+    _play(ref, Sfx.uiSelect);
+  }
+
+  String _reminderBody(WidgetRef ref) {
+    final progress = ref.read(appControllerProvider).requireValue.progress;
+    return reminderTaskBody(progress, DateTime.now());
+  }
+
   Future<void> _copyBackup(
     BuildContext context,
     WidgetRef ref,
@@ -747,9 +954,8 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _snack(BuildContext context, String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -928,6 +1134,7 @@ class _SettingRow extends StatelessWidget {
     this.onTap,
     this.trailing,
     this.destructive = false,
+    this.minHeight = 0,
   });
 
   final IconData icon;
@@ -936,52 +1143,56 @@ class _SettingRow extends StatelessWidget {
   final VoidCallback? onTap;
   final Widget? trailing;
   final bool destructive;
+  final double minHeight;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 20,
-              color: destructive ? AppColors.red : AppColors.textMuted,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: destructive ? AppColors.red : AppColors.text,
-                ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: destructive ? AppColors.red : AppColors.textMuted,
               ),
-            ),
-            ?trailing,
-            if (trailing == null) ...[
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              if (onTap != null)
-                Padding(
-                  padding: const EdgeInsets.only(left: 4),
-                  child: Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: AppColors.textLight,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: destructive ? AppColors.red : AppColors.text,
                   ),
                 ),
+              ),
+              ?trailing,
+              if (trailing == null) ...[
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                if (onTap != null)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

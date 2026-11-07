@@ -151,6 +151,30 @@ void main() {
       expect(count(store, RetentionEventName.firstNote), 1);
     });
 
+    test('reminder opt-in is written once and only while opted in', () async {
+      final optedOut = MemoryRetentionStore();
+      final optedOutContainer = containerWith(optedOut);
+      await optedOutContainer.read(retentionControllerProvider.future);
+      await optedOutContainer
+          .read(retentionControllerProvider.notifier)
+          .recordReminderOptIn();
+      expect(optedOut.value.log.events, isEmpty);
+
+      final store = MemoryRetentionStore(optIn: true);
+      final container = containerWith(store);
+      await container.read(retentionControllerProvider.future);
+      final controller = container.read(retentionControllerProvider.notifier);
+      final at = DateTime(2026, 6, 5, 9);
+
+      await controller.recordReminderOptIn(at: at);
+      await controller.recordReminderOptIn(
+        at: at.add(const Duration(minutes: 1)),
+      );
+
+      expect(count(store, RetentionEventName.reminderOptIn), 1);
+      expect(store.value.log.events.single.name.wireName, 'reminder_opt_in');
+    });
+
     test('concurrent hook writes do not lose events', () async {
       final store = MemoryRetentionStore(optIn: true);
       final container = containerWith(store);

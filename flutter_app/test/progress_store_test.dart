@@ -75,7 +75,10 @@ void main() {
         'completedLessons': ['u1l1', 'u2l1', 'u2l2', 'u3l1', 'u4l1'],
         'bestLessonAccuracy': {'u2l1': 0.8, 'u2l2': 0.9, 'u3l1': 0.7},
       });
-      expect(restored.curriculumVersion, ProgressState.currentCurriculumVersion);
+      expect(
+        restored.curriculumVersion,
+        ProgressState.currentCurriculumVersion,
+      );
       expect(
         restored.completedLessons,
         containsAll(['c3u4l1', 'c3u4l2', 'c3u3l1']),
@@ -95,7 +98,8 @@ void main() {
       expect(importProgress('{"schemaVersion": 6}'), isNotNull);
       expect(importProgress('{"schemaVersion": 7}'), isNotNull);
       expect(importProgress('{"schemaVersion": 8}'), isNotNull);
-      expect(importProgress('{"schemaVersion": 9}'), isNull);
+      expect(importProgress('{"schemaVersion": 9}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 10}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });
@@ -294,7 +298,8 @@ void main() {
       final notifier = container.read(appControllerProvider.notifier);
       notifier.startLesson('c3u2l1', micAvailable: false);
       var guard = 0;
-      while (container.read(appControllerProvider).requireValue.result == null &&
+      while (container.read(appControllerProvider).requireValue.result ==
+              null &&
           guard < 40) {
         guard++;
         await notifier.submitAnswer(correct: false);
@@ -335,7 +340,10 @@ void main() {
       }
 
       for (var index = 0; index < maxMistakeRetries; index++) {
-        final remaining = container.read(appControllerProvider).requireValue.run;
+        final remaining = container
+            .read(appControllerProvider)
+            .requireValue
+            .run;
         if (remaining == null) break;
         await notifier.submitAnswer(correct: true);
         await notifier.nextExercise();

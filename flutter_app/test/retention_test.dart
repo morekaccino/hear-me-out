@@ -20,6 +20,7 @@ void main() {
           RetentionEventName.sessionStart: 'session_start',
           RetentionEventName.sessionComplete: 'session_complete',
           RetentionEventName.dailyActive: 'daily_active',
+          RetentionEventName.reminderOptIn: 'reminder_opt_in',
         },
       );
     });

@@ -7,7 +7,7 @@
 library;
 
 /// The schema version this build reads and writes.
-const int latestProgressSchemaVersion = 8;
+const int latestProgressSchemaVersion = 9;
 
 /// The oldest schema version the pipeline can migrate.
 const int oldestProgressSchemaVersion = 1;
@@ -75,6 +75,7 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
     if (version <= 5) migrated = _v5ToV6(migrated);
     if (version <= 6) migrated = _v6ToV7(migrated);
     if (version <= 7) migrated = _v7ToV8(migrated);
+    if (version <= 8) migrated = _v8ToV9(migrated);
     _validateCurrent(migrated);
   } on FormatException catch (error) {
     return MigrationFailure(error.message);
@@ -251,6 +252,24 @@ Map<String, dynamic> _v7ToV8(Map<String, dynamic> json) {
   return out;
 }
 
+/// v8 → v9: add the opt-in local practice reminder settings.
+///
+/// Reminders are off by default. A v8 save has no reminder choice, so it gets
+/// the documented defaults instead of inheriting an invented preference. The
+/// hour and minute are ordinary local clock values; the quiet-hours rule is
+/// enforced by the reminder copy/scheduling code and the settings UI. Every
+/// unrelated field is copied through unchanged.
+Map<String, dynamic> _v8ToV9(Map<String, dynamic> json) {
+  final out = _copyMap(json);
+  final settings = _readStringMap(out['settings'], 'progress.settings');
+  _defaultValue(settings, 'reminderEnabled', false);
+  _defaultValue(settings, 'reminderHour', 19);
+  _defaultValue(settings, 'reminderMinute', 0);
+  out['settings'] = settings;
+  out['schemaVersion'] = 9;
+  return out;
+}
+
 void _applySettingsDefaults(Map<String, dynamic> json) {
   final settings = _readStringMap(json['settings'], 'progress.settings');
   _defaultValue(settings, 'answerMode', 'mixed');
@@ -356,6 +375,34 @@ void _validateCurrent(Map<String, dynamic> json) {
     if (streakEnabled != null && streakEnabled is! bool) {
       throw const FormatException(
         'progress.settings.streakEnabled must be a boolean',
+      );
+    }
+    final reminderEnabled = settings['reminderEnabled'];
+    if (reminderEnabled != null && reminderEnabled is! bool) {
+      throw const FormatException(
+        'progress.settings.reminderEnabled must be a boolean',
+      );
+    }
+    final reminderHour = _readInt(
+      settings,
+      'reminderHour',
+      19,
+      path: 'progress.settings.reminderHour',
+    );
+    if (reminderHour < 0 || reminderHour > 23) {
+      throw const FormatException(
+        'progress.settings.reminderHour must be between 0 and 23',
+      );
+    }
+    final reminderMinute = _readInt(
+      settings,
+      'reminderMinute',
+      0,
+      path: 'progress.settings.reminderMinute',
+    );
+    if (reminderMinute < 0 || reminderMinute > 59) {
+      throw const FormatException(
+        'progress.settings.reminderMinute must be between 0 and 59',
       );
     }
   }

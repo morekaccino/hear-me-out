@@ -233,6 +233,7 @@ Then open <http://127.0.0.1:8080/>.
 | `flutter_app/lib/content/` | Objectives, templates, verifiers, and session factories |
 | `flutter_app/lib/core/audio/` | YIN detector, PCM capture, note matcher, local WAV synth |
 | `flutter_app/lib/core/notation/` | Staff geometry and Bravura painter |
+| `flutter_app/lib/core/notifications/` | Pure reminder copy, schedule seam, and weekly recap (no widgets) |
 | `flutter_app/lib/core/storage/` | JSON progress store and backup validation |
 | `flutter_app/lib/features/` | Onboarding, path, lesson, practice, recordings, quests, profile |
 | `flutter_app/lib/shared/` | Theme and reusable Duolingo-style widgets |
@@ -286,6 +287,17 @@ Then open <http://127.0.0.1:8080/>.
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
   the habit goal. A fresh profile reads 0.
+- **Practice reminder:** `settings.reminderEnabled` defaults to false,
+  `settings.reminderHour`/`reminderMinute` default to 19:00. The reminder is a
+  local notification only; there is no push service, account, or network call.
+  Quiet hours are 21:00–07:59, so the settings UI only accepts 08:00–20:59. A
+  denied permission keeps the switch off and shows a typed message. The
+  scheduler lives behind a conditional import so web resolves to a no-op and
+  never imports the platform plugin. Progress schema 9 adds these settings with
+  defaults; a v8 save migrates without inventing a preference. Enabling the
+  reminder records the local `reminder_opt_in` retention event. The Quests
+  screen shows a weekly recap of real minutes, phrases, recordings, and one
+  before/after pair; no lesson-completion percentage is used.
 - **Gems and shop:** none. V1 has no gems, chests, shop, XP boosts, or paid
   streak freezes. Do not add a closed currency economy back; the V1 economy was
   removed by T5.5.
@@ -358,7 +370,9 @@ Then open <http://127.0.0.1:8080/>.
   `test/microphone_flow_test.dart`.
 - `test/support/fakes.dart` provides `FakePitchSourceFactory` with
   `permission`, `startResult`, and `startGate` controls. Use `startGate` to test
-  start/dispose races.
+  start/dispose races. It also provides `FakeReminderScheduler`, which records
+  each daily schedule, cancel, and before/after request and returns controllable
+  permission and typed results.
 - Override `lessonGraceProvider` with `Duration.zero` in widget tests that emit
   frames immediately.
 - If a widget is below the fold, call `tester.ensureVisible(finder)` before
@@ -368,10 +382,10 @@ Then open <http://127.0.0.1:8080/>.
 
 ## Current verified state
 
-Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
+Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 983 tests passing
+- `flutter test` - 1038 tests passing
 - `flutter build web --release` - succeeds
 - `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
@@ -402,6 +416,11 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
   RMS (peak-normalized below −60 dBFS, capped gain and ±0.98 sample ceiling)
   before playback; the stored take is never changed. V1 is WAV, not AAC
   (decision 0009), and recording quality is not validated on every device.
+- T2.9 adds an opt-in local practice reminder with fixed quiet hours, a weekly
+  recap card in Quests, and a before/after notification hook. Progress schema
+  9 stores the reminder settings. The notification plugin is mobile-only
+  behind a conditional import; web shows the setting as unavailable. Opt-in
+  and session-2 lift are instrumented locally and remain pending a real beta.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
