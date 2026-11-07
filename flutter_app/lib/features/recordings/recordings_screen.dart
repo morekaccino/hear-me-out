@@ -5,8 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/media/recording_index.dart';
 import '../../core/media/recording_service.dart';
+import '../../core/media/take_comparison.dart';
 import '../../content/pieces/launch_pieces.dart';
 import '../../shared/audio/take_player.dart';
+import '../../shared/navigation/duo_route.dart';
 import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/duo_button.dart';
 import '../../shared/widgets/page_frame.dart';
@@ -14,6 +16,7 @@ import '../../shared/widgets/progress_widgets.dart';
 import '../../state/providers.dart';
 import '../../state/recording_controller.dart';
 import '../profile/privacy_note.dart';
+import 'compare_takes_screen.dart';
 
 /// Local-only take recorder and library.
 ///
@@ -81,6 +84,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 if (state.notice != null) ...[
                   const SizedBox(height: DuoSpacing.sm),
                   _noticeCard(state.notice!),
+                ],
+                if (hasComparablePiecePair(state.takes)) ...[
+                  const SizedBox(height: DuoSpacing.md),
+                  _compareCard(),
                 ],
                 const SizedBox(height: DuoSpacing.md),
                 if (state.takes.isEmpty)
@@ -463,6 +470,59 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _compareCard() {
+    return SectionCard(
+      key: const ValueKey('compare-takes-card'),
+      color: AppColors.purpleSoft,
+      borderColor: AppColors.purple,
+      child: Row(
+        children: [
+          Icon(Icons.compare_arrows_rounded, color: AppColors.purpleDark),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Hear the change',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Compare the first and latest take with matched loudness.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textLight,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          DuoButton(
+            key: const ValueKey('compare-takes-open'),
+            label: 'COMPARE',
+            height: 48,
+            color: AppColors.purple,
+            fontSize: 13,
+            expanded: false,
+            onPressed: _openCompare,
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openCompare() {
+    unawaited(
+      Navigator.of(
+        context,
+      ).push(duoLessonRoute((context) => const CompareTakesScreen())),
     );
   }
 

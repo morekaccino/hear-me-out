@@ -68,6 +68,22 @@ class _Harness {
     );
     await indexStore.save(indexStore.value!);
   }
+
+  Future<void> seedPieceTake(String id) async {
+    await store.put(
+      _toneBytes(),
+      mimeType: RecordingService.wavMimeType,
+      id: id,
+      pieceId: 'ode-to-joy',
+      phraseId: 'p1',
+      durationMs: 1000,
+    );
+    final ref = (await store.list()).firstWhere((ref) => ref.id == id);
+    indexStore.value = (indexStore.value ?? RecordingIndex.empty).add(
+      RecordingTake.fromMediaRef(ref),
+    );
+    await indexStore.save(indexStore.value!);
+  }
 }
 
 class _GatedMediaStore implements MediaStore {
@@ -455,6 +471,45 @@ void main() {
     expect(await harness.store.list(), hasLength(2));
     expect(find.text(piece.title), findsWidgets);
     expect(find.text('2 of 20 takes stored'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a comparison entry opens with two takes for one piece', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await harness.seedPieceTake('take-1');
+    await harness.seedPieceTake('take-2');
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('compare-takes-card')),
+    );
+    expect(find.byKey(const ValueKey('compare-takes-open')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('compare-takes-open')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Compare takes'), findsOneWidget);
+    expect(find.byKey(const ValueKey('compare-left-take')), findsOneWidget);
+    expect(find.byKey(const ValueKey('compare-right-take')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('a single piece take has no comparison entry', (tester) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await harness.seedPieceTake('take-1');
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('compare-takes-card')), findsNothing);
+    expect(find.byKey(const ValueKey('compare-takes-open')), findsNothing);
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
   });

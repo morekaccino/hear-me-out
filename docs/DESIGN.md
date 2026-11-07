@@ -541,12 +541,18 @@ export, and delete. Usage is shown as “takes used / 20” and bytes used / 200
 A full quota or a storage failure shows a specific message and a delete action;
 it never silently overwrites a take. **Clear all** requires confirmation.
 
+When one piece has two takes, the list also offers an A/B comparison. The
+comparison screen normalizes both sides to matched loudness before playback,
+shows date, length, and the phrase’s target tempo when the registry resolves it,
+and offers delete and export from either side. It never changes the stored take.
+A take with no resolved phrase shows “Tempo not captured” rather than a guessed
+tempo.
+
 The privacy card sits above the record control and uses the conditional
 `MediaPrivacyCard` copy. Never claim backup exclusion unless the platform
 confirmed it. The footer says takes are stored as WAV on this device and that
-recording quality has not been validated on every device. There is no A/B
-playback, before/after card, share sheet, cloud upload, heart, gem, XP, or
-streak here.
+recording quality has not been validated on every device. There is no
+before/after card, share sheet, cloud upload, heart, gem, XP, or streak here.
 
 ### Technique
 

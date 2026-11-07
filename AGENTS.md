@@ -347,8 +347,10 @@ Then open <http://127.0.0.1:8080/>.
   shown, not thrown into the UI. Reconcile removes unreferenced blobs and
   missing index entries but adopts media when the index is missing, unreadable,
   or partially malformed. Export copies bytes without deleting or changing the
-  take. The screen shows the conditional backup copy; no A/B or before/after
-  claim ships in T4.2.
+  take. The screen shows the conditional backup copy; T4.2 made no A/B or
+  before/after claim. T4.3 adds an in-memory loudness-matched A/B comparison:
+  both takes are normalized to the same RMS before playback, the stored WAV is
+  never rewritten, and a missing tempo is shown honestly rather than invented.
 
 ## Testing notes
 
@@ -395,8 +397,11 @@ Last verified on 2026-11-06 with Flutter 3.47.9 / Dart 3.13.7:
 - The T4.2 recordings screen is reachable from Practice. It records bounded
   PCM16 WAV takes locally (60 s/take, 20 takes, 200 MB, first and last take per
   piece), reconciles orphans against `hear_me_out_recordings_v1`, and supports
-  local play, delete, clear-all, and export. V1 is WAV, not AAC (decision
-  0009), and recording quality is not validated on every device.
+  local play, delete, clear-all, and export. T4.3 adds an A/B comparison reached
+  when one piece has two takes. Both sides are normalized in memory to −20 dBFS
+  RMS (peak-normalized below −60 dBFS, capped gain and ±0.98 sample ceiling)
+  before playback; the stored take is never changed. V1 is WAV, not AAC
+  (decision 0009), and recording quality is not validated on every device.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
