@@ -6,7 +6,7 @@ import '../../core/music/piece.dart';
 import '../../core/music/score.dart';
 
 /// One phrase registered for practice, plus the piece metadata it belongs to.
-class PhraseContentRecord {
+class PhraseContentRecord implements PhraseContentSummary {
   const PhraseContentRecord({
     required this.piece,
     required this.phrase,
@@ -18,10 +18,27 @@ class PhraseContentRecord {
   final Phrase phrase;
 
   /// Revision of [phrase]'s musical content.
+  @override
   final int contentVersion;
 
   /// V1 stage or phrase difficulty used for display and ordering.
+  @override
   final int stage;
+
+  @override
+  String get pieceId => piece.id;
+
+  @override
+  String get pieceTitle => piece.title;
+
+  @override
+  String get phraseId => phrase.id;
+
+  @override
+  String get phraseTitle => phrase.title ?? phrase.id;
+
+  @override
+  int get targetTempoBpm => phrase.targetTempoBpm;
 
   String get objectiveId =>
       phraseObjectiveId(pieceId: piece.id, phraseId: phrase.id);
@@ -39,13 +56,21 @@ class PhraseContentRecord {
 /// stored `PhraseProgress` is untouched. Registering an existing phrase id for
 /// a different piece throws instead of silently overwriting the other piece's
 /// objective.
-class PhraseObjectiveRegistry implements PhraseObjectiveResolver {
+class PhraseObjectiveRegistry
+    implements PhraseObjectiveResolver, PhraseContentCatalog {
   PhraseObjectiveRegistry();
 
   final Map<String, PhraseContentRecord> _records =
       <String, PhraseContentRecord>{};
   final Map<String, Piece> _pieces = <String, Piece>{};
   final Map<String, Set<String>> _piecePhraseIds = <String, Set<String>>{};
+
+  /// Every registered phrase record, in registration order.
+  ///
+  /// The mastery map reads this to resolve titles, target tempo, stage order,
+  /// and the current content version without keeping a second registry.
+  @override
+  Iterable<PhraseContentRecord> get allRecords => _records.values;
 
   /// Registers every phrase in [score].
   ///

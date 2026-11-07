@@ -746,7 +746,11 @@ void main() {
       await tester.pumpAndSettle();
 
       final change = find.byKey(const ValueKey('placement-prompt-start'));
-      await tester.ensureVisible(change);
+      await tester.scrollUntilVisible(
+        change,
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       expect(find.text('Starting point'), findsOneWidget);
       expect(find.text('Stage 9 · Sight-reading'), findsOneWidget);

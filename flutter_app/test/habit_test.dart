@@ -380,7 +380,11 @@ void main() {
         await tester.tap(find.text('Profile'));
         await tester.pumpAndSettle();
         expectNoEconomyStrings();
-        await tester.drag(find.byType(ListView).first, const Offset(0, -700));
+        await tester.scrollUntilVisible(
+          find.text('Weekly goal'),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tester.pumpAndSettle();
         expect(find.text('Weekly goal'), findsOneWidget);
         expect(find.text('Practice streak'), findsOneWidget);
@@ -421,7 +425,11 @@ void main() {
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
-      await tester.drag(find.byType(ListView).first, const Offset(0, -900));
+      await tester.scrollUntilVisible(
+        find.text('30 min'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       expect(find.text('30 min'), findsOneWidget);
 

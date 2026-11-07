@@ -102,6 +102,21 @@ void main() {
     expect(ref.data['correctId'], 'study');
   });
 
+  test('exposes every registered record for progress surfaces', () {
+    final registry = PhraseObjectiveRegistry()..registerScore(_score());
+
+    final records = registry.allRecords.toList();
+
+    expect(records, hasLength(1));
+    expect(records.single.phraseId, 'study-p1');
+    expect(records.single.pieceId, 'study');
+    expect(records.single.pieceTitle, 'Original Study');
+    expect(records.single.phraseTitle, 'Rising line');
+    expect(records.single.targetTempoBpm, 72);
+    expect(records.single.contentVersion, 1);
+    expect(records.single.stage, 2);
+  });
+
   test('accepts canonical, legacy, and bare phrase ids', () {
     final registry = PhraseObjectiveRegistry()..registerScore(_score());
 

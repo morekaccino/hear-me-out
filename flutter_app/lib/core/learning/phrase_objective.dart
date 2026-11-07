@@ -46,6 +46,25 @@ abstract final class PhraseObjectiveData {
   static const String pieceTitle = 'pieceTitle';
 }
 
+/// Read-only phrase metadata a progress surface needs.
+///
+/// This lives in `core/learning` so a mastery model can read phrase content
+/// without importing `lib/content`. `PhraseObjectiveRegistry` implements it.
+abstract interface class PhraseContentSummary {
+  String get pieceId;
+  String get pieceTitle;
+  String get phraseId;
+  String get phraseTitle;
+  int get targetTempoBpm;
+  int get contentVersion;
+  int get stage;
+}
+
+/// The set of phrase records this build contains.
+abstract interface class PhraseContentCatalog {
+  Iterable<PhraseContentSummary> get allRecords;
+}
+
 /// Resolves a stable phrase id to an objective the session composer can use.
 ///
 /// Implementations live in `lib/content/`; `lib/core/` never imports content.

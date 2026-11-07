@@ -599,6 +599,22 @@ void _validatePhraseProgress(Object? value) {
     }
     _readDayList(phrase['correctDays'], '$path.correctDays');
     _readDayList(phrase['performanceDays'], '$path.performanceDays');
+    if (phrase['masteryDays'] != null) {
+      _readDayList(phrase['masteryDays'], '$path.masteryDays');
+    }
+    final firstMasteryDay = phrase['firstMasteryDay'];
+    if (firstMasteryDay != null && !_isDayString(firstMasteryDay)) {
+      throw FormatException(
+        '$path.firstMasteryDay must be a yyyy-MM-dd day',
+      );
+    }
+    if (phrase['lastMasteryAt'] != null &&
+        (phrase['lastMasteryAt'] is! String ||
+            DateTime.tryParse(phrase['lastMasteryAt'] as String) == null)) {
+      throw FormatException(
+        '$path.lastMasteryAt must be an ISO-8601 date-time string',
+      );
+    }
     if (phrase['bestTempoBpm'] != null) {
       _readInt(phrase, 'bestTempoBpm', 0, path: '$path.bestTempoBpm');
     }

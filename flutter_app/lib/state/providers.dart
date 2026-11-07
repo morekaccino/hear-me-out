@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../content/pieces/phrase_objectives.dart';
 import '../core/audio/phrase_recorder.dart';
 import '../core/audio/pitch_source.dart';
 import '../core/media/backup_exclusion.dart';
@@ -41,6 +42,13 @@ final phraseRecorderFactoryProvider = Provider<PhraseRecorderFactory>(
 /// Single clock seam for session timing. Tests override it to advance a lesson
 /// without waiting in real time.
 final clockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
+/// The one phrase-content registry shared by Today, practice, and the mastery
+/// map. It is empty until a content loader registers parsed scores; there is
+/// no second registry.
+final phraseRegistryProvider = Provider<PhraseObjectiveRegistry>(
+  (ref) => phraseObjectiveRegistry,
+);
 
 /// Time to ignore at the start of a mic exercise so the previous note's tail
 /// cannot trigger an answer. Tests set this to zero.

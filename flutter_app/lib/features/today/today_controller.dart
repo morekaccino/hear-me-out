@@ -9,6 +9,7 @@ import '../../core/audio/scored_take_gate.dart';
 import '../../core/learning/practice_session.dart';
 import '../../core/learning/progress.dart';
 import '../../state/app_controller.dart';
+import '../../state/providers.dart';
 import 'today_content.dart';
 
 /// Supplies the wall clock to one Today session.
@@ -36,10 +37,10 @@ final todayScoredTakeGateProvider = Provider<ScoredTakeGate>(
 
 /// Phrase content available to the Today screen.
 ///
-/// The app registry is empty until a content loader registers parsed scores;
+/// The shared registry is empty until a content loader registers parsed scores;
 /// tests inject a local registry. Today never builds a second registry.
 final todayPhraseRegistryProvider = Provider<PhraseObjectiveRegistry>(
-  (ref) => phraseObjectiveRegistry,
+  (ref) => ref.watch(phraseRegistryProvider),
 );
 
 /// Everything the Today screen renders for one session.
@@ -302,6 +303,7 @@ class TodayController extends Notifier<TodayState> {
     required String phraseId,
     required PhraseResult result,
     required int tempoBpm,
+    int? targetTempoBpm,
     String? pieceId,
     int? contentVersion,
     String? correction,
@@ -330,6 +332,7 @@ class TodayController extends Notifier<TodayState> {
             phraseId: phraseId,
             result: result,
             tempoBpm: tempoBpm,
+            targetTempoBpm: targetTempoBpm,
             pieceId: pieceId,
             contentVersion: contentVersion,
           );

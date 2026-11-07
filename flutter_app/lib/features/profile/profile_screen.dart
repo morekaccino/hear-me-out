@@ -19,6 +19,8 @@ import '../../shared/theme/app_theme.dart';
 import '../../shared/widgets/mascot.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
+import '../mastery/mastery_entry_card.dart';
+import '../mastery/mastery_map_screen.dart';
 import '../placement/placement_prompt_card.dart';
 import '../reading_lab/reading_lab_entry.dart';
 import '../reading_lab/reading_lab_screen.dart';
@@ -65,6 +67,15 @@ class ProfileScreen extends ConsumerWidget {
       (sum, phrase) => sum + phrase.reps,
     );
     final remindersAvailable = ref.watch(reminderSchedulerProvider).isSupported;
+    final masteryRegistry = ref.watch(phraseRegistryProvider);
+    final masteryRecords = {
+      for (final record in masteryRegistry.allRecords) record.phraseId: record,
+    };
+    final canPlayCount = progress.phraseProgress.entries.where((entry) {
+      final record = masteryRecords[entry.key];
+      return record != null &&
+          entry.value.isPerformanceMastered(record.contentVersion);
+    }).length;
 
     return Scaffold(
       body: SafeArea(
@@ -107,6 +118,11 @@ class ProfileScreen extends ConsumerWidget {
                       iconColor: const Color(0xFFFF9600),
                     ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              MasteryEntryCard(
+                canPlayCount: canPlayCount,
+                onOpen: () => unawaited(_openMasteryMap(context)),
               ),
               const SizedBox(height: 24),
               GridView.count(
@@ -603,6 +619,9 @@ class ProfileScreen extends ConsumerWidget {
 
   Future<void> _openReadingLab(BuildContext context) =>
       Navigator.of(context).push(readingLabRoute());
+
+  Future<void> _openMasteryMap(BuildContext context) =>
+      Navigator.of(context).push(masteryMapRoute());
 
   Future<void> _cycleTheme(WidgetRef ref, AppSettings settings) {
     final next = AppThemeMode
