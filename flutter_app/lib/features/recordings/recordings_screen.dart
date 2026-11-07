@@ -25,7 +25,21 @@ import 'compare_takes_screen.dart';
 /// copy from [MediaPrivacyCard] before the record controls, so an unconfirmed
 /// backup status is never presented as private.
 class RecordingsScreen extends ConsumerStatefulWidget {
-  const RecordingsScreen({super.key});
+  const RecordingsScreen({super.key, this.initialPieceId, this.onTakeSaved});
+
+  /// Pre-selects the launch-piece selector, when the id is a known piece.
+  ///
+  /// Today uses this to open the recorder for its current phrase target, so a
+  /// performance-day take is linked to the piece without an extra choice.
+  /// Unknown ids fall back to a free take instead of an invalid dropdown value.
+  final String? initialPieceId;
+
+  /// Called once for each take the recording index actually saved.
+  ///
+  /// Today uses it to reveal the weekly before/after row on the reflect block.
+  /// It never fires from a tap: only a committed take from the real service
+  /// counts, and it does not imply a score.
+  final VoidCallback? onTakeSaved;
 
   @override
   ConsumerState<RecordingsScreen> createState() => _RecordingsScreenState();
@@ -39,6 +53,12 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
   void initState() {
     super.initState();
     _player = ref.read(takePlayerProvider);
+    final requested = widget.initialPieceId;
+    _selectedPieceId =
+        requested != null &&
+            launchPieces.any((launch) => launch.piece.id == requested)
+        ? requested
+        : null;
   }
 
   @override
@@ -49,6 +69,17 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // A saved take changes `lastSaved` once the real service committed it and
+    // the index recorded it. Notify the owner (Today) exactly once per id.
+    ref.listen<String?>(
+      recordingControllerProvider.select(
+        (async) => async.asData?.value.lastSaved?.id,
+      ),
+      (previous, next) {
+        if (next == null || next == previous) return;
+        widget.onTakeSaved?.call();
+      },
+    );
     final async = ref.watch(recordingControllerProvider);
     final backup = ref.watch(mediaBackupStatusProvider);
     final state = async.asData?.value;

@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../content/pieces/launch_pieces.dart';
 import '../../content/pieces/phrase_objectives.dart';
 import '../../content/technique/technique_content.dart';
 import '../../core/learning/practice_session.dart';
+import '../../core/media/before_after.dart';
 import '../../core/notation/staff_painter.dart';
 import '../../shared/navigation/duo_route.dart';
 import '../../shared/theme/app_theme.dart';
@@ -16,9 +18,10 @@ import '../../shared/widgets/progress_widgets.dart';
 import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
-import '../phrase/phrase_player_screen.dart';
+import '../before_after/before_after_screen.dart';
 import '../reading_lab/reading_lab_entry.dart';
 import '../reading_lab/reading_lab_screen.dart';
+import '../recordings/recordings_screen.dart';
 import '../technique/technique_screen.dart';
 import 'today_content.dart';
 import 'today_controller.dart';
@@ -187,7 +190,13 @@ class _TodayBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: DuoSpacing.xs),
-        for (var index = 0; index < session.blocks.length; index++)
+        for (var index = 0; index < session.blocks.length; index++) ...[
+          if (state.performanceDay &&
+              session.blocks[index].role == PracticeBlockRole.apply)
+            const Padding(
+              padding: EdgeInsets.only(bottom: DuoSpacing.sm),
+              child: _PerformanceDayCard(),
+            ),
           Padding(
             padding: const EdgeInsets.only(bottom: DuoSpacing.sm),
             child: _BlockCard(
@@ -198,6 +207,7 @@ class _TodayBody extends ConsumerWidget {
               onOpenReadingLab: openReadingLab,
             ),
           ),
+        ],
         const SizedBox(height: DuoSpacing.xs),
         ReadingLabEntry(
           completedLessons: completedLessons,
@@ -1110,15 +1120,6 @@ class _BlockBody extends ConsumerWidget {
 
   Widget _reps(BuildContext context, WidgetRef ref, {required bool earlier}) {
     final note = target.note;
-    final phraseId = todayPhraseIdFor(block.target);
-    final phrasePractice = !earlier && phraseId != null
-        ? phrasePlayerForPhraseId(
-            phraseId,
-            registry: registry,
-            recordProgress: false,
-            practiceOnly: true,
-          )
-        : null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1181,20 +1182,7 @@ class _BlockBody extends ConsumerWidget {
           height: 52,
           fontSize: 14,
         ),
-        if (!earlier && phrasePractice != null) ...[
-          const SizedBox(height: DuoSpacing.xs),
-          OutlineDuoButton(
-            label: 'OPEN PHRASE PRACTICE',
-            icon: Icons.music_note_rounded,
-            onPressed: () {
-              unawaited(
-                Navigator.of(context)
-                    .push(duoLessonRoute<void>((_) => phrasePractice)),
-              );
-            },
-            color: AppColors.purpleDark,
-          ),
-        ] else if (!earlier && onOpenReadingLab != null) ...[
+        if (!earlier && onOpenReadingLab != null) ...[
           const SizedBox(height: DuoSpacing.xs),
           OutlineDuoButton(
             label: 'OPEN READING LAB',
@@ -1207,36 +1195,29 @@ class _BlockBody extends ConsumerWidget {
     );
   }
 
-  Widget _apply(BuildContext context, WidgetRef ref) {
-    final phraseId = todayPhraseIdFor(block.target);
-    final controller = ref.read(todayControllerProvider.notifier);
-    final player =
-        state.performanceDay && state.gate.allowsScoredTake && phraseId != null
-        ? phrasePlayerForPhraseId(
-            phraseId,
-            registry: registry,
-            recordProgress: false,
-            headphonesConfirmed: state.gate.headphonesConfirmed,
-            clockVerified: state.gate.clockVerified,
-            onTakeCompleted: (verification) {
-              final record = target.phrase;
-              if (record == null) return Future<bool>.value(false);
-              return controller.savePhraseResult(
-                phraseId: record.phrase.id,
-                result: verification.result,
-                tempoBpm: record.phrase.targetTempoBpm,
-                targetTempoBpm: record.phrase.targetTempoBpm,
-                pieceId: record.piece.id,
-                contentVersion: record.contentVersion,
-                correction: verification.correction,
-              );
-            },
-          )
-        : null;
-    final status = _applyStatus(
-      phraseId: phraseId,
-      playerAvailable: player != null,
+  /// Opens the existing local recorder for the performance-day take.
+  ///
+  /// The recorder is the unscored media path: one take, no note score while it
+  /// runs, playback afterwards. It is not the gated phrase loop (decisions
+  /// 0001/0010), so Today never constructs `PhrasePlayerScreen`.
+  Future<void> _openRecording(BuildContext context, WidgetRef ref) async {
+    await Navigator.of(context).push(
+      duoLessonRoute<void>(
+        (_) => RecordingsScreen(
+          initialPieceId: target.phrase?.piece.id,
+          onTakeSaved: () =>
+              ref.read(todayControllerProvider.notifier).markPerformanceTaken(),
+        ),
+      ),
     );
+    if (!context.mounted) return;
+    // A new take may have completed the pair, so the share row must re-read
+    // the index instead of showing the previous list.
+    ref.invalidate(recordingRecapTakesProvider);
+  }
+
+  Widget _apply(BuildContext context, WidgetRef ref) {
+    final status = _applyStatus();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1295,18 +1276,14 @@ class _BlockBody extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: DuoSpacing.xs),
-        if (player != null)
+        if (state.performanceDay)
           Padding(
             padding: const EdgeInsets.only(bottom: DuoSpacing.xs),
             child: OutlineDuoButton(
-              label: 'OPEN PHRASE TAKE',
+              key: const ValueKey('today-open-recording'),
+              label: 'OPEN RECORDING',
               icon: Icons.mic_rounded,
-              onPressed: () {
-                unawaited(
-                  Navigator.of(context)
-                      .push(duoLessonRoute<void>((_) => player)),
-                );
-              },
+              onPressed: () => unawaited(_openRecording(context, ref)),
               color: AppColors.blue,
             ),
           ),
@@ -1322,28 +1299,13 @@ class _BlockBody extends ConsumerWidget {
     );
   }
 
-  String _applyStatus({
-    required String? phraseId,
-    required bool playerAvailable,
-  }) {
+  String _applyStatus() {
     if (!state.performanceDay) {
       return 'Practice only. Recording is for a performance day, not every '
           'session.';
     }
-    if (!state.gate.allowsScoredTake) {
-      return 'Performance day, but the scored-take gate is closed. This take '
-          'stays unscored and is not saved.';
-    }
-    if (phraseId == null) {
-      return 'Performance day and the gate is open. This target has no phrase '
-          'take, so play one clean take and mark it done.';
-    }
-    if (!playerAvailable) {
-      return 'Performance day and the gate is open, but the phrase player is '
-          'still gated in this build. This take is practice only.';
-    }
-    return 'Performance day. The scored-take gate is open, so this take may be '
-        'saved.';
+    return 'Performance day. Record one take on the local recorder — no score '
+        'while you play, and you can listen back after.';
   }
 
   Widget _reflect(BuildContext context, WidgetRef ref) {
@@ -1420,6 +1382,11 @@ class _BlockBody extends ConsumerWidget {
             color: AppColors.greenDark,
           ),
         ],
+        if (state.performanceDay &&
+            (state.performanceTaken || state.lastTakeSaved)) ...[
+          const SizedBox(height: DuoSpacing.sm),
+          const _PerformanceResultShare(),
+        ],
         if (!state.session.isFinished) ...[
           const SizedBox(height: DuoSpacing.sm),
           DuoButton(
@@ -1442,6 +1409,168 @@ class _BlockBody extends ConsumerWidget {
       2 => 'Repeat the bar once more before adding speed.',
       _ => 'Keep this tempo and add the next bar tomorrow.',
     };
+  }
+}
+
+/// The calm recital banner shown above the Apply block on a performance day.
+///
+/// It states the whole cadence in one glance: one take, no score while playing,
+/// feedback after, and the weekly before/after as the thing worth sharing. The
+/// tone is an invitation to a small stage, never surveillance.
+class _PerformanceDayCard extends StatelessWidget {
+  const _PerformanceDayCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return SectionCard(
+      key: const ValueKey('today-performance-day-card'),
+      color: AppColors.surface,
+      borderColor: AppColors.yellowDark,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: AppColors.yellow,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.mic_rounded,
+              size: 22,
+              color: AppColors.ink,
+            ),
+          ),
+          const SizedBox(width: DuoSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'PERFORMANCE DAY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
+                    color: AppColors.yellowDark,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'Today is a recital: one take.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'No score while you play — feedback comes right after. Most '
+                  'days are practice only; the weekly before/after is the '
+                  'share.',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The private weekly before/after is the default share of a performance day.
+///
+/// It reads the real recording index and reuses T4.4's card selection. With two
+/// comparable takes it opens the existing card; without them it points to
+/// Recordings instead of inventing a pair, a score, or a share sheet.
+class _PerformanceResultShare extends ConsumerWidget {
+  const _PerformanceResultShare();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final takes = ref.watch(recordingRecapTakesProvider).asData?.value;
+    final data = takes == null
+        ? null
+        : buildBeforeAfterCard(
+            takes: takes,
+            pieceTitles: {
+              for (final launch in launchPieces)
+                launch.piece.id: launch.piece.title,
+            },
+          );
+    return SectionCard(
+      key: const ValueKey('today-before-after-result'),
+      color: AppColors.surface,
+      borderColor: data == null ? AppColors.border : AppColors.green,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'YOUR WEEKLY BEFORE/AFTER',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.8,
+              color: AppColors.greenDark,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            data == null
+                ? 'Two takes of one piece make the private before/after card. '
+                      'It lives in Recordings.'
+                : '${data.pieceTitle} · ${data.phraseLabel}',
+            key: const ValueKey('today-before-after-summary'),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+              color: AppColors.text,
+            ),
+          ),
+          if (data != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              '${data.metricLabel} · ${data.takeCount} takes, on this device.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textMuted,
+              ),
+            ),
+          ],
+          const SizedBox(height: DuoSpacing.xs),
+          OutlineDuoButton(
+            key: const ValueKey('today-before-after-open'),
+            label: data == null ? 'OPEN RECORDINGS' : 'OPEN BEFORE/AFTER',
+            icon: data == null
+                ? Icons.graphic_eq_rounded
+                : Icons.compare_arrows_rounded,
+            color: AppColors.greenDark,
+            onPressed: () async {
+              await Navigator.of(context).push(
+                duoLessonRoute<void>(
+                  (_) => data == null
+                      ? const RecordingsScreen()
+                      : const BeforeAfterScreen(),
+                ),
+              );
+              if (!context.mounted) return;
+              ref.invalidate(recordingRecapTakesProvider);
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 

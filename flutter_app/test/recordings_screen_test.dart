@@ -270,6 +270,44 @@ void main() {
     await harness.service.dispose();
   });
 
+  testWidgets('a launch piece can be preselected and a save reports back', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    final piece = launchPieces.first.piece;
+    var savedCallbacks = 0;
+    await tester.pumpWidget(
+      _shell(
+        harness,
+        RecordingsScreen(
+          initialPieceId: piece.id,
+          onTakeSaved: () => savedCallbacks++,
+        ),
+        const BackupExclusionResult.failed('denied'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // The preselected launch piece is the dropdown value, so the take is
+    // linked without another choice.
+    expect(find.text(piece.title), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.tap(find.byKey(const ValueKey('record-button')));
+    await tester.pumpAndSettle();
+
+    expect(savedCallbacks, 1);
+    final takes = await harness.service.listTakes();
+    expect(takes, hasLength(1));
+    expect(takes.single.pieceId, piece.id);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
   testWidgets('play, export, and delete use the stored take without mutation', (
     tester,
   ) async {
