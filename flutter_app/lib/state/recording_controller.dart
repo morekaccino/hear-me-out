@@ -123,6 +123,9 @@ enum CardShareStatus {
   /// The PNG was written or downloaded, but no share completed.
   exported,
 
+  /// The PNG was written, and the user dismissed the share sheet.
+  cancelled,
+
   /// The PNG was not written.
   failed,
 }
@@ -135,6 +138,7 @@ class CardShareOutcome {
   final String message;
 
   bool get shared => status == CardShareStatus.shared;
+  bool get cancelled => status == CardShareStatus.cancelled;
   bool get failed => status == CardShareStatus.failed;
 }
 
@@ -654,26 +658,32 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
         } catch (_) {
           // Instrumentation is best-effort and never changes the share result.
         }
-        return CardShareOutcome(
+        return const CardShareOutcome(
           CardShareStatus.shared,
           'Card shared. Nothing is uploaded by the app.',
         );
       }
 
+      if (share.status == TakeShareStatus.cancelled) {
+        return CardShareOutcome(
+          CardShareStatus.cancelled,
+          'Card saved as $fileName. Share cancelled.',
+        );
+      }
+
       final String detail;
       switch (share.status) {
-        case TakeShareStatus.cancelled:
-          detail = 'Share cancelled.';
         case TakeShareStatus.unavailable:
           detail = share.message ?? 'Sharing is unavailable here.';
         case TakeShareStatus.failed:
           detail = share.message ?? 'The share sheet could not open.';
         case TakeShareStatus.shared:
+        case TakeShareStatus.cancelled:
           detail = '';
       }
       return CardShareOutcome(
         CardShareStatus.exported,
-        'Card saved to $target. $detail',
+        'Card saved as $fileName. $detail',
       );
     } finally {
       _sharingCard = false;

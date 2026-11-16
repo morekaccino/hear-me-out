@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -41,6 +41,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
   String? _notice;
   String _noticeTitle = 'Exported';
   String? _error;
+  String _errorTitle = 'Could not export';
   bool _busy = false;
 
   @override
@@ -116,7 +117,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
                   height: 52,
                   onPressed: _busy ? null : () => _share(data),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: DuoSpacing.sm),
                 OutlineDuoButton(
                   key: const ValueKey('before-after-export'),
                   label: 'EXPORT CARD',
@@ -125,9 +126,15 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Share sends the PNG and a short invitation through the '
-                  'device share sheet. Export saves the PNG only. The audio is '
-                  'not included, and the card has no score or link.',
+                  kIsWeb
+                      ? 'Share downloads the PNG only. This browser has no '
+                            'share sheet, so the invitation is not attached. '
+                            'Export saves the PNG too. The audio is not '
+                            'included, and the card has no score or link.'
+                      : 'Share sends the PNG and a short invitation through '
+                            'the device share sheet. Export saves the PNG '
+                            'only. The audio is not included, and the card '
+                            'has no score or link.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -142,7 +149,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
                 ],
                 if (_error != null) ...[
                   const SizedBox(height: DuoSpacing.md),
-                  _messageCard(title: 'Could not export', body: _error!),
+                  _messageCard(title: _errorTitle, body: _error!),
                 ],
               ],
             ],
@@ -183,6 +190,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
     setState(() {
       _busy = true;
       _notice = null;
+      _errorTitle = 'Could not play';
       _error = null;
     });
     try {
@@ -207,6 +215,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
       _busy = true;
       _notice = null;
       _noticeTitle = 'Exported';
+      _errorTitle = 'Could not export';
       _error = null;
     });
     try {
@@ -235,6 +244,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
     setState(() {
       _busy = true;
       _notice = null;
+      _errorTitle = 'Could not share';
       _error = null;
     });
     try {
@@ -249,7 +259,11 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
           .shareBeforeAfterCard(path: result.path, fileName: result.fileName);
       if (!mounted) return;
       setState(() {
-        _noticeTitle = outcome.shared ? 'Shared' : 'Card saved';
+        if (outcome.cancelled) {
+          _noticeTitle = 'Share cancelled';
+        } else {
+          _noticeTitle = outcome.shared ? 'Shared' : 'Card saved';
+        }
         if (outcome.failed) {
           _error = outcome.message;
         } else {

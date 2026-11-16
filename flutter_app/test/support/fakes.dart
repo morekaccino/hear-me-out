@@ -519,6 +519,7 @@ class FakeTakeExportCleaner implements TakeExportCleaner {
 /// Records share requests and returns a controllable typed result.
 class FakeTakeShareGateway implements TakeShareGateway {
   TakeShareResult result = const TakeShareResult(TakeShareStatus.shared);
+  Object? failWith;
   final sharedPaths = <List<String>>[];
   final subjects = <String?>[];
   final texts = <String?>[];
@@ -532,6 +533,8 @@ class FakeTakeShareGateway implements TakeShareGateway {
     sharedPaths.add(List<String>.unmodifiable(paths));
     subjects.add(subject);
     texts.add(text);
+    final failure = failWith;
+    if (failure != null) throw failure;
     return result;
   }
 }

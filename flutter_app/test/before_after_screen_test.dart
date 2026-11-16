@@ -9,9 +9,11 @@ import 'package:hear_me_out/core/audio/wav.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
 import 'package:hear_me_out/core/media/before_after_share.dart';
 import 'package:hear_me_out/core/media/media_store.dart';
+import 'package:hear_me_out/core/media/recording_exporter.dart';
 import 'package:hear_me_out/core/media/recording_index.dart';
 import 'package:hear_me_out/core/media/recording_index_store.dart';
 import 'package:hear_me_out/core/media/recording_service.dart';
+import 'package:hear_me_out/core/media/take_share_gateway.dart';
 import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/core/storage/retention_store.dart';
@@ -147,6 +149,7 @@ void main() {
     expect(find.text('p1'), findsOneWidget);
     expect(find.text('12 days apart'), findsOneWidget);
     expect(find.textContaining('Private.'), findsOneWidget);
+    expect(find.textContaining('export or share'), findsOneWidget);
     expect(find.textContaining('No score'), findsOneWidget);
     expect(find.textContaining('lesson'), findsNothing);
     expect(harness.exporter.requests, isEmpty);
@@ -256,6 +259,109 @@ void main() {
           .where((event) => event.name == RetentionEventName.cardShared),
       isEmpty,
     );
+    await harness.service.dispose();
+  });
+
+  testWidgets('a cancelled share says Share cancelled, not Card saved', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    harness.share.result = const TakeShareResult(TakeShareStatus.cancelled);
+    await harness.seedTake(
+      id: 'a',
+      createdAt: DateTime.utc(2026, 10, 1, 12),
+      pieceId: 'greensleeves',
+    );
+    await harness.seedTake(
+      id: 'b',
+      createdAt: DateTime.utc(2026, 10, 13, 12),
+      pieceId: 'greensleeves',
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share cancelled'), findsOneWidget);
+    expect(find.textContaining('Card saved as'), findsOneWidget);
+    expect(find.text('Card saved'), findsNothing);
+    expect(
+      harness.retention.value.log.events
+          .where((event) => event.name == RetentionEventName.cardShared),
+      isEmpty,
+    );
+    await harness.service.dispose();
+  });
+
+  testWidgets('a gateway that throws keeps the card and records nothing', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    harness.share.failWith = StateError('gateway exploded');
+    await harness.seedTake(
+      id: 'a',
+      createdAt: DateTime.utc(2026, 10, 1, 12),
+      pieceId: 'greensleeves',
+    );
+    await harness.seedTake(
+      id: 'b',
+      createdAt: DateTime.utc(2026, 10, 13, 12),
+      pieceId: 'greensleeves',
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Card saved'), findsOneWidget);
+    expect(find.textContaining('share sheet could not open'), findsOneWidget);
+    expect(find.text('Could not share'), findsNothing);
+    expect(
+      harness.retention.value.log.events
+          .where((event) => event.name == RetentionEventName.cardShared),
+      isEmpty,
+    );
+    await harness.service.dispose();
+  });
+
+  testWidgets('a share write failure says Could not share', (tester) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    harness.exporter.failWith = const RecordingExportException(
+      'Could not write the card.',
+    );
+    await harness.seedTake(
+      id: 'a',
+      createdAt: DateTime.utc(2026, 10, 1, 12),
+      pieceId: 'greensleeves',
+    );
+    await harness.seedTake(
+      id: 'b',
+      createdAt: DateTime.utc(2026, 10, 13, 12),
+      pieceId: 'greensleeves',
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Could not share'), findsOneWidget);
+    expect(find.text('Could not export'), findsNothing);
+    expect(find.text('Could not write the card.'), findsOneWidget);
     await harness.service.dispose();
   });
 

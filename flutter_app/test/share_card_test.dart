@@ -128,6 +128,7 @@ void main() {
     ]);
     expect(harness.share.texts.single, beforeAfterInviteText);
     expect(harness.share.subjects.single, beforeAfterShareSubject);
+    expect(outcome.message, isNot(contains('/exports')));
     expect(harness.cardSharedCount(), 1);
     await harness.service.dispose();
   });
@@ -136,8 +137,17 @@ void main() {
     final harness = _Harness();
     final controller = await harness.controller();
 
+    harness.share.result = const TakeShareResult(TakeShareStatus.cancelled);
+    final cancelled = await controller.shareBeforeAfterCard(
+      path: '/exports/card.png',
+      fileName: 'card.png',
+    );
+    expect(cancelled.status, CardShareStatus.cancelled);
+    expect(cancelled.message, 'Card saved as card.png. Share cancelled.');
+    expect(cancelled.message, isNot(contains('/exports')));
+    expect(harness.cardSharedCount(), 0);
+
     for (final status in <TakeShareStatus>[
-      TakeShareStatus.cancelled,
       TakeShareStatus.unavailable,
       TakeShareStatus.failed,
     ]) {
@@ -147,9 +157,31 @@ void main() {
         fileName: 'card.png',
       );
       expect(outcome.status, CardShareStatus.exported);
+      expect(outcome.message, contains('card.png'));
+      expect(outcome.message, isNot(contains('/exports')));
       expect(harness.cardSharedCount(), 0, reason: 'status $status');
     }
 
+    await harness.service.dispose();
+  });
+
+  test('a gateway that throws keeps the file and records nothing', () async {
+    final harness = _Harness();
+    final controller = await harness.controller();
+    harness.share.failWith = StateError('gateway exploded');
+
+    final outcome = await controller.shareBeforeAfterCard(
+      path: '/exports/card.png',
+      fileName: 'card.png',
+    );
+
+    expect(outcome.status, CardShareStatus.exported);
+    expect(
+      outcome.message,
+      'Card saved as card.png. The share sheet could not open.',
+    );
+    expect(outcome.message, isNot(contains('/exports')));
+    expect(harness.cardSharedCount(), 0);
     await harness.service.dispose();
   });
 
