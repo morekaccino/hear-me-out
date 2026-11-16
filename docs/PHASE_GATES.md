@@ -266,7 +266,11 @@ conditional unlocks only the work named in the condition.
 
 - [ ] **P1.3 — Phrase accuracy in the pilot**
   - **Metric:** phrase-level false fail ≤10% (hard gate); false pass ≤5% (guardrail). The plan's §12.4 false-pass kill criterion is scoped to the spike, not the pilot; keep it as a pilot guardrail, not a Phase 1 pass threshold. Report the number of scored takes, the denominator, and the indeterminate rate. A take with >20% indeterminate notes is incomplete, not a pass or fail.
-  - **Source:** [T5.7](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/e41c7cb2-918d-41bf-afc4-b97d7e7005cb), [T1.6](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/aa34cfe5-eede-405a-be53-07fab816d32f), plan sections 4.3 and 12.4.
+  - **Source:** [T1.6](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/aa34cfe5-eede-405a-be53-07fab816d32f), [T1.7](https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/b18f6b44-da9b-4fc0-990c-21f3e681d84a), plan sections 4.3 and 12.4.
+    T5.7 is **not** a source for this metric. The beta runs the practice-only
+    session with the scored phrase loop off (`phraseLoopEnabled = false`), so it
+    produces no scored takes and no note-level data. Phrase false-pass and
+    false-fail stay with the corpus (`T1.6`) and the go/no-go decision (`T1.7`).
   - **Measured:**
   - **Date:**
   - **Owner:**
