@@ -227,6 +227,19 @@ python -m http.server 8080 --directory build/web
 
 Then open <http://127.0.0.1:8080/>.
 
+Build the beta artifacts (web, plus the APK when the Android toolchain is
+present):
+
+```powershell
+.\tool\beta\build_beta.ps1
+# Web only, when the Android SDK is absent:
+.\tool\beta\build_beta.ps1 -WebOnly
+```
+
+The script prints the artifact paths, fails loudly when a required toolchain is
+missing, and never uploads or signs with a secret. See
+[`docs/BETA_RUNBOOK.md`](docs/BETA_RUNBOOK.md).
+
 ## Repo map
 
 | Path | Purpose |
@@ -291,8 +304,10 @@ Then open <http://127.0.0.1:8080/>.
   correction, record ten seconds, and finish. It writes no FSRS, mastery, XP, or
   quest evidence from the phrase take; the recording is the only saved artifact.
   It is reachable without opening the scored phrase loop. The local
-  `first_note`, `first_phrase`, and `first_recording` hooks measure the funnel;
-  the percentages are pending a real beta.
+  `first_phrase` and `first_recording` hooks measure the first-session funnel;
+  `first_note` is the first determinate scored note-prompt answer. The
+  first-session flow currently also calls `recordFirstNote`; the beta docs flag
+  that call as a known mismatch. The percentages are pending a real beta.
 - **Weekly goal:** `settings.weeklyGoalMinutes` defaults to 30 and is the primary
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
@@ -498,6 +513,11 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   folder is outside the media backup exclusion. Decision 0011 records the change
   from the earlier no-share rule. The OS share sheet is not device-verified in
   this environment; the tests use a fake.
+- T5.7 adds the 20-user beta kit: [`docs/BETA_RUNBOOK.md`](docs/BETA_RUNBOOK.md),
+  [`docs/BETA_METRICS.md`](docs/BETA_METRICS.md), and
+  `flutter_app/tool/beta/build_beta.ps1`. The beta has not run: there is no
+  cohort, export, or measured value. The kit is docs and a local build script
+  and changes no app code, `ProgressState`, or the phrase flag.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
@@ -519,6 +539,8 @@ analyze/test/build commands as the source of truth.
 - [`README.md`](README.md) — product overview, features, project link, device checklist
 - [`docs/PLANE.md`](docs/PLANE.md) — Plane project manual, MCP access, read order, update protocol
 - [`docs/ASSUMPTION_TRACKER.md`](docs/ASSUMPTION_TRACKER.md) — beliefs the plan depends on, weakest-first tests, and the experiment log
+- [`docs/BETA_RUNBOOK.md`](docs/BETA_RUNBOOK.md) — 20-user beta recruitment, install, schedule, log export, blocker ranking, and exit criteria; the beta has not run
+- [`docs/BETA_METRICS.md`](docs/BETA_METRICS.md) — beta activation and D1/D7/D30 field rules, aggregation, and the limits of the local log
 - [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 plan
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style language, copy, gamification
 - [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map, settings
