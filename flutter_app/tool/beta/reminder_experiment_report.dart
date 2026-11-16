@@ -219,13 +219,14 @@ class ArmReport {
   /// Installs with a `reminder_opt_in` event.
   final int exposedInstalls;
 
-  /// Exposed installs with a real first session.
+  /// Exposed installs with a first `session_start`; dropouts are included.
   final int exposedWithFirstSession;
 
-  /// Exposed installs whose next session fell within 48 elapsed hours.
+  /// Exposed installs whose next sitting met both KC-03 boundaries.
   final int returnedWithin48h;
 
-  /// Exposed installs whose 48-hour session-2 window is still open.
+  /// Exposed installs whose session 1 completed, have no qualifying session 2,
+  /// and whose 48-hour window is still open.
   final int sessionTwoWindowOpen;
 
   /// Exposed installs whose D7 local day has finished.
@@ -616,8 +617,11 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
     if (metrics.hasFirstSession) {
       arm.exposedWithFirstSession++;
       if (metrics.returnedWithin48h) arm.returnedWithin48h++;
+      // A start-only dropout has no session 1 completion, so no later sitting
+      // can qualify; its session-2 result is final, not open.
       final first = metrics.firstSessionAt;
       if (first != null &&
+          metrics.firstSessionCompleteAt != null &&
           metrics.secondSessionAt == null &&
           now.difference(first) < sessionTwoReturnWindow) {
         arm.sessionTwoWindowOpen++;
@@ -657,9 +661,9 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
       0) {
     err.writeln(
       'warning: ${specificReport.sessionTwoWindowOpen + genericReport.sessionTwoWindowOpen} '
-      'exposed install(s) have a session-1 less than 48 hours before the '
-      'analysis time and no session 2 yet; their session-2 result is not '
-      'final.',
+      'exposed install(s) completed a first session less than 48 hours before '
+      'the analysis time and have no qualifying session 2 yet; their session-2 '
+      'result is not final.',
     );
   }
 
