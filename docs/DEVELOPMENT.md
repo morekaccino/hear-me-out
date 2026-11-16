@@ -88,6 +88,38 @@ not rebuild automatically.
 For live development, `flutter run -d chrome` gives hot reload and is usually
 preferable.
 
+## Serve the release build over the LAN
+
+Other computers on the same network can open the built app without installing
+anything:
+
+```powershell
+cd flutter_app
+flutter build web --release
+python -m http.server 8080 --bind 0.0.0.0 --directory build/web
+```
+
+Find this machine's address with `ipconfig` (the 2026-11-07 machine was
+`10.0.0.107`) and open `http://<your-machine-IPv4>:8080/` from the other
+computer. The server serves the existing `build/web` files; after code changes,
+stop the server, rebuild, and start it again. The DHCP-assigned address can
+change after a router restart.
+
+Allow inbound connections once: when Windows shows the firewall prompt for
+Python, click **Allow access** for private networks, or from an elevated
+terminal add a subnet-scoped rule:
+
+```powershell
+netsh advfirewall firewall add rule name="Hear Me Out web server (8080)" dir=in action=allow protocol=TCP localport=8080 remoteip=10.0.0.0/24 profile=any
+```
+
+Browsers require HTTPS or `localhost` for microphone access, so pitch feedback
+does not start on other computers over plain HTTP. On a trusted client
+computer, Chrome/Edge can exempt the origin: open `chrome://flags/` (or
+`edge://flags/`), set **Insecure origins treated as secure** to the LAN URL,
+and relaunch. Without that, practice still works with name-only answers by
+graceful fallback.
+
 ## Microphone permissions
 
 - **Web:** the page must be served from `localhost` or HTTPS. Chrome asks for

@@ -1,11 +1,10 @@
 {
   "mcpServers": {
     "plane": {
-      "command": "uvx",
+      "command": "tools\\plane_mcp_ce\\.venv\\Scripts\\python.exe",
       "args": [
-        "--from",
-        "./tools/plane_mcp_ce",
-        "plane-mcp-server-ce-fixed",
+        "-m",
+        "plane_mcp_ce",
         "stdio"
       ],
       "env": {

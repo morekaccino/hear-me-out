@@ -5,10 +5,9 @@
       "plane": {
         "type": "local",
         "command": [
-          "uvx",
-          "--from",
-          "./tools/plane_mcp_ce",
-          "plane-mcp-server-ce-fixed",
+          "tools\\plane_mcp_ce\\.venv\\Scripts\\python.exe",
+          "-m",
+          "plane_mcp_ce",
           "stdio"
         ],
         "environment": {

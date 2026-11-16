@@ -36,10 +36,13 @@ status live in Plane:
 A project-scoped MCP server named `plane` is configured for OpenCode
 (`opencode.json`), Claude Code / Codex / generic MCP (`.mcp.json`), VS Code
 (`.vscode/mcp.json`), Cursor (`.cursor/mcp.json`), and Gemini CLI
-(`.gemini/settings.json`). Each runs
-`uvx --from ./tools/plane_mcp_ce plane-mcp-server-ce-fixed stdio` with the
-self-hosted host, workspace slug, and API
-key in its `env` block. This is a private single-user repository, so the key is
+(`.gemini/settings.json`). Each runs `python -m plane_mcp_ce stdio` through the
+gitignored `tools/plane_mcp_ce/.venv`, with the self-hosted host, workspace
+slug, and API key in its `env` block. Do not switch back to `uvx`: Windows Smart
+App Control blocks uv's unsigned console-script launcher
+(`An Application Control policy has blocked this file.`, os error 4551), so the
+server exits with code 2. Recreate the venv from `docs/PLANE.md` §2 when it is
+missing. This is a private single-user repository, so the key is
 committed on purpose. Verify with `opencode mcp list`; it must show
 `plane connected`.
 

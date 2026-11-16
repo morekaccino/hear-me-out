@@ -34,13 +34,8 @@ transport. The client is the Community-Edition build
 
 ```json
 {
-  "command": "uvx",
-  "args": [
-    "--from",
-    "./tools/plane_mcp_ce",
-    "plane-mcp-server-ce-fixed",
-    "stdio"
-  ],
+  "command": "tools\\plane_mcp_ce\\.venv\\Scripts\\python.exe",
+  "args": ["-m", "plane_mcp_ce", "stdio"],
   "env": {
     "PLANE_API_KEY": "<workspace-scoped key>",
     "PLANE_WORKSPACE_SLUG": "hear-me-out",
@@ -49,6 +44,30 @@ transport. The client is the Community-Edition build
   }
 }
 ```
+
+Create the virtual environment once per machine (it is gitignored):
+
+```powershell
+uv venv --python 3.13 tools/plane_mcp_ce/.venv
+uv pip install --python tools/plane_mcp_ce/.venv/Scripts/python.exe -e tools/plane_mcp_ce
+```
+
+The command runs the installed module, not the `plane-mcp-server-ce-fixed`
+console script. `uvx` works only where the console-script launcher is allowed:
+on Windows with Smart App Control enabled, `uvx` writes an unsigned `.exe` to
+its cache and the launch fails with `An Application Control policy has blocked
+this file. (os error 4551)`, which surfaces as the MCP server exiting with code
+2. Running the module through the interpreter loads the same code without that
+launcher.
+
+Check that the environment starts before blaming the client:
+
+```powershell
+tools\plane_mcp_ce\.venv\Scripts\python.exe -m plane_mcp_ce --help
+```
+
+It prints `Usage: plane-mcp-server-ce [stdio|http|sse]`. A missing-venv error
+means the two setup commands above were skipped.
 
 Why this build:
 
@@ -63,7 +82,9 @@ Why this build:
   that one payload, then runs the stock server. Remove the wrapper only after
   upstream fixes the model.
 
-Run clients from the repository root so the relative `--from` path resolves.
+Run clients from the repository root so the relative interpreter path resolves.
+If a client cannot set the working directory, replace the command with the
+absolute path to `tools/plane_mcp_ce/.venv/Scripts/python.exe`.
 The wrapper is pinned to `plane-mcp-server-ce==0.4.0` in
 `tools/plane_mcp_ce/pyproject.toml`; bump both together.
 
@@ -92,7 +113,8 @@ Expected:
 ```
 
 If `plane` is missing, check that you are running from the repository root (not
-a parent directory) and that the client has reloaded its MCP configuration.
+a parent directory), that `tools/plane_mcp_ce/.venv` exists, and that the client
+has reloaded its MCP configuration.
 
 The API key is workspace-scoped. Do not paste it into Plane tickets, chat
 messages, logs, screenshots, or public issues. If it is exposed, rotate it in
