@@ -200,6 +200,8 @@ session rules.
 - [docs/AI_HANDOFF_PROTOCOL.md](docs/AI_HANDOFF_PROTOCOL.md) — read order, roles, branch/PR/review flow, evidence rules, and resume procedure
 - [docs/ASO_PLAN.md](docs/ASO_PLAN.md) — store listing, keyword plan, screenshot storyboard, and launch sequencing (T8.2)
 - [docs/ASSUMPTION_TRACKER.md](docs/ASSUMPTION_TRACKER.md) — the beliefs the plan depends on, the weakest-first tests, and the experiment log (T9.5)
+- [docs/BETA_RUNBOOK.md](docs/BETA_RUNBOOK.md) — 20-user beta recruitment, install paths, four-week schedule, log export, blocker ranking, and exit criteria (T5.7)
+- [docs/BETA_METRICS.md](docs/BETA_METRICS.md) — beta activation and D1/D7/D30 field rules, aggregation, and what the local log cannot measure (T5.7)
 - [docs/COPPA_GUARDIAN_CONSENT_PLAN.md](docs/COPPA_GUARDIAN_CONSENT_PLAN.md) — teacher-channel consent, data minimization, deletion, moderation, and legal-review gate (T7.3)
 - [docs/TRANSFORMATION_PLAN_FINAL.md](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 transformation plan
 - [docs/CONTENT_CALENDAR.md](docs/CONTENT_CALENDAR.md) — 24-month content supply, cost model, break-even, and the subscription-to-piece-pack gate (T3.9)

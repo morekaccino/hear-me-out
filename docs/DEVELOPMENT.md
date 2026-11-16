@@ -85,6 +85,10 @@ Open <http://127.0.0.1:8080/>. Re-run `flutter build web --release` after code
 changes; the Python server serves the existing `build/web` directory and does
 not rebuild automatically.
 
+For the beta kit, `tool/beta/build_beta.ps1` runs the same release build, checks
+for the Android toolchain, and prints the artifact paths. See
+[`BETA_RUNBOOK.md`](BETA_RUNBOOK.md).
+
 For live development, `flutter run -d chrome` gives hot reload and is usually
 preferable.
 
@@ -230,6 +234,10 @@ flutter build apk
 # or
 flutter build appbundle
 ```
+
+For the beta, use `tool/beta/build_beta.ps1`. It builds the release APK when the
+Android SDK is present and fails with a clear message when it is not. Add
+`-WebOnly` when the cohort is web-only.
 
 ## Manual device checklist
 
