@@ -18,6 +18,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
+          # Pin the verified toolchain. `stable` drifted to 3.50 and started
+          # failing analyze on pre-existing material.dart deprecations, which
+          # is unrelated to every PR in flight. Raise this only with a green
+          # run on the new version.
+          flutter-version: 3.47.9
           channel: stable
           cache: true
       - name: Corpus validator tests
