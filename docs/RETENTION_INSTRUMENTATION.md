@@ -46,6 +46,12 @@ The wire names are stable. Do not rename them without a schema change.
 | `session_complete` | `sessionComplete` | A session finishes, passed or failed | Every session |
 | `daily_active` | `dailyActive` | A session completes | At most once per local day |
 | `reminder_opt_in` | `reminderOptIn` | The learner enables the local practice reminder | Once per install; no copy, piece, or time is stored |
+| `card_shared` | `cardShared` | The before/after card is successfully handed to the OS share sheet | Once per successful share; no piece, text, destination, or install attribution |
+
+`card_shared` is not a referral or conversion metric. V1 has no server, deep
+link, or store install attribution, so the event cannot prove that anyone
+opened, kept, or installed anything; see
+[`decisions/0012-share-card-invitation-boundary.md`](decisions/0012-share-card-invitation-boundary.md).
 
 `first_phrase` and `first_recording` have no caller in this ticket. T2.5 and
 T4.2 must call `RetentionController.recordFirstPhrase()` and
@@ -183,6 +189,9 @@ State (`lib/state/retention_controller.dart`):
   future data, bad event entries, bound on load, install-day persistence.
 - `test/retention_controller_test.dart` — opt-in gating, persistence, erase,
   onboarding dedupe, first-event dedupe, and the `AppController` session hooks.
+- `test/share_card_test.dart` — pinned invitation text, one `card_shared` event
+  per successful card share, none for cancelled/unavailable/failed/download-only
+  results, and opt-out gating.
 - `test/retention_profile_test.dart` — default-off switch, toggle, copy, erase,
   and 390×844 / 1200 px layouts.
 - `test/onboarding_test.dart` — first-screen consent, reachable onboarding

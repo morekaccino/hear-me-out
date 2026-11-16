@@ -39,6 +39,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
   final GlobalKey _cardKey = GlobalKey();
   late final TakePlayer _player;
   String? _notice;
+  String _noticeTitle = 'Exported';
   String? _error;
   bool _busy = false;
 
@@ -109,17 +110,24 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
                 ),
                 const SizedBox(height: DuoSpacing.md),
                 DuoButton(
-                  key: const ValueKey('before-after-export'),
-                  label: 'EXPORT CARD',
+                  key: const ValueKey('before-after-share'),
+                  label: 'SHARE CARD',
                   icon: Icons.ios_share_rounded,
                   height: 52,
+                  onPressed: _busy ? null : () => _share(data),
+                ),
+                const SizedBox(height: 10),
+                OutlineDuoButton(
+                  key: const ValueKey('before-after-export'),
+                  label: 'EXPORT CARD',
+                  icon: Icons.download_rounded,
                   onPressed: _busy ? null : () => _export(data),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Export writes a PNG with the piece, phrase, dates, and the '
-                  'one metric. The audio is not included. You choose whether '
-                  'to send it.',
+                  'Share sends the PNG and a short invitation through the '
+                  'device share sheet. Export saves the PNG only. The audio is '
+                  'not included, and the card has no score or link.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -130,7 +138,7 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
                 ),
                 if (_notice != null) ...[
                   const SizedBox(height: DuoSpacing.md),
-                  _messageCard(title: 'Exported', body: _notice!),
+                  _messageCard(title: _noticeTitle, body: _notice!),
                 ],
                 if (_error != null) ...[
                   const SizedBox(height: DuoSpacing.md),
@@ -198,26 +206,16 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
     setState(() {
       _busy = true;
       _notice = null;
+      _noticeTitle = 'Exported';
       _error = null;
     });
     try {
-      final renderer = widget.renderer ?? _renderCardPng;
-      final bytes = await renderer(_cardKey);
-      if (bytes == null || bytes.isEmpty) {
+      final result = await _renderAndWriteCard(data);
+      if (!mounted) return;
+      if (result == null) {
         setState(() => _error = 'The card is not ready to export.');
         return;
       }
-      final exporter = await ref.read(recordingExporterProvider.future);
-      final result = await exporter.export(
-        RecordingExportRequest(
-          id: 'before-after-card',
-          fileName:
-              'before-after-${_safeName(data.pieceId)}-${data.last.id}.png',
-          bytes: bytes,
-          mimeType: 'image/png',
-        ),
-      );
-      if (!mounted) return;
       setState(() {
         _notice = result.path == null
             ? 'Downloaded ${result.fileName}.'
@@ -230,6 +228,62 @@ class _BeforeAfterScreenState extends ConsumerState<BeforeAfterScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _share(BeforeAfterCardData data) async {
+    if (_busy) return;
+    setState(() {
+      _busy = true;
+      _notice = null;
+      _error = null;
+    });
+    try {
+      final result = await _renderAndWriteCard(data);
+      if (!mounted) return;
+      if (result == null) {
+        setState(() => _error = 'The card is not ready to share.');
+        return;
+      }
+      final outcome = await ref
+          .read(recordingControllerProvider.notifier)
+          .shareBeforeAfterCard(path: result.path, fileName: result.fileName);
+      if (!mounted) return;
+      setState(() {
+        _noticeTitle = outcome.shared ? 'Shared' : 'Card saved';
+        if (outcome.failed) {
+          _error = outcome.message;
+        } else {
+          _notice = outcome.message;
+        }
+      });
+    } on RecordingExportException catch (error) {
+      if (mounted) setState(() => _error = error.message);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Could not share the card.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Renders the card and writes the one PNG through the existing export seam.
+  ///
+  /// A null result means the card was not ready to render; export and share
+  /// use the same bytes and the same per-take file name.
+  Future<RecordingExportResult?> _renderAndWriteCard(
+    BeforeAfterCardData data,
+  ) async {
+    final renderer = widget.renderer ?? _renderCardPng;
+    final bytes = await renderer(_cardKey);
+    if (bytes == null || bytes.isEmpty) return null;
+    final exporter = await ref.read(recordingExporterProvider.future);
+    return exporter.export(
+      RecordingExportRequest(
+        id: 'before-after-card',
+        fileName: 'before-after-${_safeName(data.pieceId)}-${data.last.id}.png',
+        bytes: bytes,
+        mimeType: 'image/png',
+      ),
+    );
   }
 
   Future<Uint8List?> _renderCardPng(GlobalKey key) async {

@@ -7,10 +7,12 @@ import 'package:hear_me_out/core/audio/phrase_recorder.dart';
 import 'package:hear_me_out/core/audio/pitch_source.dart';
 import 'package:hear_me_out/core/audio/wav.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
+import 'package:hear_me_out/core/media/before_after_share.dart';
 import 'package:hear_me_out/core/media/media_store.dart';
 import 'package:hear_me_out/core/media/recording_index.dart';
 import 'package:hear_me_out/core/media/recording_index_store.dart';
 import 'package:hear_me_out/core/media/recording_service.dart';
+import 'package:hear_me_out/core/retention/retention_event.dart';
 import 'package:hear_me_out/core/storage/progress_store.dart';
 import 'package:hear_me_out/core/storage/retention_store.dart';
 import 'package:hear_me_out/features/before_after/before_after_screen.dart';
@@ -44,6 +46,7 @@ class _Harness {
   final FakeRecordingExporter exporter = FakeRecordingExporter();
   final FakeRecordingTimerFactory timers = FakeRecordingTimerFactory();
   final FakeTakePlayer player = FakeTakePlayer();
+  final FakeTakeShareGateway share = FakeTakeShareGateway();
   final MemoryRetentionStore retention = MemoryRetentionStore(optIn: true);
   final MemoryProgressStore progressStore = MemoryProgressStore(
     ProgressState.fresh(settings: const AppSettings(onboardingComplete: true)),
@@ -96,6 +99,7 @@ Widget _build(_Harness harness) {
       recordingServiceProvider.overrideWithValue(AsyncData(harness.service)),
       recordingExporterProvider.overrideWithValue(AsyncData(harness.exporter)),
       takePlayerProvider.overrideWithValue(harness.player),
+      takeShareGatewayProvider.overrideWithValue(harness.share),
       soundServiceProvider.overrideWithValue(FakeSoundService()),
       retentionStoreProvider.overrideWithValue(harness.retention),
       progressStoreProvider.overrideWithValue(harness.progressStore),
@@ -176,6 +180,82 @@ void main() {
     expect(harness.exporter.requests.single.mimeType, 'image/png');
     expect(harness.exporter.requests.single.fileName, endsWith('.png'));
     expect(harness.exporter.requests.single.bytes, isNotEmpty);
+    // Export saves the file only; it never opens the share sheet.
+    expect(harness.share.sharedPaths, isEmpty);
+    await harness.service.dispose();
+  });
+
+  testWidgets('share sends one PNG and the plain invitation', (tester) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    await harness.seedTake(
+      id: 'a',
+      createdAt: DateTime.utc(2026, 10, 1, 12),
+      pieceId: 'greensleeves',
+    );
+    await harness.seedTake(
+      id: 'b',
+      createdAt: DateTime.utc(2026, 10, 13, 12),
+      pieceId: 'greensleeves',
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    expect(harness.share.sharedPaths, isEmpty);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+
+    expect(harness.exporter.requests, hasLength(1));
+    expect(harness.exporter.requests.single.mimeType, 'image/png');
+    expect(harness.share.sharedPaths, hasLength(1));
+    expect(harness.share.sharedPaths.single, hasLength(1));
+    expect(harness.share.sharedPaths.single.single, endsWith('.png'));
+    expect(harness.share.texts.single, beforeAfterInviteText);
+    expect(harness.share.subjects.single, isNotNull);
+    expect(
+      harness.retention.value.log.events
+          .where((event) => event.name == RetentionEventName.cardShared),
+      hasLength(1),
+    );
+    expect(find.text('Shared'), findsOneWidget);
+    await harness.service.dispose();
+  });
+
+  testWidgets('web keeps the download-only share path', (tester) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    harness.exporter.webDownload = true;
+    await harness.seedTake(
+      id: 'a',
+      createdAt: DateTime.utc(2026, 10, 1, 12),
+      pieceId: 'greensleeves',
+    );
+    await harness.seedTake(
+      id: 'b',
+      createdAt: DateTime.utc(2026, 10, 13, 12),
+      pieceId: 'greensleeves',
+    );
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('before-after-share')));
+    await tester.pumpAndSettle();
+
+    expect(harness.exporter.requests, hasLength(1));
+    expect(harness.share.sharedPaths, isEmpty);
+    expect(find.text('Card saved'), findsOneWidget);
+    expect(find.textContaining('downloads folder'), findsOneWidget);
+    expect(
+      harness.retention.value.log.events
+          .where((event) => event.name == RetentionEventName.cardShared),
+      isEmpty,
+    );
     await harness.service.dispose();
   });
 

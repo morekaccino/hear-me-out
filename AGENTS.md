@@ -390,7 +390,12 @@ Then open <http://127.0.0.1:8080/>.
   never rewritten, and a missing tempo is shown honestly rather than invented.
   T4.4 adds a private before/after PNG card: piece, phrase, date range, and the
   days-apart metric; no score, no public link, no audio in the export, and the
-  file is written only after an explicit tap. T7.2 adds the manual teacher
+  file is written only after an explicit tap. T8.6 adds an explicit **SHARE
+  CARD** action: the same PNG plus the plain invitation in
+  `beforeAfterInviteText` go to the OS share sheet through `TakeShareGateway`;
+  audio, score, link, referral code, and install attribution are absent, and one
+  local `card_shared` event is written per successful share (decision 0012).
+  T7.2 adds the manual teacher
   export: one explicit tap opens a pre-export header sheet, then writes
   `<take-id>.wav`, `<take-id>.json`, and `<take-id>.pdf` under the app support
   `exports/` folder and opens the OS share sheet. The summary carries stored
@@ -460,8 +465,11 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   RMS (peak-normalized below −60 dBFS, capped gain and ±0.98 sample ceiling)
   before playback; the stored take is never changed. T4.4 adds a private
   before/after PNG card reached from the same two-take state; it exports only
-  on an explicit tap and contains no audio or score. V1 is WAV, not AAC
-  (decision 0009), and recording quality is not validated on every device.
+  on an explicit tap and contains no audio or score. T8.6 adds a **SHARE CARD**
+  action that sends that one PNG and a plain invitation through the share
+  sheet, with no referral code or install metric (decision 0012). V1 is WAV,
+  not AAC (decision 0009), and recording quality is not validated on every
+  device.
 - T2.9 adds an opt-in local practice reminder with fixed quiet hours, a weekly
   recap card in Quests, and a before/after notification hook. Progress schema
   9 stores the reminder settings. The notification plugin is mobile-only

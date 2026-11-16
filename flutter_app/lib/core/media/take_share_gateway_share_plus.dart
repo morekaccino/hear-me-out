@@ -17,6 +17,7 @@ class SharePlusTakeShareGateway implements TakeShareGateway {
   Future<TakeShareResult> shareFiles(
     List<String> paths, {
     String? subject,
+    String? text,
   }) async {
     if (paths.isEmpty) {
       return const TakeShareResult(
@@ -29,6 +30,7 @@ class SharePlusTakeShareGateway implements TakeShareGateway {
         ShareParams(
           files: <XFile>[for (final path in paths) XFile(path)],
           subject: subject,
+          text: text,
         ),
       );
       return switch (result.status) {

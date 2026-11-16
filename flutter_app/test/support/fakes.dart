@@ -452,6 +452,7 @@ class FakeRecordingTimerFactory {
 class FakeRecordingExporter implements RecordingExporter {
   final requests = <RecordingExportRequest>[];
   Object? failWith;
+  bool webDownload = false;
 
   @override
   Future<RecordingExportResult> export(RecordingExportRequest request) async {
@@ -460,7 +461,7 @@ class FakeRecordingExporter implements RecordingExporter {
     if (failure != null) throw failure;
     return RecordingExportResult(
       fileName: request.fileName,
-      path: '/exports/${request.fileName}',
+      path: webDownload ? null : '/exports/${request.fileName}',
     );
   }
 }
@@ -520,14 +521,17 @@ class FakeTakeShareGateway implements TakeShareGateway {
   TakeShareResult result = const TakeShareResult(TakeShareStatus.shared);
   final sharedPaths = <List<String>>[];
   final subjects = <String?>[];
+  final texts = <String?>[];
 
   @override
   Future<TakeShareResult> shareFiles(
     List<String> paths, {
     String? subject,
+    String? text,
   }) async {
     sharedPaths.add(List<String>.unmodifiable(paths));
     subjects.add(subject);
+    texts.add(text);
     return result;
   }
 }
