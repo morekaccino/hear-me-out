@@ -36,11 +36,142 @@ void main() {
   });
 
   test('one session has a first session but no return', () {
+    final start = install.add(const Duration(hours: 1));
+    final metrics = returnMetricsFromLog(
+      logWith([
+        event(RetentionEventName.appOpen, install),
+        event(RetentionEventName.sessionStart, start),
+        event(
+          RetentionEventName.sessionComplete,
+          start.add(const Duration(minutes: 30)),
+        ),
+      ], installAt: install),
+      now: DateTime(2026, 3, 10, 12),
+    );
+
+    expect(metrics.hasFirstSession, isTrue);
+    expect(metrics.firstSessionAt, start.toUtc());
+    expect(
+      metrics.firstSessionCompleteAt,
+      start.add(const Duration(minutes: 30)).toUtc(),
+    );
+    expect(metrics.returnedWithin48h, isFalse);
+    expect(metrics.secondSessionAt, isNull);
+    expect(metrics.installDay, '2026-03-01');
+  });
+
+  test('a return at 47 hours counts and one at 49 hours does not', () {
+    final first = install.add(const Duration(hours: 1));
+    final firstComplete = first.add(const Duration(minutes: 30));
+
+    ReturnMetrics at(Duration gap) => returnMetricsFromLog(
+      logWith([
+        event(RetentionEventName.appOpen, install),
+        event(RetentionEventName.sessionStart, first),
+        event(RetentionEventName.sessionComplete, firstComplete),
+        event(RetentionEventName.sessionStart, first.add(gap)),
+      ], installAt: install),
+      now: DateTime(2026, 3, 10, 12),
+    );
+
+    expect(at(const Duration(hours: 47)).returnedWithin48h, isTrue);
+    expect(at(const Duration(hours: 48)).returnedWithin48h, isTrue);
+    expect(at(const Duration(hours: 49)).returnedWithin48h, isFalse);
+    expect(at(const Duration(hours: 49)).secondSessionAt, isNull);
+    expect(at(const Duration(hours: 49)).timeToSecondSession, isNull);
+    expect(
+      at(const Duration(hours: 47)).secondSessionAt,
+      first.add(const Duration(hours: 47)).toUtc(),
+    );
+    expect(
+      at(const Duration(hours: 47)).timeToSecondSession,
+      const Duration(hours: 47),
+    );
+  });
+
+  test('two lessons in one sitting are not a session-2 return', () {
+    final first = DateTime(2026, 3, 1, 10);
+    final metrics = returnMetricsFromLog(
+      logWith([
+        event(RetentionEventName.appOpen, install),
+        event(RetentionEventName.sessionStart, first),
+        event(
+          RetentionEventName.sessionComplete,
+          first.add(const Duration(minutes: 30)),
+        ),
+        event(
+          RetentionEventName.sessionStart,
+          first.add(const Duration(minutes: 50)),
+        ),
+        event(
+          RetentionEventName.sessionComplete,
+          first.add(const Duration(hours: 1, minutes: 30)),
+        ),
+      ], installAt: install),
+      now: DateTime(2026, 3, 10, 12),
+    );
+
+    expect(metrics.hasFirstSession, isTrue);
+    expect(metrics.returnedWithin48h, isFalse);
+    expect(metrics.secondSessionAt, isNull);
+  });
+
+  test('a second sitting 60 minutes after session 1 counts', () {
+    final first = DateTime(2026, 3, 1, 10);
+    final firstComplete = first.add(const Duration(minutes: 30));
+
+    ReturnMetrics sittingAfter(Duration gap) => returnMetricsFromLog(
+      logWith([
+        event(RetentionEventName.sessionStart, first),
+        event(RetentionEventName.sessionComplete, firstComplete),
+        event(RetentionEventName.sessionStart, firstComplete.add(gap)),
+      ], installAt: install),
+      now: DateTime(2026, 3, 10, 12),
+    );
+
+    expect(
+      sittingAfter(const Duration(minutes: 59)).returnedWithin48h,
+      isFalse,
+      reason: 'the sitting boundary is measured from the completion',
+    );
+    expect(sittingAfter(const Duration(minutes: 60)).returnedWithin48h, isTrue);
+    expect(
+      sittingAfter(const Duration(minutes: 60)).secondSessionAt,
+      firstComplete.add(const Duration(minutes: 60)).toUtc(),
+    );
+  });
+
+  test('the 48-hour window is anchored to session 1 start, not completion', () {
+    final first = DateTime(2026, 3, 1, 10);
+    final firstComplete = first.add(const Duration(hours: 2));
+    final metrics = returnMetricsFromLog(
+      logWith([
+        event(RetentionEventName.sessionStart, first),
+        event(RetentionEventName.sessionComplete, firstComplete),
+        event(
+          RetentionEventName.sessionStart,
+          first.add(const Duration(hours: 49)),
+        ),
+      ], installAt: install),
+      now: DateTime(2026, 3, 10, 12),
+    );
+
+    expect(
+      metrics.returnedWithin48h,
+      isFalse,
+      reason:
+          'session 2 is 49 hours after session 1 start even though it is 47 '
+          'hours after its completion',
+    );
+    expect(metrics.secondSessionAt, isNull);
+  });
+
+  test('an incomplete first session stays in the denominator', () {
     final metrics = returnMetricsFromLog(
       logWith([
         event(RetentionEventName.appOpen, install),
         event(
-          RetentionEventName.sessionComplete,
+          RetentionEventName.sessionStart,
           install.add(const Duration(hours: 1)),
         ),
       ], installAt: install),
@@ -50,55 +181,50 @@ void main() {
     expect(metrics.hasFirstSession, isTrue);
     expect(metrics.returnedWithin48h, isFalse);
     expect(metrics.secondSessionAt, isNull);
-    expect(metrics.installDay, '2026-03-01');
   });
 
-  test('a return at 47 hours counts and one at 49 hours does not', () {
-    final first = install.add(const Duration(hours: 1));
+  test(
+    'a completion after an intervening start belongs to the later sitting',
+    () {
+      final first = DateTime(2026, 3, 1, 10);
+      final metrics = returnMetricsFromLog(
+        logWith([
+          event(RetentionEventName.sessionStart, first),
+          event(
+            RetentionEventName.sessionStart,
+            first.add(const Duration(minutes: 15)),
+          ),
+          event(
+            RetentionEventName.sessionComplete,
+            first.add(const Duration(minutes: 45)),
+          ),
+          event(
+            RetentionEventName.sessionStart,
+            first.add(const Duration(hours: 2)),
+          ),
+        ], installAt: install),
+        now: DateTime(2026, 3, 10, 12),
+      );
 
-    ReturnMetrics at(Duration gap) => returnMetricsFromLog(
-      logWith([
-        event(RetentionEventName.appOpen, install),
-        event(RetentionEventName.sessionComplete, first),
-        event(RetentionEventName.sessionComplete, first.add(gap)),
-      ], installAt: install),
-      now: DateTime(2026, 3, 10, 12),
-    );
+      expect(metrics.hasFirstSession, isTrue);
+      expect(metrics.firstSessionAt, first.toUtc());
+      expect(
+        metrics.firstSessionCompleteAt,
+        isNull,
+        reason: 'the 10:45 completion pairs with the 10:15 start',
+      );
+      expect(metrics.secondSessionAt, isNull);
+      expect(metrics.returnedWithin48h, isFalse);
+    },
+  );
 
-    expect(at(const Duration(hours: 47)).returnedWithin48h, isTrue);
-    expect(at(const Duration(hours: 48)).returnedWithin48h, isTrue);
-    expect(at(const Duration(hours: 49)).returnedWithin48h, isFalse);
-    expect(
-      at(const Duration(hours: 49)).secondSessionAt,
-      first.add(const Duration(hours: 49)).toUtc(),
-    );
-    expect(
-      at(const Duration(hours: 47)).timeToSecondSession,
-      const Duration(hours: 47),
-    );
-  });
-
-  test('two sessions on the same local day count as a return', () {
-    final first = DateTime(2026, 3, 1, 10);
-    final metrics = returnMetricsFromLog(
-      logWith([
-        event(RetentionEventName.appOpen, install),
-        event(RetentionEventName.sessionComplete, first),
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 1, 20)),
-      ], installAt: install),
-      now: DateTime(2026, 3, 10, 12),
-    );
-
-    expect(metrics.returnedWithin48h, isTrue);
-    expect(metrics.timeToSecondSession, const Duration(hours: 10));
-  });
-
-  test('two sessions at the same instant are not a return', () {
+  test('duplicate starts at the same instant are not a return', () {
     final same = DateTime(2026, 3, 2, 10);
     final metrics = returnMetricsFromLog(
       logWith([
+        event(RetentionEventName.sessionStart, same),
         event(RetentionEventName.sessionComplete, same),
-        event(RetentionEventName.sessionComplete, same),
+        event(RetentionEventName.sessionStart, same),
       ], installAt: install),
       now: DateTime(2026, 3, 10, 12),
     );
@@ -193,8 +319,9 @@ void main() {
     final metrics = returnMetricsFromLog(
       logWith([
         event(RetentionEventName.appOpen, install),
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 2, 10)),
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 10, 10)),
+        event(RetentionEventName.sessionStart, DateTime(2026, 3, 2, 10)),
+        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 2, 10, 30)),
+        event(RetentionEventName.sessionStart, DateTime(2026, 3, 10, 10)),
       ], installAt: install),
       now: DateTime(2026, 3, 5, 12),
     );
@@ -209,7 +336,11 @@ void main() {
     final metrics = returnMetricsFromLog(
       logWith([
         event(RetentionEventName.appOpen, DateTime(2026, 3, 20, 9)),
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 20, 10)),
+        event(RetentionEventName.sessionStart, DateTime(2026, 3, 20, 10)),
+        event(
+          RetentionEventName.sessionComplete,
+          DateTime(2026, 3, 20, 10, 30),
+        ),
       ], installAt: DateTime(2026, 3, 20, 9)),
       now: DateTime(2026, 3, 5, 12),
     );
@@ -225,8 +356,13 @@ void main() {
       logWith([
         event(RetentionEventName.appOpen, install, installId: 'install-b'),
         event(
-          RetentionEventName.sessionComplete,
+          RetentionEventName.sessionStart,
           DateTime(2026, 3, 2, 10),
+          installId: 'install-b',
+        ),
+        event(
+          RetentionEventName.sessionComplete,
+          DateTime(2026, 3, 2, 10, 30),
           installId: 'install-b',
         ),
         event(
@@ -248,10 +384,14 @@ void main() {
     final metrics = returnMetricsFromLog(
       logWith([
         event(RetentionEventName.appOpen, install),
-        event(RetentionEventName.sessionComplete, first),
+        event(RetentionEventName.sessionStart, first),
         event(
           RetentionEventName.sessionComplete,
           first.add(const Duration(minutes: 30)),
+        ),
+        event(
+          RetentionEventName.sessionStart,
+          first.add(const Duration(hours: 2)),
           installId: 'install-b',
         ),
       ], installAt: install),
@@ -268,8 +408,12 @@ void main() {
     final second = first.add(const Duration(hours: 20));
     final metrics = returnMetricsFromLog(
       logWith([
-        event(RetentionEventName.sessionComplete, second),
-        event(RetentionEventName.sessionComplete, first),
+        event(RetentionEventName.sessionStart, second),
+        event(RetentionEventName.sessionStart, first),
+        event(
+          RetentionEventName.sessionComplete,
+          first.add(const Duration(minutes: 30)),
+        ),
         event(RetentionEventName.appOpen, install),
       ], installAt: install),
       now: DateTime(2026, 3, 10, 12),
@@ -285,8 +429,12 @@ void main() {
     final first = DateTime(2026, 3, 3, 10);
     final metrics = returnMetricsFromLog(
       logWith([
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 1, 10)),
-        event(RetentionEventName.sessionComplete, first),
+        event(RetentionEventName.sessionStart, DateTime(2026, 3, 1, 10)),
+        event(RetentionEventName.sessionStart, first),
+        event(
+          RetentionEventName.sessionComplete,
+          first.add(const Duration(minutes: 30)),
+        ),
       ], installAt: installAt),
       now: DateTime(2026, 3, 10, 12),
     );
@@ -299,7 +447,7 @@ void main() {
   test('only a session before the install leaves no first session', () {
     final metrics = returnMetricsFromLog(
       logWith([
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 1, 10)),
+        event(RetentionEventName.sessionStart, DateTime(2026, 3, 1, 10)),
       ], installAt: DateTime(2026, 3, 2, 9)),
       now: DateTime(2026, 3, 10, 12),
     );
@@ -310,7 +458,7 @@ void main() {
   test('a pinned install day survives when the app open is trimmed', () {
     final metrics = returnMetricsFromLog(
       logWith([
-        event(RetentionEventName.sessionComplete, DateTime(2026, 3, 2, 10)),
+        event(RetentionEventName.sessionStart, DateTime(2026, 3, 2, 10)),
       ], installAt: install),
       now: DateTime(2026, 3, 10, 12),
     );
@@ -323,7 +471,7 @@ void main() {
       logWith([
         event(RetentionEventName.appOpen, install),
         event(
-          RetentionEventName.sessionComplete,
+          RetentionEventName.sessionStart,
           DateTime(2026, 3, 2, 10),
           installId: '',
         ),
