@@ -8,6 +8,43 @@ const int recordingManifestSchemaVersion = 1;
 /// Stable file name for the one-file beta manifest export.
 const String recordingManifestFileName = 'hear-me-out-recordings-manifest.json';
 
+/// The export-level capture assumption.
+///
+/// The app does not read each stored WAV header at export time. Every take in
+/// the current V1 store was written by the same recorder and encoder, so the
+/// document states the assumption once instead of pretending it was read per
+/// take. A future rate or AAC change must fail the assertion in
+/// `RecordingService.buildRecordingsManifest` and the assumption test.
+class RecordingManifestCapture {
+  const RecordingManifestCapture({
+    required this.sampleRate,
+    required this.format,
+    this.assumed = true,
+  });
+
+  /// The V1 assumption: 22.05 kHz mono PCM16 WAV.
+  static const RecordingManifestCapture analysis = RecordingManifestCapture(
+    sampleRate: 22050,
+    format: 'wav',
+  );
+
+  /// Rate the V1 recorder writes, in hertz.
+  final int sampleRate;
+
+  /// Container the V1 encoder writes.
+  final String format;
+
+  /// True because these values are the export's assumption, not a per-take
+  /// header read.
+  final bool assumed;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'assumed': assumed,
+    'sampleRate': sampleRate,
+    'format': format,
+  };
+}
+
 /// One take row in [RecordingManifestExport].
 ///
 /// The row deliberately omits the media id, byte length, absolute path, device
@@ -19,8 +56,6 @@ class RecordingManifestTake {
     required this.phraseId,
     required this.createdAt,
     required this.durationSeconds,
-    required this.sampleRate,
-    required this.format,
     required this.firstTake,
     required this.lastTake,
   });
@@ -37,16 +72,10 @@ class RecordingManifestTake {
   /// Take length in seconds.
   final double durationSeconds;
 
-  /// Sample rate of the stored WAV, in hertz.
-  final int sampleRate;
-
-  /// Stored format. V1 is `wav`.
-  final String format;
-
-  /// True for the earliest take of a non-null piece.
+  /// True for the earliest currently stored take of a non-null piece.
   final bool firstTake;
 
-  /// True for the latest take of a non-null piece.
+  /// True for the latest currently stored take of a non-null piece.
   final bool lastTake;
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -54,8 +83,6 @@ class RecordingManifestTake {
     'phraseId': phraseId,
     'createdAt': createdAt.toUtc().toIso8601String(),
     'durationSeconds': durationSeconds,
-    'sampleRate': sampleRate,
-    'format': format,
     'firstTake': firstTake,
     'lastTake': lastTake,
   };
@@ -69,12 +96,17 @@ class RecordingManifestTake {
 class RecordingManifestExport {
   const RecordingManifestExport({
     required this.generatedAt,
+    required this.capture,
     required this.takes,
     this.schemaVersion = recordingManifestSchemaVersion,
   });
 
   final int schemaVersion;
   final DateTime generatedAt;
+
+  /// The export-level capture assumption shared by every stored take.
+  final RecordingManifestCapture capture;
+
   final List<RecordingManifestTake> takes;
 
   /// Builds the export from [index].
@@ -86,8 +118,7 @@ class RecordingManifestExport {
   factory RecordingManifestExport.fromIndex(
     RecordingIndex index, {
     required DateTime generatedAt,
-    required int sampleRate,
-    required String format,
+    required RecordingManifestCapture capture,
   }) {
     final firstIds = <String>{};
     final lastIds = <String>{};
@@ -104,6 +135,7 @@ class RecordingManifestExport {
 
     return RecordingManifestExport(
       generatedAt: generatedAt.toUtc(),
+      capture: capture,
       takes: List<RecordingManifestTake>.unmodifiable(<RecordingManifestTake>[
         for (final take in index.takes)
           RecordingManifestTake(
@@ -111,8 +143,6 @@ class RecordingManifestExport {
             phraseId: take.phraseId,
             createdAt: take.createdAt.toUtc(),
             durationSeconds: take.durationMs / 1000,
-            sampleRate: sampleRate,
-            format: format,
             firstTake: take.pieceId != null && firstIds.contains(take.id),
             lastTake: take.pieceId != null && lastIds.contains(take.id),
           ),
@@ -123,6 +153,7 @@ class RecordingManifestExport {
   Map<String, Object?> toJson() => <String, Object?>{
     'schemaVersion': schemaVersion,
     'generatedAt': generatedAt.toUtc().toIso8601String(),
+    'capture': capture.toJson(),
     'takes': <Object?>[for (final take in takes) take.toJson()],
   };
 

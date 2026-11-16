@@ -483,16 +483,29 @@ class RecordingService {
   /// The method reads the index document and metadata only. It does not
   /// reconcile, repair, save, delete, or rewrite the index or a take, and it
   /// does not read audio bytes. A missing index is an empty manifest; an
-  /// unreadable index is thrown to the caller as a typed failure.
+  /// unreadable index throws [FormatException] to the caller, which converts it
+  /// to a typed failure.
+  ///
+  /// The V1 capture assumption is pinned to the actual recorder and encoder.
+  /// If a future rate or AAC change does not update [RecordingManifestCapture],
+  /// the assertion fails in debug and the assumption test fails in CI.
   Future<RecordingManifestExport> buildRecordingsManifest({
     DateTime? generatedAt,
   }) async {
+    assert(
+      RecordingManifestCapture.analysis.sampleRate ==
+          PhraseRecorder.analysisSampleRate,
+      'The manifest capture assumption no longer matches the recorder rate.',
+    );
+    assert(
+      RecordingManifestCapture.analysis.format == _encoder.fileExtension,
+      'The manifest capture assumption no longer matches the encoder format.',
+    );
     final loaded = await _indexStore.load();
     return RecordingManifestExport.fromIndex(
       loaded ?? RecordingIndex.empty,
       generatedAt: generatedAt ?? _clock(),
-      sampleRate: PhraseRecorder.analysisSampleRate,
-      format: _encoder.fileExtension,
+      capture: RecordingManifestCapture.analysis,
     );
   }
 

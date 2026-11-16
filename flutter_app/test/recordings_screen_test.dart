@@ -311,7 +311,7 @@ void main() {
       find.textContaining('excluded from cloud backup by default'),
       findsNothing,
     );
-    expect(find.textContaining('XP'), findsNothing);
+    expect(find.textContaining(RegExp(r'\bXP\b')), findsNothing);
     expect(find.byIcon(Icons.favorite_rounded), findsNothing);
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
@@ -722,14 +722,18 @@ void main() {
     final json = jsonDecode(utf8.decode(file.bytes)) as Map<String, dynamic>;
     expect(json['schemaVersion'], 1);
     expect(json['generatedAt'], '2026-11-07T09:15:00.000Z');
+    final capture = json['capture'] as Map<String, dynamic>;
+    expect(capture['assumed'], isTrue);
+    expect(capture['sampleRate'], 22050);
+    expect(capture['format'], 'wav');
     final takes = json['takes'] as List<dynamic>;
     expect(takes, hasLength(1));
     final take = takes.single as Map<String, dynamic>;
     expect(take['pieceId'], 'ode-to-joy');
     expect(take['phraseId'], 'p1');
     expect(take['durationSeconds'], 1.0);
-    expect(take['sampleRate'], 22050);
-    expect(take['format'], 'wav');
+    expect(take.containsKey('sampleRate'), isFalse);
+    expect(take.containsKey('format'), isFalse);
     expect(take['firstTake'], isTrue);
     expect(take['lastTake'], isTrue);
 
@@ -746,7 +750,7 @@ void main() {
     await harness.service.dispose();
   });
 
-  testWidgets('the beta manifest action is absent with no takes', (
+  testWidgets('the beta manifest exports an empty list with no takes', (
     tester,
   ) async {
     _useSize(tester, const Size(390, 844));
@@ -755,12 +759,74 @@ void main() {
     await tester.pumpWidget(_build(harness));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const ValueKey('recording-manifest-card')), findsNothing);
-    expect(
-      find.byKey(const ValueKey('export-recordings-manifest')),
-      findsNothing,
-    );
+    expect(find.byKey(const ValueKey('recording-manifest-card')), findsOneWidget);
     expect(find.text('No takes yet'), findsOneWidget);
+    await _reveal(
+      tester,
+      find.byKey(const ValueKey('export-recordings-manifest')),
+    );
+    await tester.tap(find.byKey(const ValueKey('export-recordings-manifest')));
+    await tester.pumpAndSettle();
+
+    expect(harness.bundleExporter.requests, hasLength(1));
+    final file = harness.bundleExporter.requests.single.files.single;
+    final json = jsonDecode(utf8.decode(file.bytes)) as Map<String, dynamic>;
+    expect(json['schemaVersion'], 1);
+    expect(json['capture'], isA<Map<String, dynamic>>());
+    expect(json['takes'], isEmpty);
+    expect(harness.share.sharedPaths, hasLength(1));
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('manifest export guards clear, the button, and concurrent exports', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedTake(id);
+    final gate = Completer<void>();
+    harness.bundleExporter.gate = gate;
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _reveal(
+      tester,
+      find.byKey(const ValueKey('export-recordings-manifest')),
+    );
+    await tester.tap(find.byKey(const ValueKey('export-recordings-manifest')));
+    await tester.pump();
+
+    expect(find.text('EXPORTING...'), findsOneWidget);
+    final manifestButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('export-recordings-manifest')),
+    );
+    expect(manifestButton.onPressed, isNull);
+
+    await _reveal(tester, find.byKey(const ValueKey('clear-exports')));
+    final clearButton = tester.widget<TextButton>(
+      find.byKey(const ValueKey('clear-exports')),
+    );
+    expect(clearButton.onPressed, isNull);
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(RecordingsScreen)),
+    );
+    final controller = container.read(recordingControllerProvider.notifier);
+    final cleared = await controller.clearExports();
+    expect(cleared?.message, contains('An export is in progress'));
+    expect(harness.exportCleaner.calls, 0);
+
+    final concurrentManifest = await controller.exportRecordingsManifest();
+    expect(concurrentManifest.status, TakeBundleExportStatus.failed);
+    expect(concurrentManifest.message, contains('already in progress'));
+    final concurrentBundle = await controller.exportTakeBundle(id);
+    expect(concurrentBundle.status, TakeBundleExportStatus.failed);
+    expect(concurrentBundle.message, contains('already in progress'));
+
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('EXPORT RECORDINGS MANIFEST'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await harness.service.dispose();
   });

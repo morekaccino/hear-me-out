@@ -474,20 +474,26 @@ The usage log cannot count takes. KC-12 uses a separate one-file manifest.
 5. Send only the JSON. Never send a `.wav` take, a screenshot of the list, or a
    zip of the recordings. Store the received file as
    `<participant-code>-manifest-<YYYY-MM-DD>.json`.
-6. The file has `schemaVersion`, `generatedAt`, and one row per saved take:
-   `pieceId`, `phraseId`, `createdAt` (UTC), `durationSeconds`, `sampleRate`,
-   `format`, `firstTake`, and `lastTake`. It has no audio bytes, absolute path,
-   device name, install id, participant name, or free text.
-7. Export once at the exit interview. If the participant records again before
-   the data freeze, export again and use the latest file with the largest
+6. The file has `schemaVersion`, `generatedAt`, and a `capture` object with
+   `assumed: true`, `sampleRate: 22050`, and `format: "wav"`. That is the V1
+   export assumption, not a per-take header read. Each currently stored take is
+   one row with `pieceId`, `phraseId`, `createdAt` (UTC), `durationSeconds`,
+   `firstTake`, and `lastTake`. It has no audio bytes, absolute path, device
+   name, install id, participant name, or free text.
+7. Export once at the exit interview, even when the participant has no takes.
+   A zero-take manifest has `takes: []`; send it anyway so that participant
+   stays in the KC-12 denominator. If the participant records again before the
+   data freeze, export again and use the latest file with the largest
    `generatedAt`.
 8. The export is read-only. It does not change, delete, or rewrite a take or
    the stored index. On IO, **Clear exports** deletes this file too; send it
    before clearing.
 
-The manifest's `firstTake` and `lastTake` flags are per piece at export time. A
-piece with one take marks that take as both; it does not qualify as a
-before/after pair. A piece with two or more takes marks the earliest and latest
+Every currently stored take is one row. Per-piece retention deletes middle
+takes, so the manifest is a snapshot, not every take ever saved. The
+`firstTake` and `lastTake` flags are per piece at export time. A piece with one
+take marks that take as both; it does not qualify as a before/after pair. A
+piece with two or more currently stored takes marks the earliest and latest
 rows separately. The analyst uses those flags for KC-12; the retention log's
 `first_recording` is diagnostic only.
 
@@ -529,9 +535,11 @@ The short procedure:
    install-anchored week. Use
    [`BETA_METRICS.md`](BETA_METRICS.md) for the exact rules.
 5. For each participant with a recording-manifest export, count the pieces with
-   at least two takes in the participant's beta window and a first/last pair on
-   different rows. Mark `kc12PiecePair` and `kc12PieceId`. Use the latest
-   manifest (`generatedAt`). Do not merge older manifests.
+   at least two currently stored takes in the participant's beta window and a
+   first/last pair on different rows. Mark `kc12PiecePair` and `kc12PieceId`.
+   An empty `takes: []` is a valid export and keeps the participant in the
+   denominator with `kc12PiecePair: no`. Use the latest manifest
+   (`generatedAt`). Do not merge older manifests.
 6. Sum the flags, report the numerator and denominator for every percentage,
    and add a 95% Wilson interval. Do not average per-participant percentages.
    Do not pool this cohort with opt-in users from outside the beta.
@@ -819,7 +827,7 @@ Data freeze:
 Build commit(s):
 Participants enrolled:
 Participants with a valid usage-log export:
-Participants with a valid recording manifest:
+Participants with a valid recording manifest (empty takes counts):
 Participants in each denominator:
 Client split (web/android):
 Recruitment method:

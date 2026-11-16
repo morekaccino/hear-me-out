@@ -148,12 +148,12 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                   _compareCard(),
                 ],
                 const SizedBox(height: DuoSpacing.md),
-                if (state.takes.isEmpty)
-                  _emptyState(),
-                if (state.takes.isNotEmpty) ...[
+                if (state.takes.isEmpty) _emptyState(),
+                if (state.takes.isNotEmpty)
                   _exportCaptionCard(exportsSupported),
-                  const SizedBox(height: DuoSpacing.sm),
-                  _manifestCard(state),
+                const SizedBox(height: DuoSpacing.sm),
+                _manifestCard(state),
+                if (state.takes.isNotEmpty) ...[
                   const SizedBox(height: DuoSpacing.sm),
                   for (final take in state.takes) ...[
                     _takeCard(
@@ -731,10 +731,11 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
           ),
           const SizedBox(height: DuoSpacing.xxs),
           Text(
-            'One JSON file for this beta. It lists each saved take\'s piece, '
-            'phrase, save time, length, format, and first/last flags. It has no '
-            'audio, file paths, device or install id, your name, or free text. '
-            'Send only the JSON.',
+            'One JSON file for this beta. It lists every currently stored '
+            'take\'s piece, phrase, save time, length, format, and first/last '
+            'flags. It has no audio, file paths, device or install id, your '
+            'name, or free text. If there are no takes, the file has an empty '
+            'list; send it anyway. Send only the JSON.',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,

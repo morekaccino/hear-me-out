@@ -346,7 +346,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
     return outcome;
   }
 
-  /// Exports one researcher-readable JSON index of the saved takes.
+  /// Exports one researcher-readable JSON index of the currently stored takes.
   ///
   /// The document is built from [RecordingIndex] metadata only. It contains no
   /// audio bytes, absolute paths, device name, install id, participant name, or

@@ -156,7 +156,10 @@ it is not a shares-to-installs metric. See
   progress, or settings. The exports folder is inside the app sandbox and is
   not visible to the system file manager, so this in-app control is the deletion
   path; a file-manager instruction would be false. On web, use the browser's
-  downloads list; the app cannot see or delete browser downloads.
+  downloads list; the app cannot see or delete browser downloads. The same
+  **CLEAR EXPORTS** action deletes the beta
+  `hear-me-out-recordings-manifest.json` copy when one exists; the stored
+  `hear_me_out_recordings_v1` index and takes are untouched.
 - **Teacher copies.** Deleting a local take or the exported copies does not
   delete a copy the teacher already received. The app cannot reach another
   device. The teacher agreement and the COPPA plan own that duty.

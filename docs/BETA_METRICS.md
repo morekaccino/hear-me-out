@@ -270,36 +270,48 @@ Document fields:
 |---|---|
 | `schemaVersion` | `1`. Reject any other version. |
 | `generatedAt` | UTC ISO-8601 export time. |
+| `capture.assumed` | `true`. The rate and format are the export's assumption, not a per-take header read. |
+| `capture.sampleRate` | The V1 recorder/encoder assumption: 22050 Hz. |
+| `capture.format` | The V1 encoder assumption: `wav`. |
 | `takes[].pieceId` | Piece id, or null for a free take. |
 | `takes[].phraseId` | Phrase id, or null. |
 | `takes[].createdAt` | UTC ISO-8601 save time. |
 | `takes[].durationSeconds` | Stored take length in seconds. |
-| `takes[].sampleRate` | Stored WAV sample rate in hertz (22050 for V1). |
-| `takes[].format` | `wav` for V1. |
-| `takes[].firstTake` | True for the earliest take of a non-null piece. |
-| `takes[].lastTake` | True for the latest take of a non-null piece. |
+| `takes[].firstTake` | True for the earliest currently stored take of a non-null piece. |
+| `takes[].lastTake` | True for the latest currently stored take of a non-null piece. |
 
-The document has no media id, absolute path, byte length, device name, install
-id, participant name, free text, or audio bytes. A piece with one take marks
-that row as both first and last; it does not qualify as a before/after pair.
+Every currently stored take is one row. Per-piece retention deletes middle
+takes, so the manifest is a snapshot of what is currently stored, not every take
+ever saved. The document has no media id, absolute path, byte length, device
+name, install id, participant name, free text, or audio bytes. A piece with one
+take marks that row as both first and last; it does not qualify as a
+before/after pair.
 
-**KC-12 definition:** distinct beta participants with at least two saved takes
-of the same piece (a first and a last take) in the manifest during the beta
-window.
+The export does not read each WAV header. `capture.assumed` is `true` and states
+the V1 assumption once for the whole file. A future rate or AAC change must
+update the assumption; `RecordingService.buildRecordingsManifest` asserts it and
+the assumption test fails in CI.
+
+**KC-12 definition:** distinct beta participants with at least two currently
+stored takes of the same piece (a first and a last take) in the manifest during
+the beta window.
 
 - A participant qualifies when one `pieceId` group has at least two rows whose
   `createdAt` falls inside the participant's beta window, and the `firstTake`
   and `lastTake` flags are on different rows. A single-take group does not
   qualify.
+- A participant with no currently stored takes still exports and sends the
+  manifest. The file has `takes: []`; that participant stays in the denominator
+  with no qualifying pair and must not silently disappear.
 - Use the latest manifest export per participant. Do not merge an older export
   into a newer one; the newest `generatedAt` is the snapshot.
 - The beta window is the participant's install day through the data-freeze time.
   The manifest has no `installAt`; take the install date from the retention log
   or the cohort sheet.
 - Report the count of qualifying participants and the denominator of
-  participants who sent a valid manifest. The dashboard's KC-12 gate is a count
-  of beta users, not a percentage; state both the count and the manifest
-  denominator.
+  participants who sent a valid manifest, including empty manifests. The
+  dashboard's KC-12 gate is a count of beta users, not a percentage; state both
+  the count and the manifest denominator.
 - The manifest is read-only. It never changes, deletes, or rewrites a take or
   the stored index.
 - The participant sends only the JSON. Never ask for the audio, and do not
@@ -390,7 +402,7 @@ export cannot answer it.
 | Placement completion or score | No | Interview only. |
 | Reading Lab completion | No | Interview only. |
 | Quest completion or claim | No | Interview only. Quests have no reward and no event. |
-| Recordings beyond the first | No (retention log) | The separate recording-manifest JSON lists every saved take. |
+| Recordings beyond the first | No (retention log) | The separate recording-manifest JSON lists every currently stored take. |
 | Two takes of the same piece, before/after pairs, KC-12 | No (retention log) | The separate recording-manifest JSON. See the manifest section above. |
 | Notification permission grant | No | Facilitator records the answer once per participant. `reminder_opt_in` is a lower bound on exposure, not permission. |
 | Reminder copy arm and per-arm session-2/D7 | Only with the reminder protocol | [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and its report tool. Its session-2 helper is diagnostic and is not KC-03. This page does not duplicate it. |

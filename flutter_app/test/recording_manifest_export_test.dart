@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hear_me_out/core/audio/phrase_recorder.dart';
+import 'package:hear_me_out/core/media/recording_encoder.dart';
 import 'package:hear_me_out/core/media/recording_index.dart';
 import 'package:hear_me_out/core/media/recording_manifest_export.dart';
 
@@ -26,8 +28,7 @@ RecordingManifestExport _export(
 }) => RecordingManifestExport.fromIndex(
   RecordingIndex(takes),
   generatedAt: generatedAt ?? DateTime.utc(2026, 11, 7, 9, 15),
-  sampleRate: 22050,
-  format: 'wav',
+  capture: RecordingManifestCapture.analysis,
 );
 
 void main() {
@@ -46,10 +47,21 @@ void main() {
     expect(json.keys.toSet(), <String>{
       'schemaVersion',
       'generatedAt',
+      'capture',
       'takes',
     });
     expect(json['schemaVersion'], 1);
     expect(json['generatedAt'], '2026-11-07T09:15:00.000Z');
+
+    final capture = json['capture'] as Map<String, dynamic>;
+    expect(capture.keys.toSet(), <String>{
+      'assumed',
+      'sampleRate',
+      'format',
+    });
+    expect(capture['assumed'], isTrue);
+    expect(capture['sampleRate'], 22050);
+    expect(capture['format'], 'wav');
 
     final takes = json['takes'] as List<dynamic>;
     expect(takes, hasLength(1));
@@ -59,8 +71,6 @@ void main() {
       'phraseId',
       'createdAt',
       'durationSeconds',
-      'sampleRate',
-      'format',
       'firstTake',
       'lastTake',
     });
@@ -68,10 +78,20 @@ void main() {
     expect(take['phraseId'], 'ode-to-joy-1');
     expect(take['createdAt'], '2026-11-01T10:00:00.000Z');
     expect(take['durationSeconds'], 1.234);
-    expect(take['sampleRate'], 22050);
-    expect(take['format'], 'wav');
     expect(take['firstTake'], isTrue);
     expect(take['lastTake'], isTrue);
+  });
+
+  test('the capture assumption matches the recorder and encoder', () {
+    expect(
+      RecordingManifestCapture.analysis.sampleRate,
+      PhraseRecorder.analysisSampleRate,
+    );
+    expect(
+      RecordingManifestCapture.analysis.format,
+      const WavRecordingEncoder().fileExtension,
+    );
+    expect(RecordingManifestCapture.analysis.assumed, isTrue);
   });
 
   test('empty index produces an empty takes list, not an error', () {
@@ -79,6 +99,7 @@ void main() {
       _export(const <RecordingTake>[]).encodeJson(),
     ) as Map<String, dynamic>;
     expect(json['schemaVersion'], 1);
+    expect(json['capture'], isA<Map<String, dynamic>>());
     expect(json['takes'], isEmpty);
   });
 

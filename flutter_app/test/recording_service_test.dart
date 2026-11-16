@@ -317,8 +317,9 @@ void main() {
     expect(export.takes, hasLength(1));
     expect(export.takes.single.pieceId, 'ode-to-joy');
     expect(export.takes.single.phraseId, 'ode-to-joy-1');
-    expect(export.takes.single.sampleRate, PhraseRecorder.analysisSampleRate);
-    expect(export.takes.single.format, 'wav');
+    expect(export.capture.sampleRate, PhraseRecorder.analysisSampleRate);
+    expect(export.capture.format, 'wav');
+    expect(export.capture.assumed, isTrue);
     expect(export.takes.single.firstTake, isTrue);
     expect(export.takes.single.lastTake, isTrue);
 
