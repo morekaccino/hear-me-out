@@ -135,10 +135,10 @@ on the install local day (day 0).
   activation.
 - The log cannot tell the guided first session from a lesson, practice, or jump
   test. `session_complete` is the common event. Do not claim the guided first
-  session specifically completed unless the facilitator saw it. The guided flow
-  is pushed once after onboarding and cannot be reopened after SKIP FOR NOW, so
-  activation is not a first-session completion rate; a normal lesson can satisfy
-  the same rule.
+  session specifically completed unless the facilitator saw it. T5.8 lets the
+  Path reopen the guided flow until it is completed, but the event still cannot
+  distinguish it, so activation is not a first-session completion rate; a normal
+  lesson can satisfy the same rule.
 - Report the funnel components beside activation: `onboarding_start`,
   `onboarding_complete`, `first_note`, `first_phrase`, and `first_recording`,
   each with its own denominator.

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/learning/progress.dart';
@@ -68,6 +70,27 @@ void main() {
       expect(restored!.xp, 25);
     });
 
+    test('the guided first-session status survives a store save, reload, and '
+        'export', () async {
+      SharedPreferences.setMockInitialValues({});
+      final progress = ProgressState.fresh(
+        settings: const AppSettings(
+          onboardingComplete: true,
+          firstSessionStatus: FirstSessionStatus.skipped,
+        ),
+      );
+
+      await SharedPreferencesProgressStore().save(progress);
+      final reloaded = await SharedPreferencesProgressStore().load();
+      expect(reloaded, isNotNull);
+      expect(reloaded!.settings.firstSessionStatus, FirstSessionStatus.skipped);
+
+      final exported =
+          jsonDecode(exportProgress(progress)) as Map<String, dynamic>;
+      final settings = exported['settings'] as Map<String, dynamic>;
+      expect(settings['firstSessionStatus'], 'skipped');
+    });
+
     test('old lesson ids migrate to the new curriculum', () {
       final restored = ProgressState.fromJson({
         'schemaVersion': 1,
@@ -99,7 +122,8 @@ void main() {
       expect(importProgress('{"schemaVersion": 7}'), isNotNull);
       expect(importProgress('{"schemaVersion": 8}'), isNotNull);
       expect(importProgress('{"schemaVersion": 9}'), isNotNull);
-      expect(importProgress('{"schemaVersion": 10}'), isNull);
+      expect(importProgress('{"schemaVersion": 10}'), isNotNull);
+      expect(importProgress('{"schemaVersion": 11}'), isNull);
       expect(importProgress('{"schemaVersion": 0}'), isNull);
     });
   });

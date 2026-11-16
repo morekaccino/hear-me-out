@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/audio/phrase_prompt.dart';
 import '../../core/audio/phrase_verifier.dart';
-import '../../core/learning/attempt_outcome.dart';
+import '../../core/learning/progress.dart';
 import '../../core/media/recording_index.dart';
 import '../../core/music/guitar.dart';
 import '../../core/music/note.dart';
@@ -20,6 +20,7 @@ import '../../shared/widgets/feedback_panel.dart';
 import '../../shared/widgets/page_frame.dart';
 import '../../shared/widgets/progress_widgets.dart';
 import '../../state/app_controller.dart';
+import '../../state/first_session_controller.dart';
 import '../../state/providers.dart';
 import '../../state/recording_controller.dart';
 import '../../state/retention_controller.dart';
@@ -100,6 +101,7 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
   bool _finished = false;
   bool _firstNoteRecorded = false;
   bool _firstPhraseRecorded = false;
+  bool _skipping = false;
   String? _notice;
 
   Phrase get _phrase => firstSessionPhrase();
@@ -211,7 +213,7 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
         const SizedBox(height: 8),
         TextButton(
           key: const ValueKey('first-session-skip'),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: _skipping ? null : _skip,
           child: const Text('SKIP FOR NOW'),
         ),
       ],
@@ -383,6 +385,26 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
     );
   }
 
+  /// Leaves the session for now.
+  ///
+  /// The persisted `skipped` status lets the Path card return on the next app
+  /// open, while the in-memory flag hides it for the rest of this run (T5.8).
+  /// A rapid double tap must not call `maybePop` twice and pop the Path itself.
+  Future<void> _skip() async {
+    if (_skipping) return;
+    setState(() => _skipping = true);
+    ref.read(firstSessionRunSkipProvider.notifier).markSkipped();
+    try {
+      await ref
+          .read(appControllerProvider.notifier)
+          .setFirstSessionStatus(FirstSessionStatus.skipped);
+    } catch (_) {
+      // A local save failure must not trap the learner on the invitation.
+    }
+    if (!mounted) return;
+    Navigator.of(context).maybePop();
+  }
+
   Future<void> _finish() async {
     final elapsed = _clock.elapsed;
     try {
@@ -394,6 +416,16 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
           .recordDailyActive();
     } catch (_) {
       // Instrumentation is best-effort and must not block the done screen.
+    }
+    try {
+      // The Path normally loads progress first. A directly-opened session still
+      // waits for it so completion is never lost to a silent not-ready read.
+      await ref.read(appControllerProvider.future);
+      await ref
+          .read(appControllerProvider.notifier)
+          .setFirstSessionStatus(FirstSessionStatus.completed);
+    } catch (_) {
+      // The learner already had the session; a save hiccup is not a failure.
     }
     try {
       await ref

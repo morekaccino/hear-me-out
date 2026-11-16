@@ -648,6 +648,16 @@ mastery claim — and the learner can skip it. The correction comes from the rea
 verifier; the recording is the only saved artifact. The done screen says “You
 played your first phrase” and sends the learner to Learn.
 
+The guided session has one re-entry, a compact purple **Your first 3 minutes**
+`SectionCard` on the Path below the Reading Lab/Today card. The copy is an
+invitation (“Hear four notes, play them back, see one correction, then record
+ten seconds. About 3 minutes.”), never a debt, and the action is
+**START 3 MINUTES**. It shows while the persisted first-session status is not
+completed. **SKIP FOR NOW** inside the flow hides the card for the rest of the
+app run, and the card returns on the next open; reaching the done step removes
+it for good. No modal, automatic relaunch, streak language, or “you still
+haven't” copy.
+
 The first screen also carries a compact, off-by-default **Optional beta usage
 log** consent card below the optional microphone check. It is part of the first
 screen, not a fourth step. The copy says local only, no audio, no free text, no
@@ -662,8 +672,8 @@ reachable for a real new install; leaving it off records nothing. See
 A skippable three-screen check for returners, reached from the onboarding piece
 screen, the Path card, or Profile. It is never auto-launched, so the normal
 **Continue** button and the first phrase stay ahead of it. The placement card
-sits below the Reading Lab/Today card, so the Reading Lab entry stays first on
-the Path. The Path card is a
+sits below the Reading Lab/Today card and the first-session card, so the Reading
+Lab entry stays first on the Path. The Path card is a
 compact blue **Not sure where to start? A short check can place you.** panel
 with **START SHORT CHECK** and **SKIP FOR NOW**; the Profile card always shows
 **Starting point** and **CHANGE STARTING POINT** for the manual override.
