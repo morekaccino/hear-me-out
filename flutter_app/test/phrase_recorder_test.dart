@@ -19,6 +19,30 @@ Uint8List toneBytes(int sampleRate, {double seconds = 1.0}) {
   return pcm16Bytes(samples);
 }
 
+/// Duplicates a tone into the left channel and leaves the right silent.
+Uint8List stereoBytes(int sampleRate, {double seconds = 0.5}) {
+  final mono = silentTake(sampleRate, seconds);
+  addTone(
+    mono,
+    sampleRate,
+    startSeconds: 0.02,
+    durationSeconds: seconds - 0.04,
+    midi: 69,
+  );
+  final buffer = ByteData(mono.length * 4);
+  var offset = 0;
+  for (final sample in mono) {
+    buffer.setInt16(
+      offset,
+      (sample.clamp(-1.0, 1.0) * 32767).round(),
+      Endian.little,
+    );
+    buffer.setInt16(offset + 2, 0, Endian.little);
+    offset += 4;
+  }
+  return buffer.buffer.asUint8List();
+}
+
 void main() {
   group('PhraseRecorder', () {
     test('collects, resamples, flushes, and stops exactly once', () async {
@@ -77,6 +101,52 @@ void main() {
         expect(second.samples, isNotEmpty);
         expect(capture.stopCalls, 2);
 
+        await recorder.dispose();
+      },
+    );
+
+    test(
+      'uses the effective stereo 48 kHz format and downmixes to mono',
+      () async {
+        final capture = FakePcmCapture(
+          chunks: [stereoBytes(48000)],
+          config: const PcmCaptureConfig(sampleRate: 48000, channels: 2),
+        );
+        final recorder = PhraseRecorder(capture: capture);
+
+        expect(await recorder.start(), isTrue);
+        await Future<void>.delayed(Duration.zero);
+        final take = await recorder.stop();
+
+        expect(take.sourceSampleRate, 48000);
+        expect(take.sourceChannels, 2);
+        expect(take.sampleRate, PhraseRecorder.analysisSampleRate);
+        expect(take.durationSeconds, closeTo(0.5, 0.02));
+        await recorder.dispose();
+      },
+    );
+
+    test(
+      'take length comes from the sample clock, not elapsed wall time',
+      () async {
+        final capture = FakePcmCapture(
+          chunks: [toneBytes(48000, seconds: 0.25)],
+          config: const PcmCaptureConfig(sampleRate: 48000, channels: 1),
+        );
+        final recorder = PhraseRecorder(capture: capture);
+
+        expect(await recorder.start(), isTrue);
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+        final take = await recorder.stop();
+
+        // The take is 0.25 s of samples. A wall-clock stopwatch would also add
+        // the 40 ms wait, so the tolerance proves the sample clock is the
+        // source of the duration.
+        expect(
+          take.durationSeconds,
+          closeTo(take.samples.length / take.sampleRate, 1e-9),
+        );
+        expect(take.durationSeconds, closeTo(0.25, 0.02));
         await recorder.dispose();
       },
     );

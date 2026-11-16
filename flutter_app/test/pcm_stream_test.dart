@@ -155,6 +155,20 @@ void main() {
       }
     });
 
+    test('44.1 kHz stereo downmixes and resamples at 440 Hz', () {
+      final left = sine(440, 44100);
+      final right = sine(440, 44100);
+      final decoded = decodeAll(
+        interleaved([left, right]),
+        inputSampleRate: 44100,
+        channels: 2,
+      );
+
+      final frequency = detectedFrequency(decoded);
+      expect((frequency - 440).abs(), lessThan(1), reason: '$frequency Hz');
+      expect(centsError(frequency, 440).abs(), lessThan(10));
+    });
+
     test('stereo channels are averaged, so opposite phases cancel', () {
       final left = sine(440, 48000);
       final right = left.map((sample) => -sample).toList();
