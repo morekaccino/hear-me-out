@@ -2,7 +2,7 @@ name: Flutter
 
 on:
   push:
-    branches: [main, master]
+    branches: [main, master, year-long-rewrite]
   pull_request:
 
 permissions:
