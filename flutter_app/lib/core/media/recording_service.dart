@@ -11,6 +11,7 @@ import 'recording_encoder.dart';
 import 'recording_exporter.dart';
 import 'recording_index.dart';
 import 'recording_index_store.dart';
+import 'recording_manifest_export.dart';
 
 /// Why a recording operation could not complete.
 enum RecordingFailureKind {
@@ -475,6 +476,37 @@ class RecordingService {
         ),
       );
     }
+  }
+
+  /// Builds the read-only researcher manifest from the stored index.
+  ///
+  /// The method reads the index document and metadata only. It does not
+  /// reconcile, repair, save, delete, or rewrite the index or a take, and it
+  /// does not read audio bytes. A missing index is an empty manifest; an
+  /// unreadable index throws [FormatException] to the caller, which converts it
+  /// to a typed failure.
+  ///
+  /// The V1 capture assumption is pinned to the actual recorder and encoder.
+  /// If a future rate or AAC change does not update [RecordingManifestCapture],
+  /// the assertion fails in debug and the assumption test fails in CI.
+  Future<RecordingManifestExport> buildRecordingsManifest({
+    DateTime? generatedAt,
+  }) async {
+    assert(
+      RecordingManifestCapture.analysis.sampleRate ==
+          PhraseRecorder.analysisSampleRate,
+      'The manifest capture assumption no longer matches the recorder rate.',
+    );
+    assert(
+      RecordingManifestCapture.analysis.format == _encoder.fileExtension,
+      'The manifest capture assumption no longer matches the encoder format.',
+    );
+    final loaded = await _indexStore.load();
+    return RecordingManifestExport.fromIndex(
+      loaded ?? RecordingIndex.empty,
+      generatedAt: generatedAt ?? _clock(),
+      capture: RecordingManifestCapture.analysis,
+    );
   }
 
   /// Reads stored bytes for playback. Returns null when the take is gone.

@@ -255,6 +255,66 @@ the install day through the end of local day 7, inclusive.
   while the dashboard keeps a locked line and an open question. The gate owner
   resolves that difference; this page does not change either threshold.
 
+### Recording manifest and KC-12
+
+KC-12 is **not** read from the retention log. It is read from the separate
+one-file manifest that **Practice > Recordings > Beta recording index >
+EXPORT RECORDINGS MANIFEST** writes. The participant sends only the JSON file,
+never a `.wav` take.
+
+Document fields:
+
+| Field | Meaning |
+|---|---|
+| `schemaVersion` | `1`. Reject any other version. |
+| `generatedAt` | UTC ISO-8601 export time. |
+| `capture.assumed` | `true`. The rate and format are the export's assumption, not a per-take header read. |
+| `capture.sampleRate` | The V1 recorder/encoder assumption: 22050 Hz. |
+| `capture.format` | The V1 encoder assumption: `wav`. |
+| `takes[].pieceId` | Piece id, or null for a free take. |
+| `takes[].phraseId` | Phrase id, or null. |
+| `takes[].createdAt` | UTC ISO-8601 save time. |
+| `takes[].durationSeconds` | Stored take length in seconds. |
+| `takes[].firstTake` | True for the earliest currently stored take of a non-null piece. |
+| `takes[].lastTake` | True for the latest currently stored take of a non-null piece. |
+
+Every currently stored take is one row. Per-piece retention deletes middle
+takes, so the manifest is a snapshot of what is currently stored, not every take
+ever saved. The document has no media id, absolute path, byte length, device
+name, install id, participant name, free text, or audio bytes. A piece with one
+take marks that row as both first and last; it does not qualify as a
+before/after pair.
+
+The export does not read each WAV header. `capture.assumed` is `true` and states
+the V1 assumption once for the whole file. A future rate or AAC change must
+update the assumption; `RecordingService.buildRecordingsManifest` asserts it and
+the assumption test fails in CI.
+
+**KC-12 definition:** distinct beta participants with at least two currently
+stored takes of the same piece (a first and a last take) in the manifest during
+the beta window.
+
+- A participant qualifies when one `pieceId` group has at least two rows whose
+  `createdAt` falls inside the participant's beta window, and the `firstTake`
+  and `lastTake` flags are on different rows. A single-take group does not
+  qualify.
+- A participant with no currently stored takes still exports and sends the
+  manifest. The file has `takes: []`; that participant stays in the denominator
+  with no qualifying pair and must not silently disappear.
+- Use the latest manifest export per participant. Do not merge an older export
+  into a newer one; the newest `generatedAt` is the snapshot.
+- The beta window is the participant's install day through the data-freeze time.
+  The manifest has no `installAt`; take the install date from the retention log
+  or the cohort sheet.
+- Report the count of qualifying participants and the denominator of
+  participants who sent a valid manifest, including empty manifests. The
+  dashboard's KC-12 gate is a count of beta users, not a percentage; state both
+  the count and the manifest denominator.
+- The manifest is read-only. It never changes, deletes, or rewrites a take or
+  the stored index.
+- The participant sends only the JSON. Never ask for the audio, and do not
+  attach a `.wav` to the report or a ticket.
+
 ### Completed sessions per install-anchored week
 
 This is context for the plan's 3-sessions-per-week target. It is not a new gate.
@@ -340,8 +400,8 @@ export cannot answer it.
 | Placement completion or score | No | Interview only. |
 | Reading Lab completion | No | Interview only. |
 | Quest completion or claim | No | Interview only. Quests have no reward and no event. |
-| Recordings beyond the first | No | The log records `first_recording` once. |
-| Two takes of the same piece, before/after pairs, KC-12 | No | The recordings manifest is not exported by the app. A separate export ticket is needed. |
+| Recordings beyond the first | No (retention log) | The separate recording-manifest JSON lists every currently stored take. |
+| Two takes of the same piece, before/after pairs, KC-12 | No (retention log) | The separate recording-manifest JSON. See the manifest section above. |
 | Notification permission grant | No | Facilitator records the answer once per participant. `reminder_opt_in` is a lower bound on exposure, not permission. |
 | Reminder copy arm and per-arm session-2/D7 | Only with the reminder protocol | [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and its report tool. Its session-2 helper now computes the same KC-03 rule. This page does not duplicate the arm comparison. |
 | Uninstall, churn reason | No | Interview only. |
@@ -359,18 +419,17 @@ export cannot answer it.
   boundary, the 48-hour window anchored to session 1's start, and incomplete
   first sessions kept in the denominator. A rate computed before T5.9 is not
   comparable and must be recomputed from the exports.
-- [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
-  false-fail and false-pass. This beta cannot supply that. Phrase accuracy stays
-  with T1.6/T1.7. The gate owner should correct the source line.
+- **P1.3 is not a beta source.** The Phase 1 gate listed T5.7 as a source for
+  phrase false-fail and false-pass. This beta cannot supply that: the scored loop
+  is off and the log has no note-level data. Phrase accuracy stays with T1.6 and
+  T1.7; the gate source line is corrected.
 - **KC-04 primary source.** The dashboard's primary evidence for KC-04 is the
   T5.7 cohort recording manifest and before/after evidence; the opt-in log's
-  `first_recording` is diagnostic. The app does not export the manifest, so this
-  kit can report `first_recording` by day 7 only as a diagnostic, not as the
-  KC-04 gate number.
-- [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) KC-12 expects a
-  researcher-readable recordings manifest export from T5.7. This ticket does not
-  add one. The beta can measure `first_recording` by day 7, not a same-piece
-  pair. If KC-12 is required, add the export in its own ticket before the run.
+  `first_recording` is diagnostic. The manifest export exists in this ticket, so
+  use it as the primary source and report the log as diagnostic.
+- **KC-12 source.** The participant-sent recording manifest is the source; the
+  retention log cannot count takes. The export exists in this ticket. The
+  dashboard's KC-12 row can now be updated by its owner.
 
 ## 5. Reporting rules
 

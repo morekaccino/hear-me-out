@@ -317,7 +317,7 @@ minutes, so weekly minutes are interview evidence, not a log metric.
 | Week 0, day 0 | Consent, participant code, baseline form, install, open the app, turn on the optional beta usage log on the first screen, finish onboarding, do the first 3-minute session. | Consent, code, install date and time, timezone, device and browser/OS, microphone works yes/no, reminder permission yes/no, reminder enabled yes/no, first piece or phrase for the before/after prompt. |
 | Week 1, day 7 | 5-minute check-in: how many sessions, which screens, what was confusing or broken, does the microphone still work, is the reminder on and did it arrive. | Self-reported session count as context only (the metric uses `session_complete`), blockers, mic status, reminder status, any support given. |
 | Week 2, day 14 | Before/after prompt: record a take of the same short piece or phrase chosen at week 0. If the app shows the private before/after card, ask for one sentence on whether the difference is audible. | Whether a take was saved, whether two takes of the same piece exist, the participant's one-sentence reaction, blockers. |
-| Week 4, day 28 | Exit interview, then copy the usage log and send it. | Interview notes, blockers, the exported JSON file. |
+| Week 4, day 28 | Exit interview, then copy the usage log and export the recording manifest; send both JSON files. | Interview notes, blockers, the usage-log JSON, and the recording-manifest JSON. |
 | Day 30 or later | One short request for a final copy of the usage log so the day-30 window can be read. | The final JSON file, or "declined" or "no response". |
 
 ### Week 0 details
@@ -372,11 +372,11 @@ Questions:
 ### Week 2 details
 
 The before/after prompt is qualitative in this beta. The local log records only
-the first saved recording (`first_recording`), not every take. The recordings
-manifest is not exported by the app, so the facilitator cannot count two takes
-of the same piece from the log. Ask the participant to show the before/after
-card if they have two takes, and record their reaction. If they have only one
-take, record that and do not invent a comparison.
+the first saved recording (`first_recording`), not every take. The separate
+recording manifest is the KC-12 source; it is exported at exit, not at this
+week-2 check-in. Ask the participant to show the before/after card if they have
+two takes, and record their reaction. If they have only one take, record that
+and do not invent a comparison.
 
 Questions:
 
@@ -403,8 +403,10 @@ Keep it to 10 to 15 minutes. Ask open questions first, then the scale question.
 - Would you recommend it to a friend who is starting guitar? Why or why not?
 - May I quote you pseudonymously in the report, using your participant code?
 
-Then ask them to export the log. If they want to stop or erase, honor it before
-the export. Do not re-enable the log for them.
+Then ask them to copy the usage log and export the recording manifest. If they
+want to stop or erase, honor it before the exports. Do not re-enable the log for
+them. Send both JSON files through the private channel; never ask for a `.wav`
+take.
 
 ## 6. Exporting the local retention log
 
@@ -459,6 +461,43 @@ they ask. If their data is already combined into pseudonymous counts, explain
 that the counts cannot be reversed; the consent paragraph says this before they
 start. Never pressure a participant to keep logging.
 
+### Exporting the recording manifest (KC-12)
+
+The usage log cannot count takes. KC-12 uses a separate one-file manifest.
+
+1. Open **Practice > Recordings**.
+2. Scroll to **Beta recording index**.
+3. Tap **EXPORT RECORDINGS MANIFEST**.
+4. On IO, the app writes `hear-me-out-recordings-manifest.json` under its
+   app-support `exports/` folder and opens the share sheet. On web, the browser
+   downloads the file; use the downloads list. If the share sheet opens, choose
+   the private channel.
+5. Send only the JSON. Never send a `.wav` take, a screenshot of the list, or a
+   zip of the recordings. Store the received file as
+   `<participant-code>-manifest-<YYYY-MM-DD>.json`.
+6. The file has `schemaVersion`, `generatedAt`, and a `capture` object with
+   `assumed: true`, `sampleRate: 22050`, and `format: "wav"`. That is the V1
+   export assumption, not a per-take header read. Each currently stored take is
+   one row with `pieceId`, `phraseId`, `createdAt` (UTC), `durationSeconds`,
+   `firstTake`, and `lastTake`. It has no audio bytes, absolute path, device
+   name, install id, participant name, or free text.
+7. Export once at the exit interview, even when the participant has no takes.
+   A zero-take manifest has `takes: []`; send it anyway so that participant
+   stays in the KC-12 denominator. If the participant records again before the
+   data freeze, export again and use the latest file with the largest
+   `generatedAt`.
+8. The export is read-only. It does not change, delete, or rewrite a take or
+   the stored index. On IO, **Clear exports** deletes this file too; send it
+   before clearing.
+
+Every currently stored take is one row. Per-piece retention deletes middle
+takes, so the manifest is a snapshot, not every take ever saved. The
+`firstTake` and `lastTake` flags are per piece at export time. A piece with one
+take marks that take as both; it does not qualify as a before/after pair. A
+piece with two or more currently stored takes marks the earliest and latest
+rows separately. The analyst uses those flags for KC-12; the retention log's
+`first_recording` is diagnostic only.
+
 ## 7. Aggregating the metrics
 
 The definitions, field rules, and limits are in
@@ -498,12 +537,18 @@ The short procedure:
    recording by day 7, session-2 within 48 hours, and completed sessions per
    install-anchored week. Use
    [`BETA_METRICS.md`](BETA_METRICS.md) for the exact rules.
-5. Sum the flags, report the numerator and denominator for every percentage,
+5. For each participant with a recording-manifest export, count the pieces with
+   at least two currently stored takes in the participant's beta window and a
+   first/last pair on different rows. Mark `kc12PiecePair` and `kc12PieceId`.
+   An empty `takes: []` is a valid export and keeps the participant in the
+   denominator with `kc12PiecePair: no`. Use the latest manifest
+   (`generatedAt`). Do not merge older manifests.
+6. Sum the flags, report the numerator and denominator for every percentage,
    and add a 95% Wilson interval. Do not average per-participant percentages.
    Do not pool this cohort with opt-in users from outside the beta.
-6. Report `INSUFFICIENT DATA` when a window has not closed or the denominator
+7. Report `INSUFFICIENT DATA` when a window has not closed or the denominator
    is zero. Do not estimate a missing value.
-7. Keep the raw exports and the calculation sheet in a private folder on the
+8. Keep the raw exports and the calculation sheet in a private folder on the
    facilitator's machine. Do not commit them, attach them to a ticket, or put
    them in a public link.
 
@@ -523,7 +568,11 @@ A simple sheet has one row per participant and these columns:
 | `firstRecordingByDay7` | `yes`, `no`, or `window open` |
 | `session2Within48h` | `yes`, `no`, or `no session 1` |
 | `sessionsWeek0` to `sessionsWeek3` | Count of `session_complete` in each install-anchored week |
-| `exportFile` | The private file name |
+| `exportFile` | The private usage-log file name |
+| `manifestFile` | The private recording-manifest file name |
+| `manifestGeneratedAt` | UTC `generatedAt` from the manifest |
+| `kc12PiecePair` | `yes`, `no`, or `no manifest` |
+| `kc12PieceId` | The qualifying piece id, or empty |
 | `notes` | Data-quality flags, not opinions |
 
 The reminder experiment is not analyzed here. It has its own pre-registered
@@ -625,7 +674,8 @@ The run is complete only when all of these are true:
    participant has a disposition: completed, withdrew, lost contact, or invalid
    install.
 3. Every participant counted in a quantitative metric has a valid schema-1
-   export with an install day; the report states how many did not.
+   usage-log export with an install day, and every participant counted in KC-12
+   has a valid schema-1 recording manifest; the report states how many did not.
 4. The day-7 window has closed for every install in the D7 denominator. The
    day-30 window has closed for every install in the D30 denominator, or D30 is
    reported as `INSUFFICIENT DATA`.
@@ -651,16 +701,18 @@ note names or per-note results, so it cannot supply microphone or phrase
 accuracy; no session seconds, so it cannot supply weekly minutes or weekly-goal
 completion, and it cannot supply P1.5's first-note <60 s or first-phrase <3 min
 latency targets because it has no reliable start-to-event timer. It has no
-placement, Reading Lab, or quest events; only the first recording, not every
-take or a same-piece pair; and no notification permission, crash, uninstall, or
-revenue event. KC-04's primary evidence is the cohort recording manifest and
-before/after pair; the opt-in log's `first_recording` is diagnostic. The cohort
-is 20 hand-recruited volunteers, so a result is directional for this cohort,
-not the product's retention rate or a causal effect.
+placement, Reading Lab, or quest events; it records only the first recording,
+not every take or a same-piece pair; and it has no notification permission,
+crash, uninstall, or revenue event. KC-04's and KC-12's primary evidence is the
+separate participant-sent recording manifest (and, for KC-04, the before/after
+pair); the opt-in log's `first_recording` is diagnostic. The cohort is 20
+hand-recruited volunteers, so a result is directional for this cohort, not the
+product's retention rate or a causal effect.
 
 [`BETA_METRICS.md`](BETA_METRICS.md) has the field-by-field list in section 4.
-The short rule is: if the field is not `name`, `at`, `installId`, or
-`installAt`, the export cannot answer the question.
+The short rule for the usage log is: if the field is not `name`, `at`,
+`installId`, or `installAt`, the log cannot answer the question. The recording
+manifest is a separate file with the fields listed in its KC-12 section.
 
 ### Source conflicts and caveats to resolve before the report
 
@@ -674,20 +726,17 @@ worked around:
    `session_start` that is within 48 hours of session 1's `session_start` and at
    least 60 minutes after session 1's `session_complete`, and keep dropouts in
    the denominator.
-2. [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
-   false-fail and false-pass. This beta cannot supply that: the scored loop is
-   off and the log has no note-level data. Phrase accuracy stays with T1.6 and
-   T1.7. Correct the P1.3 source line before the Phase 1 gate.
+2. **P1.3 is not a beta source.** The Phase 1 gate listed T5.7 for phrase
+   false-fail and false-pass. The scored loop is off and the log has no
+   note-level data, so phrase accuracy stays with T1.6 and T1.7. The gate source
+   line is corrected.
 3. **KC-04's primary source is not the log.** The dashboard makes the cohort
    recording manifest and before/after evidence primary; the opt-in log's
-   `first_recording` is diagnostic. This beta cannot read the manifest, so
-   `first_recording` by day 7 is a diagnostic signal, not the KC-04 gate number.
-4. [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) KC-12 says T5.7
-   must add a researcher-readable recordings manifest export before KC-12 can be
-   measured. This ticket's deliverables do not add that export, and this kit
-   does not change app code. The beta can measure `first_recording` by day 7,
-   but it cannot count two takes of the same piece. If KC-12 is expected from
-   this beta, that export needs its own ticket before the run.
+   `first_recording` is diagnostic. The manifest export exists in this ticket;
+   use it as the primary source and report the log as diagnostic.
+4. **KC-12 source is the participant-sent manifest.** The export exists in this
+   ticket. The retention log cannot count takes, so do not try to derive KC-12
+   from `first_recording`. The dashboard's KC-12 row now points at this action.
 
 Event meanings are canonical. `first_note` is the first determinate scored
 note-prompt answer (naming, placing, or hearing), correct or incorrect. It is
@@ -707,14 +756,19 @@ prompt. Do not infer pitch verification, correctness, or accuracy from it.
   in [`BETA_METRICS.md`](BETA_METRICS.md), and writes the report.
 - **Manager or human owner:** owns the ticket, the cohort decision, the
   follow-up tickets, and the merge/release decision.
-- **Participant:** owns the device and the log. They choose whether to copy it,
-  whether to send it, and whether to erase it.
+- **Participant:** owns the device, the log, and the recording manifest. They
+  choose whether to copy or export them, whether to send them, and whether to
+  erase the log.
 
 Keep the consent forms, the code-to-contact mapping, and the exports in a
 private folder that is not the repository, not a public cloud link, and not a
 shared chat. Do not put a participant's name, email, or exact address in the
 blocker log or the report. Use the code. Delete the mapping and the consent
 records at the date stated in the consent paragraph, or earlier on request.
+
+The recording manifest is separate from the usage log and carries no audio. Do
+not ask for the stored `.wav` takes, a screenshot of the list, or a zip of the
+recordings. The participant sends only the JSON manifest.
 
 The app's local progress backup is separate from the usage log. Restoring a
 progress backup does not import or export the log. Do not use a progress backup
@@ -730,7 +784,7 @@ as a substitute for the log export.
 - [ ] Build one frozen web bundle and, if needed, one frozen APK. Record the git
   commit and build time.
 - [ ] Test the build on your own device: onboarding, log opt-in, first session,
-  one lesson, one recording, one log copy.
+  one lesson, one recording, one log copy, and one recording-manifest export.
 - [ ] Confirm the web server is reachable from a second device on the LAN.
 - [ ] Prepare the consent form, baseline form, participant codes, blocker log,
   and private export folder.
@@ -761,6 +815,8 @@ as a substitute for the log export.
 
 - [ ] Interview completed or the reason recorded.
 - [ ] Usage log copied, named, and stored privately.
+- [ ] Recording manifest exported, named, and stored privately.
+- [ ] Participant told to send only the JSON files, never the audio.
 - [ ] Day-30 follow-up requested.
 - [ ] Participant told how to erase the log and how to withdraw.
 - [ ] Blocker log complete; top five ranked; follow-up drafts written.
@@ -777,7 +833,8 @@ Cohort window:
 Data freeze:
 Build commit(s):
 Participants enrolled:
-Participants with a valid export:
+Participants with a valid usage-log export:
+Participants with a valid recording manifest (empty takes counts):
 Participants in each denominator:
 Client split (web/android):
 Recruitment method:
@@ -789,6 +846,7 @@ D7: <n>/<d> ...
 D30: <n>/<d> ... or INSUFFICIENT DATA
 First recording by day 7: <n>/<d> ...
 Session-2 within 48 hours (KC-03): <n>/<d> ...
+KC-12 users with a same-piece first/last pair: <n>/<d valid manifests>
 Completed sessions per install-anchored week: <counts>
 
 Top five blockers:

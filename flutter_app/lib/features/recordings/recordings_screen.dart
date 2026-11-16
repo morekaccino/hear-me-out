@@ -67,6 +67,9 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
   /// controller also guards against a second concurrent export.
   String? _exportingTakeId;
 
+  /// True while the beta recording-manifest export is in progress.
+  bool _exportingManifest = false;
+
   @override
   void initState() {
     super.initState();
@@ -145,15 +148,20 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                   _compareCard(),
                 ],
                 const SizedBox(height: DuoSpacing.md),
-                if (state.takes.isEmpty)
-                  _emptyState(),
-                if (state.takes.isNotEmpty) ...[
+                if (state.takes.isEmpty) _emptyState(),
+                if (state.takes.isNotEmpty)
                   _exportCaptionCard(exportsSupported),
+                const SizedBox(height: DuoSpacing.sm),
+                _manifestCard(state),
+                if (state.takes.isNotEmpty) ...[
                   const SizedBox(height: DuoSpacing.sm),
                   for (final take in state.takes) ...[
                     _takeCard(
                       take,
-                      state.busy || state.recording || state.starting,
+                      state.busy ||
+                          state.recording ||
+                          state.starting ||
+                          _exportingManifest,
                       _exportingTakeId,
                     ),
                     const SizedBox(height: DuoSpacing.sm),
@@ -542,7 +550,10 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 TextButton.icon(
                   key: const ValueKey('clear-exports'),
                   onPressed:
-                      state.busy || state.recording || _exportingTakeId != null
+                      state.busy ||
+                          state.recording ||
+                          _exportingTakeId != null ||
+                          _exportingManifest
                       ? null
                       : _confirmClearExports,
                   style: TextButton.styleFrom(
@@ -681,6 +692,66 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
                 color: AppColors.blueDark,
                 height: 1.35,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _manifestCard(RecordingScreenState state) {
+    final disabled =
+        state.busy ||
+        state.recording ||
+        state.starting ||
+        _exportingTakeId != null ||
+        _exportingManifest;
+    return SectionCard(
+      key: const ValueKey('recording-manifest-card'),
+      color: AppColors.blueSoft,
+      borderColor: AppColors.blue,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.description_rounded,
+                color: AppColors.blueDark,
+                size: 20,
+              ),
+              const SizedBox(width: DuoSpacing.xs),
+              const Expanded(
+                child: Text(
+                  'Beta recording index',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: DuoSpacing.xxs),
+          Text(
+            'One JSON file for this beta. It lists every currently stored '
+            'take\'s piece, phrase, save time, length, format, and first/last '
+            'flags. It has no audio, file paths, device or install id, your '
+            'name, or free text. If there are no takes, the file has an empty '
+            'list; send it anyway. Send only the JSON.',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.blueDark,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: DuoSpacing.xxs),
+          TextButton.icon(
+            key: const ValueKey('export-recordings-manifest'),
+            onPressed: disabled ? null : _exportManifest,
+            icon: const Icon(Icons.ios_share_rounded, size: 18),
+            label: Text(
+              _exportingManifest
+                  ? 'EXPORTING...'
+                  : 'EXPORT RECORDINGS MANIFEST',
             ),
           ),
         ],
@@ -967,6 +1038,24 @@ class _RecordingsScreenState extends ConsumerState<RecordingsScreen> {
     } finally {
       if (mounted) {
         setState(() => _exportingTakeId = null);
+      }
+    }
+  }
+
+  Future<void> _exportManifest() async {
+    if (_exportingManifest) return;
+    setState(() => _exportingManifest = true);
+    try {
+      final outcome = await ref
+          .read(recordingControllerProvider.notifier)
+          .exportRecordingsManifest();
+      if (!mounted) return;
+      if (outcome.message != null) {
+        _snack(outcome.message!);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _exportingManifest = false);
       }
     }
   }
