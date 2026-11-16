@@ -175,7 +175,8 @@ Open legal questions that apply to the whole list:
 - The Foundation and Returner JSON arrangements exist and pass the T3.2 validator; the human musical review and 3-beginner playtest are T3.8.
 - No reference recordings exist at target or slow tempo. T3.5 owns the 20
   human reference takes (target and slow tempo) and must not use copyrighted
-  recordings.
+  recordings. The manifest contract, validator, and recording protocol are in
+  [`REFERENCE_TAKES.md`](REFERENCE_TAKES.md).
 - No legal clearance exists. T6.3 must answer the questions above.
 - The tempos, ranges, and shift counts are planning targets, not
   human-validated arrangements.

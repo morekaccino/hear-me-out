@@ -55,6 +55,7 @@ flutter:
     - assets/content/etudes/level_3/
     - assets/content/etudes/level_4/
     - assets/content/etudes/level_5/
+    - assets/content/reference_takes/
   fonts:
     - family: Nunito
       fonts:
