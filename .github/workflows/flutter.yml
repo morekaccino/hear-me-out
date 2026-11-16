@@ -38,6 +38,8 @@ jobs:
             echo "invalid_chord.json unexpectedly passed validation" >&2
             exit 1
           fi
+      - name: Validate the reference-take manifest
+        run: dart run tool/content/validate_reference_takes.dart assets/content/reference_takes/manifest.json
       - run: flutter analyze
       - run: flutter test
       - run: dart test -p chrome test/web_media_store_test.dart
