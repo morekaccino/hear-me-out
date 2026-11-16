@@ -305,9 +305,9 @@ minutes, so weekly minutes are interview evidence, not a log metric.
 | When | Ask | What the facilitator records |
 |---|---|---|
 | Week 0, day 0 | Consent, participant code, baseline form, install, open the app, turn on the optional beta usage log on the first screen, finish onboarding, do the first 3-minute session. | Consent, code, install date and time, timezone, device and browser/OS, microphone works yes/no, reminder permission yes/no, reminder enabled yes/no, first piece or phrase for the before/after prompt. |
-| Week 1, day 7 | 5-minute check-in: how many sessions, which screens, what was confusing or broken, does the microphone still work, is the reminder on and did it arrive. | Session count as the participant reports it, blockers, mic status, reminder status, any support given. |
+| Week 1, day 7 | 5-minute check-in: how many sessions, which screens, what was confusing or broken, does the microphone still work, is the reminder on and did it arrive. | Self-reported session count as context only (the metric uses `session_complete`), blockers, mic status, reminder status, any support given. |
 | Week 2, day 14 | Before/after prompt: record a take of the same short piece or phrase chosen at week 0. If the app shows the private before/after card, ask for one sentence on whether the difference is audible. | Whether a take was saved, whether two takes of the same piece exist, the participant's one-sentence reaction, blockers. |
-| Week 4, day 28 | Exit interview, then copy the usage log and send it. | Interview notes, NPS as report-only context, blockers, the exported JSON file. |
+| Week 4, day 28 | Exit interview, then copy the usage log and send it. | Interview notes, blockers, the exported JSON file. |
 | Day 30 or later | One short request for a final copy of the usage log so the day-30 window can be read. | The final JSON file, or "declined" or "no response". |
 
 ### Week 0 details
@@ -389,9 +389,7 @@ Keep it to 10 to 15 minutes. Ask open questions first, then the scale question.
   chore?
 - Did the reminder arrive? At a useful time? Did it change what you did?
 - Would you keep using it? What would you change first?
-- On a scale of 0 to 10, how likely are you to recommend it to a friend who is
-  starting guitar? (Report this as context only; there is no NPS gate in this
-  beta.)
+- Would you recommend it to a friend who is starting guitar? Why or why not?
 - May I quote you anonymously in the report?
 
 Then ask them to export the log. If they want to stop or erase, honor it before
