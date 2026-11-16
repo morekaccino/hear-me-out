@@ -39,8 +39,8 @@ The wire names are stable. Do not rename them without a schema change.
 | `app_open` | `appOpen` | The app starts, resumes, or the user opts in | At most once per local day |
 | `onboarding_start` | `onboardingStart` | The first onboarding screen initializes or its consent switch is enabled | Once per install |
 | `onboarding_complete` | `onboardingComplete` | Onboarding is finished while opted in | Once per install |
-| `first_note` | `firstNote` | The first scored `NotePrompt` answer | Once per install |
-| `first_phrase` | `firstPhrase` | Reserved for the real phrase path (T2.5) | Once per install |
+| `first_note` | `firstNote` | The first determinate scored `NotePrompt` answer (naming, placing, or hearing), correct or incorrect. Not pitch-verified. | Once per install |
+| `first_phrase` | `firstPhrase` | The first completed practice-only first-session phrase verification. Not a scored phrase. | Once per install |
 | `first_recording` | `firstRecording` | Reserved for the real recording path (T4.2) | Once per install |
 | `session_start` | `sessionStart` | A lesson, practice, or jump test starts | Every session |
 | `session_complete` | `sessionComplete` | A session finishes, passed or failed | Every session |
@@ -53,10 +53,16 @@ link, or store install attribution, so the event cannot prove that anyone
 opened, kept, or installed anything; see
 [`decisions/0012-share-card-invitation-boundary.md`](decisions/0012-share-card-invitation-boundary.md).
 
-`first_phrase` and `first_recording` have no caller in this ticket. T2.5 and
-T4.2 must call `RetentionController.recordFirstPhrase()` and
-`recordFirstRecording()` from the real feature paths. Do not fake them from a
-lesson.
+`first_note` is called by the first determinate scored `NotePrompt` answer.
+`first_phrase` is called by the practice-only first-session flow.
+`first_recording` is called by the real recording save path (T4.2). Do not fake
+any of them from a different path.
+
+Known call-site mismatch: the current first-session flow also calls
+`recordFirstNote()` after a practice-only phrase verification. That call is an
+implementation defect against the `first_note` meaning above. Until it is
+removed, a `first_note` event does not prove a scored note prompt; do not infer
+pitch verification, correctness, or accuracy from it.
 
 ## Fields
 

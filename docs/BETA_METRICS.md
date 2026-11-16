@@ -9,7 +9,8 @@ field rules the analyst uses so the same export produces the same number twice.
 [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md),
 [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md),
 [`PHASE_GATES.md`](PHASE_GATES.md),
-[`BETA_RUNBOOK.md`](BETA_RUNBOOK.md).
+[`BETA_RUNBOOK.md`](BETA_RUNBOOK.md),
+[`decisions/0013-session-two-definition.md`](decisions/0013-session-two-definition.md).
 
 This page is not a decision record. It defines how to read the local log for
 this beta; it does not change a product threshold or a gate.
@@ -142,13 +143,20 @@ on the install local day (day 0).
   `onboarding_complete`, `first_note`, `first_phrase`, and `first_recording`,
   each with its own denominator.
 
-**Source caveat.** In the current build, `first_note` is emitted by the first
-scored `NotePrompt` and by a completed practice-only first-session phrase
-verification. `first_phrase` is emitted by the practice-only first session. The
-export does not record which path fired, so it cannot tell you whether the
-source was scored. Treat `first_note` as "first pitch-verified playing event"
-and `first_phrase` as "first practice-only phrase attempt". Do not treat either
-event as a score or as accuracy evidence.
+**Event meanings.**
+
+- `first_note` is the first determinate scored note-prompt answer (naming,
+  placing, or hearing), correct or incorrect. It is not pitch-verified and it is
+  not accuracy evidence.
+- `first_phrase` is the first completed practice-only first-session phrase
+  verification. It is not a scored phrase and it is not accuracy evidence.
+
+**Known call-site mismatch.** The current first-session flow also calls
+`recordFirstNote()` after a completed practice-only phrase verification. That
+call is an implementation defect against the `first_note` meaning above. Until
+it is removed, a `first_note` event does not prove a scored note prompt; do not
+infer pitch verification, correctness, or accuracy from it. Remove the call in a
+follow-up; do not create a second definition for it.
 
 ### D1, D7, and D30
 
@@ -178,30 +186,61 @@ stricter: it counts only `session_complete` or `daily_active`, not a mere
 report tool. Do not substitute the stricter D7 for the beta D7 without labeling
 the difference, and do not pool the two.
 
-### Session-2 within 48 hours
+### Session-2 within 48 hours (KC-03)
 
-**Definition:** session 1 is the first `session_complete` at or after
-`installAt`. Session 2 is the next `session_complete` strictly after session 1.
-The return counts only when session 2 is at most 48 elapsed hours after session
-1.
+**KC-03 definition, verbatim from the dashboard:**
 
+> Share of new users with a second session whose `session_start` is within 48 h
+> of session 1's `session_start` (the 48 h is anchored to session 1's start, not
+> to its completion or to `installAt`). Session 2 must follow session 1's
+> `session_complete` by at least 60 minutes; that sitting boundary is a proposed
+> operational definition (open questions, section 8). Denominator: installs in
+> the cohort window with a completed first session. Dropouts stay in the
+> denominator.
+
+How to apply it:
+
+- Session 1 is the first `session_start` for the install.
+- Session 1's completion is the first `session_complete` at or after session 1's
+  `session_start`.
+- Session 2 is the next `session_start` strictly after session 1's
+  `session_start`. It counts only when it is within 48 elapsed hours of session
+  1's `session_start` and at least 60 minutes after session 1's
+  `session_complete`.
 - Numerator: installs with a qualifying session 2.
-- Denominator: installs with a session 1.
+- Denominator: installs in the cohort window with a completed first session (a
+  session 1 `session_start` and its `session_complete`). Dropouts after the
+  first completed session stay in the denominator.
+- An install whose first `session_start` has no `session_complete` is not in the
+  denominator.
+- Session 2 does not need its own `session_complete`; the metric is a return,
+  not a completed second session.
 - The 48-hour window is complete only when the export or data freeze is at least
-  48 hours after session 1. If it is not, and no session 2 is found, report
-  `window open`, not `no`.
+  48 hours after session 1's `session_start`. If it is not, and no session 2 is
+  found, report `window open`, not `no`.
 - This is an elapsed-hour rule, not a calendar-day rule. Two sessions at 09:00
   and 21:00 the next day count (36 h); a session 49 hours later does not, even
   if it is on an adjacent local date.
-- Use `returnMetricsFromLog` in
-  `flutter_app/lib/core/retention/return_metrics.dart`. It ignores foreign
-  install ids, future timestamps, and out-of-order events, and it never throws.
-- `session_start` exists in the log but is not the anchor for this metric. Do
-  not mix `session_start` and `session_complete` in one number. If you report
-  attempted sessions, label them separately.
-- The per-arm reminder analysis is owned by the reminder report. This page
-  defines the shared rule only; it does not duplicate the arm comparison,
-  exposure classification, or decision rule.
+- The 60-minute boundary is the dashboard's proposed operational definition,
+  adopted here as the only definition for this beta by
+  [decision 0013](decisions/0013-session-two-definition.md).
+
+**Diagnostic helper.** `returnMetricsFromLog` in
+`flutter_app/lib/core/retention/return_metrics.dart` is diagnostic only. It
+anchors session 1 on the first `session_complete` and session 2 on the next
+`session_complete`, with no 60-minute sitting boundary. That is looser than
+KC-03 and can count two lessons in one sitting as a return. It remains the
+helper for the T5.6 reminder-copy comparison, where both arms use the same rule.
+It must never be quoted as KC-03 or used for the beta's headline session-2
+number. Any tool that reports KC-03 computes it from the exported
+`session_start` and `session_complete` events. The helper defaults `now` to the
+current clock, so the analyst must pass the data-freeze time or filter the
+exported events to the freeze before calling it; otherwise a later event can
+enter the result.
+
+The per-arm reminder analysis is owned by the reminder report. This page defines
+the KC-03 rule only; it does not duplicate the arm comparison, exposure
+classification, or decision rule.
 
 ### First recording by day 7
 
@@ -299,13 +338,14 @@ export cannot answer it.
 | Timezone at the moment of each event | No | Facilitator records the zone; travel and DST stay approximate. |
 | Microphone accuracy, note accuracy, scored phrase accuracy | No | T1.6/T1.7 corpus and spike evidence. The scored loop is off. |
 | Weekly minutes and weekly-goal completion | No | Interview self-report only. |
+| P1.5 first note <60 s and first phrase <3 min | No | The log has no reliable start-to-event timer. `installAt` is the opt-in/app-open time, not the onboarding start, and event timestamps are not screen timings. Do not compute these targets from the log. |
 | Placement completion or score | No | Interview only. |
 | Reading Lab completion | No | Interview only. |
 | Quest completion or claim | No | Interview only. Quests have no reward and no event. |
 | Recordings beyond the first | No | The log records `first_recording` once. |
 | Two takes of the same piece, before/after pairs, KC-12 | No | The recordings manifest is not exported by the app. A separate export ticket is needed. |
 | Notification permission grant | No | Facilitator records the answer once per participant. `reminder_opt_in` is a lower bound on exposure, not permission. |
-| Reminder copy arm and per-arm session-2/D7 | Only with the reminder protocol | [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and its report tool. This page does not duplicate it. |
+| Reminder copy arm and per-arm session-2/D7 | Only with the reminder protocol | [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and its report tool. Its session-2 helper is diagnostic and is not KC-03. This page does not duplicate it. |
 | Uninstall, churn reason | No | Interview only. |
 | Crashes, ANRs, frame time, battery | No | Not measured. There is no crash reporting or performance telemetry. |
 | Revenue, paywall conversion, subscription | No | Not measured. There is no paywall or store product in this build. |
@@ -314,20 +354,25 @@ export cannot answer it.
 
 ### Source conflicts and caveats
 
+- **Session-2 (resolved).** `returnMetricsFromLog` anchors on `session_complete`
+  and has no 60-minute sitting boundary. KC-03 anchors on `session_start` and
+  requires the boundary. [Decision
+  0013](decisions/0013-session-two-definition.md) rules that KC-03 is the only
+  definition for a gate or beta report and that the helper is diagnostic only.
+  This page follows decision 0013; the helper must not supply the headline
+  number.
 - [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
   false-fail and false-pass. This beta cannot supply that. Phrase accuracy stays
   with T1.6/T1.7. The gate owner should correct the source line.
+- **KC-04 primary source.** The dashboard's primary evidence for KC-04 is the
+  T5.7 cohort recording manifest and before/after evidence; the opt-in log's
+  `first_recording` is diagnostic. The app does not export the manifest, so this
+  kit can report `first_recording` by day 7 only as a diagnostic, not as the
+  KC-04 gate number.
 - [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) KC-12 expects a
   researcher-readable recordings manifest export from T5.7. This ticket does not
   add one. The beta can measure `first_recording` by day 7, not a same-piece
   pair. If KC-12 is required, add the export in its own ticket before the run.
-- [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) describes
-  `first_note` as a scored `NotePrompt` answer and `first_phrase` as reserved
-  for the real phrase path. The current build also writes `first_note` from the
-  practice-only first session and writes `first_phrase` only from that session.
-  Use the source caveat in section 2. Do not treat either event as accuracy
-  evidence. Reconcile the retention doc in a follow-up docs change, not by
-  changing the event meaning mid-beta.
 
 ## 5. Reporting rules
 
@@ -353,8 +398,9 @@ export cannot answer it.
 - [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md): event names,
   storage shape, opt-in, export, erase, and the bias caveat.
 - [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md): the pre-registered
-  reminder-copy arm, its stricter D7, its session-2 rule, and its decision rule.
-  Its report tool owns the per-arm analysis.
+  reminder-copy arm, its stricter D7, its diagnostic session-2 helper, and its
+  decision rule. Its report tool owns the per-arm analysis; its helper is not
+  KC-03.
 - [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md): locked thresholds
   for KC-03 (session-2), KC-04 (first recording), KC-06/KC-09 (D30/D7), and
   KC-12 (before/after recordings). This page defines the fields; the dashboard

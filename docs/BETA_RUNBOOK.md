@@ -14,10 +14,11 @@ it does not replace the ticket, and it does not add a product decision.
 
 ## 1. What this beta is
 
-The beta is 20 hand-recruited beginners using one frozen local build for four
-weeks. The purpose is to find out whether a new guitarist reaches the first real
-practice loop and comes back, and to fix the five blockers that stop the most
-people.
+The beta is 20 hand-recruited adult returners and early-intermediate players,
+with room for a smaller number of motivated adult beginners, using one frozen
+local build for four weeks. The purpose is to find out whether a new user
+reaches the first real practice loop and comes back, and to fix the five
+blockers that stop the most people.
 
 The beta measures these surfaces:
 
@@ -39,8 +40,9 @@ false, decision [0001](decisions/0001-conditional-go.md) forbids a production
 [0010](decisions/0010-first-session-practice-only.md) permits only unscored
 practice feedback with no progress write. The first session can show one
 practice correction, but that correction is not a score and not accuracy
-evidence. Do not tell a participant that the app scores their playing, and do
-not report a phrase accuracy number from this beta.
+evidence. Do not tell a participant that the beta scores phrase playing; it
+does not. The app does score lessons, but the first session's phrase correction
+is practice-only. Do not report a phrase accuracy number from this beta.
 
 The app stays local-only. There is no account, no network call from the app, no
 analytics SDK, no crash reporting, no cloud sync, and no store upload. The only
@@ -55,9 +57,11 @@ claim that the run happened.
 
 ### Include
 
-- 20 adults, 18 or older, who are true beginners or early returners. A true
-  beginner has been playing for less than about six months. An early returner
-  played before, stopped for a long time, and is starting again.
+- 20 adults, 18 or older, primarily adult returners and early-intermediate
+  players. A returner played before, stopped for a long time, and is starting
+  again. An early-intermediate player can play a few open chords or simple
+  melodies but is not advanced. Adult beginners who want notation from the start
+  can be a smaller part of the cohort, not the whole cohort.
 - People who own or can borrow a playable guitar and can use it during the
   beta.
 - People who can run one of the supported clients for four weeks:
@@ -114,10 +118,10 @@ rate.
 Use this in a message or a short call. Change the names and the contact line,
 not the claims.
 
-> I am testing an early guitar practice app for people who are just starting or
-> coming back after a long break. It teaches a little music reading and short
-> phrases, and it can listen to your guitar when the microphone works. I am
-> looking for 20 people, not experienced players.
+> I am testing an early guitar practice app for adult returners and
+> early-intermediate players, plus some people who are just starting. It teaches
+> a little music reading and short phrases, and it can listen to your guitar when
+> the microphone works. I am looking for 20 people, not advanced players.
 >
 > It takes about 10 to 15 minutes, three times a week, for four weeks. You need
 > a guitar and either a laptop with Chrome or Edge or an Android phone. There is
@@ -162,7 +166,7 @@ written reply separate from the app log.
 > unless you choose to export it. I will not ask you to send me a recording.
 >
 > Taking part is voluntary. You can stop at any time, ask me to delete your log
-> export, and withdraw. If I have already combined your log into anonymous
+> export, and withdraw. If I have already combined your log into pseudonymous
 > counts, I cannot remove it from the combined result, but no name or contact
 > detail is in that result. You must be 18 or older. This is an early build, so
 > some things will be rough or missing. I am testing the app, not you.
@@ -275,6 +279,11 @@ when the package name and signing key match. Uninstalling or clearing app data
 deletes progress, recordings, and the local log. Tell participants not to
 uninstall during the beta. If they must, ask them to copy the usage log and
 export anything they want to keep first.
+
+This kit was written on 2026-11-16 on a machine without the Android SDK. The APK
+path above is documented but **not verified on this machine**; only the script's
+missing-toolchain failure path was verified. Build the APK on a machine with the
+Android SDK before the cohort starts.
 
 ### When a device cannot open the microphone
 
@@ -391,7 +400,7 @@ Keep it to 10 to 15 minutes. Ask open questions first, then the scale question.
 - Did the reminder arrive? At a useful time? Did it change what you did?
 - Would you keep using it? What would you change first?
 - Would you recommend it to a friend who is starting guitar? Why or why not?
-- May I quote you anonymously in the report?
+- May I quote you pseudonymously in the report, using your participant code?
 
 Then ask them to export the log. If they want to stop or erase, honor it before
 the export. Do not re-enable the log for them.
@@ -445,8 +454,8 @@ participant's data.
 
 A participant can turn the log off, erase it, or withdraw at any time. If they
 withdraw before the analysis, delete their export and their consent record when
-they ask. If their data is already combined into anonymous counts, explain that
-the counts cannot be reversed; the consent paragraph says this before they
+they ask. If their data is already combined into pseudonymous counts, explain
+that the counts cannot be reversed; the consent paragraph says this before they
 start. Never pressure a participant to keep logging.
 
 ## 7. Aggregating the metrics
@@ -463,8 +472,15 @@ In one line each:
   day, with that day's window closed.
 - **First recording by day 7:** a `first_recording` event on local day 0 through
   the end of local day 7.
-- **Session-2 within 48 hours:** the next `session_complete` within 48 elapsed
-  hours of the first one.
+- **Session-2 within 48 hours (KC-03):** the next `session_start` within 48
+  elapsed hours of session 1's `session_start`, at least 60 minutes after
+  session 1's `session_complete`; the denominator is installs with a completed
+  first session, and dropouts stay in it.
+
+The headline session-2 number is KC-03, computed from `session_start` and
+`session_complete`. Do not use `returnMetricsFromLog` for it: that helper is
+diagnostic only, anchors on `session_complete`, and has no 60-minute sitting
+boundary. See [decision 0013](decisions/0013-session-two-definition.md).
 
 The short procedure:
 
@@ -630,11 +646,14 @@ store conversion, share-to-install or invite attribution, or another
 participant's device. It also has no app version, device, OS, or timezone; no
 note names or per-note results, so it cannot supply microphone or phrase
 accuracy; no session seconds, so it cannot supply weekly minutes or weekly-goal
-completion; no placement, Reading Lab, or quest events; only the first
-recording, not every take or a same-piece pair; and no notification permission,
-crash, uninstall, or revenue event. The cohort is 20 hand-recruited volunteers,
-so a result is directional for this cohort, not the product's retention rate or
-a causal effect.
+completion, and it cannot supply P1.5's first-note <60 s or first-phrase <3 min
+latency targets because it has no reliable start-to-event timer. It has no
+placement, Reading Lab, or quest events; only the first recording, not every
+take or a same-piece pair; and no notification permission, crash, uninstall, or
+revenue event. KC-04's primary evidence is the cohort recording manifest and
+before/after pair; the opt-in log's `first_recording` is diagnostic. The cohort
+is 20 hand-recruited volunteers, so a result is directional for this cohort,
+not the product's retention rate or a causal effect.
 
 [`BETA_METRICS.md`](BETA_METRICS.md) has the field-by-field list in section 4.
 The short rule is: if the field is not `name`, `at`, `installId`, or
@@ -645,24 +664,37 @@ The short rule is: if the field is not `name`, `at`, `installId`, or
 These are recorded here so the manager can correct the source, not silently
 worked around:
 
-1. [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
+1. **Session-2 is settled.** [Decision
+   0013](decisions/0013-session-two-definition.md) makes KC-03 the only
+   session-2 definition for a gate or beta report. `returnMetricsFromLog` is
+   diagnostic only and must not supply the headline number. The beta kit uses
+   KC-03: anchor on `session_start`, require the next `session_start` within 48
+   hours of session 1's `session_start` and at least 60 minutes after session 1's
+   `session_complete`, and keep dropouts in the denominator.
+2. [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
    false-fail and false-pass. This beta cannot supply that: the scored loop is
    off and the log has no note-level data. Phrase accuracy stays with T1.6 and
    T1.7. Correct the P1.3 source line before the Phase 1 gate.
-2. [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) KC-12 says T5.7
+3. **KC-04's primary source is not the log.** The dashboard makes the cohort
+   recording manifest and before/after evidence primary; the opt-in log's
+   `first_recording` is diagnostic. This beta cannot read the manifest, so
+   `first_recording` by day 7 is a diagnostic signal, not the KC-04 gate number.
+4. [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md) KC-12 says T5.7
    must add a researcher-readable recordings manifest export before KC-12 can be
    measured. This ticket's deliverables do not add that export, and this kit
    does not change app code. The beta can measure `first_recording` by day 7,
    but it cannot count two takes of the same piece. If KC-12 is expected from
    this beta, that export needs its own ticket before the run.
 
-A third source caveat is about event meaning. In the current build,
-`first_note` is emitted by the first scored `NotePrompt` **and** by a completed
-practice-only first-session phrase verification. `first_phrase` is emitted by
-the practice-only first session. The export does not record which path produced
-the event. Treat `first_note` as "first pitch-verified playing event" and
-`first_phrase` as "first practice-only phrase attempt", not as a scored note or
-a scored phrase. Do not use either as accuracy evidence.
+Event meanings are canonical. `first_note` is the first determinate scored
+note-prompt answer (naming, placing, or hearing), correct or incorrect. It is
+not pitch-verified and is not accuracy evidence. `first_phrase` is the first
+completed practice-only first-session phrase verification. It is not a scored
+phrase and is not accuracy evidence. One call-site mismatch remains: the current
+first-session flow also calls `recordFirstNote()` after a practice-only
+verification. That call is an implementation defect against the `first_note`
+meaning; until it is removed, a `first_note` event does not prove a scored note
+prompt. Do not infer pitch verification, correctness, or accuracy from it.
 
 ## 11. Data handling and roles
 
@@ -753,7 +785,7 @@ D1: <n>/<d> ...
 D7: <n>/<d> ...
 D30: <n>/<d> ... or INSUFFICIENT DATA
 First recording by day 7: <n>/<d> ...
-Session-2 within 48 hours: <n>/<d> ...
+Session-2 within 48 hours (KC-03): <n>/<d> ...
 Completed sessions per install-anchored week: <counts>
 
 Top five blockers:
@@ -764,7 +796,7 @@ What the data cannot say:
 <copy the relevant limits from section 10>
 
 Qualitative themes:
-<short, anonymized quotes with participant codes>
+<short, pseudonymous quotes with participant codes>
 
 Follow-up tickets:
 <links>
