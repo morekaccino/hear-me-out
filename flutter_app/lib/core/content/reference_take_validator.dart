@@ -25,11 +25,17 @@ abstract interface class ReferenceTakeCatalog {
   bool hasPiece(String pieceId);
 
   ReferenceTakePhrase? phraseFor(String pieceId, String phraseId);
+
+  /// Every phrase the registry expects a reference take for, in content order.
+  Iterable<ReferenceTakePhrase> get phrases;
 }
 
 /// An in-memory catalog for the CLI and tests.
+///
+/// The constructor takes a [List] so its two indexes cannot consume a
+/// single-pass [Iterable] or produce inconsistent piece and phrase maps.
 class MapReferenceTakeCatalog implements ReferenceTakeCatalog {
-  MapReferenceTakeCatalog(Iterable<ReferenceTakePhrase> phrases)
+  MapReferenceTakeCatalog(List<ReferenceTakePhrase> phrases)
     : _phrases = <(String, String), ReferenceTakePhrase>{
         for (final phrase in phrases) (phrase.pieceId, phrase.phraseId): phrase,
       },
@@ -37,6 +43,9 @@ class MapReferenceTakeCatalog implements ReferenceTakeCatalog {
 
   final Map<(String, String), ReferenceTakePhrase> _phrases;
   final Set<String> _pieceIds;
+
+  @override
+  Iterable<ReferenceTakePhrase> get phrases => _phrases.values;
 
   @override
   bool hasPiece(String pieceId) => _pieceIds.contains(pieceId);
@@ -67,13 +76,23 @@ class ReferenceTakeIssue {
 /// Structural failures (missing fields, wrong types, unknown variants, future
 /// schema versions) are rejected by the parser. This validator owns the rules
 /// that need the piece registry: unknown ids, the tempo envelope, duplicate
-/// keys and files, non-positive durations, and blank metadata.
+/// keys and files, non-positive durations, blank metadata, unsafe file paths,
+/// and optional completeness.
 class ReferenceTakeValidator {
   const ReferenceTakeValidator(this.catalog);
 
   final ReferenceTakeCatalog catalog;
 
-  List<ReferenceTakeIssue> validate(ReferenceTakeManifest manifest) {
+  /// Validates [manifest].
+  ///
+  /// By default a subset is valid so recordings can arrive incrementally. Set
+  /// [requireComplete] to require one target and one slow take for every
+  /// phrase in the catalog. The CLI's real catalog is the ten launch pieces
+  /// with four phrases each, so the complete set is 80 entries.
+  List<ReferenceTakeIssue> validate(
+    ReferenceTakeManifest manifest, {
+    bool requireComplete = false,
+  }) {
     final issues = <ReferenceTakeIssue>[];
     final seenKeys = <(String, String, ReferenceTakeVariant), int>{};
     final seenFiles = <String, int>{};
@@ -195,6 +214,7 @@ class ReferenceTakeValidator {
           ),
         );
       } else {
+        _checkFile(issues, take.file, path);
         final first = seenFiles[take.file];
         if (first != null) {
           issues.add(
@@ -211,7 +231,76 @@ class ReferenceTakeValidator {
       }
     }
 
+    if (requireComplete) {
+      _checkCompleteness(issues, manifest);
+    }
+
     return issues;
+  }
+
+  void _checkCompleteness(
+    List<ReferenceTakeIssue> issues,
+    ReferenceTakeManifest manifest,
+  ) {
+    final present = <(String, String, ReferenceTakeVariant)>{
+      for (final take in manifest.takes)
+        if (take.pieceId.trim().isNotEmpty && take.phraseId.trim().isNotEmpty)
+          (take.pieceId, take.phraseId, take.variant),
+    };
+
+    for (final phrase in catalog.phrases) {
+      for (final variant in ReferenceTakeVariant.values) {
+        if (!present.contains((phrase.pieceId, phrase.phraseId, variant))) {
+          issues.add(
+            _issue(
+              'referenceTake.missingTake',
+              'takes',
+              'Missing ${phrase.pieceId}/${phrase.phraseId} at '
+                  '${variant.wireName} tempo.',
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _checkFile(List<ReferenceTakeIssue> issues, String file, String path) {
+    final fieldPath = '$path.file';
+    final absolute =
+        file.startsWith('/') ||
+        file.startsWith('\\') ||
+        _driveLetter.hasMatch(file);
+    if (absolute) {
+      issues.add(
+        _issue(
+          'referenceTake.absoluteFile',
+          fieldPath,
+          'file must be relative to assets/content/reference_takes/; '
+              'absolute paths are not allowed.',
+        ),
+      );
+    }
+
+    final segments = file.split(RegExp(r'[/\\]'));
+    if (segments.contains('..')) {
+      issues.add(
+        _issue(
+          'referenceTake.fileTraversal',
+          fieldPath,
+          'file must not contain a ".." segment.',
+        ),
+      );
+    }
+
+    if (!segments.last.toLowerCase().endsWith('.wav')) {
+      issues.add(
+        _issue(
+          'referenceTake.nonWavFile',
+          fieldPath,
+          'file must name a .wav file.',
+        ),
+      );
+    }
   }
 
   void _checkTempo(
@@ -252,6 +341,8 @@ class ReferenceTakeValidator {
     }
   }
 }
+
+final RegExp _driveLetter = RegExp(r'^[A-Za-z]:');
 
 ReferenceTakeIssue _issue(String code, String path, String message) =>
     ReferenceTakeIssue(code: code, path: path, message: message);

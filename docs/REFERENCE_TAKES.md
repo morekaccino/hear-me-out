@@ -1,8 +1,9 @@
-# Reference takes (T3.5)
+# Reference takes (T3.11 contract, T3.5 recordings)
 
-**Status:** the manifest contract, strict parser, validator, CLI, and recording
-protocol are in place. The 20 human reference takes are **outstanding**. The
-shipped manifest is empty and no audio file is in the repository.
+**Tickets:** T3.11 owns the manifest contract, strict parser, validator, CLI,
+and recording protocol. T3.5 owns the 20 human reference takes and stays open,
+blocked by T3.11. The 20 takes are **outstanding**. The shipped manifest is empty
+and no audio file is in the repository.
 
 The app does not play these takes yet. Decision 0010 keeps the phrase player out
 of main navigation with `phraseLoopEnabled = false`, so this ticket does not add
@@ -38,9 +39,11 @@ The V1 pieces have four phrases each, so a complete launch set is:
 - **80 phrase files** (4 phrases × 2 variants × 10 pieces).
 
 Do not concatenate four phrases into one WAV and do not reuse one file for two
-entries. The validator does not require the set to be complete: it validates
-whatever is present, and an empty manifest is valid. Completeness is a launch
-gate, not a parser rule.
+entries. By default the validator accepts a subset, so recordings can arrive
+incrementally and the empty manifest is valid. Pass `--require-complete` for the
+final set: it requires one target and one slow take for every phrase, which is
+80 entries for the ten launch pieces. Completeness is a launch gate, not a
+parser rule.
 
 ## 3. Room, guitar, and microphone
 
@@ -130,6 +133,9 @@ just outside the band. Re-record it at a tempo inside the envelope.
 - The `file` value in the manifest is the path relative to
   `assets/content/reference_takes/`, for example
   `audio/ode-to-joy-p1-target.wav`.
+- The path must stay inside that directory. The validator rejects a drive
+  letter (`C:\...`), a leading slash or backslash (`/...`, `\...`), any `..`
+  segment (`../../../secrets.wav`), and a final name that is not `.wav`.
 - `pubspec.yaml` currently declares `assets/content/reference_takes/`, which
   covers `manifest.json`. When the first audio file arrives, add
   `- assets/content/reference_takes/audio/`. Flutter asset directory entries
@@ -180,7 +186,7 @@ take.
 | `phraseId` | string | A phrase that belongs to `pieceId`. Phrase ids are globally unique. |
 | `variant` | string | Exactly `target` or `slow`. Any other value is rejected. |
 | `bpm` | integer | `target`: exactly the phrase's declared target. `slow`: 60–75% of it, inside the integer envelope. |
-| `file` | string | Non-empty and unique. A path relative to `assets/content/reference_takes/`. |
+| `file` | string | Non-empty and unique. A safe relative path under `assets/content/reference_takes/`: no drive letter, no leading slash, no `..` segment, and a `.wav` name. |
 | `durationMs` | integer | Greater than zero. The full file duration, including count-in and tail. |
 | `guitar` | string | Non-empty. Instrument type, model, and strings as recorded. |
 | `microphone` | string | Non-empty. Microphone model and placement as recorded. |
@@ -237,7 +243,14 @@ Run from `flutter_app/`:
 ```powershell
 dart run tool/content/validate_reference_takes.dart assets/content/reference_takes/manifest.json
 dart run tool/content/validate_reference_takes.dart assets/content/reference_takes/manifest.json --json
+dart run tool/content/validate_reference_takes.dart assets/content/reference_takes/manifest.json --require-complete
 ```
+
+The default mode validates whatever is present and accepts a partial set.
+`--require-complete` also requires one target and one slow take for every phrase
+in the registry: 80 entries for the ten launch pieces, each with four phrases.
+The shipped empty manifest passes the default mode and fails `--require-complete`
+with 80 missing takes until the recordings exist.
 
 The CLI builds the catalog from the ten parsed arrangements under
 `assets/content/pieces/`, not from a second hand-maintained phrase list. A
@@ -269,18 +282,26 @@ Exit codes match `tool/content/validate_piece.dart`:
 }
 ```
 
-Parse codes: `referenceTake.schemaVersion`, `referenceTake.futureSchema`,
+Manifest parser codes (`ReferenceTakeManifest.fromJson`):
+`referenceTake.schemaVersion`, `referenceTake.futureSchema`,
 `referenceTake.unsupportedSchema`, `referenceTake.invalidTakes`,
 `referenceTake.invalidTake`, `referenceTake.missingField`,
-`referenceTake.invalidType`, `referenceTake.invalidVariant`,
-`referenceTake.invalidDate`, `referenceTake.invalidJson`, and
-`referenceTake.invalidDocument`.
+`referenceTake.invalidType`, `referenceTake.invalidVariant`, and
+`referenceTake.invalidDate`.
+
+CLI document codes, emitted only before the parser runs:
+`referenceTake.invalidJson` for malformed JSON and
+`referenceTake.invalidDocument` for a non-object root. The manifest parser
+never emits these two.
 
 Validation codes: `referenceTake.missingKey`, `referenceTake.duplicateKey`,
 `referenceTake.unknownPiece`, `referenceTake.unknownPhrase`,
 `referenceTake.bpmOutsideTempoEnvelope`,
-`referenceTake.durationNotPositive`, `referenceTake.emptyFile`,
-`referenceTake.duplicateFile`, and `referenceTake.emptyMetadata`.
+`referenceTake.durationNotPositive`, `referenceTake.emptyMetadata`,
+`referenceTake.emptyFile`, `referenceTake.absoluteFile`,
+`referenceTake.fileTraversal`, `referenceTake.nonWavFile`,
+`referenceTake.duplicateFile`, and `referenceTake.missingTake` (only with
+`--require-complete`).
 
 ## 10. Per-take checklist
 
@@ -292,29 +313,34 @@ Validation codes: `referenceTake.missingKey`, `referenceTake.duplicateKey`,
 - [ ] Four-click count-in, no talk, and one continuous pass.
 - [ ] 48 kHz mono PCM WAV, around −20 dBFS RMS, peak at or below −1 dBFS.
 - [ ] The filename is `audio/<phrase-id>-<variant>.wav`.
+- [ ] The manifest path is relative, has no `..` segment, and is not an
+      absolute path.
 - [ ] The manifest entry has every field and a unique `(pieceId, phraseId,
       variant)` and `file`.
-- [ ] The validator exits 0.
+- [ ] The default validator exits 0 while the set is arriving, and
+      `--require-complete` exits 0 when all 80 entries exist.
 - [ ] A human listening check finds no clipping, talking, count-in cut-off,
       wrong phrase, or wrong tempo.
 - [ ] The take is our arrangement, not a copyrighted recording.
 
 ## 11. Status and next
 
-Shipped in this ticket:
+Code half (T3.11):
 
 - `core/content/reference_take.dart`: the model, the versioned manifest, and
   strict parsing.
-- `core/content/reference_take_validator.dart`: the semantic rules and the
-  catalog interface that keeps `lib/core` free of `lib/content`.
-- `tool/content/validate_reference_takes.dart`: the CLI and the real-registry
-  catalog.
+- `core/content/reference_take_validator.dart`: the semantic rules, safe-path
+  checks, optional completeness, and the catalog interface that keeps
+  `lib/core` free of `lib/content`.
+- `tool/content/validate_reference_takes.dart`: the CLI, `--json`,
+  `--require-complete`, and the real-registry catalog.
 - `assets/content/reference_takes/manifest.json`: an empty, valid manifest.
-- `test/reference_take_test.dart`: parser round-trip, every rejection rule, the
-  empty manifest, and the CLI exit codes.
+- `test/reference_take_test.dart`: parser round-trip, every rejection rule,
+  path safety, both completeness modes, the empty manifest, and the CLI exit
+  codes.
 - This protocol.
 
-Still outstanding:
+Still outstanding (T3.5):
 
 - The 20 piece takes and their 80 phrase files.
 - Signed distribution releases and T6.3's legal review.

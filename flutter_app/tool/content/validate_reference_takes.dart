@@ -12,8 +12,12 @@ Usage: dart run tool/content/validate_reference_takes.dart <manifest.json> [opti
 Validates a human reference-take manifest against the ten launch pieces.
 
 Options:
-  --json      Print one JSON object: {valid, errors, warnings, issues}.
-  --help, -h  Show this help.
+  --json              Print one JSON object: {valid, errors, warnings, issues}.
+  --require-complete  Require one target and one slow take for every launch
+                      phrase (10 pieces x 4 phrases x 2 variants = 80 takes).
+                      The default accepts a subset so recordings can arrive
+                      incrementally.
+  --help, -h          Show this help.
 
 Exit codes:
   0  No errors.
@@ -34,6 +38,7 @@ int runCli(List<String> args, {StringSink? out, StringSink? err}) {
   final errorSink = err ?? stderr;
 
   var jsonOutput = false;
+  var requireComplete = false;
   String? path;
 
   for (final arg in args) {
@@ -42,6 +47,8 @@ int runCli(List<String> args, {StringSink? out, StringSink? err}) {
       return 0;
     } else if (arg == '--json') {
       jsonOutput = true;
+    } else if (arg == '--require-complete') {
+      requireComplete = true;
     } else if (arg.startsWith('-')) {
       errorSink.writeln('Unknown option: $arg');
       errorSink.writeln(usage);
@@ -123,7 +130,10 @@ int runCli(List<String> args, {StringSink? out, StringSink? err}) {
       errorSink.writeln('Cannot read the piece registry: ${error.message}');
       return 2;
     }
-    issues.addAll(ReferenceTakeValidator(catalog).validate(manifest));
+    issues.addAll(
+      ReferenceTakeValidator(catalog)
+          .validate(manifest, requireComplete: requireComplete),
+    );
   }
 
   final errors = issues.length;

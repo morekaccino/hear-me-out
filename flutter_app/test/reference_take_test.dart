@@ -47,6 +47,51 @@ Map<String, dynamic> takeJsonWith(Map<String, dynamic> overrides) {
   return validTakeJson()..addAll(overrides);
 }
 
+int slowBpmFor(int targetTempoBpm) {
+  final min = (targetTempoBpm * 3 + 4) ~/ 5;
+  final max = (targetTempoBpm * 3) ~/ 4;
+  return (min + max) ~/ 2;
+}
+
+/// Builds a complete 80-entry manifest from the real launch arrangements.
+///
+/// This is test data, not a committed take. It proves the phrase-level count
+/// and the `--require-complete` mode against the real registry.
+Map<String, dynamic> fullLaunchManifestJson() {
+  final takes = <Map<String, dynamic>>[];
+  for (final file in Directory(
+    'assets/content/pieces',
+  ).listSync(recursive: true).whereType<File>()) {
+    if (!file.path.endsWith('.json')) continue;
+    final decoded = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+    final piece = decoded['piece'] as Map<String, dynamic>;
+    final pieceId = piece['id'] as String;
+    for (final rawPhrase in decoded['phrases'] as List<dynamic>) {
+      final phrase = rawPhrase as Map<String, dynamic>;
+      final phraseId = phrase['id'] as String;
+      final targetTempoBpm = phrase['targetTempoBpm'] as int;
+      takes.add(
+        validTakeJson(
+          pieceId: pieceId,
+          phraseId: phraseId,
+          file: 'audio/$phraseId-target.wav',
+          bpm: targetTempoBpm,
+        ),
+      );
+      takes.add(
+        validTakeJson(
+          pieceId: pieceId,
+          phraseId: phraseId,
+          variant: 'slow',
+          file: 'audio/$phraseId-slow.wav',
+          bpm: slowBpmFor(targetTempoBpm),
+        ),
+      );
+    }
+  }
+  return manifestJson(takes);
+}
+
 Matcher isReferenceTakeError(String code, String path) {
   return throwsA(
     isA<ReferenceTakeFormatException>()
@@ -70,8 +115,12 @@ final ReferenceTakeCatalog testCatalog = MapReferenceTakeCatalog(
   ],
 );
 
-List<ReferenceTakeIssue> validateTakes(List<Map<String, dynamic>> takes) {
-  return ReferenceTakeValidator(testCatalog).validate(manifestWith(takes));
+List<ReferenceTakeIssue> validateTakes(
+  List<Map<String, dynamic>> takes, {
+  bool requireComplete = false,
+}) {
+  return ReferenceTakeValidator(testCatalog)
+      .validate(manifestWith(takes), requireComplete: requireComplete);
 }
 
 void expectIssue(
@@ -453,6 +502,129 @@ void main() {
       );
     });
 
+    test('rejects a drive-letter file path', () {
+      final issues = validateTakes(<Map<String, dynamic>>[
+        validTakeJson(file: r'C:\audio\ode-to-joy-p1-target.wav'),
+      ]);
+
+      expectIssue(
+        issues,
+        code: 'referenceTake.absoluteFile',
+        path: 'takes[0].file',
+      );
+    });
+
+    test('rejects a leading-slash or leading-backslash file path', () {
+      for (final file in <String>[
+        '/audio/ode-to-joy-p1-target.wav',
+        r'\audio\ode-to-joy-p1-target.wav',
+      ]) {
+        final issues = validateTakes(<Map<String, dynamic>>[
+          validTakeJson(file: file),
+        ]);
+
+        expectIssue(
+          issues,
+          code: 'referenceTake.absoluteFile',
+          path: 'takes[0].file',
+        );
+      }
+    });
+
+    test('rejects a file path with a .. segment', () {
+      for (final file in <String>[
+        '../../../secrets.wav',
+        'audio/../ode-to-joy-p1-target.wav',
+        r'audio\..\ode-to-joy-p1-target.wav',
+      ]) {
+        final issues = validateTakes(<Map<String, dynamic>>[
+          validTakeJson(file: file),
+        ]);
+
+        expectIssue(
+          issues,
+          code: 'referenceTake.fileTraversal',
+          path: 'takes[0].file',
+        );
+      }
+    });
+
+    test('rejects a file name that is not .wav', () {
+      for (final file in <String>[
+        'audio/ode-to-joy-p1-target.mp3',
+        'audio/ode-to-joy-p1-target',
+        'audio/ode-to-joy-p1-target.wav.txt',
+      ]) {
+        final issues = validateTakes(<Map<String, dynamic>>[
+          validTakeJson(file: file),
+        ]);
+
+        expectIssue(
+          issues,
+          code: 'referenceTake.nonWavFile',
+          path: 'takes[0].file',
+        );
+      }
+    });
+
+    test('accepts a relative .wav path with a subdirectory', () {
+      final issues = validateTakes(<Map<String, dynamic>>[
+        validTakeJson(file: 'audio/set-1/ode-to-joy-p1-target.wav'),
+      ]);
+
+      expect(issues, isEmpty);
+    });
+
+    test('keeps a partial manifest valid by default', () {
+      expect(validateTakes(<Map<String, dynamic>>[validTakeJson()]), isEmpty);
+    });
+
+    test('requires every phrase and variant in complete mode', () {
+      final issues = validateTakes(
+        <Map<String, dynamic>>[],
+        requireComplete: true,
+      );
+      final missing = issues.where(
+        (issue) => issue.code == 'referenceTake.missingTake',
+      );
+
+      expect(missing, hasLength(4));
+      expect(
+        missing.map((issue) => issue.message).join('\n'),
+        contains('ode-to-joy/ode-to-joy-p1 at slow tempo'),
+      );
+      expect(
+        missing.map((issue) => issue.message).join('\n'),
+        contains('amazing-grace/amazing-grace-p1 at target tempo'),
+      );
+    });
+
+    test('accepts the full catalog in complete mode', () {
+      final issues = validateTakes(<Map<String, dynamic>>[
+        validTakeJson(),
+        validTakeJson(
+          variant: 'slow',
+          bpm: 54,
+          file: 'audio/ode-to-joy-p1-slow.wav',
+        ),
+        validTakeJson(
+          pieceId: 'amazing-grace',
+          phraseId: 'amazing-grace-p1',
+          bpm: 66,
+          file: 'audio/amazing-grace-p1-target.wav',
+        ),
+        validTakeJson(
+          pieceId: 'amazing-grace',
+          phraseId: 'amazing-grace-p1',
+          variant: 'slow',
+          bpm: 49,
+          file: 'audio/amazing-grace-p1-slow.wav',
+        ),
+      ], requireComplete: true);
+
+      expect(issues, isEmpty);
+    });
+
     test('rejects blank guitar, microphone, and consentId values', () {
       final issues = validateTakes(<Map<String, dynamic>>[
         takeJsonWith(<String, dynamic>{
@@ -629,6 +801,68 @@ void main() {
       expect(out.toString(), isNot(contains('error ')));
     });
 
+    test(
+      'keeps a partial manifest valid by default, fails --require-complete',
+      () {
+        final path = writeManifest(
+          'partial',
+          manifestJson(<Map<String, dynamic>>[validTakeJson()]),
+        );
+
+        final defaultOut = StringBuffer();
+        final defaultCode = runCli(
+          <String>[path],
+          out: defaultOut,
+          err: StringBuffer(),
+        );
+        expect(defaultCode, 0);
+        expect(defaultOut.toString(), contains('PASS'));
+
+        final completeOut = StringBuffer();
+        final completeCode = runCli(
+          <String>[path, '--require-complete'],
+          out: completeOut,
+          err: StringBuffer(),
+        );
+        expect(completeCode, 1);
+        expect(completeOut.toString(), contains('referenceTake.missingTake'));
+        expect(completeOut.toString(), contains('79 error(s), 0 warning(s).'));
+      },
+    );
+
+    test('passes a complete 80-take manifest in --require-complete mode', () {
+      final json = fullLaunchManifestJson();
+      expect((json['takes'] as List<dynamic>), hasLength(80));
+      final path = writeManifest('complete', json);
+
+      final out = StringBuffer();
+      final code = runCli(
+        <String>[path, '--require-complete'],
+        out: out,
+        err: StringBuffer(),
+      );
+
+      expect(code, 0);
+      expect(out.toString(), contains('PASS'));
+      expect(out.toString(), contains('0 error(s), 0 warning(s).'));
+    });
+
+    test('counts 80 expected takes for the shipped empty manifest', () {
+      final out = StringBuffer();
+      final code = runCli(
+        <String>[
+          'assets/content/reference_takes/manifest.json',
+          '--require-complete',
+        ],
+        out: out,
+        err: StringBuffer(),
+      );
+
+      expect(code, 1);
+      expect(out.toString(), contains('referenceTake.missingTake'));
+      expect(out.toString(), contains('80 error(s), 0 warning(s).'));
+    });
+
     test('fails for an unknown phrase with exit 1', () {
       final path = writeManifest(
         'unknown_phrase',
@@ -722,6 +956,46 @@ void main() {
       expect(arrayOut.toString(), contains('<document>'));
     });
 
+    test('prints a --json issue for malformed JSON', () {
+      final file = File('${tempDir.path}/broken_json.json')
+        ..writeAsStringSync('{');
+      final out = StringBuffer();
+      final code = runCli(
+        <String>[file.path, '--json'],
+        out: out,
+        err: StringBuffer(),
+      );
+      final payload = jsonDecode(out.toString()) as Map<String, dynamic>;
+      final issue =
+          (payload['issues'] as List<dynamic>).single as Map<String, dynamic>;
+
+      expect(code, 1);
+      expect(payload['valid'], isFalse);
+      expect(payload['errors'], 1);
+      expect(issue['code'], 'referenceTake.invalidJson');
+      expect(issue['path'], '<document>');
+    });
+
+    test('prints a --json issue for a non-object root', () {
+      final file = File('${tempDir.path}/array_json.json')
+        ..writeAsStringSync('[]');
+      final out = StringBuffer();
+      final code = runCli(
+        <String>[file.path, '--json'],
+        out: out,
+        err: StringBuffer(),
+      );
+      final payload = jsonDecode(out.toString()) as Map<String, dynamic>;
+      final issue =
+          (payload['issues'] as List<dynamic>).single as Map<String, dynamic>;
+
+      expect(code, 1);
+      expect(payload['valid'], isFalse);
+      expect(payload['errors'], 1);
+      expect(issue['code'], 'referenceTake.invalidDocument');
+      expect(issue['path'], '<document>');
+    });
+
     test('exits 2 for usage errors and unreadable files', () {
       final noArgsOut = StringBuffer();
       final noArgsErr = StringBuffer();
@@ -777,6 +1051,7 @@ void main() {
       expect(code, 0);
       expect(out.toString(), contains('Usage:'));
       expect(out.toString(), contains('--json'));
+      expect(out.toString(), contains('--require-complete'));
       expect(out.toString(), contains('Exit codes:'));
     });
   });
