@@ -518,6 +518,22 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
   `flutter_app/tool/beta/build_beta.ps1`. The beta has not run: there is no
   cohort, export, or measured value. The kit is docs and a local build script
   and changes no app code, `ProgressState`, or the phrase flag.
+- T3.11 adds the reference-take contract: a versioned `ReferenceTakeManifest`
+  in `lib/core/content/`, a strict validator (unknown ids, tempo envelope,
+  duplicates, blank metadata, path traversal, non-WAV files, future schema), an
+  empty shipped manifest, `tool/content/validate_reference_takes.dart` with
+  `--json` and `--require-complete` (10 pieces x 4 phrases x 2 variants = 80
+  files), and `docs/REFERENCE_TAKES.md`. No audio ships; T3.5 stays Blocked on
+  the 20 human takes and the legal review.
+- T1.3 adds `docs/AUDIO_CLOCK_AUDIT.md` and removes the last wall-clock read
+  from the phrase capture path: `PitchFrame.timestamp` is an optional
+  display-only label the capture path never sets, and alignment stays on
+  `sampleIndex`/`sampleTime`. The physical 48 kHz-only and stereo-negotiating
+  device pass is still human-owned.
+- T5.6 adds `flutter_app/tool/beta/reminder_experiment_report.dart`, the local
+  per-arm reminder analysis (KC-03 diagnostic rule, Wilson intervals, the
+  pre-registered verdict, `--json`, `--now`). Decision 0013 keeps KC-03 as the
+  only gate definition of session-2.
 
 Re-run the checks after any change. The test count will grow; treat the
 analyze/test/build commands as the source of truth.
@@ -541,6 +557,8 @@ analyze/test/build commands as the source of truth.
 - [`docs/ASSUMPTION_TRACKER.md`](docs/ASSUMPTION_TRACKER.md) — beliefs the plan depends on, weakest-first tests, and the experiment log
 - [`docs/BETA_RUNBOOK.md`](docs/BETA_RUNBOOK.md) — 20-user beta recruitment, install, schedule, log export, blocker ranking, and exit criteria; the beta has not run
 - [`docs/BETA_METRICS.md`](docs/BETA_METRICS.md) — beta activation and D1/D7/D30 field rules, aggregation, and the limits of the local log
+- [`docs/AUDIO_CLOCK_AUDIT.md`](docs/AUDIO_CLOCK_AUDIT.md) — T1.3 clause-by-clause audio clock audit, the fix, and the pending device evidence
+- [`docs/REFERENCE_TAKES.md`](docs/REFERENCE_TAKES.md) — T3.11 reference-take manifest contract, recording protocol, and the 20 outstanding human takes
 - [`docs/TRANSFORMATION_PLAN_FINAL.md`](docs/TRANSFORMATION_PLAN_FINAL.md) — approved v3.1 plan
 - [`docs/DESIGN.md`](docs/DESIGN.md) — mission, Duolingo-style language, copy, gamification
 - [`docs/SOUND.md`](docs/SOUND.md) — Bright Pluck family, assets, event map, settings
