@@ -135,6 +135,26 @@ void main() {
     expect(frame.sampleTime, const Duration(milliseconds: 2000));
   });
 
+  test('the capture path never stamps wall-clock time', () async {
+    final capture = FakePcmCapture();
+    final source = RecordPitchSource(captureFactory: () => capture);
+    final frames = <PitchFrame>[];
+    final subscription = source.frames.listen(frames.add);
+    addTearDown(() async {
+      await subscription.cancel();
+      await source.dispose();
+    });
+
+    expect(await source.start(), isTrue);
+    capture.add(monoPcm16(sine(440, 48000)));
+    await pumpEventQueue();
+
+    expect(frames, isNotEmpty);
+    for (final frame in frames) {
+      expect(frame.timestamp, isNull);
+    }
+  });
+
   test(
     'effective stereo config feeds the sample clock and decodes 440 Hz',
     () async {
@@ -172,10 +192,7 @@ void main() {
                   .round(),
         ),
       );
-      expect(
-        frames[1].timestamp.difference(frames[0].timestamp),
-        frames[1].sampleTime - frames[0].sampleTime,
-      );
+      expect(frames.every((frame) => frame.timestamp == null), isTrue);
 
       for (final frame in frames) {
         expect((frame.frequency - 440).abs(), lessThan(2));
