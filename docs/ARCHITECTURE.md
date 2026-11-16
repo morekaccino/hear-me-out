@@ -1233,7 +1233,8 @@ fresh profile; an unreadable document is quarantined first.
 | `test/yin_test.dart` | Synthetic guitar tones, harmonics, noise, silence |
 | `test/note_matcher_test.dart` | Stable frames, tolerance, octave errors, grace |
 | `test/progress_store_test.dart` | JSON round trips, storage, controller, practice |
-| `test/progress_migration_test.dart` | v1–v8 fixtures, version rejection, phrase evidence and content versions, v7→v8 economy removal, quarantine/rollback |
+| `test/progress_migration_test.dart` | v1–v10 fixtures, version rejection, phrase evidence and content versions, v7→v8 economy removal, v9→v10 first-session status, quarantine/rollback |
+| `test/first_session_reopen_test.dart` | Path card visibility, session-scoped skip, reopen after restart, completion removal, no scored evidence |
 | `test/phrase_objective_test.dart` | Runtime phrase resolver, due phrase practice, unknown ids, edited content and re-test |
 | `test/phrase_progress_test.dart` | Mastery-day rule (correct, full accuracy, at target), three days over seven, stale versions, JSON round-trip |
 | `test/mastery_map_test.dart` | Can-play selection, piece/phrase/tempo/date/recording mapping, shaky/reading/next, no duplicate recommendation, empty state |

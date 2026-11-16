@@ -101,6 +101,7 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
   bool _finished = false;
   bool _firstNoteRecorded = false;
   bool _firstPhraseRecorded = false;
+  bool _skipping = false;
   String? _notice;
 
   Phrase get _phrase => firstSessionPhrase();
@@ -212,7 +213,7 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
         const SizedBox(height: 8),
         TextButton(
           key: const ValueKey('first-session-skip'),
-          onPressed: _skip,
+          onPressed: _skipping ? null : _skip,
           child: const Text('SKIP FOR NOW'),
         ),
       ],
@@ -388,7 +389,10 @@ class _FirstSessionScreenState extends ConsumerState<FirstSessionScreen> {
   ///
   /// The persisted `skipped` status lets the Path card return on the next app
   /// open, while the in-memory flag hides it for the rest of this run (T5.8).
+  /// A rapid double tap must not call `maybePop` twice and pop the Path itself.
   Future<void> _skip() async {
+    if (_skipping) return;
+    setState(() => _skipping = true);
     ref.read(firstSessionRunSkipProvider.notifier).markSkipped();
     try {
       await ref

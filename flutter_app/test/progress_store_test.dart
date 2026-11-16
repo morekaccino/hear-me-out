@@ -70,7 +70,9 @@ void main() {
       expect(restored!.xp, 25);
     });
 
-    test('the guided first-session status survives a save and reload', () {
+    test('the guided first-session status survives a store save, reload, and '
+        'export', () async {
+      SharedPreferences.setMockInitialValues({});
       final progress = ProgressState.fresh(
         settings: const AppSettings(
           onboardingComplete: true,
@@ -78,8 +80,10 @@ void main() {
         ),
       );
 
-      final restored = ProgressState.fromJson(progress.toJson());
-      expect(restored.settings.firstSessionStatus, FirstSessionStatus.skipped);
+      await SharedPreferencesProgressStore().save(progress);
+      final reloaded = await SharedPreferencesProgressStore().load();
+      expect(reloaded, isNotNull);
+      expect(reloaded!.settings.firstSessionStatus, FirstSessionStatus.skipped);
 
       final exported =
           jsonDecode(exportProgress(progress)) as Map<String, dynamic>;

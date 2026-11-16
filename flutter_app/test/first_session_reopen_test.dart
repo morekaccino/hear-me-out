@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -178,6 +180,72 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('first-session-card-start')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('first-session-title')), findsOneWidget);
+  });
+
+  testWidgets('a rapid double skip pops only the session, not the Path', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final store = MemoryProgressStore(_profile());
+    final navigator = GlobalKey<NavigatorState>();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          progressStoreProvider.overrideWithValue(store),
+          retentionStoreProvider.overrideWithValue(MemoryRetentionStore()),
+          audioEngineProvider.overrideWithValue(FakeAudioEngine()),
+          soundServiceProvider.overrideWithValue(FakeSoundService()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.light,
+          navigatorKey: navigator,
+          home: Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                key: const ValueKey('open-path-route'),
+                onPressed: () => navigator.currentState!.push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const Scaffold(
+                      body: Center(child: Text('Path route')),
+                    ),
+                  ),
+                ),
+                child: const Text('Home route'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('open-path-route')));
+    await tester.pumpAndSettle();
+    expect(find.text('Path route'), findsOneWidget);
+
+    unawaited(
+      navigator.currentState!.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const FirstSessionScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('first-session-title')), findsOneWidget);
+
+    final skip = find.byKey(const ValueKey('first-session-skip'));
+    final button = tester.widget<TextButton>(skip);
+    button.onPressed!();
+    button.onPressed!();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Path route'), findsOneWidget);
+    expect(find.text('Home route'), findsNothing);
+    expect(find.byKey(const ValueKey('first-session-title')), findsNothing);
   });
 
   testWidgets('completing the flow removes the Path card for good', (
