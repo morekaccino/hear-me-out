@@ -195,18 +195,19 @@ the difference, and do not pool the two.
 > to its completion or to `installAt`). Session 2 must follow session 1's
 > `session_complete` by at least 60 minutes; that sitting boundary is a proposed
 > operational definition (open questions, section 8). Denominator: installs in
-> the cohort window with a completed first session. Dropouts stay in the
+> the cohort window with a first `session_start`; dropouts stay in the
 > denominator.
 
 How to apply it:
 
 - Session 1 is the first `session_start` for the install.
-- Session 1's completion is the first `session_complete` at or after session 1's
-  `session_start`.
-- Session 2 is the next `session_start` strictly after session 1's
-  `session_start`. It counts only when it is within 48 elapsed hours of session
-  1's `session_start` and at least 60 minutes after session 1's
-  `session_complete`.
+- Session 1's completion is the first `session_complete` after session 1's
+  `session_start` with no intervening `session_start`. If another start happens
+  first, the completion belongs to that later sitting and session 1 is a
+  dropout.
+- Session 2 is the first `session_start` that satisfies both conditions: within
+  48 elapsed hours of session 1's `session_start` and at least 60 minutes after
+  session 1's `session_complete`.
 - Numerator: installs with a qualifying session 2.
 - Denominator: installs in the cohort window with a first `session_start`.
   Dropouts stay in the denominator.
@@ -227,7 +228,7 @@ How to apply it:
 
 **The helper implements this rule.** `returnMetricsFromLog` in
 `flutter_app/lib/core/retention/return_metrics.dart` computes session 1 from the
-first `session_start`, session 2 from the next `session_start` that clears the
+first `session_start`, session 2 from the first `session_start` that clears the
 60-minute sitting boundary and the 48-hour window, and keeps an incomplete first
 session in the denominator. T5.9 aligned it with KC-03, so the T5.6 reminder
 report and any tool that calls it report the same definition as this page; there

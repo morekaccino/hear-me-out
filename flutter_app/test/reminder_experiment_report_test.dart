@@ -266,36 +266,43 @@ void main() {
     }
   });
 
-  test('an incomplete first session stays in the report denominator', () {
-    final directory = Directory.systemTemp.createTempSync('reminder_dropout');
-    try {
-      final install = DateTime(2026, 3, 1, 9);
-      final first = DateTime(2026, 3, 2, 10);
-      final path = _writeLog(directory, 'dropout', _specificIds[0], install, [
-        (
-          RetentionEventName.reminderOptIn,
-          first.subtract(const Duration(minutes: 1)),
-        ),
-        (RetentionEventName.sessionStart, first),
-      ]);
+  test(
+    'an incomplete first session stays in the denominator and is not open',
+    () {
+      final directory = Directory.systemTemp.createTempSync('reminder_dropout');
+      try {
+        final install = DateTime(2026, 3, 1, 9);
+        final first = DateTime(2026, 3, 2, 10);
+        final path = _writeLog(directory, 'dropout', _specificIds[0], install, [
+          (
+            RetentionEventName.reminderOptIn,
+            first.subtract(const Duration(minutes: 1)),
+          ),
+          (RetentionEventName.sessionStart, first),
+        ]);
 
-      final result = _run([
-        '--json',
-        '--now',
-        _iso(DateTime(2026, 3, 12, 12)),
-        path,
-      ]);
+        final result = _run([
+          '--json',
+          '--now',
+          _iso(first.add(const Duration(hours: 1))),
+          path,
+        ]);
 
-      final specific =
-          (_singleJson(result)['arms'] as Map)['specificTask']
-              as Map<String, dynamic>;
-      expect(specific['exposedWithFirstSession'], 1);
-      expect(specific['returnedWithin48h'], 0);
-      expect(specific['sessionTwoWindowOpen'], 0);
-    } finally {
-      directory.deleteSync(recursive: true);
-    }
-  });
+        final specific =
+            (_singleJson(result)['arms'] as Map)['specificTask']
+                as Map<String, dynamic>;
+        expect(specific['exposedWithFirstSession'], 1);
+        expect(specific['returnedWithin48h'], 0);
+        expect(
+          specific['sessionTwoWindowOpen'],
+          0,
+          reason: 'a start-only dropout has no completion to return from',
+        );
+      } finally {
+        directory.deleteSync(recursive: true);
+      }
+    },
+  );
 
   test('D7 counts only the whole local day seven days after install', () {
     final directory = Directory.systemTemp.createTempSync('reminder_d7');

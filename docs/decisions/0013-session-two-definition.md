@@ -12,11 +12,11 @@ Two different session-2 rules were in circulation while the T5.7 beta kit was
 written:
 
 1. **KC-03, the gate.** Session 1 is the first `session_start`; session 2 is the
-   next `session_start` within 48 hours of session 1's `session_start`, and it
-   must follow session 1's `session_complete` by at least 60 minutes. Dropouts
-   stay in the denominator. The dashboard records the 60-minute sitting boundary
-   as a proposed operational definition that T9.2 must confirm or replace before
-   the first measurement.
+   first `session_start` that is within 48 hours of session 1's
+   `session_start`, and it must follow session 1's `session_complete` by at
+   least 60 minutes. Dropouts stay in the denominator. The dashboard records
+   the 60-minute sitting boundary as a proposed operational definition that
+   T9.2 must confirm or replace before the first measurement.
 2. **`returnMetricsFromLog`.** The helper added for the T5.6 reminder report
    anchored session 1 on the first `session_complete` and session 2 on the next
    `session_complete`, with a 48-hour window and no sitting boundary.
@@ -32,11 +32,13 @@ now implement the KC-03 rule, so no looser definition remains in the code.
 ## Decision
 
 1. **KC-03 is the only definition of session-2 for a gate, a beta report, or the
-   helper.** Anchor on `session_start`; require the next `session_start` to be
-   within 48 hours of session 1's `session_start` and at least 60 minutes after
-   session 1's `session_complete`; keep dropouts in the denominator. An install
-   whose first `session_start` has no `session_complete` is a session-1 user who
-   did not return, not an excluded install.
+   helper.** Session 1 is the first `session_start`; its completion is the first
+   `session_complete` after that start with no intervening `session_start`;
+   session 2 is the first `session_start` within 48 hours of session 1's start
+   and at least 60 minutes after session 1's completion. Keep dropouts in the
+   denominator: an incomplete session 1, including one whose next completion
+   belongs to a later start, is a session-1 user who did not return, not an
+   excluded install.
 2. **`returnMetricsFromLog` implements the KC-03 rule.** It backs the T5.6
    reminder-copy comparison, where both arms use the same rule, and it may be
    quoted as the KC-03 calculation for a local log. It keeps the `now`
@@ -66,8 +68,9 @@ recomputed from the exports. That is the price of one definition.
   60-minute boundary, and the denominator.
 - `flutter_app/lib/core/retention/return_metrics.dart` implements the KC-03 rule.
   `flutter_app/test/return_metrics_test.dart` covers the sitting boundary, the
-  48-hour anchor to session 1's start, the incomplete first session in the
-  denominator, and the `now` filter.
+  completion attribution to the most recent start, the 48-hour anchor to
+  session 1's start, the incomplete first session in the denominator, and the
+  `now` filter.
 - `flutter_app/tool/beta/reminder_experiment_report.dart` and
   `flutter_app/test/reminder_experiment_report_test.dart` use the same helper;
   the report no longer carries a second session-2 rule.

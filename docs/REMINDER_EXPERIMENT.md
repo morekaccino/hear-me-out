@@ -85,13 +85,18 @@ never sees the word "experiment".
 
 **Session-2 within 48 hours (the KC-03 rule).**
 
-- Session 1 is the first `session_start` at or after `installAt` (or the first
-  `session_start` in the log when `installAt` is missing).
-- Session 1's completion is the first `session_complete` at or after session 1's
-  `session_start`.
-- Session 2 is the next `session_start` that is at least 60 minutes after
-  session 1's `session_complete` and at most 48 **elapsed** hours after session
-  1's `session_start`. Two lessons in one sitting are not a return.
+- Session 1 is the first `session_start` at or after `installAt`. When
+  `installAt` is missing, it is the first `session_start` at or after the first
+  `app_open`; when there is no `app_open` either, it is the first
+  `session_start` at or after the first event.
+- Session 1's completion is the first `session_complete` after session 1's
+  `session_start` with no intervening `session_start`. If another start happens
+  first, the completion belongs to that later sitting and session 1 is a
+  dropout.
+- Session 2 is the first `session_start` that satisfies both conditions: at
+  least 60 minutes after session 1's `session_complete` and at most 48
+  **elapsed** hours after session 1's `session_start`. Two lessons in one
+  sitting are not a return.
 - An install whose session 1 has no `session_complete` stays in the denominator
   and counts as no return. Dropouts are not excluded.
 - The 48-hour window is anchored to session 1's `session_start`, not to its

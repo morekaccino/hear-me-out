@@ -51,6 +51,10 @@ void main() {
 
     expect(metrics.hasFirstSession, isTrue);
     expect(metrics.firstSessionAt, start.toUtc());
+    expect(
+      metrics.firstSessionCompleteAt,
+      start.add(const Duration(minutes: 30)).toUtc(),
+    );
     expect(metrics.returnedWithin48h, isFalse);
     expect(metrics.secondSessionAt, isNull);
     expect(metrics.installDay, '2026-03-01');
@@ -178,6 +182,41 @@ void main() {
     expect(metrics.returnedWithin48h, isFalse);
     expect(metrics.secondSessionAt, isNull);
   });
+
+  test(
+    'a completion after an intervening start belongs to the later sitting',
+    () {
+      final first = DateTime(2026, 3, 1, 10);
+      final metrics = returnMetricsFromLog(
+        logWith([
+          event(RetentionEventName.sessionStart, first),
+          event(
+            RetentionEventName.sessionStart,
+            first.add(const Duration(minutes: 15)),
+          ),
+          event(
+            RetentionEventName.sessionComplete,
+            first.add(const Duration(minutes: 45)),
+          ),
+          event(
+            RetentionEventName.sessionStart,
+            first.add(const Duration(hours: 2)),
+          ),
+        ], installAt: install),
+        now: DateTime(2026, 3, 10, 12),
+      );
+
+      expect(metrics.hasFirstSession, isTrue);
+      expect(metrics.firstSessionAt, first.toUtc());
+      expect(
+        metrics.firstSessionCompleteAt,
+        isNull,
+        reason: 'the 10:45 completion pairs with the 10:15 start',
+      );
+      expect(metrics.secondSessionAt, isNull);
+      expect(metrics.returnedWithin48h, isFalse);
+    },
+  );
 
   test('duplicate starts at the same instant are not a return', () {
     final same = DateTime(2026, 3, 2, 10);

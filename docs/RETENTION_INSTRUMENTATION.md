@@ -165,7 +165,7 @@ Pure domain (`lib/core/retention/`):
 - `RetentionEvent` — name, UTC timestamp, install id.
 - `RetentionLog` — `record`, `funnel`, `activeDays`, `retainedOnDay`,
   `d1Retained`, `d7Retained`, `d30Retained`, `exportJson`.
-- `ReturnMetrics` / `returnMetricsFromLog` — the KC-03 session-2 rule (the next
+- `ReturnMetrics` / `returnMetricsFromLog` — the KC-03 session-2 rule (the first
   `session_start` within 48 elapsed hours of session 1's start and at least 60
   minutes after session 1's completion, with incomplete first sessions kept in
   the denominator) and D7 activity for the reminder experiment; see
