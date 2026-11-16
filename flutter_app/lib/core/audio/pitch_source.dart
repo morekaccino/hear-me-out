@@ -8,14 +8,15 @@ import 'yin.dart';
 
 /// A single pitch analysis result.
 ///
-/// [timestamp] is for display and debugging only. Use [sampleIndex] or
+/// [timestamp] is an optional caller-supplied wall-clock label for display and
+/// debugging only. The capture path never sets it. Use [sampleIndex] or
 /// [sampleTime] for alignment, onset detection, and scoring.
 class PitchFrame {
   const PitchFrame({
     required this.frequency,
     required this.clarity,
     required this.rms,
-    required this.timestamp,
+    this.timestamp,
     this.sampleIndex = 0,
     this.sampleTime = Duration.zero,
   });
@@ -23,7 +24,7 @@ class PitchFrame {
   final double frequency;
   final double clarity;
   final double rms;
-  final DateTime timestamp;
+  final DateTime? timestamp;
   final int sampleIndex;
   final Duration sampleTime;
 
@@ -124,8 +125,6 @@ class RecordPitchSource implements PitchSource {
 
   bool _frameEmitted = false;
 
-  DateTime? _streamEpoch;
-
   static PcmCapture _createRecordCapture() => createPlatformPcmCapture();
 
   @override
@@ -168,7 +167,6 @@ class RecordPitchSource implements PitchSource {
       outputSampleRate: analysisSampleRate,
     );
     _detector = YinPitchDetector(sampleRate: analysisSampleRate.toDouble());
-    _streamEpoch = DateTime.now();
     _running = true;
     _subscription = stream.listen(
       _onBytes,
@@ -245,7 +243,6 @@ class RecordPitchSource implements PitchSource {
           frequency: estimate.frequency,
           clarity: estimate.clarity,
           rms: estimate.rms,
-          timestamp: _streamEpoch!.add(sampleTime),
           sampleIndex: _frameStart,
           sampleTime: sampleTime,
         ),
@@ -298,7 +295,6 @@ class RecordPitchSource implements PitchSource {
     _frameStart = 0;
     _decodedSamples = 0;
     _frameEmitted = false;
-    _streamEpoch = null;
   }
 
   @override
