@@ -5,12 +5,14 @@ import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../content/pieces/launch_pieces.dart';
+import '../core/media/before_after_share.dart';
 import '../core/media/recording_index.dart';
 import '../core/media/recording_service.dart';
 import '../core/media/take_bundle_exporter.dart';
 import '../core/media/take_export_cleaner.dart';
 import '../core/media/take_export_summary.dart';
 import '../core/media/take_share_gateway.dart';
+import '../core/retention/retention_event.dart';
 import 'app_controller.dart';
 import 'providers.dart';
 import 'retention_controller.dart';
@@ -113,6 +115,33 @@ class TakeBundleExportOutcome {
   bool get succeeded => status != TakeBundleExportStatus.failed;
 }
 
+/// What sharing the private before/after card did.
+enum CardShareStatus {
+  /// The OS share sheet reported that the user chose a share action.
+  shared,
+
+  /// The PNG was written or downloaded, but no share completed.
+  exported,
+
+  /// The PNG was written, and the user dismissed the share sheet.
+  cancelled,
+
+  /// The PNG was not written.
+  failed,
+}
+
+/// Typed result of [RecordingController.shareBeforeAfterCard].
+class CardShareOutcome {
+  const CardShareOutcome(this.status, this.message);
+
+  final CardShareStatus status;
+  final String message;
+
+  bool get shared => status == CardShareStatus.shared;
+  bool get cancelled => status == CardShareStatus.cancelled;
+  bool get failed => status == CardShareStatus.failed;
+}
+
 /// Owns the recordings screen lifecycle: capture, list, delete, export, and
 /// orphan reconciliation.
 class RecordingController extends AsyncNotifier<RecordingScreenState> {
@@ -120,6 +149,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   StreamSubscription<RecordingStopResult>? _autoStops;
   bool _disposed = false;
   bool _exportingBundle = false;
+  bool _sharingCard = false;
 
   @override
   Future<RecordingScreenState> build() async {
@@ -577,6 +607,87 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
             '${share.message ?? 'The share sheet could not open.'}',
       ),
     };
+  }
+
+  /// Opens the OS share sheet for an already-written before/after PNG.
+  ///
+  /// The screen renders and writes the single PNG through the existing export
+  /// seam; this method only hands that file and the plain invitation to
+  /// [TakeShareGateway]. No audio, score, link, or referral code is included,
+  /// and the stored takes are untouched. A share the platform reports as
+  /// completed records exactly one local `card_shared` event; a cancelled,
+  /// unavailable, failed, or download-only result records nothing.
+  Future<CardShareOutcome> shareBeforeAfterCard({
+    required String? path,
+    required String fileName,
+  }) async {
+    if (_sharingCard) {
+      return const CardShareOutcome(
+        CardShareStatus.failed,
+        'A card share is already in progress.',
+      );
+    }
+    _sharingCard = true;
+    try {
+      final target = path;
+      if (target == null) {
+        // Web: the browser downloaded the PNG, so there is no local path for
+        // an OS share sheet. Do not pretend a share happened.
+        return CardShareOutcome(
+          CardShareStatus.exported,
+          'Downloaded $fileName. Share it from your downloads folder.',
+        );
+      }
+
+      final gateway = ref.read(takeShareGatewayProvider);
+      final retention = ref.read(retentionControllerProvider.notifier);
+      TakeShareResult share;
+      try {
+        share = await gateway.shareFiles(
+          <String>[target],
+          subject: beforeAfterShareSubject,
+          text: beforeAfterInviteText,
+        );
+      } catch (_) {
+        share = const TakeShareResult(TakeShareStatus.failed);
+      }
+
+      if (share.shared) {
+        try {
+          await retention.record(RetentionEventName.cardShared);
+        } catch (_) {
+          // Instrumentation is best-effort and never changes the share result.
+        }
+        return const CardShareOutcome(
+          CardShareStatus.shared,
+          'Card shared. Nothing is uploaded by the app.',
+        );
+      }
+
+      if (share.status == TakeShareStatus.cancelled) {
+        return CardShareOutcome(
+          CardShareStatus.cancelled,
+          'Card saved as $fileName. Share cancelled.',
+        );
+      }
+
+      final String detail;
+      switch (share.status) {
+        case TakeShareStatus.unavailable:
+          detail = share.message ?? 'Sharing is unavailable here.';
+        case TakeShareStatus.failed:
+          detail = share.message ?? 'The share sheet could not open.';
+        case TakeShareStatus.shared:
+        case TakeShareStatus.cancelled:
+          detail = '';
+      }
+      return CardShareOutcome(
+        CardShareStatus.exported,
+        'Card saved as $fileName. $detail',
+      );
+    } finally {
+      _sharingCard = false;
+    }
   }
 
   String _clearFailureMessage(TakeExportClearResult result) {

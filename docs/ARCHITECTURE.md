@@ -581,8 +581,16 @@ existing `RecordingExporter` seam with `image/png` only after the explicit
 export tap. The audio is not included. `recordingExporterProvider` is shared by
 the recording service and the card so tests and production use one seam.
 
-Tests: `test/before_after_test.dart` (pure) and
-`test/before_after_screen_test.dart` (widget).
+T8.6 adds an explicit **SHARE CARD** action. It reuses the same render/export
+step and then calls `RecordingController.shareBeforeAfterCard`, which hands the
+one PNG and `beforeAfterInviteText` to `TakeShareGateway`; a successful share
+records one local `card_shared` event. No audio, score, link, referral code, or
+install attribution is included, and the export path is unchanged (decision
+0012). On web the PNG is a browser download and the gateway is never called.
+
+Tests: `test/before_after_test.dart` (pure), `test/share_card_test.dart` (the
+invitation and the retention rule), and `test/before_after_screen_test.dart`
+(widget, including the share action and the download-only path).
 
 ## Manual export (T7.2)
 
@@ -995,7 +1003,8 @@ record plugin -> PCM16 stream (requests 48 kHz mono, falls back to 44.1 kHz)
   -> NoteMatcher
 ```
 
-`PitchFrame.timestamp` is for display and debugging only. Alignment, onset
+`PitchFrame.timestamp` is an optional caller-supplied, display-only wall-clock
+label. The capture path never sets it and never reads a clock. Alignment, onset
 detection, and phrase scoring use `sampleIndex` (monotonic analysis-sample
 index) and `sampleTime` (`sampleIndex / analysisSampleRate`). Never use
 wall-clock time for audio alignment.
