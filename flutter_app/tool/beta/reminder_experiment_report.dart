@@ -67,13 +67,13 @@ int runReminderExperimentReport(
   StringSink out,
   StringSink err,
 ) {
-  final jsonMode = args.contains('--json');
   _Options options;
   try {
     options = _Options.parse(args);
   } on _UsageException catch (error) {
-    return _writeError(jsonMode, out, err, error.message);
+    return _writeError(error.json, out, err, error.message);
   }
+  final jsonMode = options.json;
 
   if (options.help) {
     out.write(_helpText);
@@ -433,13 +433,18 @@ class _Options {
       }
       if (arg == '--now') {
         if (index + 1 >= args.length) {
-          throw const _UsageException('--now needs a UTC ISO-8601 timestamp.');
+          throw _UsageException(
+            '--now needs a UTC ISO-8601 timestamp with an explicit offset.',
+            json: json,
+          );
         }
         final raw = args[++index];
         final parsed = DateTime.tryParse(raw);
-        if (parsed == null) {
+        if (parsed == null || !parsed.isUtc) {
           throw _UsageException(
-            '--now is not a valid ISO-8601 timestamp: $raw',
+            '--now needs an ISO-8601 timestamp with an explicit offset, for '
+            'example 2026-12-01T00:00:00Z. Got: $raw',
+            json: json,
           );
         }
         now = parsed.toUtc();
@@ -450,7 +455,7 @@ class _Options {
         break;
       }
       if (arg.startsWith('-')) {
-        throw _UsageException('Unknown option "$arg". Run --help.');
+        throw _UsageException('Unknown option "$arg". Run --help.', json: json);
       }
       paths.add(arg);
     }
@@ -460,9 +465,12 @@ class _Options {
 }
 
 class _UsageException implements Exception {
-  const _UsageException(this.message);
+  const _UsageException(this.message, {this.json = false});
 
   final String message;
+
+  /// Whether `--json` had been parsed when the error was raised.
+  final bool json;
 }
 
 class _MalformedFile implements Exception {
@@ -475,11 +483,13 @@ class _ParsedExport {
   const _ParsedExport({
     required this.log,
     required this.droppedEvents,
+    required this.foreignEvents,
     required this.installAtMissing,
   });
 
   final RetentionLog log;
   final int droppedEvents;
+  final int foreignEvents;
   final bool installAtMissing;
 }
 
@@ -490,6 +500,7 @@ class _Analysis {
     required this.filesSkipped,
     required this.duplicateInstalls,
     required this.droppedEvents,
+    required this.foreignEvents,
     required this.installsAnalyzed,
     required this.installsNotExposed,
     required this.specific,
@@ -501,6 +512,7 @@ class _Analysis {
   final int filesSkipped;
   final int duplicateInstalls;
   final int droppedEvents;
+  final int foreignEvents;
   final int installsAnalyzed;
   final int installsNotExposed;
   final ArmReport specific;
@@ -511,16 +523,29 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
   final parsed = <_ParsedExport>[];
   var skipped = 0;
   var droppedEvents = 0;
+  var foreignEvents = 0;
 
   for (final path in paths) {
     try {
       final raw = File(path).readAsStringSync();
       final export = _parseExport(raw);
       droppedEvents += export.droppedEvents;
+      foreignEvents += export.foreignEvents;
       if (export.installAtMissing) {
+        final visibleEvents = [
+          for (final event in export.log.events)
+            if (!event.timestamp.isAfter(now)) event,
+        ];
+        final hasAppOpen = visibleEvents.any(
+          (event) => event.name == RetentionEventName.appOpen,
+        );
+        final fallback = hasAppOpen
+            ? 'the first app_open'
+            : (visibleEvents.isEmpty
+                  ? 'no event, so D7 cannot be computed'
+                  : 'the first event');
         err.writeln(
-          'warning: "$path" has no installAt; D7 falls back to the first '
-          'app_open.',
+          'warning: "$path" has no installAt; D7 falls back to $fallback.',
         );
       }
       parsed.add(export);
@@ -565,13 +590,23 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
 
   for (final export in byInstall.values) {
     final log = export.log;
+    // Filter once. Exposure, the opt-in rate, sessions, and D7 must all read
+    // the same events that are visible at the analysis time.
+    final visibleLog = RetentionLog(
+      installId: log.installId,
+      events: [
+        for (final event in log.events)
+          if (!event.timestamp.isAfter(now)) event,
+      ],
+      installAt: log.installAt,
+    );
     final variant = reminderVariantForInstall(log.installId);
     final arm = variant == ReminderCopyVariant.generic ? generic : specific;
-    final metrics = returnMetricsFromLog(log, now: now);
-    final exposed = log.hasEvent(RetentionEventName.reminderOptIn);
+    final metrics = returnMetricsFromLog(visibleLog, now: now);
+    final exposed = visibleLog.hasEvent(RetentionEventName.reminderOptIn);
 
     arm.installs++;
-    if (log.events.isNotEmpty) arm.optedInWithAnyEvent++;
+    if (visibleLog.events.isNotEmpty) arm.optedInWithAnyEvent++;
     if (!exposed) {
       notExposed++;
       continue;
@@ -582,7 +617,9 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
       arm.exposedWithFirstSession++;
       if (metrics.returnedWithin48h) arm.returnedWithin48h++;
       final first = metrics.firstSessionAt;
-      if (first != null && now.difference(first) < sessionTwoReturnWindow) {
+      if (first != null &&
+          metrics.secondSessionAt == null &&
+          now.difference(first) < sessionTwoReturnWindow) {
         arm.sessionTwoWindowOpen++;
       }
     }
@@ -605,6 +642,11 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
       'warning: dropped $droppedEvents malformed event(s) while parsing.',
     );
   }
+  if (foreignEvents > 0) {
+    err.writeln(
+      'warning: skipped $foreignEvents event(s) from another install id.',
+    );
+  }
   if (duplicates > 0) {
     err.writeln('warning: collapsed $duplicates duplicate install id(s).');
   }
@@ -616,7 +658,8 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
     err.writeln(
       'warning: ${specificReport.sessionTwoWindowOpen + genericReport.sessionTwoWindowOpen} '
       'exposed install(s) have a session-1 less than 48 hours before the '
-      'analysis time; their session-2 result is not final.',
+      'analysis time and no session 2 yet; their session-2 result is not '
+      'final.',
     );
   }
 
@@ -626,6 +669,7 @@ _Analysis? _analyze(List<String> paths, DateTime now, StringSink err) {
     filesSkipped: skipped,
     duplicateInstalls: duplicates,
     droppedEvents: droppedEvents,
+    foreignEvents: foreignEvents,
     installsAnalyzed: byInstall.length,
     installsNotExposed: notExposed,
     specific: specificReport,
@@ -675,8 +719,20 @@ _ParsedExport _parseExport(String raw) {
   }
 
   var droppedEvents = 0;
+  var foreignEvents = 0;
   final events = <RetentionEvent>[];
   for (final rawEvent in rawEvents) {
+    // A well-formed event from another install is a foreign skip, not a
+    // malformed event. Keep the two counts separate for an honest report.
+    if (rawEvent is Map) {
+      final rawInstallId = rawEvent['installId'];
+      if (rawInstallId is String &&
+          rawInstallId.isNotEmpty &&
+          rawInstallId != installId) {
+        foreignEvents++;
+        continue;
+      }
+    }
     final event = RetentionEvent.tryFromJson(
       rawEvent,
       expectedInstallId: installId,
@@ -695,6 +751,7 @@ _ParsedExport _parseExport(String raw) {
       installAt: installAt,
     ),
     droppedEvents: droppedEvents,
+    foreignEvents: foreignEvents,
     installAtMissing: installAtMissing,
   );
 }
@@ -743,7 +800,8 @@ void _writeTextReport(
     'Files: ${analysis.filesProvided} provided, ${analysis.filesParsed} '
     'analyzed, ${analysis.filesSkipped} skipped, '
     '${analysis.duplicateInstalls} duplicate install(s), '
-    '${analysis.droppedEvents} dropped event(s)',
+    '${analysis.droppedEvents} dropped event(s), '
+    '${analysis.foreignEvents} foreign-install event(s)',
   );
   out.writeln(
     'Installs: ${analysis.installsAnalyzed} analyzed, '
@@ -851,6 +909,7 @@ Map<String, Object?> _analysisToJson(
     'skipped': analysis.filesSkipped,
     'duplicateInstalls': analysis.duplicateInstalls,
     'droppedEvents': analysis.droppedEvents,
+    'foreignEvents': analysis.foreignEvents,
   },
   'installs': {
     'analyzed': analysis.installsAnalyzed,
@@ -914,8 +973,9 @@ arm. Nothing is uploaded and no data is written.
 
 Options:
   --json          Print one JSON object on stdout.
-  --now <time>    UTC ISO-8601 analysis time (default: now). Use a fixed value
-                  to reproduce an analysis.
+  --now <time>    ISO-8601 analysis time with an explicit offset, for example
+                  2026-12-01T00:00:00Z (default: now). Use a fixed value to
+                  reproduce an analysis.
   -h, --help      Show this help.
 
 Exit codes:

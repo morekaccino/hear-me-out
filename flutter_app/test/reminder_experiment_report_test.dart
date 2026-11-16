@@ -84,6 +84,26 @@ String _writeLog(
   return file.path;
 }
 
+/// Writes an older export with no `installAt` and no `app_open`, so the log
+/// cannot derive one. The protocol falls back to the first event.
+String _writeLogWithoutInstallAt(
+  Directory directory,
+  String name,
+  String installId,
+  List<(RetentionEventName, DateTime)> events,
+) {
+  final log = RetentionLog(
+    installId: installId,
+    events: [
+      for (final (eventName, at) in events)
+        RetentionEvent(name: eventName, timestamp: at, installId: installId),
+    ],
+  );
+  final file = File('${directory.path}/$name.json');
+  file.writeAsStringSync(log.exportJson());
+  return file.path;
+}
+
 String _iso(DateTime local) => local.toUtc().toIso8601String();
 
 void main() {
@@ -582,6 +602,335 @@ void main() {
     expect(((json['arms'] as Map)['generic'] as Map)['exposedInstalls'], 1);
   });
 
+  test('duplicate collapse keeps the longer log in either order', () {
+    final directory = Directory.systemTemp.createTempSync('reminder_longer');
+    try {
+      final install = DateTime(2026, 3, 1, 9);
+      final first = DateTime(2026, 3, 2, 10);
+      final optIn = first.subtract(const Duration(hours: 1));
+      final shortPath = _writeLog(
+        directory,
+        'short',
+        _specificIds[0],
+        install,
+        [
+          (RetentionEventName.reminderOptIn, optIn),
+          (RetentionEventName.sessionComplete, first),
+        ],
+      );
+      final longPath = _writeLog(directory, 'long', _specificIds[0], install, [
+        (RetentionEventName.reminderOptIn, optIn),
+        (RetentionEventName.sessionComplete, first),
+        (
+          RetentionEventName.sessionComplete,
+          first.add(const Duration(hours: 1)),
+        ),
+      ]);
+
+      for (final paths in [
+        [shortPath, longPath],
+        [longPath, shortPath],
+      ]) {
+        final result = _run([
+          '--json',
+          '--now',
+          _iso(DateTime(2026, 3, 12, 12)),
+          ...paths,
+        ]);
+        final json = _singleJson(result);
+        expect(
+          (json['files'] as Map)['duplicateInstalls'],
+          1,
+          reason: '$paths',
+        );
+        expect((json['installs'] as Map)['analyzed'], 1, reason: '$paths');
+        expect(
+          ((json['arms'] as Map)['specificTask'] as Map)['returnedWithin48h'],
+          1,
+          reason: 'the longer log must win: $paths',
+        );
+      }
+    } finally {
+      directory.deleteSync(recursive: true);
+    }
+  });
+
+  test('the default text report prints the verdict and both arm tables', () {
+    final result = _run([
+      '--now',
+      insufficientNow,
+      specificFixture,
+      genericFixture,
+    ]);
+
+    expect(result.code, reportExitInsufficientSample);
+    expect(result.out, contains('Reminder-copy experiment (T5.6)'));
+    expect(result.out, contains('D7 activity'));
+    expect(result.out, contains('specificTask'));
+    expect(result.out, contains('generic'));
+    expect(result.out, contains('Verdict: insufficient sample'));
+    expect(result.out, contains('Exit 1:'));
+    final armRows = result.out
+        .split('\n')
+        .where(
+          (line) =>
+              line.startsWith('specificTask') || line.startsWith('generic'),
+        )
+        .toList();
+    expect(armRows, hasLength(4), reason: 'two session rows plus two D7 rows');
+    expect(armRows[0], startsWith('specificTask'));
+    expect(armRows[1], startsWith('generic'));
+    expect(armRows[2], startsWith('specificTask'));
+    expect(armRows[3], startsWith('generic'));
+    expect(result.err, isEmpty);
+  });
+
+  test(
+    'events after --now cannot expose an install or enter the opt-in rate',
+    () {
+      final directory = Directory.systemTemp.createTempSync('reminder_future');
+      try {
+        final install = DateTime(2026, 3, 1, 9);
+        final first = DateTime(2026, 3, 2, 10);
+        final futureOptIn = DateTime(2026, 3, 4, 9);
+        final specificPath = _writeLog(
+          directory,
+          'future-specific',
+          _specificIds[0],
+          install,
+          [
+            (RetentionEventName.sessionComplete, first),
+            (RetentionEventName.reminderOptIn, futureOptIn),
+          ],
+        );
+        final genericPath = _writeLog(
+          directory,
+          'future-generic',
+          _genericIds[0],
+          install,
+          [(RetentionEventName.reminderOptIn, futureOptIn)],
+        );
+
+        final result = _run([
+          '--json',
+          '--now',
+          _iso(DateTime(2026, 3, 3, 12)),
+          specificPath,
+          genericPath,
+        ]);
+
+        final json = _singleJson(result);
+        expect((json['installs'] as Map)['notExposed'], 2);
+        final specific =
+            (json['arms'] as Map)['specificTask'] as Map<String, dynamic>;
+        final generic =
+            (json['arms'] as Map)['generic'] as Map<String, dynamic>;
+        expect(specific['exposedInstalls'], 0);
+        expect(specific['optedInWithAnyEvent'], 1);
+        expect(specific['reminderOptInRate'], 0.0);
+        expect(generic['exposedInstalls'], 0);
+        expect(generic['optedInWithAnyEvent'], 0);
+        expect(generic['reminderOptInRate'], isNull);
+      } finally {
+        directory.deleteSync(recursive: true);
+      }
+    },
+  );
+
+  test(
+    'a log without installAt warns and falls back to the first app_open',
+    () {
+      final result = _run([
+        '--json',
+        '--now',
+        insufficientNow,
+        '$fixtureDirectory/missing-install-at.json',
+      ]);
+
+      expect(result.code, reportExitInsufficientSample);
+      expect(result.err, contains('has no installAt'));
+      expect(result.err, contains('first app_open'));
+      final specific =
+          (_singleJson(result)['arms'] as Map)['specificTask']
+              as Map<String, dynamic>;
+      expect(specific['exposedInstalls'], 1);
+      expect(specific['exposedWithFirstSession'], 1);
+    },
+  );
+
+  test('a log without installAt or app_open falls back to the first event', () {
+    final directory = Directory.systemTemp.createTempSync('reminder_first');
+    try {
+      final first = DateTime(2026, 3, 2, 10);
+      final path = _writeLogWithoutInstallAt(
+        directory,
+        'no-install-at',
+        _specificIds[0],
+        [
+          (
+            RetentionEventName.reminderOptIn,
+            first.subtract(const Duration(hours: 1)),
+          ),
+          (RetentionEventName.sessionComplete, first),
+        ],
+      );
+
+      final result = _run([
+        '--json',
+        '--now',
+        _iso(DateTime(2026, 3, 12, 12)),
+        path,
+      ]);
+
+      expect(result.code, reportExitInsufficientSample);
+      expect(result.err, contains('has no installAt'));
+      expect(result.err, contains('first event'));
+      final specific =
+          (_singleJson(result)['arms'] as Map)['specificTask']
+              as Map<String, dynamic>;
+      expect(specific['exposedInstalls'], 1);
+      expect(specific['exposedWithFirstSession'], 1);
+    } finally {
+      directory.deleteSync(recursive: true);
+    }
+  });
+
+  test('a nonexistent file is skipped without aborting the run', () {
+    final result = _run([
+      '--json',
+      '--now',
+      insufficientNow,
+      specificFixture,
+      '$fixtureDirectory/does-not-exist.json',
+    ]);
+
+    expect(result.code, reportExitInsufficientSample);
+    expect(result.err, contains('does-not-exist.json'));
+    final json = _singleJson(result);
+    expect((json['files'] as Map)['parsed'], 1);
+    expect((json['files'] as Map)['skipped'], 1);
+    expect(((json['arms'] as Map)['generic'] as Map)['exposedInstalls'], 0);
+  });
+
+  test('an open 48-hour window requires no session 2 yet', () {
+    final directory = Directory.systemTemp.createTempSync('reminder_open');
+    try {
+      final install = DateTime(2026, 3, 1, 9);
+      final first = DateTime(2026, 3, 2, 10);
+      final optIn = first.subtract(const Duration(minutes: 30));
+      final returnedPath = _writeLog(
+        directory,
+        'returned',
+        _specificIds[0],
+        install,
+        [
+          (RetentionEventName.reminderOptIn, optIn),
+          (RetentionEventName.sessionComplete, first),
+          (
+            RetentionEventName.sessionComplete,
+            first.add(const Duration(minutes: 30)),
+          ),
+        ],
+      );
+      final waitingPath = _writeLog(
+        directory,
+        'waiting',
+        _specificIds[1],
+        install,
+        [
+          (RetentionEventName.reminderOptIn, optIn),
+          (RetentionEventName.sessionComplete, first),
+        ],
+      );
+
+      final result = _run([
+        '--json',
+        '--now',
+        _iso(DateTime(2026, 3, 2, 11)),
+        returnedPath,
+        waitingPath,
+      ]);
+
+      final specific =
+          (_singleJson(result)['arms'] as Map)['specificTask']
+              as Map<String, dynamic>;
+      expect(specific['exposedWithFirstSession'], 2);
+      expect(specific['returnedWithin48h'], 1);
+      expect(specific['sessionTwoWindowOpen'], 1);
+    } finally {
+      directory.deleteSync(recursive: true);
+    }
+  });
+
+  test('a foreign-install event is not counted as malformed', () {
+    final directory = Directory.systemTemp.createTempSync('reminder_foreign');
+    try {
+      const installId = '00000000000000000000000000000000';
+      final install = DateTime(2026, 3, 1, 9);
+      final first = DateTime(2026, 3, 2, 10);
+      final log = RetentionLog(
+        installId: installId,
+        installAt: install,
+        events: [
+          RetentionEvent(
+            name: RetentionEventName.appOpen,
+            timestamp: install,
+            installId: installId,
+          ),
+          RetentionEvent(
+            name: RetentionEventName.reminderOptIn,
+            timestamp: install.add(const Duration(minutes: 5)),
+            installId: installId,
+          ),
+          RetentionEvent(
+            name: RetentionEventName.sessionComplete,
+            timestamp: first,
+            installId: installId,
+          ),
+          RetentionEvent(
+            name: RetentionEventName.sessionComplete,
+            timestamp: first.add(const Duration(hours: 1)),
+            installId: 'ffffffffffffffffffffffffffffffff',
+          ),
+        ],
+      );
+      final file = File('${directory.path}/foreign.json')
+        ..writeAsStringSync(log.exportJson());
+
+      final result = _run([
+        '--json',
+        '--now',
+        _iso(DateTime(2026, 3, 12, 12)),
+        file.path,
+      ]);
+
+      expect(result.code, reportExitInsufficientSample);
+      final files = _singleJson(result)['files'] as Map<String, dynamic>;
+      expect(files['droppedEvents'], 0);
+      expect(files['foreignEvents'], 1);
+      expect(result.err, contains('another install id'));
+      expect(result.err, isNot(contains('malformed event')));
+    } finally {
+      directory.deleteSync(recursive: true);
+    }
+  });
+
+  test('-- ends option parsing', () {
+    final result = _run(['--now', insufficientNow, '--', '-missing.json']);
+
+    expect(result.code, reportExitBadInput);
+    expect(result.err, isNot(contains('Unknown option')));
+    expect(result.err, contains('-missing.json'));
+  });
+
+  test('--json after -- is a path, not a mode switch', () {
+    final result = _run(['--', '--json']);
+
+    expect(result.code, reportExitBadInput);
+    expect(result.out, isEmpty);
+    expect(result.err, contains('No usable retention log'));
+  });
+
   test('help exits 0 and documents the exit codes', () {
     final result = _run(['--help']);
 
@@ -600,6 +949,24 @@ void main() {
       reportExitBadInput,
     );
     expect(_run([specificFixture, '--now']).code, reportExitBadInput);
+    expect(
+      _run([specificFixture, '--now', '2026-12-01T00:00:00']).code,
+      reportExitBadInput,
+    );
+  });
+
+  test('a bad --now still honors the parsed --json mode', () {
+    final result = _run([
+      '--json',
+      specificFixture,
+      '--now',
+      '2026-12-01T00:00:00',
+    ]);
+
+    expect(result.code, reportExitBadInput);
+    final json = _singleJson(result);
+    expect(json['error'], contains('explicit offset'));
+    expect(json['exitCode'], reportExitBadInput);
   });
 
   test('the Wilson interval matches the documented 4-of-10 value', () {
