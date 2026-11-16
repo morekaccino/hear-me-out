@@ -965,7 +965,8 @@ record plugin -> PCM16 stream (requests 48 kHz mono, falls back to 44.1 kHz)
   -> NoteMatcher
 ```
 
-`PitchFrame.timestamp` is for display and debugging only. Alignment, onset
+`PitchFrame.timestamp` is an optional caller-supplied, display-only wall-clock
+label. The capture path never sets it and never reads a clock. Alignment, onset
 detection, and phrase scoring use `sampleIndex` (monotonic analysis-sample
 index) and `sampleTime` (`sampleIndex / analysisSampleRate`). Never use
 wall-clock time for audio alignment.
