@@ -303,11 +303,16 @@ missing, and never uploads or signs with a secret. See
   flow: hear the first four notes of Ode to Joy, play them back, see one real
   correction, record ten seconds, and finish. It writes no FSRS, mastery, XP, or
   quest evidence from the phrase take; the recording is the only saved artifact.
-  It is reachable without opening the scored phrase loop. The local
-  `first_phrase` and `first_recording` hooks measure the first-session funnel;
-  `first_note` is the first determinate scored note-prompt answer. The
-  first-session flow currently also calls `recordFirstNote`; the beta docs flag
-  that call as a known mismatch. The percentages are pending a real beta.
+  It is reachable without opening the scored phrase loop. The Path shows one
+  **Your first 3 minutes** card while the session is not completed, so a learner
+  who skips can reopen it without replaying onboarding. `firstSessionStatus`
+  (`notStarted` / `skipped` / `completed`) is persisted in `ProgressState`;
+  skip hides the card for the current app run only, and completion is monotonic
+  and hides it for good (T5.8, progress schema 10). The local `first_phrase` and
+  `first_recording` hooks measure the first-session funnel; `first_note` is the
+  first determinate scored note-prompt answer. The first-session flow currently
+  also calls `recordFirstNote`; the beta docs flag that call as a known
+  mismatch. The percentages are pending a real beta.
 - **Weekly goal:** `settings.weeklyGoalMinutes` defaults to 30 and is the primary
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
@@ -319,7 +324,9 @@ missing, and never uploads or signs with a secret. See
   denied permission keeps the switch off and shows a typed message. The
   scheduler lives behind a conditional import so web resolves to a no-op and
   never imports the platform plugin. Progress schema 9 adds these settings with
-  defaults; a v8 save migrates without inventing a preference. Enabling the
+  defaults; a v8 save migrates without inventing a preference. Schema 10 adds
+  `settings.firstSessionStatus` for T5.8; a v9 save migrates to `completed`
+  because its owner already used the app. Enabling the
   reminder records the local `reminder_opt_in` retention event. The body copy
   is assigned by a deterministic 50/50 hash of the opted-in install id (T5.6;
   see [`docs/REMINDER_EXPERIMENT.md`](docs/REMINDER_EXPERIMENT.md)): the generic
@@ -444,12 +451,12 @@ missing, and never uploads or signs with a secret. See
 
 ## Current verified state
 
-Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
+Last verified on 2026-11-16 with Flutter 3.47.9 / Dart 3.13.7:
 
 - `flutter analyze` - no issues
-- `flutter test` - 1170 tests passing
+- `flutter test` - 1286 tests passing
 - `flutter build web --release` - succeeds
-- `opencode mcp list` - `plane connected` (Plane project has 99 work items, 10
+- `opencode mcp list` - `plane connected` (Plane project has 101 work items, 10
   modules, 10 cycles, 48 labels; `D0.1` is the START HERE ticket)
 - The course has 8 sections, 40 units, and 240 lessons. Every unit has six
   lessons (Discover, Build, Connect, Apply, Integrate, Checkpoint).
@@ -516,8 +523,11 @@ Last verified on 2026-11-07 with Flutter 3.47.9 / Dart 3.13.7:
 - T5.7 adds the 20-user beta kit: [`docs/BETA_RUNBOOK.md`](docs/BETA_RUNBOOK.md),
   [`docs/BETA_METRICS.md`](docs/BETA_METRICS.md), and
   `flutter_app/tool/beta/build_beta.ps1`. The beta has not run: there is no
-  cohort, export, or measured value. The kit is docs and a local build script
-  and changes no app code, `ProgressState`, or the phrase flag.
+  cohort, export, or measured value. The kit also adds a read-only
+  **Export recordings manifest** action on the Recordings screen for KC-12: one
+  versioned JSON of the currently stored takes with no audio, path, install id,
+  or participant name, and an empty `takes: []` for a zero-take participant. It
+  changes no `ProgressState` field and does not touch the phrase flag.
 - T3.11 adds the reference-take contract: a versioned `ReferenceTakeManifest`
   in `lib/core/content/`, a strict validator (unknown ids, tempo envelope,
   duplicates, blank metadata, path traversal, non-WAV files, future schema), an
