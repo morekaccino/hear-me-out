@@ -151,9 +151,10 @@ written reply separate from the app log.
 > The optional log is off unless you turn it on. Each event records only an
 > event name, a UTC time, and a random install id. The file also keeps the
 > install time. It does not record audio, note names, piece titles, your name,
-> your email, your device id, or free text. It stays on your device. Nothing is
-> uploaded. You can turn it off or erase it at any time in Profile > Privacy. If
-> you erase it, I cannot use that log.
+> your email, your device id, or free text. The app does not upload it. It
+> leaves your device only when you copy it and send it to me. You can turn it
+> off or erase it at any time in Profile > Privacy. If you erase it, I cannot
+> use that log.
 >
 > The app may ask for microphone permission to hear your guitar. The microphone
 > is active only while you practice, tune, or record. You can deny it and still

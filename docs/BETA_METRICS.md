@@ -17,8 +17,8 @@ this beta; it does not change a product threshold or a gate.
 ## 1. The only input
 
 Every quantitative beta metric comes from one document: the JSON that
-**Profile > Privacy > Copy usage log** puts on the clipboard. Nothing is
-uploaded. The facilitator receives the file from the participant and analyzes
+**Profile > Privacy > Copy usage log** puts on the clipboard. The app does not
+upload it. The facilitator receives the file from the participant and analyzes
 it offline.
 
 The document has exactly these fields:
