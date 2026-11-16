@@ -187,6 +187,9 @@ The return counts only when session 2 is at most 48 elapsed hours after session
 
 - Numerator: installs with a qualifying session 2.
 - Denominator: installs with a session 1.
+- The 48-hour window is complete only when the export or data freeze is at least
+  48 hours after session 1. If it is not, and no session 2 is found, report
+  `window open`, not `no`.
 - This is an elapsed-hour rule, not a calendar-day rule. Two sessions at 09:00
   and 21:00 the next day count (36 h); a session 49 hours later does not, even
   if it is on an adjacent local date.
