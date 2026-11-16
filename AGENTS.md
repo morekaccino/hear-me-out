@@ -304,8 +304,10 @@ missing, and never uploads or signs with a secret. See
   correction, record ten seconds, and finish. It writes no FSRS, mastery, XP, or
   quest evidence from the phrase take; the recording is the only saved artifact.
   It is reachable without opening the scored phrase loop. The local
-  `first_note`, `first_phrase`, and `first_recording` hooks measure the funnel;
-  the percentages are pending a real beta.
+  `first_phrase` and `first_recording` hooks measure the first-session funnel;
+  `first_note` is the first determinate scored note-prompt answer. The
+  first-session flow currently also calls `recordFirstNote`; the beta docs flag
+  that call as a known mismatch. The percentages are pending a real beta.
 - **Weekly goal:** `settings.weeklyGoalMinutes` defaults to 30 and is the primary
   habit signal. Progress is summed from real measured session seconds in the
   rolling seven-day window. XP remains an internal progress number and is not
