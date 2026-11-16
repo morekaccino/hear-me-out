@@ -165,35 +165,31 @@ void main() {
     try {
       final install = DateTime(2026, 3, 1, 9);
       final first = DateTime(2026, 3, 2, 10);
+      final firstComplete = first.add(const Duration(minutes: 30));
+      final optIn = first.subtract(const Duration(hours: 1));
       final paths = [
         _writeLog(directory, 'at-48h', _specificIds[0], install, [
+          (RetentionEventName.reminderOptIn, optIn),
+          (RetentionEventName.sessionStart, first),
+          (RetentionEventName.sessionComplete, firstComplete),
           (
-            RetentionEventName.reminderOptIn,
-            first.subtract(const Duration(hours: 1)),
-          ),
-          (RetentionEventName.sessionComplete, first),
-          (
-            RetentionEventName.sessionComplete,
+            RetentionEventName.sessionStart,
             first.add(const Duration(hours: 48)),
           ),
         ]),
         _writeLog(directory, 'at-49h', _specificIds[1], install, [
+          (RetentionEventName.reminderOptIn, optIn),
+          (RetentionEventName.sessionStart, first),
+          (RetentionEventName.sessionComplete, firstComplete),
           (
-            RetentionEventName.reminderOptIn,
-            first.subtract(const Duration(hours: 1)),
-          ),
-          (RetentionEventName.sessionComplete, first),
-          (
-            RetentionEventName.sessionComplete,
+            RetentionEventName.sessionStart,
             first.add(const Duration(hours: 49)),
           ),
         ]),
         _writeLog(directory, 'no-second', _specificIds[2], install, [
-          (
-            RetentionEventName.reminderOptIn,
-            first.subtract(const Duration(hours: 1)),
-          ),
-          (RetentionEventName.sessionComplete, first),
+          (RetentionEventName.reminderOptIn, optIn),
+          (RetentionEventName.sessionStart, first),
+          (RetentionEventName.sessionComplete, firstComplete),
         ]),
       ];
 
@@ -216,6 +212,86 @@ void main() {
         (specific['sessionTwoWilson95'] as Map)['low'],
         closeTo(0.0615, 0.001),
       );
+    } finally {
+      directory.deleteSync(recursive: true);
+    }
+  });
+
+  test('two lessons in one sitting are not a report return', () {
+    final directory = Directory.systemTemp.createTempSync('reminder_sitting');
+    try {
+      final install = DateTime(2026, 3, 1, 9);
+      final first = DateTime(2026, 3, 2, 10);
+      final path = _writeLog(
+        directory,
+        'one-sitting',
+        _specificIds[0],
+        install,
+        [
+          (
+            RetentionEventName.reminderOptIn,
+            first.subtract(const Duration(minutes: 1)),
+          ),
+          (RetentionEventName.sessionStart, first),
+          (
+            RetentionEventName.sessionComplete,
+            first.add(const Duration(minutes: 30)),
+          ),
+          (
+            RetentionEventName.sessionStart,
+            first.add(const Duration(minutes: 50)),
+          ),
+          (
+            RetentionEventName.sessionComplete,
+            first.add(const Duration(minutes: 90)),
+          ),
+        ],
+      );
+
+      final result = _run([
+        '--json',
+        '--now',
+        _iso(DateTime(2026, 3, 12, 12)),
+        path,
+      ]);
+
+      final specific =
+          (_singleJson(result)['arms'] as Map)['specificTask']
+              as Map<String, dynamic>;
+      expect(specific['exposedWithFirstSession'], 1);
+      expect(specific['returnedWithin48h'], 0);
+      expect(specific['sessionTwoWindowOpen'], 0);
+    } finally {
+      directory.deleteSync(recursive: true);
+    }
+  });
+
+  test('an incomplete first session stays in the report denominator', () {
+    final directory = Directory.systemTemp.createTempSync('reminder_dropout');
+    try {
+      final install = DateTime(2026, 3, 1, 9);
+      final first = DateTime(2026, 3, 2, 10);
+      final path = _writeLog(directory, 'dropout', _specificIds[0], install, [
+        (
+          RetentionEventName.reminderOptIn,
+          first.subtract(const Duration(minutes: 1)),
+        ),
+        (RetentionEventName.sessionStart, first),
+      ]);
+
+      final result = _run([
+        '--json',
+        '--now',
+        _iso(DateTime(2026, 3, 12, 12)),
+        path,
+      ]);
+
+      final specific =
+          (_singleJson(result)['arms'] as Map)['specificTask']
+              as Map<String, dynamic>;
+      expect(specific['exposedWithFirstSession'], 1);
+      expect(specific['returnedWithin48h'], 0);
+      expect(specific['sessionTwoWindowOpen'], 0);
     } finally {
       directory.deleteSync(recursive: true);
     }
@@ -338,75 +414,86 @@ void main() {
     }
   });
 
-  test('eight exposed installs without a session 1 is still insufficient', () {
-    final directory = Directory.systemTemp.createTempSync('reminder_session');
-    try {
-      final install = DateTime(2026, 3, 1, 9);
-      final first = DateTime(2026, 3, 2, 10);
-      final paths = <String>[];
-      for (var index = 0; index < 8; index++) {
-        paths.add(
-          _writeLog(
-            directory,
-            'specific-$index',
-            _specificIds[index],
-            install,
-            [
-              (
-                RetentionEventName.reminderOptIn,
-                first.subtract(const Duration(hours: 1)),
-              ),
-              if (index < 7) (RetentionEventName.sessionComplete, first),
-            ],
-          ),
-        );
-      }
-      for (var index = 0; index < 8; index++) {
-        paths.add(
-          _writeLog(directory, 'generic-$index', _genericIds[index], install, [
-            (
-              RetentionEventName.reminderOptIn,
-              first.subtract(const Duration(hours: 1)),
+  test(
+    'seven of eight exposed installs with a first session is insufficient',
+    () {
+      final directory = Directory.systemTemp.createTempSync('reminder_session');
+      try {
+        final install = DateTime(2026, 3, 1, 9);
+        final first = DateTime(2026, 3, 2, 10);
+        final paths = <String>[];
+        for (var index = 0; index < 8; index++) {
+          paths.add(
+            _writeLog(
+              directory,
+              'specific-$index',
+              _specificIds[index],
+              install,
+              [
+                (
+                  RetentionEventName.reminderOptIn,
+                  first.subtract(const Duration(hours: 1)),
+                ),
+                if (index < 7) (RetentionEventName.sessionStart, first),
+              ],
             ),
-            (RetentionEventName.sessionComplete, first),
-          ]),
+          );
+        }
+        for (var index = 0; index < 8; index++) {
+          paths.add(
+            _writeLog(
+              directory,
+              'generic-$index',
+              _genericIds[index],
+              install,
+              [
+                (
+                  RetentionEventName.reminderOptIn,
+                  first.subtract(const Duration(hours: 1)),
+                ),
+                (RetentionEventName.sessionStart, first),
+              ],
+            ),
+          );
+        }
+
+        final result = _run([
+          '--json',
+          '--now',
+          _iso(DateTime(2026, 3, 12, 12)),
+          ...paths,
+        ]);
+
+        expect(result.code, reportExitInsufficientSample);
+        final verdict = _singleJson(result)['verdict'] as Map<String, dynamic>;
+        expect(verdict['result'], 'insufficientSample');
+        final checks = verdict['checks'] as List;
+        expect(
+          checks.firstWhere(
+            (check) => check['id'] == 'minimum-exposed-installs',
+          )['passed'],
+          isTrue,
         );
+        expect(
+          checks.firstWhere(
+            (check) => check['id'] == 'minimum-session-one',
+          )['passed'],
+          isFalse,
+        );
+      } finally {
+        directory.deleteSync(recursive: true);
       }
-
-      final result = _run([
-        '--json',
-        '--now',
-        _iso(DateTime(2026, 3, 12, 12)),
-        ...paths,
-      ]);
-
-      expect(result.code, reportExitInsufficientSample);
-      final verdict = _singleJson(result)['verdict'] as Map<String, dynamic>;
-      expect(verdict['result'], 'insufficientSample');
-      final checks = verdict['checks'] as List;
-      expect(
-        checks.firstWhere(
-          (check) => check['id'] == 'minimum-exposed-installs',
-        )['passed'],
-        isTrue,
-      );
-      expect(
-        checks.firstWhere(
-          (check) => check['id'] == 'minimum-session-one',
-        )['passed'],
-        isFalse,
-      );
-    } finally {
-      directory.deleteSync(recursive: true);
-    }
-  });
+    },
+  );
 
   test('every pre-registered condition adopts the generic body', () {
     final directory = Directory.systemTemp.createTempSync('reminder_adopt');
     try {
       final install = DateTime(2026, 3, 1, 9);
       final first = DateTime(2026, 3, 2, 10);
-      final second = first.add(const Duration(hours: 1));
+      final firstComplete = first.add(const Duration(minutes: 15));
+      final second = first.add(const Duration(hours: 2));
+      final optIn = first.subtract(const Duration(hours: 1));
       final paths = <String>[];
       for (var index = 0; index < 10; index++) {
         paths.add(
@@ -416,23 +503,19 @@ void main() {
             _specificIds[index],
             install,
             [
-              (
-                RetentionEventName.reminderOptIn,
-                first.subtract(const Duration(hours: 1)),
-              ),
-              (RetentionEventName.sessionComplete, first),
-              if (index < 1) (RetentionEventName.sessionComplete, second),
+              (RetentionEventName.reminderOptIn, optIn),
+              (RetentionEventName.sessionStart, first),
+              (RetentionEventName.sessionComplete, firstComplete),
+              if (index < 1) (RetentionEventName.sessionStart, second),
             ],
           ),
         );
         paths.add(
           _writeLog(directory, 'generic-$index', _genericIds[index], install, [
-            (
-              RetentionEventName.reminderOptIn,
-              first.subtract(const Duration(hours: 1)),
-            ),
-            (RetentionEventName.sessionComplete, first),
-            if (index < 9) (RetentionEventName.sessionComplete, second),
+            (RetentionEventName.reminderOptIn, optIn),
+            (RetentionEventName.sessionStart, first),
+            (RetentionEventName.sessionComplete, firstComplete),
+            if (index < 9) (RetentionEventName.sessionStart, second),
           ]),
         );
       }
@@ -607,6 +690,7 @@ void main() {
     try {
       final install = DateTime(2026, 3, 1, 9);
       final first = DateTime(2026, 3, 2, 10);
+      final firstComplete = first.add(const Duration(minutes: 30));
       final optIn = first.subtract(const Duration(hours: 1));
       final shortPath = _writeLog(
         directory,
@@ -615,16 +699,15 @@ void main() {
         install,
         [
           (RetentionEventName.reminderOptIn, optIn),
-          (RetentionEventName.sessionComplete, first),
+          (RetentionEventName.sessionStart, first),
+          (RetentionEventName.sessionComplete, firstComplete),
         ],
       );
       final longPath = _writeLog(directory, 'long', _specificIds[0], install, [
         (RetentionEventName.reminderOptIn, optIn),
-        (RetentionEventName.sessionComplete, first),
-        (
-          RetentionEventName.sessionComplete,
-          first.add(const Duration(hours: 1)),
-        ),
+        (RetentionEventName.sessionStart, first),
+        (RetentionEventName.sessionComplete, firstComplete),
+        (RetentionEventName.sessionStart, first.add(const Duration(hours: 2))),
       ]);
 
       for (final paths in [
@@ -771,7 +854,11 @@ void main() {
             RetentionEventName.reminderOptIn,
             first.subtract(const Duration(hours: 1)),
           ),
-          (RetentionEventName.sessionComplete, first),
+          (RetentionEventName.sessionStart, first),
+          (
+            RetentionEventName.sessionComplete,
+            first.add(const Duration(minutes: 30)),
+          ),
         ],
       );
 
@@ -817,6 +904,8 @@ void main() {
     try {
       final install = DateTime(2026, 3, 1, 9);
       final first = DateTime(2026, 3, 2, 10);
+      final firstComplete = first.add(const Duration(minutes: 10));
+      final second = first.add(const Duration(minutes: 70));
       final optIn = first.subtract(const Duration(minutes: 30));
       final returnedPath = _writeLog(
         directory,
@@ -825,11 +914,9 @@ void main() {
         install,
         [
           (RetentionEventName.reminderOptIn, optIn),
-          (RetentionEventName.sessionComplete, first),
-          (
-            RetentionEventName.sessionComplete,
-            first.add(const Duration(minutes: 30)),
-          ),
+          (RetentionEventName.sessionStart, first),
+          (RetentionEventName.sessionComplete, firstComplete),
+          (RetentionEventName.sessionStart, second),
         ],
       );
       final waitingPath = _writeLog(
@@ -839,14 +926,15 @@ void main() {
         install,
         [
           (RetentionEventName.reminderOptIn, optIn),
-          (RetentionEventName.sessionComplete, first),
+          (RetentionEventName.sessionStart, first),
+          (RetentionEventName.sessionComplete, firstComplete),
         ],
       );
 
       final result = _run([
         '--json',
         '--now',
-        _iso(DateTime(2026, 3, 2, 11)),
+        _iso(DateTime(2026, 3, 2, 11, 20)),
         returnedPath,
         waitingPath,
       ]);

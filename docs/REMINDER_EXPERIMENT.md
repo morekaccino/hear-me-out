@@ -83,16 +83,25 @@ never sees the word "experiment".
 
 ### Primary
 
-**Session-2 within 48 hours.**
+**Session-2 within 48 hours (the KC-03 rule).**
 
-- Session 1 is the first `session_complete` at or after `installAt` (or the
-  first `session_complete` in the log when `installAt` is missing).
-- Session 2 is the next `session_complete` strictly after session 1.
-- The return counts only when session 2 is at most 48 **elapsed** hours after
-  session 1. This is not two calendar days: two sessions at 09:00 and 21:00 the
-  next day count (36 h); a session 49 hours later does not, even on an adjacent
-  local date.
+- Session 1 is the first `session_start` at or after `installAt` (or the first
+  `session_start` in the log when `installAt` is missing).
+- Session 1's completion is the first `session_complete` at or after session 1's
+  `session_start`.
+- Session 2 is the next `session_start` that is at least 60 minutes after
+  session 1's `session_complete` and at most 48 **elapsed** hours after session
+  1's `session_start`. Two lessons in one sitting are not a return.
+- An install whose session 1 has no `session_complete` stays in the denominator
+  and counts as no return. Dropouts are not excluded.
+- The 48-hour window is anchored to session 1's `session_start`, not to its
+  completion or to `installAt`. This is not two calendar days: two sessions at
+  09:00 and 21:00 the next day count (36 h); a session 49 hours later does not,
+  even on an adjacent local date.
 - Timestamps are UTC in the log. The helper compares instants, not local days.
+- Both arms use this same rule, so the arm difference stays comparable. The rule
+  changed in T5.9; a per-arm rate computed before T5.9 is not comparable and must
+  be recomputed from the exports.
 
 ### Secondary
 
@@ -154,9 +163,11 @@ For each exported log:
    Wilson intervals. A percentage without a denominator is not a result.
 
 `returnMetricsFromLog(log, now: ...)` in
-`flutter_app/lib/core/retention/return_metrics.dart` implements steps 4–5 and
-is covered by `test/return_metrics_test.dart`. It ignores foreign install ids,
-future timestamps, and out-of-order events, and it never throws.
+`flutter_app/lib/core/retention/return_metrics.dart` implements steps 4–5 with
+the KC-03 session-2 rule and is covered by `test/return_metrics_test.dart`. It
+ignores foreign install ids, future timestamps, and out-of-order events, and it
+never throws. Decision 0013 makes this the only session-2 rule in the codebase;
+do not add a looser mode beside it.
 
 ## Running the analysis
 
