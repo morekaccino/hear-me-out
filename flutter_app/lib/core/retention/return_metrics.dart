@@ -5,8 +5,15 @@ import 'retention_log.dart';
 ///
 /// This is 48 elapsed hours, not two calendar days: a session at 09:00 and one
 /// at 21:00 the next day is 36 hours, while two sessions 49 hours apart do not
-/// count even when they fall on adjacent local dates.
+/// count even when they fall on adjacent local dates. KC-03 anchors the window
+/// on session 1's `session_start`, never on its completion or on the install.
 const Duration sessionTwoReturnWindow = Duration(hours: 48);
+
+/// The minimum gap between session 1's completion and session 2's start.
+///
+/// KC-03 measures this from session 1's `session_complete` to session 2's
+/// `session_start`, so two lessons in one sitting are not a return.
+const Duration sessionTwoSittingGap = Duration(minutes: 60);
 
 /// D7 is the local calendar day seven days after the install day.
 const int daySevenOffset = 7;
@@ -23,14 +30,19 @@ class ReturnMetrics {
     required this.day7WindowComplete,
     this.installDay,
     this.firstSessionAt,
+    this.firstSessionCompleteAt,
     this.secondSessionAt,
   });
 
-  /// Whether a `session_complete` event exists at or after the install.
+  /// Whether a `session_start` event exists at or after the install.
+  ///
+  /// This is the KC-03 denominator. A first start without a completion is a
+  /// dropout: it stays in the denominator and counts as no return.
   final bool hasFirstSession;
 
-  /// Whether the next `session_complete` happened within
-  /// [sessionTwoReturnWindow] of session 1.
+  /// Whether a `session_start` met both KC-03 boundaries: within
+  /// [sessionTwoReturnWindow] of session 1's start and at least
+  /// [sessionTwoSittingGap] after session 1's completion.
   final bool returnedWithin48h;
 
   /// Whether any `session_complete` or `daily_active` event landed on the local
@@ -47,11 +59,21 @@ class ReturnMetrics {
   /// install event.
   final String? installDay;
 
-  /// The timestamp of session 1, or null when it has not happened.
+  /// The timestamp of session 1's `session_start`, or null when it has not
+  /// happened.
   final DateTime? firstSessionAt;
 
-  /// The timestamp of the next `session_complete` after session 1, whether or
-  /// not it fell inside [sessionTwoReturnWindow].
+  /// The timestamp of session 1's `session_complete`, or null when session 1
+  /// never completed.
+  ///
+  /// A completion belongs to the most recent preceding start. If another
+  /// `session_start` happens before session 1 completes, the next completion
+  /// belongs to that later sitting and session 1 stays incomplete.
+  final DateTime? firstSessionCompleteAt;
+
+  /// The `session_start` that qualified as session 2, or null when no start
+  /// met both boundaries. A start inside the sitting gap or outside the window
+  /// is not session 2.
   final DateTime? secondSessionAt;
 
   /// The elapsed time between session 1 and session 2, when both exist.
@@ -74,9 +96,14 @@ class ReturnMetrics {
 /// 3. The install day comes from [RetentionLog.installAt] when it is pinned and
 ///    the log is not made only of foreign events. Otherwise it falls back to
 ///    the first matching `app_open`, then to the first matching event.
-/// 4. Session 1 is the first `session_complete` at or after the install.
-///    Session 2 is the next `session_complete` strictly after session 1. The
-///    return counts only when that gap is at most [sessionTwoReturnWindow].
+/// 4. Session 1 is the first `session_start` at or after the install. Its
+///    completion is the first `session_complete` after that start with no
+///    intervening `session_start`; a completion after another start belongs to
+///    that later sitting, so session 1 stays incomplete. Session 2 is the first
+///    `session_start` that is at least [sessionTwoSittingGap] after session 1's
+///    completion and at most [sessionTwoReturnWindow] after session 1's start.
+///    A session 1 with no completion stays in the denominator but cannot have
+///    a session 2.
 /// 5. D7 is the whole local calendar day seven days after the install day,
 ///    from 00:00 through 23:59 local. Any `session_complete` or `daily_active`
 ///    event on that day counts. The window is inclusive of its end.
@@ -93,14 +120,14 @@ ReturnMetrics returnMetricsFromLog(RetentionLog log, {DateTime? now}) {
 
   final installAt = _resolveInstallAt(log, events, at);
   final firstSession = _firstSession(events, installAt);
-  final secondSession = firstSession == null
+  final firstSessionComplete = firstSession == null
       ? null
-      : _nextSession(events, firstSession);
+      : _firstSessionComplete(events, firstSession);
+  final secondSession = firstSession == null || firstSessionComplete == null
+      ? null
+      : _sessionTwo(events, firstSession, firstSessionComplete);
 
-  final returnedWithin48h =
-      firstSession != null &&
-      secondSession != null &&
-      secondSession.difference(firstSession) <= sessionTwoReturnWindow;
+  final returnedWithin48h = secondSession != null;
 
   final installDay = installAt == null ? null : localDayKey(installAt);
   final day7 = installDay == null
@@ -122,6 +149,7 @@ ReturnMetrics returnMetricsFromLog(RetentionLog log, {DateTime? now}) {
     day7WindowComplete: day7 != null && _isLocalDayOver(day7, at),
     installDay: installDay,
     firstSessionAt: firstSession,
+    firstSessionCompleteAt: firstSessionComplete,
     secondSessionAt: secondSession,
   );
 }
@@ -146,17 +174,45 @@ DateTime? _resolveInstallAt(
 
 DateTime? _firstSession(List<RetentionEvent> events, DateTime? installAt) {
   for (final event in events) {
-    if (event.name != RetentionEventName.sessionComplete) continue;
+    if (event.name != RetentionEventName.sessionStart) continue;
     if (installAt != null && event.timestamp.isBefore(installAt)) continue;
     return event.timestamp;
   }
   return null;
 }
 
-DateTime? _nextSession(List<RetentionEvent> events, DateTime firstSession) {
+DateTime? _firstSessionComplete(
+  List<RetentionEvent> events,
+  DateTime firstSession,
+) {
   for (final event in events) {
-    if (event.name != RetentionEventName.sessionComplete) continue;
-    if (event.timestamp.isAfter(firstSession)) return event.timestamp;
+    if (event.timestamp.isBefore(firstSession)) continue;
+    if (event.name == RetentionEventName.sessionStart &&
+        event.timestamp.isAfter(firstSession)) {
+      // The completion that follows belongs to this later sitting, not to
+      // session 1.
+      return null;
+    }
+    if (event.name == RetentionEventName.sessionComplete) {
+      return event.timestamp;
+    }
+  }
+  return null;
+}
+
+/// The first `session_start` that satisfies both KC-03 boundaries.
+DateTime? _sessionTwo(
+  List<RetentionEvent> events,
+  DateTime firstSession,
+  DateTime firstSessionComplete,
+) {
+  final earliest = firstSessionComplete.add(sessionTwoSittingGap);
+  final latest = firstSession.add(sessionTwoReturnWindow);
+  for (final event in events) {
+    if (event.name != RetentionEventName.sessionStart) continue;
+    if (event.timestamp.isBefore(earliest)) continue;
+    if (event.timestamp.isAfter(latest)) return null;
+    return event.timestamp;
   }
   return null;
 }

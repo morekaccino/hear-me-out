@@ -165,9 +165,12 @@ Pure domain (`lib/core/retention/`):
 - `RetentionEvent` — name, UTC timestamp, install id.
 - `RetentionLog` — `record`, `funnel`, `activeDays`, `retainedOnDay`,
   `d1Retained`, `d7Retained`, `d30Retained`, `exportJson`.
-- `ReturnMetrics` / `returnMetricsFromLog` — session-2 within 48 elapsed hours
-  and D7 activity for the reminder experiment; see
-  [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md).
+- `ReturnMetrics` / `returnMetricsFromLog` — the KC-03 session-2 rule (the first
+  `session_start` within 48 elapsed hours of session 1's start and at least 60
+  minutes after session 1's completion, with incomplete first sessions kept in
+  the denominator) and D7 activity for the reminder experiment; see
+  [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and
+  [`decisions/0013-session-two-definition.md`](decisions/0013-session-two-definition.md).
 
 Storage (`lib/core/storage/retention_store.dart`):
 
@@ -189,8 +192,10 @@ State (`lib/state/retention_controller.dart`):
 
 - `test/retention_test.dart` — event names, bound, timestamp-ordered funnel,
   D1/D7/D30, pinned install day, export fields, and the pure-domain import rule.
-- `test/return_metrics_test.dart` — session-2 at 47/48/49 hours, same-day
-  sessions, D7 boundaries, future timestamps, and foreign install ids.
+- `test/return_metrics_test.dart` — the KC-03 sitting boundary (two lessons in
+  one sitting, 59 versus 60 minutes after completion), the 48-hour window at
+  47/48/49 hours anchored to session 1's start, incomplete first sessions in the
+  denominator, D7 boundaries, future timestamps, and foreign install ids.
 - `test/retention_store_test.dart` — default opt-out, round trip, corrupt and
   future data, bad event entries, bound on load, install-day persistence.
 - `test/retention_controller_test.dart` — opt-in gating, persistence, erase,

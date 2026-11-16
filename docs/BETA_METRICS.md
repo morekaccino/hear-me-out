@@ -195,24 +195,25 @@ the difference, and do not pool the two.
 > to its completion or to `installAt`). Session 2 must follow session 1's
 > `session_complete` by at least 60 minutes; that sitting boundary is a proposed
 > operational definition (open questions, section 8). Denominator: installs in
-> the cohort window with a completed first session. Dropouts stay in the
+> the cohort window with a first `session_start`; dropouts stay in the
 > denominator.
 
 How to apply it:
 
 - Session 1 is the first `session_start` for the install.
-- Session 1's completion is the first `session_complete` at or after session 1's
-  `session_start`.
-- Session 2 is the next `session_start` strictly after session 1's
-  `session_start`. It counts only when it is within 48 elapsed hours of session
-  1's `session_start` and at least 60 minutes after session 1's
-  `session_complete`.
+- Session 1's completion is the first `session_complete` after session 1's
+  `session_start` with no intervening `session_start`. If another start happens
+  first, the completion belongs to that later sitting and session 1 is a
+  dropout.
+- Session 2 is the first `session_start` that satisfies both conditions: within
+  48 elapsed hours of session 1's `session_start` and at least 60 minutes after
+  session 1's `session_complete`.
 - Numerator: installs with a qualifying session 2.
-- Denominator: installs in the cohort window with a completed first session (a
-  session 1 `session_start` and its `session_complete`). Dropouts after the
-  first completed session stay in the denominator.
-- An install whose first `session_start` has no `session_complete` is not in the
-  denominator.
+- Denominator: installs in the cohort window with a first `session_start`.
+  Dropouts stay in the denominator.
+- An install whose first `session_start` has no `session_complete` is a
+  session-1 user who did not return. It stays in the denominator; it cannot
+  have a qualifying session 2.
 - Session 2 does not need its own `session_complete`; the metric is a return,
   not a completed second session.
 - The 48-hour window is complete only when the export or data freeze is at least
@@ -225,18 +226,15 @@ How to apply it:
   adopted here as the only definition for this beta by
   [decision 0013](decisions/0013-session-two-definition.md).
 
-**Diagnostic helper.** `returnMetricsFromLog` in
-`flutter_app/lib/core/retention/return_metrics.dart` is diagnostic only. It
-anchors session 1 on the first `session_complete` and session 2 on the next
-`session_complete`, with no 60-minute sitting boundary. That is looser than
-KC-03 and can count two lessons in one sitting as a return. It remains the
-helper for the T5.6 reminder-copy comparison, where both arms use the same rule.
-It must never be quoted as KC-03 or used for the beta's headline session-2
-number. Any tool that reports KC-03 computes it from the exported
-`session_start` and `session_complete` events. The helper defaults `now` to the
-current clock, so the analyst must pass the data-freeze time or filter the
-exported events to the freeze before calling it; otherwise a later event can
-enter the result.
+**The helper implements this rule.** `returnMetricsFromLog` in
+`flutter_app/lib/core/retention/return_metrics.dart` computes session 1 from the
+first `session_start`, session 2 from the first `session_start` that clears the
+60-minute sitting boundary and the 48-hour window, and keeps an incomplete first
+session in the denominator. T5.9 aligned it with KC-03, so the T5.6 reminder
+report and any tool that calls it report the same definition as this page; there
+is no second session-2 rule. The helper defaults `now` to the current clock, so
+the analyst must pass the data-freeze time or filter the exported events to the
+freeze before calling it; otherwise a later event can enter the result.
 
 The per-arm reminder analysis is owned by the reminder report. This page defines
 the KC-03 rule only; it does not duplicate the arm comparison, exposure
@@ -345,7 +343,7 @@ export cannot answer it.
 | Recordings beyond the first | No | The log records `first_recording` once. |
 | Two takes of the same piece, before/after pairs, KC-12 | No | The recordings manifest is not exported by the app. A separate export ticket is needed. |
 | Notification permission grant | No | Facilitator records the answer once per participant. `reminder_opt_in` is a lower bound on exposure, not permission. |
-| Reminder copy arm and per-arm session-2/D7 | Only with the reminder protocol | [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and its report tool. Its session-2 helper is diagnostic and is not KC-03. This page does not duplicate it. |
+| Reminder copy arm and per-arm session-2/D7 | Only with the reminder protocol | [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md) and its report tool. Its session-2 helper now computes the same KC-03 rule. This page does not duplicate the arm comparison. |
 | Uninstall, churn reason | No | Interview only. |
 | Crashes, ANRs, frame time, battery | No | Not measured. There is no crash reporting or performance telemetry. |
 | Revenue, paywall conversion, subscription | No | Not measured. There is no paywall or store product in this build. |
@@ -354,13 +352,13 @@ export cannot answer it.
 
 ### Source conflicts and caveats
 
-- **Session-2 (resolved).** `returnMetricsFromLog` anchors on `session_complete`
-  and has no 60-minute sitting boundary. KC-03 anchors on `session_start` and
-  requires the boundary. [Decision
+- **Session-2 (resolved and aligned).** [Decision
   0013](decisions/0013-session-two-definition.md) rules that KC-03 is the only
-  definition for a gate or beta report and that the helper is diagnostic only.
-  This page follows decision 0013; the helper must not supply the headline
-  number.
+  definition for a gate, a beta report, or the helper. T5.9 aligned
+  `returnMetricsFromLog` with it: first `session_start`, the 60-minute sitting
+  boundary, the 48-hour window anchored to session 1's start, and incomplete
+  first sessions kept in the denominator. A rate computed before T5.9 is not
+  comparable and must be recomputed from the exports.
 - [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
   false-fail and false-pass. This beta cannot supply that. Phrase accuracy stays
   with T1.6/T1.7. The gate owner should correct the source line.
@@ -398,9 +396,8 @@ export cannot answer it.
 - [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md): event names,
   storage shape, opt-in, export, erase, and the bias caveat.
 - [`REMINDER_EXPERIMENT.md`](REMINDER_EXPERIMENT.md): the pre-registered
-  reminder-copy arm, its stricter D7, its diagnostic session-2 helper, and its
-  decision rule. Its report tool owns the per-arm analysis; its helper is not
-  KC-03.
+  reminder-copy arm, its stricter D7, its KC-03 session-2 rule, and its decision
+  rule. Its report tool owns the per-arm analysis and calls the shared helper.
 - [`KILL_CRITERIA_DASHBOARD.md`](KILL_CRITERIA_DASHBOARD.md): locked thresholds
   for KC-03 (session-2), KC-04 (first recording), KC-06/KC-09 (D30/D7), and
   KC-12 (before/after recordings). This page defines the fields; the dashboard

@@ -473,15 +473,17 @@ In one line each:
   day, with that day's window closed.
 - **First recording by day 7:** a `first_recording` event on local day 0 through
   the end of local day 7.
-- **Session-2 within 48 hours (KC-03):** the next `session_start` within 48
-  elapsed hours of session 1's `session_start`, at least 60 minutes after
-  session 1's `session_complete`; the denominator is installs with a completed
-  first session, and dropouts stay in it.
+- **Session-2 within 48 hours (KC-03):** the first `session_start` that is
+  within 48 elapsed hours of session 1's `session_start` and at least 60
+  minutes after session 1's `session_complete`; the denominator is installs
+  with a first `session_start`, and dropouts stay in it.
 
 The headline session-2 number is KC-03, computed from `session_start` and
-`session_complete`. Do not use `returnMetricsFromLog` for it: that helper is
-diagnostic only, anchors on `session_complete`, and has no 60-minute sitting
-boundary. See [decision 0013](decisions/0013-session-two-definition.md).
+`session_complete`. `returnMetricsFromLog` implements the same rule after T5.9:
+first `session_start`, the 60-minute sitting boundary, the 48-hour window
+anchored to session 1's start, and incomplete first sessions kept in the
+denominator. See [decision 0013](decisions/0013-session-two-definition.md).
+Pass the data-freeze time as `now` or filter the export to it first.
 
 The short procedure:
 
@@ -665,13 +667,13 @@ The short rule is: if the field is not `name`, `at`, `installId`, or
 These are recorded here so the manager can correct the source, not silently
 worked around:
 
-1. **Session-2 is settled.** [Decision
+1. **Session-2 is settled and aligned.** [Decision
    0013](decisions/0013-session-two-definition.md) makes KC-03 the only
-   session-2 definition for a gate or beta report. `returnMetricsFromLog` is
-   diagnostic only and must not supply the headline number. The beta kit uses
-   KC-03: anchor on `session_start`, require the next `session_start` within 48
-   hours of session 1's `session_start` and at least 60 minutes after session 1's
-   `session_complete`, and keep dropouts in the denominator.
+   session-2 definition for a gate, a beta report, or the helper. T5.9 aligned
+   `returnMetricsFromLog`: anchor on `session_start`, require the first
+   `session_start` that is within 48 hours of session 1's `session_start` and at
+   least 60 minutes after session 1's `session_complete`, and keep dropouts in
+   the denominator.
 2. [`PHASE_GATES.md`](PHASE_GATES.md) P1.3 lists T5.7 as a source for phrase
    false-fail and false-pass. This beta cannot supply that: the scored loop is
    off and the log has no note-level data. Phrase accuracy stays with T1.6 and
