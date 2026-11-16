@@ -33,13 +33,15 @@ class TakeShareResult {
 /// uploads, syncs, or posts anything by itself; the user chooses a
 /// destination in the platform sheet.
 abstract interface class TakeShareGateway {
-  /// Shares [paths] together, with an optional subject line.
+  /// Shares [paths] together, with optional [subject] and [text].
   ///
+  /// [text] is a short hand-written message, never generated stats or a link.
   /// Returns a typed result instead of throwing so the UI can keep the
   /// exported files available when sharing is unavailable.
   Future<TakeShareResult> shareFiles(
     List<String> paths, {
     String? subject,
+    String? text,
   });
 }
 
@@ -55,5 +57,6 @@ class UnsupportedTakeShareGateway implements TakeShareGateway {
   Future<TakeShareResult> shareFiles(
     List<String> paths, {
     String? subject,
+    String? text,
   }) async => TakeShareResult(TakeShareStatus.unavailable, message: message);
 }

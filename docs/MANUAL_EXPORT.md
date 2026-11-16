@@ -124,6 +124,18 @@ The standard PDF fonts cover WinAnsi/Latin-1, so the current launch list
 composer outside that range needs a bundled font; no font asset is bundled
 today.
 
+## Sharing the before/after card (T8.6)
+
+The private before/after card (T4.4) has an explicit **SHARE CARD** action. It
+renders the same PNG as **EXPORT CARD**, writes it through the same export
+seam, and hands that one file plus the plain invitation in
+`beforeAfterInviteText` to the OS share sheet through `TakeShareGateway`. The
+audio is never included, and the card has no score, link, referral code, or
+install attribution. On web the browser downloads the PNG and app code never
+calls `share_plus`. A successful share records one local `card_shared` event;
+it is not a shares-to-installs metric. See
+[decision 0012](decisions/0012-share-card-invitation-boundary.md).
+
 ## Consent, privacy, and deletion
 
 - The export is student-initiated and explicit. The header sheet is shown before

@@ -12,7 +12,8 @@ enum RetentionEventName {
   sessionStart('session_start'),
   sessionComplete('session_complete'),
   dailyActive('daily_active'),
-  reminderOptIn('reminder_opt_in');
+  reminderOptIn('reminder_opt_in'),
+  cardShared('card_shared');
 
   const RetentionEventName(this.wireName);
 

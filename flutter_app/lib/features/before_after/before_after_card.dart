@@ -134,7 +134,8 @@ class BeforeAfterCard extends StatelessWidget {
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
-                  'Private. Stays on this device unless you export it.',
+                  'Private. Stays on this device unless you export or share '
+                  'it.',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
