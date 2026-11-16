@@ -25,6 +25,7 @@ flutter_app/lib/
 │   ├── audio/       YIN detector, PCM capture, note matcher
 │   ├── notation/    StaffGeometry and StaffPainter
 │   ├── retention/   Pure-Dart retention events, bounded log, funnel helpers
+│   ├── content/     Pure-Dart reference-take manifest contract and validator
 │   └── storage/     shared_preferences JSON store, export/import
 ├── content/         lesson material: objectives, templates, session factories
 ├── features/        onboarding, path, today, reading_lab, lesson, practice, quests, profile
@@ -45,6 +46,13 @@ families, roles, and capabilities, never about notes, staffs, or chords.
 `content` holds everything teachable and depends on `core`, not the other way
 around. A test in `test/composer_test.dart` enforces that `lib/core` never
 imports `lib/content`.
+
+`core/content` is not `lib/content`. `lib/content` is the teachable content
+layer: objectives, templates, session factories, and the launch-piece
+descriptions. `core/content` is the pure-Dart contract for human reference-take
+metadata. It must stay usable without the content layer, so it exposes a
+`ReferenceTakeCatalog` interface and accepts the real phrase list from the CLI
+instead of importing `lib/content`.
 
 `core/learning` imports `core/music`; it does not import Flutter widgets.
 `core/audio/note_matcher.dart` depends on `core/music/guitar.dart` and
@@ -127,6 +135,28 @@ Tests live in `test/note_event_test.dart`, `test/phrase_test.dart`,
 `test/score_test.dart`, `test/score_parser_test.dart`,
 `test/launch_pieces_test.dart`, and `test/media_store_test.dart`; fixtures are
 in `test/fixtures/score/`.
+
+## Reference-take contract (T3.11)
+
+`core/content/reference_take.dart` is the versioned manifest contract for the
+human reference takes: one take per launch phrase at target and slow tempo. It
+holds the `ReferenceTake` model and the strict `ReferenceTakeManifest` parser.
+Unknown fields are ignored; wrong types, unknown variants, malformed dates, and
+future schema versions are rejected. `core/content/reference_take_validator.dart`
+holds the semantic rules: real piece and phrase ids, the target and 60–75% slow
+tempo envelope, duplicate keys and files, non-positive durations, blank
+metadata, and unsafe file paths. `--require-complete` adds the one-target and
+one-slow-take-per-phrase check; the default accepts a subset so recordings can
+arrive incrementally.
+
+This is **not** `lib/content`. It is a pure-Dart metadata contract with no
+objectives, templates, scores, or widgets. It resolves phrases through the
+`ReferenceTakeCatalog` interface; the CLI builds the real catalog from the ten
+launch arrangements. The app does not load or play the takes yet, and decision
+0010 keeps the phrase player out of main navigation. The recordings themselves
+are T3.5 and remain outstanding; the manifest ships empty.
+
+Tests live in `test/reference_take_test.dart`.
 
 ## Phrase player (T2.5)
 
