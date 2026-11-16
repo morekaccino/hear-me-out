@@ -453,6 +453,32 @@ void main() {
       );
     });
 
+    test('rejects blank guitar, microphone, and consentId values', () {
+      final issues = validateTakes(<Map<String, dynamic>>[
+        takeJsonWith(<String, dynamic>{
+          'guitar': ' ',
+          'microphone': '',
+          'consentId': '   ',
+        }),
+      ]);
+
+      expectIssue(
+        issues,
+        code: 'referenceTake.emptyMetadata',
+        path: 'takes[0].guitar',
+      );
+      expectIssue(
+        issues,
+        code: 'referenceTake.emptyMetadata',
+        path: 'takes[0].microphone',
+      );
+      expectIssue(
+        issues,
+        code: 'referenceTake.emptyMetadata',
+        path: 'takes[0].consentId',
+      );
+    });
+
     test('rejects a duplicate file path', () {
       final issues = validateTakes(<Map<String, dynamic>>[
         validTakeJson(),

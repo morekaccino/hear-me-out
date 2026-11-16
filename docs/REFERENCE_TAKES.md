@@ -190,7 +190,8 @@ take.
 Unknown fields are ignored for forward compatibility. Unknown enum values,
 wrong types, a malformed date, a missing required field, and a future
 `schemaVersion` are rejected with a field path such as
-`takes[0].variant`.
+`takes[0].variant`. A blank `guitar`, `microphone`, or `consentId` is a
+validation error, not a missing-field parse error.
 
 ## 8. Consent, storage, and deletion
 
@@ -278,8 +279,8 @@ Parse codes: `referenceTake.schemaVersion`, `referenceTake.futureSchema`,
 Validation codes: `referenceTake.missingKey`, `referenceTake.duplicateKey`,
 `referenceTake.unknownPiece`, `referenceTake.unknownPhrase`,
 `referenceTake.bpmOutsideTempoEnvelope`,
-`referenceTake.durationNotPositive`, `referenceTake.emptyFile`, and
-`referenceTake.duplicateFile`.
+`referenceTake.durationNotPositive`, `referenceTake.emptyFile`,
+`referenceTake.duplicateFile`, and `referenceTake.emptyMetadata`.
 
 ## 10. Per-take checklist
 

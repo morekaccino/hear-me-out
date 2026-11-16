@@ -67,7 +67,7 @@ class ReferenceTakeIssue {
 /// Structural failures (missing fields, wrong types, unknown variants, future
 /// schema versions) are rejected by the parser. This validator owns the rules
 /// that need the piece registry: unknown ids, the tempo envelope, duplicate
-/// keys and files, and non-positive durations.
+/// keys and files, non-positive durations, and blank metadata.
 class ReferenceTakeValidator {
   const ReferenceTakeValidator(this.catalog);
 
@@ -154,6 +154,34 @@ class ReferenceTakeValidator {
             'referenceTake.durationNotPositive',
             '$path.durationMs',
             'durationMs must be greater than zero.',
+          ),
+        );
+      }
+
+      if (take.guitar.trim().isEmpty) {
+        issues.add(
+          _issue(
+            'referenceTake.emptyMetadata',
+            '$path.guitar',
+            'guitar is empty; record the instrument and strings used.',
+          ),
+        );
+      }
+      if (take.microphone.trim().isEmpty) {
+        issues.add(
+          _issue(
+            'referenceTake.emptyMetadata',
+            '$path.microphone',
+            'microphone is empty; record the microphone and placement used.',
+          ),
+        );
+      }
+      if (take.consentId.trim().isEmpty) {
+        issues.add(
+          _issue(
+            'referenceTake.emptyMetadata',
+            '$path.consentId',
+            'consentId is empty; every take must link to a signed release.',
           ),
         );
       }
