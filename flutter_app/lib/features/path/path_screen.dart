@@ -19,6 +19,7 @@ import '../../shared/widgets/progress_widgets.dart';
 import '../../shared/widgets/tappable.dart';
 import '../../state/app_controller.dart';
 import '../../state/providers.dart';
+import '../first_session/first_session_card.dart';
 import '../lesson/lesson_screen.dart';
 import '../placement/placement_prompt_card.dart';
 import 'learn_rail.dart';
@@ -141,6 +142,7 @@ class PathScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SliverToBoxAdapter(child: FirstSessionCard()),
               const SliverToBoxAdapter(child: PlacementPromptCard()),
               for (final section in sections) ...[
                 if (section.number > currentSectionNumber)

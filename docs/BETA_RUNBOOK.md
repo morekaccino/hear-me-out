@@ -336,10 +336,11 @@ minutes, so weekly minutes are interview evidence, not a log metric.
 4. Finish onboarding and the first session. The first session is practice-only:
    hear four notes, play them back, see one correction, record ten seconds if
    they want, and finish. Tell them it is not a test and nothing is scored.
-   **The guided first session is only pushed once after onboarding in this
-   build and cannot be reopened after SKIP FOR NOW.** If they skip it, record
-   the skip, ask them to do a normal lesson instead, and log the missing re-entry
-   as a blocker. A session on a later day is a return, not day-0 activation.
+   **T5.8 adds one honest re-entry after SKIP FOR NOW:** the Path shows a
+   **Your first 3 minutes** card until the flow is completed. A skip hides the
+   card for the rest of that app run and it returns on the next open. If they
+   skip it, record the skip and ask them to use the Path card later; a session
+   on a later day is a return, not day-0 activation.
 5. Ask them not to clear site data, use incognito, switch browsers, or
    uninstall the APK during the beta. A new browser profile or a reinstall is a
    new install id.

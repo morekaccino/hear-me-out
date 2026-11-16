@@ -676,7 +676,7 @@ in-flight disable, typed failure, stored evidence vs no evidence vs unavailable,
 cancelled share with a neutral notice, web download, clear-exports success and
 failure, hidden on web).
 
-## First session (T5.2)
+## First session (T5.2, re-entry in T5.8)
 
 `features/first_session/first_session_screen.dart` owns a five-step, practice-only
 flow pushed after onboarding: intro, hear, play, correction, 10-second record,
@@ -690,6 +690,15 @@ path). The flow records the existing local funnel events (`first_note`,
 `first_phrase`, `session_start`, `session_complete`, `daily_active`) and real
 elapsed guitar time. It is not the scored phrase loop; decision 0001 still gates
 that path.
+
+T5.8 persists the invitation state in `AppSettings.firstSessionStatus`
+(`notStarted`, `skipped`, `completed`). `FirstSessionCard` is the only Path
+entry while the status is not `completed`. SKIP FOR NOW writes `skipped` and
+also sets the in-memory `firstSessionRunSkipProvider`, which hides the card
+until the process restarts; the card returns on the next app open. Reaching the
+done step writes `completed`, and the card never returns. A v9 save migrates to
+`completed` because its owner already used the app. None of these writes changes
+the practice-only evidence rule above.
 
 ## Local reminders and weekly recap (T2.9)
 
@@ -710,8 +719,8 @@ after every committed save, so the recap and Today's performance-day cadence
 re-read the index even when the take was recorded from the Practice route.
 `RecordingController` asks the scheduler for the “before/after ready” alert only
 after a saved take makes a piece’s second take, and only when reminders are
-enabled. The reminder settings are part of `AppSettings`; progress schema 9
-migrates a v8 document with reminders off.
+enabled. The reminder settings are part of `AppSettings`; the schema v8 → v9
+step migrates an older document with reminders off.
 
 ## Retention instrumentation
 
@@ -1143,9 +1152,9 @@ page places a 372 px quest rail beside the path at 1000 px and wider.
 
 `ProgressState.toJson` / `fromJson` handle the full document. `importProgress`
 and store loading go through `_decodeProgress`, which runs the pure migration
-pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 9.
+pipeline in `core/storage/progress_migrations.dart`. `currentSchemaVersion` is 10.
 
-### Schema v9 migration pipeline
+### Schema v10 migration pipeline
 
 `migrateProgress` takes a decoded map and returns a `MigrationSuccess` with a
 new map or a `MigrationFailure` with a reason. It has no IO, clock, or random
@@ -1161,12 +1170,15 @@ input, and it never mutates its argument. The steps are explicit:
 | v6 → v7 | remove `hearts`, `nextHeartAt`, `streakFreezes`, and the XP `dailyGoalXp`; map `lastCompletedDay` to `lastPracticeDay`; add `weeklyGoalMinutes` (default 30), `streakEnabled` (default false), and an empty `practiceSecondsByDay` |
 | v7 → v8 | remove `gems`, `xpBoostUntil`, `openedChests`, `claimedQuests`, and `questDay`; add `quests` with empty day/week, zero counters, and an empty learned-bars map |
 | v8 → v9 | add `reminderEnabled` (default false), `reminderHour` (default 19), and `reminderMinute` (default 0); the validator checks the bool and the 0–23 / 0–59 clock ranges |
+| v9 → v10 | add `firstSessionStatus` (default `completed` for an existing save); the validator accepts only `notStarted`, `skipped`, or `completed`; a fresh profile starts at `notStarted` without migrating |
 
-A v9 document is returned as an equivalent new map, not migrated again. A v8
-document gains the reminder defaults and keeps every other field. The
+A v10 document is returned as an equivalent new map, not migrated again. A v9
+document gains the default first-session status and keeps every other field. The
 migration never invents practice minutes or quest progress: old saves have no
 measured guitar time or phrase/recording/bars evidence, so the weekly goal and
-the quest counters start at zero until the learner acts.
+the quest counters start at zero until the learner acts. A v9 owner already used
+the app, so their first-session status becomes `completed`; re-showing the Path
+invitation would nag an existing learner.
 Unknown top-level fields are copied through and re-emitted by
 `ProgressState.toJson`, so a newer build can add fields without an older build
 deleting them. A known field always wins over an unknown field with the same

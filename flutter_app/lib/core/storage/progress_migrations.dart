@@ -7,10 +7,18 @@
 library;
 
 /// The schema version this build reads and writes.
-const int latestProgressSchemaVersion = 9;
+const int latestProgressSchemaVersion = 10;
 
 /// The oldest schema version the pipeline can migrate.
 const int oldestProgressSchemaVersion = 1;
+
+/// Kept literal so this file stays independent of the progress model it
+/// migrates into.
+const Set<String> _firstSessionStatusNames = <String>{
+  'notStarted',
+  'skipped',
+  'completed',
+};
 
 /// The result of [migrateProgress].
 sealed class MigrationResult {
@@ -76,6 +84,7 @@ MigrationResult migrateProgress(Map<String, dynamic> json) {
     if (version <= 6) migrated = _v6ToV7(migrated);
     if (version <= 7) migrated = _v7ToV8(migrated);
     if (version <= 8) migrated = _v8ToV9(migrated);
+    if (version <= 9) migrated = _v9ToV10(migrated);
     _validateCurrent(migrated);
   } on FormatException catch (error) {
     return MigrationFailure(error.message);
@@ -270,6 +279,22 @@ Map<String, dynamic> _v8ToV9(Map<String, dynamic> json) {
   return out;
 }
 
+/// v9 → v10: add the guided first-session state.
+///
+/// A v9 save belongs to someone who used the app before the field existed, so
+/// it migrates to `completed`. Re-showing the invitation would nag an existing
+/// learner. A fresh install creates [ProgressState.fresh] with `notStarted`
+/// and never passes through this migration. No lesson, note, phrase, or quest
+/// evidence is touched.
+Map<String, dynamic> _v9ToV10(Map<String, dynamic> json) {
+  final out = _copyMap(json);
+  final settings = _readStringMap(out['settings'], 'progress.settings');
+  _defaultValue(settings, 'firstSessionStatus', 'completed');
+  out['settings'] = settings;
+  out['schemaVersion'] = 10;
+  return out;
+}
+
 void _applySettingsDefaults(Map<String, dynamic> json) {
   final settings = _readStringMap(json['settings'], 'progress.settings');
   _defaultValue(settings, 'answerMode', 'mixed');
@@ -369,6 +394,15 @@ void _validateCurrent(Map<String, dynamic> json) {
     if (weeklyGoalMinutes < 1 || weeklyGoalMinutes > 24 * 60) {
       throw const FormatException(
         'progress.settings.weeklyGoalMinutes must be between 1 and 1440',
+      );
+    }
+    final firstSessionStatus = settings['firstSessionStatus'];
+    if (firstSessionStatus != null &&
+        (firstSessionStatus is! String ||
+            !_firstSessionStatusNames.contains(firstSessionStatus))) {
+      throw const FormatException(
+        'progress.settings.firstSessionStatus must be notStarted, skipped, '
+        'or completed',
       );
     }
     final streakEnabled = settings['streakEnabled'];

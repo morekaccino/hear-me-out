@@ -22,6 +22,21 @@ AppThemeMode appThemeModeFromName(String? value) {
   );
 }
 
+/// The persisted state of the guided first session (T5.8).
+///
+/// `notStarted` is the fresh-install default. `skipped` remembers a real
+/// SKIP FOR NOW so the Path card returns on the next launch, not forever.
+/// `completed` hides the entry for good. None of these states writes FSRS,
+/// mastery, XP, streak, or quest evidence (decision 0010).
+enum FirstSessionStatus { notStarted, skipped, completed }
+
+FirstSessionStatus firstSessionStatusFromName(String? value) {
+  return FirstSessionStatus.values.firstWhere(
+    (status) => status.name == value,
+    orElse: () => FirstSessionStatus.notStarted,
+  );
+}
+
 class AppSettings {
   const AppSettings({
     this.answerMode = AnswerMode.mixed,
@@ -36,6 +51,7 @@ class AppSettings {
     this.reminderMinute = defaultReminderMinute,
     this.onboardingComplete = false,
     this.themeMode = AppThemeMode.system,
+    this.firstSessionStatus = FirstSessionStatus.notStarted,
   });
 
   final AnswerMode answerMode;
@@ -58,6 +74,10 @@ class AppSettings {
   final bool onboardingComplete;
   final AppThemeMode themeMode;
 
+  /// Tracks the guided first-session invitation. Fresh installs start at
+  /// [FirstSessionStatus.notStarted]; a migrated profile starts completed.
+  final FirstSessionStatus firstSessionStatus;
+
   AppSettings copyWith({
     AnswerMode? answerMode,
     int? toleranceCents,
@@ -71,6 +91,7 @@ class AppSettings {
     int? reminderMinute,
     bool? onboardingComplete,
     AppThemeMode? themeMode,
+    FirstSessionStatus? firstSessionStatus,
   }) {
     return AppSettings(
       answerMode: answerMode ?? this.answerMode,
@@ -85,6 +106,7 @@ class AppSettings {
       reminderMinute: reminderMinute ?? this.reminderMinute,
       onboardingComplete: onboardingComplete ?? this.onboardingComplete,
       themeMode: themeMode ?? this.themeMode,
+      firstSessionStatus: firstSessionStatus ?? this.firstSessionStatus,
     );
   }
 
@@ -101,6 +123,7 @@ class AppSettings {
     'reminderMinute': reminderMinute,
     'onboardingComplete': onboardingComplete,
     'themeMode': themeMode.name,
+    'firstSessionStatus': firstSessionStatus.name,
   };
 
   factory AppSettings.fromJson(Map<String, dynamic>? json) {
@@ -125,6 +148,9 @@ class AppSettings {
               .clamp(0, 59),
       onboardingComplete: json['onboardingComplete'] as bool? ?? false,
       themeMode: appThemeModeFromName(json['themeMode'] as String?),
+      firstSessionStatus: firstSessionStatusFromName(
+        json['firstSessionStatus'] as String?,
+      ),
     );
   }
 }

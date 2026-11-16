@@ -160,6 +160,22 @@ class AppController extends AsyncNotifier<AppData> {
     await _save();
   }
 
+  /// Records the guided first-session state for the Path entry (T5.8).
+  ///
+  /// It only changes the invitation status. The practice-only flow still
+  /// writes no FSRS, mastery, XP, streak, or quest evidence (decision 0010).
+  /// Completion is monotonic: a later skip cannot downgrade it.
+  Future<void> setFirstSessionStatus(FirstSessionStatus status) async {
+    final data = _data;
+    final current = data.progress.settings.firstSessionStatus;
+    if (current == status || current == FirstSessionStatus.completed) return;
+    data.progress.settings = data.progress.settings.copyWith(
+      firstSessionStatus: status,
+    );
+    state = AsyncData(data.copyWith(progress: data.progress));
+    await _save();
+  }
+
   void startLesson(String lessonId, {required bool micAvailable}) {
     final lesson = lessonById[lessonId];
     if (lesson == null) return;
