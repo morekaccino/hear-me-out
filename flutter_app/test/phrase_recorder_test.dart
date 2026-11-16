@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hear_me_out/core/audio/phrase_recorder.dart';
 import 'package:hear_me_out/core/audio/pitch_source.dart';
+import 'package:hear_me_out/core/audio/yin.dart';
 
 import 'support/audio_fixtures.dart';
 import 'support/fakes.dart';
@@ -122,6 +123,16 @@ void main() {
         expect(take.sourceChannels, 2);
         expect(take.sampleRate, PhraseRecorder.analysisSampleRate);
         expect(take.durationSeconds, closeTo(0.5, 0.02));
+
+        // The fixture is left-only. A mono downmix must carry that signal, and
+        // resampling must keep it at 440 Hz rather than silence or a shifted
+        // pitch.
+        final estimate = YinPitchDetector(
+          sampleRate: take.sampleRate.toDouble(),
+        ).detect(take.samples.sublist(0, 8192));
+        expect(estimate.rms, greaterThan(0.005));
+        expect(estimate.voiced, isTrue);
+        expect(estimate.frequency, closeTo(440, 5));
         await recorder.dispose();
       },
     );
@@ -139,13 +150,8 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 40));
         final take = await recorder.stop();
 
-        // The take is 0.25 s of samples. A wall-clock stopwatch would also add
-        // the 40 ms wait, so the tolerance proves the sample clock is the
-        // source of the duration.
-        expect(
-          take.durationSeconds,
-          closeTo(take.samples.length / take.sampleRate, 1e-9),
-        );
+        // The fixture holds 0.25 s of samples. A wall-clock stopwatch would
+        // also add the 40 ms wait and land at 0.29 s, outside the tolerance.
         expect(take.durationSeconds, closeTo(0.25, 0.02));
         await recorder.dispose();
       },
