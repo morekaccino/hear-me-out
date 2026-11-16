@@ -158,6 +158,43 @@ For each exported log:
 is covered by `test/return_metrics_test.dart`. It ignores foreign install ids,
 future timestamps, and out-of-order events, and it never throws.
 
+## Running the analysis
+
+After the beta, run the local helper from `flutter_app/`:
+
+```powershell
+cd flutter_app
+dart run tool/beta/reminder_experiment_report.dart path\to\export1.json path\to\export2.json
+```
+
+It prints both arms with raw numerators and denominators, the 95% Wilson
+intervals, the pre-registered checks, and the verdict. Add `--json` for one
+machine-readable object, and `--now` with an ISO-8601 timestamp that includes an
+explicit offset to reproduce an analysis:
+
+```powershell
+$logs = (Get-ChildItem logs\*.json).FullName
+dart run tool/beta/reminder_experiment_report.dart --json --now 2026-12-01T00:00:00Z $logs
+```
+
+PowerShell does not expand a wildcard for a native command such as `dart`, so
+the file list must be built with `Get-ChildItem` as above, or every path must be
+listed explicitly. The `Get-ChildItem` form is PowerShell-specific.
+
+The helper derives the arm with `reminderVariantForInstall`, so it cannot
+disagree with the app, and it never writes or uploads anything. A malformed
+file is skipped with a counted warning on stderr; an event from another install
+id is counted separately. Exit code `0` means the sample is usable for the
+pre-registered decision, `1` means the sample is insufficient, and `2` means bad
+input. D7 uses the analysis machine's local timezone, so run it where the
+participant lives; if that is unknown, report the limitation instead of
+guessing.
+
+The helper reads `reminder_opt_in` as the exposure signal. An export cannot
+carry the facilitator's answer, so remove the file of any participant who
+enabled the reminder before opting into the log; that person is exposed but
+excluded from the primary comparison.
+
 ## Sample size
 
 The T5.7 beta is 20–40 hand-recruited users, so each arm has roughly 10–20

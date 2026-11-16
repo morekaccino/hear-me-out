@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "installId": "0123456789abcdef0123456789abcdef",
+  "installAt": "2026-03-01T09:00:00.000Z",
+  "events": [
+    {
+      "name": "app_open",
+      "at": "2026-03-01T09:00:00.000Z",
+      "installId": "0123456789abcdef0123456789abcdef"
+    },
+    {
+      "name": "reminder_opt_in",
+      "at": "2026-03-01T09:05:00.000Z",
+      "installId": "0123456789abcdef0123456789abcdef"
+    },
+    {
+      "name": "session_start",
+      "at": "2026-03-01T10:00:00.000Z",
+      "installId": "0123456789abcdef0123456789abcdef"
+    },
+    {
+      "name": "session_complete",
+      "at": "2026-03-01T10:30:00.000Z",
+      "installId": "0123456789abcdef0123456789abcdef"
+    },
+    {
+      "name": "session_complete",
+      "at": "2026-03-02T09:30:00.000Z",
+      "installId": "0123456789abcdef0123456789abcdef"
+    }
+  ]
+}
