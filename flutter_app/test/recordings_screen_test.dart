@@ -694,6 +694,77 @@ void main() {
     await harness.service.dispose();
   });
 
+  testWidgets('the beta manifest exports one JSON file and shares only it', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+    const id = 'take-1';
+    await harness.seedPieceTake(id);
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+    await _reveal(
+      tester,
+      find.byKey(const ValueKey('export-recordings-manifest')),
+    );
+    await tester.tap(find.byKey(const ValueKey('export-recordings-manifest')));
+    await tester.pumpAndSettle();
+
+    expect(harness.bundleExporter.requests, hasLength(1));
+    final request = harness.bundleExporter.requests.single;
+    expect(request.takeId, 'recordings-manifest');
+    expect(request.files, hasLength(1));
+    final file = request.files.single;
+    expect(file.fileName, 'hear-me-out-recordings-manifest.json');
+    expect(file.mimeType, 'application/json');
+
+    final json = jsonDecode(utf8.decode(file.bytes)) as Map<String, dynamic>;
+    expect(json['schemaVersion'], 1);
+    expect(json['generatedAt'], '2026-11-07T09:15:00.000Z');
+    final takes = json['takes'] as List<dynamic>;
+    expect(takes, hasLength(1));
+    final take = takes.single as Map<String, dynamic>;
+    expect(take['pieceId'], 'ode-to-joy');
+    expect(take['phraseId'], 'p1');
+    expect(take['durationSeconds'], 1.0);
+    expect(take['sampleRate'], 22050);
+    expect(take['format'], 'wav');
+    expect(take['firstTake'], isTrue);
+    expect(take['lastTake'], isTrue);
+
+    final encoded = utf8.decode(file.bytes);
+    expect(encoded, isNot(contains(id)));
+    expect(encoded, isNot(contains('audio')));
+    expect(harness.share.sharedPaths, hasLength(1));
+    expect(
+      harness.share.sharedPaths.single.single,
+      contains('hear-me-out-recordings-manifest.json'),
+    );
+    expect(harness.share.subjects.single, 'Hear Me Out recording manifest');
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
+  testWidgets('the beta manifest action is absent with no takes', (
+    tester,
+  ) async {
+    _useSize(tester, const Size(390, 844));
+    final harness = _Harness();
+
+    await tester.pumpWidget(_build(harness));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('recording-manifest-card')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('export-recordings-manifest')),
+      findsNothing,
+    );
+    expect(find.text('No takes yet'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await harness.service.dispose();
+  });
+
   testWidgets('the export header is shown before the share sheet', (
     tester,
   ) async {

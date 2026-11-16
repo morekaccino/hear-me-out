@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../content/pieces/launch_pieces.dart';
 import '../core/media/before_after_share.dart';
 import '../core/media/recording_index.dart';
+import '../core/media/recording_manifest_export.dart';
 import '../core/media/recording_service.dart';
 import '../core/media/take_bundle_exporter.dart';
 import '../core/media/take_export_cleaner.dart';
@@ -149,7 +150,11 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   StreamSubscription<RecordingStopResult>? _autoStops;
   bool _disposed = false;
   bool _exportingBundle = false;
+  bool _exportingManifest = false;
   bool _sharingCard = false;
+
+  static const String _manifestShareSubject =
+      'Hear Me Out recording manifest';
 
   @override
   Future<RecordingScreenState> build() async {
@@ -273,9 +278,9 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   /// untouched. The screen confirms before calling this; it is the only write
   /// path for the exports folder.
   Future<RecordingFailure?> clearExports() async {
-    // Do not delete files while a bundle is being written or shared: the share
+    // Do not delete files while an export is being written or shared: the share
     // sheet may still be reading them.
-    if (_exportingBundle) {
+    if (_exportingBundle || _exportingManifest) {
       return const RecordingFailure(
         RecordingFailureKind.export,
         'An export is in progress. Wait for it to finish, then clear exported '
@@ -341,6 +346,114 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
     return outcome;
   }
 
+  /// Exports one researcher-readable JSON index of the saved takes.
+  ///
+  /// The document is built from [RecordingIndex] metadata only. It contains no
+  /// audio bytes, absolute paths, device name, install id, participant name, or
+  /// free text, and it never changes, deletes, or rewrites a take or the index.
+  /// IO writes the file under the app-support `exports/` folder; web downloads
+  /// it. The OS share sheet is offered when the platform has one.
+  Future<TakeBundleExportOutcome> exportRecordingsManifest() async {
+    if (_exportingBundle || _exportingManifest) {
+      return const TakeBundleExportOutcome(
+        TakeBundleExportStatus.failed,
+        message: 'An export is already in progress.',
+      );
+    }
+    _exportingManifest = true;
+    try {
+      final export = await _service.buildRecordingsManifest(
+        generatedAt: ref.read(clockProvider)().toUtc(),
+      );
+      final bytes = Uint8List.fromList(utf8.encode(export.encodeJson()));
+
+      final TakeBundleResult result;
+      try {
+        final exporter = await ref.read(takeBundleExporterProvider.future);
+        result = await exporter.exportBundle(
+          TakeBundleRequest(
+            takeId: 'recordings-manifest',
+            files: <TakeBundleFile>[
+              TakeBundleFile(
+                fileName: recordingManifestFileName,
+                bytes: bytes,
+                mimeType: 'application/json',
+              ),
+            ],
+          ),
+        );
+      } on TakeBundleExportException catch (error) {
+        return _failBundleExport(
+          error.message,
+          RecordingFailure(
+            RecordingFailureKind.export,
+            error.message,
+            cause: error.cause,
+          ),
+        );
+      } catch (error) {
+        return _failBundleExport(
+          'Could not export the recording manifest.',
+          RecordingFailure(
+            RecordingFailureKind.export,
+            'Could not export the recording manifest.',
+            cause: error,
+          ),
+        );
+      }
+
+      if (_disposed) {
+        return TakeBundleExportOutcome(
+          TakeBundleExportStatus.exported,
+          result: result,
+          message: 'Export written to this device.',
+        );
+      }
+      final share = await _shareBundle(
+        result,
+        subject: _manifestShareSubject,
+      );
+      if (!_disposed) {
+        final latest = state.asData?.value;
+        if (latest != null) {
+          state = AsyncData(
+            latest.copyWith(
+              clearFailure: true,
+              notice: share.message,
+              noticeNeutral:
+                  share.status != TakeBundleExportStatus.shared,
+            ),
+          );
+        }
+      }
+      return TakeBundleExportOutcome(
+        share.status,
+        result: result,
+        message: share.message,
+      );
+    } on FormatException catch (error) {
+      return _failBundleExport(
+        'Could not read the recording list.',
+        RecordingFailure(
+          RecordingFailureKind.export,
+          'Could not read the recording list.',
+          cause: error,
+        ),
+      );
+    } catch (error) {
+      return _failBundleExport(
+        'Could not export the recording manifest.',
+        RecordingFailure(
+          RecordingFailureKind.export,
+          'Could not export the recording manifest.',
+          cause: error,
+        ),
+      );
+    } finally {
+      _exportingManifest = false;
+    }
+  }
+
   /// Builds and exports the manual teacher bundle for one take.
   ///
   /// The bundle is the stored WAV (never re-encoded), a one-page PDF summary,
@@ -351,7 +464,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   /// the OS share sheet is offered once. Nothing is uploaded by the app, and
   /// the stored take is never changed.
   Future<TakeBundleExportOutcome> exportTakeBundle(String id) async {
-    if (_exportingBundle) {
+    if (_exportingBundle || _exportingManifest) {
       return const TakeBundleExportOutcome(
         TakeBundleExportStatus.failed,
         message: 'An export is already in progress.',
@@ -561,15 +674,17 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
   }
 
   Future<({TakeBundleExportStatus status, String message})> _shareBundle(
-    TakeBundleResult result,
-  ) async {
+    TakeBundleResult result, {
+    String subject = 'Hear Me Out practice take',
+  }) async {
     final paths = result.paths;
     if (paths.isEmpty) {
+      final count = result.files.length;
       return (
         status: TakeBundleExportStatus.exported,
         message:
-            'Downloaded ${result.files.length} files. Nothing is uploaded by '
-            'the app.',
+            'Downloaded $count ${count == 1 ? 'file' : 'files'}. '
+            'Nothing is uploaded by the app.',
       );
     }
 
@@ -579,7 +694,7 @@ class RecordingController extends AsyncNotifier<RecordingScreenState> {
           .read(takeShareGatewayProvider)
           .shareFiles(
             paths,
-            subject: 'Hear Me Out practice take',
+            subject: subject,
           );
     } catch (_) {
       share = const TakeShareResult(TakeShareStatus.failed);

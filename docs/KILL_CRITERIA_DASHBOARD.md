@@ -67,7 +67,7 @@ appears in the current-value cell rather than any invented number.
 | **KC-09 D7 retention.** Share of installs active on local day 7 after install day, where the day-7 window has closed. Same local-day rule and cohort as KC-06. | None defined | None defined | ≥18% | `Not measured` | T5.7 beta cohort day-7 follow-up (primary); local opt-in log `daily_active`/`app_open` and `retainedOnDay(7)` (diagnostic); [`RETENTION_INSTRUMENTATION.md`](RETENTION_INSTRUMENTATION.md) | Product/beta lead | 2026-11-07 (baseline) | `INSUFFICIENT DATA` | Fix onboarding, the first session, and the return trigger; no new content or surfaces; record in [T9.2] |
 | **KC-10 3+ sessions/week.** Share of actives (≥1 session in the 4-week pilot) with ≥3 sessions in each of 4 consecutive weeks. Report the denominator and the median sessions/week. The "each of 4 weeks" reading is an open question (section 8). | None defined | None defined | ≥30% of actives | `Not measured` | T5.7 beta cohort session log (primary); local opt-in log `session_start`/`session_complete` (diagnostic) | Product/beta lead | 2026-11-07 (baseline) | `INSUFFICIENT DATA` | Fix onboarding, the first session, and the return trigger; no new content or surfaces; record in [T9.2] |
 | **KC-11 Annual renewal.** Share of annual subscribers whose first renewal succeeds at 12 months ÷ annual subscribers reaching their renewal date. Monthly subscribers are not counted; refunds are reported separately. | None defined | None defined | ≥45% | `Not measured` | Store/subscription ledger; first measurable after 12 months of paid cohorts (T9.9) | Product/growth lead (monetization) | 2026-11-07 (baseline) | `INSUFFICIENT DATA` | The renewal gate blocks Phase 3; fix the price/promise or switch to packs; record in [T9.2] |
-| **KC-12 Beta users with before/after recordings.** Distinct beta users with at least two saved takes of the same piece (first and last take) in the recordings manifest during the beta window. Takes stay local; the researcher needs a manifest export that does not exist yet (see 4.5). | None defined | None defined | ≥20 beta users | `Not measured` | Local recordings manifest `hear_me_out_recordings_v1` in `shared_preferences`; no manifest export action exists today, so T5.7 must add a researcher-readable manifest export before measurement; T5.7 beta cohort | Product/beta lead | 2026-11-07 (baseline) | `INSUFFICIENT DATA` | No performance-improvement claim; keep the before/after card private; extend the beta or fix the record/compare funnel; record in [T9.2] |
+| **KC-12 Beta users with before/after recordings.** Distinct beta users with at least two saved takes of the same piece (first and last take) in the recordings manifest during the beta window. Takes stay local; the participant exports a one-file manifest JSON (see 4.5). | None defined | None defined | ≥20 beta users | `Not measured` | Local recordings manifest `hear_me_out_recordings_v1` in `shared_preferences`; T5.7 adds the participant-sent `hear-me-out-recordings-manifest.json` export from Recordings; T5.7 beta cohort | Product/beta lead | 2026-11-07 (baseline) | `INSUFFICIENT DATA` | No performance-improvement claim; keep the before/after card private; extend the beta or fix the record/compare funnel; record in [T9.2] |
 
 Status legend: `PASS`, `WARN`, `FAIL`, `INSUFFICIENT DATA`. The `WARN` state is
 possible only for KC-05, KC-06, and KC-07 because only those rows have a warning
@@ -155,11 +155,12 @@ band.
   average across all users is not the gate.
 - **Before/after recordings.** Use the versioned local manifest
   `hear_me_out_recordings_v1` in `shared_preferences`; a qualifying user has at
-  least two saved takes of the same piece. The app has no manifest export action
-  today: `RecordingExporter` exports one take's WAV bytes, not the index. T5.7
-  must add a researcher-readable manifest export (or a read-only debug export)
-  before KC-12 can be measured. Recordings never leave the device except through
-  the user's explicit export.
+  least two saved takes of the same piece. **Beta recording index** on
+  Recordings exports one `hear-me-out-recordings-manifest.json` with piece,
+  phrase, UTC save time, duration, sample rate, format, and first/last flags.
+  It has no audio, absolute path, device name, install id, participant name, or
+  free text. The participant sends only the JSON. Recordings never leave the
+  device except through the user's explicit export.
 
 ### 4.6 Bias and what is not evidence
 
@@ -304,6 +305,7 @@ the first gate that depends on it.
 |---|---|---|
 | 2026-11-07 | Created the baseline: twelve criteria, locked thresholds, measurement notes, review protocol, change control, and open questions. All values `INSUFFICIENT DATA`. | [T9.4] |
 | 2026-11-07 | Addressed the independent review: corrected section references, clarified the piece-library and indeterminate wording, reconciled KC-04 with PHASE_GATES P1.5, named the KC-12 manifest-export gap, aligned KC-08 with the T3.9 trigger-4 response, and stated the KC-03 48-hour anchor. Thresholds unchanged; all values remain `INSUFFICIENT DATA`. | [T9.4] |
+| 2026-11-16 | KC-12 data source updated: Recordings now exports the participant-sent one-file manifest JSON. Thresholds unchanged; the value remains `INSUFFICIENT DATA`. | [T5.7] |
 
 [T1.6]: https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/aa34cfe5-eede-405a-be53-07fab816d32f
 [T1.7]: https://plane.mrkazemi.com/hear-me-out/projects/8c4e095a-f411-4e2d-8f92-f558b6701780/issues/b18f6b44-da9b-4fc0-990c-21f3e681d84a

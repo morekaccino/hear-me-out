@@ -11,6 +11,7 @@ import 'recording_encoder.dart';
 import 'recording_exporter.dart';
 import 'recording_index.dart';
 import 'recording_index_store.dart';
+import 'recording_manifest_export.dart';
 
 /// Why a recording operation could not complete.
 enum RecordingFailureKind {
@@ -475,6 +476,24 @@ class RecordingService {
         ),
       );
     }
+  }
+
+  /// Builds the read-only researcher manifest from the stored index.
+  ///
+  /// The method reads the index document and metadata only. It does not
+  /// reconcile, repair, save, delete, or rewrite the index or a take, and it
+  /// does not read audio bytes. A missing index is an empty manifest; an
+  /// unreadable index is thrown to the caller as a typed failure.
+  Future<RecordingManifestExport> buildRecordingsManifest({
+    DateTime? generatedAt,
+  }) async {
+    final loaded = await _indexStore.load();
+    return RecordingManifestExport.fromIndex(
+      loaded ?? RecordingIndex.empty,
+      generatedAt: generatedAt ?? _clock(),
+      sampleRate: PhraseRecorder.analysisSampleRate,
+      format: _encoder.fileExtension,
+    );
   }
 
   /// Reads stored bytes for playback. Returns null when the take is gone.

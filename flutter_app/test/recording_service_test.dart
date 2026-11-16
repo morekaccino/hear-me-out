@@ -302,6 +302,32 @@ void main() {
     await harness.service.dispose();
   });
 
+  test('the recording manifest export is read-only', () async {
+    final harness = _Harness(sampleRate: PhraseRecorder.analysisSampleRate);
+    await harness.record(pieceId: 'ode-to-joy', phraseId: 'ode-to-joy-1');
+    final beforeIndex = harness.indexStore.value;
+    final beforeSaveCount = harness.indexStore.saveCount;
+    final beforeRefs = await harness.store.list();
+
+    final export = await harness.service.buildRecordingsManifest(
+      generatedAt: DateTime.utc(2026, 12, 1, 9),
+    );
+
+    expect(export.schemaVersion, 1);
+    expect(export.takes, hasLength(1));
+    expect(export.takes.single.pieceId, 'ode-to-joy');
+    expect(export.takes.single.phraseId, 'ode-to-joy-1');
+    expect(export.takes.single.sampleRate, PhraseRecorder.analysisSampleRate);
+    expect(export.takes.single.format, 'wav');
+    expect(export.takes.single.firstTake, isTrue);
+    expect(export.takes.single.lastTake, isTrue);
+
+    expect(harness.indexStore.value, beforeIndex);
+    expect(harness.indexStore.saveCount, beforeSaveCount);
+    expect(await harness.store.list(), beforeRefs);
+    await harness.service.dispose();
+  });
+
   test(
     'the encoder seam controls stored bytes, mime type, and export name',
     () async {
